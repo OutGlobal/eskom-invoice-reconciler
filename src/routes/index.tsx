@@ -33,6 +33,7 @@ function Dashboard() {
   const [err, setErr] = useState<string | null>(null);
   const [nmd, setNmd] = useState(90000);
   const [invoiceTotal, setInvoiceTotal] = useState(0);
+  const [invoiceLines, setInvoiceLines] = useState<Record<string, number>>({});
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
