@@ -274,6 +274,18 @@ function Dashboard() {
               </div>
             </Panel>
 
+            {/* Deficit Analysis: line-item cost vs invoice + cost per kWh */}
+            <DeficitAnalysis
+              charges={charges}
+              invoiceLines={invoiceLines}
+              setInvoiceLines={setInvoiceLines}
+              totals={totals}
+            />
+
+            {/* Daily cost vs consumption comparison */}
+            <DailyCostPanel rows={filtered} />
+
+
             <p className="text-xs text-muted-foreground text-center pt-2">
               Tariff: {TARIFF.name} · Zone {TARIFF.zone} · Voltage {TARIFF.voltage} · PF {TARIFF.powerFactor} · Data: {filtered.length.toLocaleString()} intervals
             </p>
