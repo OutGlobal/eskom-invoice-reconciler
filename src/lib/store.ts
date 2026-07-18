@@ -43,9 +43,43 @@ export interface CustomerInfo {
   nmd: number;
 }
 
+export interface InvoiceData {
+  source?: string;
+  customerName: string;
+  accountNumber: string;
+  meterNumber: string;
+  tariffName: string;
+  voltage: string;
+  nmd: number;
+  billingPeriod: string;
+  peakKWh: number;
+  standardKWh: number;
+  offPeakKWh: number;
+  totalKWh: number;
+  maxDemandKVA: number;
+  transmissionNetworkCharge: number;
+  networkCapacityCharge: number;
+  generationCapacityCharge: number;
+  networkDemandCharge: number;
+  ancillary: number;
+  legacy: number;
+  affordability: number;
+  electrification: number;
+  reactive: number;
+  peakEnergyCharge: number;
+  standardEnergyCharge: number;
+  offPeakEnergyCharge: number;
+  vat: number;
+  invoiceTotal: number;
+  totalInclVat: number;
+}
+
 interface AppState {
   rows: Measurement[];
   setRows: (r: Measurement[]) => void;
+
+  invoice: InvoiceData | null;
+  setInvoice: (i: InvoiceData | null) => void;
 
   tariff: TariffData;
   setTariff: (t: TariffData) => void;
@@ -74,6 +108,9 @@ const initialTariff: TariffData = { ...DEFAULT_TARIFF } as TariffData;
 export const useApp = create<AppState>((set) => ({
   rows: [],
   setRows: (rows) => set({ rows }),
+
+  invoice: null,
+  setInvoice: (invoice) => set({ invoice }),
 
   tariff: initialTariff,
   setTariff: (tariff) => set({ tariff }),

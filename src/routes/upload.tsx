@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
@@ -7,6 +7,7 @@ import { Panel } from "@/components/dashboard/parts";
 import { useApp, type UploadedFile } from "@/lib/store";
 import { parseMeterWorkbook } from "@/lib/parseMeter";
 import { extractTariffFromPdf } from "@/lib/pdfTariff";
+import { extractInvoiceFromPdf } from "@/lib/pdfInvoice";
 import { validateMeterRows } from "@/lib/validation";
 import { Progress } from "@/components/ui/progress";
 
@@ -28,7 +29,7 @@ function UploadPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <DropZone kind="tariff" title="Eskom Tariff PDF" hint="Auto-extracts tariff structure" accept=".pdf" icon={<FileText className="h-6 w-6" />} />
         <DropZone kind="meter" title="Raw Meter Data (.xlsx)" hint="30-minute interval export" accept=".xlsx,.xls,.csv" icon={<FileSpreadsheet className="h-6 w-6" />} />
-        <DropZone kind="invoice" title="Eskom Invoice (future)" hint="Auto-fill invoice values" accept=".pdf,.xlsx" icon={<Receipt className="h-6 w-6" />} disabled />
+        <DropZone kind="invoice" title="Eskom Invoice (PDF)" hint="Auto-extract & reconcile" accept=".pdf" icon={<Receipt className="h-6 w-6" />} />
       </div>
 
       <Panel title="Upload History" subtitle="Files parsed this session.">
@@ -79,6 +80,11 @@ function DropZone({
   const addUpload = useApp((s) => s.addUpload);
   const setValidation = useApp((s) => s.setValidation);
   const setBilling = useApp((s) => s.setBilling);
+  const setInvoice = useApp((s) => s.setInvoice);
+  const setInvoiceLines = useApp((s) => s.setInvoiceLines);
+  const setInvoiceTotal = useApp((s) => s.setInvoiceTotal);
+  const setCustomer = useApp((s) => s.setCustomer);
+  const navigate = useNavigate();
 
   const handle = useCallback(async (file: File) => {
     if (disabled) return;
@@ -98,6 +104,10 @@ function DropZone({
         }
         setProgress(100);
         toast.success(`Parsed ${parsed.length.toLocaleString()} intervals from ${file.name}`);
+        if (useApp.getState().invoice) {
+          toast("Auto-reconciling…", { icon: "⚙️" });
+          setTimeout(() => navigate({ to: "/reconciliation" }), 300);
+        }
       } else if (kind === "tariff") {
         setProgress(35);
         const { tariff } = await extractTariffFromPdf(file);
@@ -105,8 +115,23 @@ function DropZone({
         setProgress(100);
         toast.success(`Tariff extracted from ${file.name}`);
       } else {
+        setProgress(35);
+        const { invoice, chargeLines } = await extractInvoiceFromPdf(file);
+        setInvoice(invoice);
+        setInvoiceLines(chargeLines);
+        setInvoiceTotal(invoice.invoiceTotal || Object.values(chargeLines).reduce((a, b) => a + b, 0));
+        if (invoice.customerName || invoice.accountNumber || invoice.meterNumber || invoice.nmd) {
+          setCustomer({
+            ...(invoice.customerName && { name: invoice.customerName }),
+            ...(invoice.meterNumber && { meter: invoice.meterNumber }),
+            ...(invoice.accountNumber && { accountNumber: invoice.accountNumber }),
+            ...(invoice.nmd && { nmd: invoice.nmd }),
+          });
+        }
         setProgress(100);
-        toast("Invoice import coming soon", { icon: "ℹ️" });
+        toast.success(`Invoice extracted from ${file.name}`);
+        toast("Auto-reconciling…", { icon: "⚙️" });
+        setTimeout(() => navigate({ to: "/reconciliation" }), 400);
       }
       addUpload(upload);
     } catch (e) {
@@ -115,7 +140,7 @@ function DropZone({
       setBusy(false);
       setTimeout(() => setProgress(0), 800);
     }
-  }, [kind, disabled, setRows, setTariff, addUpload, setValidation, setBilling]);
+  }, [kind, disabled, setRows, setTariff, addUpload, setValidation, setBilling, setInvoice, setInvoiceLines, setInvoiceTotal, setCustomer, navigate]);
 
   return (
     <div
