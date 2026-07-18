@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
@@ -7,6 +7,7 @@ import { Panel } from "@/components/dashboard/parts";
 import { useApp, type UploadedFile } from "@/lib/store";
 import { parseMeterWorkbook } from "@/lib/parseMeter";
 import { extractTariffFromPdf } from "@/lib/pdfTariff";
+import { extractInvoiceFromPdf } from "@/lib/pdfInvoice";
 import { validateMeterRows } from "@/lib/validation";
 import { Progress } from "@/components/ui/progress";
 
