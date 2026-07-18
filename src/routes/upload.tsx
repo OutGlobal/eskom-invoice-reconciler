@@ -80,6 +80,11 @@ function DropZone({
   const addUpload = useApp((s) => s.addUpload);
   const setValidation = useApp((s) => s.setValidation);
   const setBilling = useApp((s) => s.setBilling);
+  const setInvoice = useApp((s) => s.setInvoice);
+  const setInvoiceLines = useApp((s) => s.setInvoiceLines);
+  const setInvoiceTotal = useApp((s) => s.setInvoiceTotal);
+  const setCustomer = useApp((s) => s.setCustomer);
+  const navigate = useNavigate();
 
   const handle = useCallback(async (file: File) => {
     if (disabled) return;
@@ -99,6 +104,10 @@ function DropZone({
         }
         setProgress(100);
         toast.success(`Parsed ${parsed.length.toLocaleString()} intervals from ${file.name}`);
+        if (useApp.getState().invoice) {
+          toast("Auto-reconciling…", { icon: "⚙️" });
+          setTimeout(() => navigate({ to: "/reconciliation" }), 300);
+        }
       } else if (kind === "tariff") {
         setProgress(35);
         const { tariff } = await extractTariffFromPdf(file);
@@ -106,8 +115,23 @@ function DropZone({
         setProgress(100);
         toast.success(`Tariff extracted from ${file.name}`);
       } else {
+        setProgress(35);
+        const { invoice, chargeLines } = await extractInvoiceFromPdf(file);
+        setInvoice(invoice);
+        setInvoiceLines(chargeLines);
+        setInvoiceTotal(invoice.invoiceTotal || Object.values(chargeLines).reduce((a, b) => a + b, 0));
+        if (invoice.customerName || invoice.accountNumber || invoice.meterNumber || invoice.nmd) {
+          setCustomer({
+            ...(invoice.customerName && { name: invoice.customerName }),
+            ...(invoice.meterNumber && { meter: invoice.meterNumber }),
+            ...(invoice.accountNumber && { accountNumber: invoice.accountNumber }),
+            ...(invoice.nmd && { nmd: invoice.nmd }),
+          });
+        }
         setProgress(100);
-        toast("Invoice import coming soon", { icon: "ℹ️" });
+        toast.success(`Invoice extracted from ${file.name}`);
+        toast("Auto-reconciling…", { icon: "⚙️" });
+        setTimeout(() => navigate({ to: "/reconciliation" }), 400);
       }
       addUpload(upload);
     } catch (e) {
@@ -116,7 +140,7 @@ function DropZone({
       setBusy(false);
       setTimeout(() => setProgress(0), 800);
     }
-  }, [kind, disabled, setRows, setTariff, addUpload, setValidation, setBilling]);
+  }, [kind, disabled, setRows, setTariff, addUpload, setValidation, setBilling, setInvoice, setInvoiceLines, setInvoiceTotal, setCustomer, navigate]);
 
   return (
     <div
