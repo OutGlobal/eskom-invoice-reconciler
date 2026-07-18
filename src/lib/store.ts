@@ -109,6 +109,9 @@ export const useApp = create<AppState>((set) => ({
   rows: [],
   setRows: (rows) => set({ rows }),
 
+  invoice: null,
+  setInvoice: (invoice) => set({ invoice }),
+
   tariff: initialTariff,
   setTariff: (tariff) => set({ tariff }),
 
