@@ -29,7 +29,7 @@ function UploadPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <DropZone kind="tariff" title="Eskom Tariff PDF" hint="Auto-extracts tariff structure" accept=".pdf" icon={<FileText className="h-6 w-6" />} />
         <DropZone kind="meter" title="Raw Meter Data (.xlsx)" hint="30-minute interval export" accept=".xlsx,.xls,.csv" icon={<FileSpreadsheet className="h-6 w-6" />} />
-        <DropZone kind="invoice" title="Eskom Invoice (future)" hint="Auto-fill invoice values" accept=".pdf,.xlsx" icon={<Receipt className="h-6 w-6" />} disabled />
+        <DropZone kind="invoice" title="Eskom Invoice (PDF)" hint="Auto-extract & reconcile" accept=".pdf" icon={<Receipt className="h-6 w-6" />} />
       </div>
 
       <Panel title="Upload History" subtitle="Files parsed this session.">
