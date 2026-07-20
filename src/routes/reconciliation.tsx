@@ -24,6 +24,7 @@ function ReconPage() {
   const setInvoiceTotal = useApp((s) => s.setInvoiceTotal);
   const invoice = useApp((s) => s.invoice);
   const invoiceLines = useApp((s) => s.invoiceLines);
+  const invoiceItems = useApp((s) => s.invoiceItems);
 
   const diff = invoiceTotal - calculatedTotal;
   const pctErr = invoiceTotal ? (diff / invoiceTotal) * 100 : 0;
