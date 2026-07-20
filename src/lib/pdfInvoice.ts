@@ -241,7 +241,13 @@ async function ocrScannedInvoice(doc: {
   if (typeof document === "undefined") return "";
 
   const tesseract = await import("tesseract.js");
-  const worker = await tesseract.createWorker("eng");
+  const worker = await tesseract.createWorker("eng", tesseract.OEM.LSTM_ONLY, {
+    workerPath: "/tesseract/worker.min.js",
+    corePath: "/tesseract/tesseract-core-lstm.wasm.js",
+    langPath: "/tessdata",
+    gzip: true,
+    workerBlobURL: false,
+  });
   await worker.setParameters({
     tessedit_pageseg_mode: tesseract.PSM.SINGLE_BLOCK,
     preserve_interword_spaces: "1",
