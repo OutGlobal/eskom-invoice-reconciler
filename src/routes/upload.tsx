@@ -116,9 +116,10 @@ function DropZone({
         toast.success(`Tariff extracted from ${file.name}`);
       } else {
         setProgress(35);
-        const { invoice, chargeLines } = await extractInvoiceFromPdf(file);
+        const { invoice, chargeLines, lineItems } = await extractInvoiceFromPdf(file);
         setInvoice(invoice);
         setInvoiceLines(chargeLines);
+        useApp.getState().setInvoiceItems(lineItems);
         setInvoiceTotal(invoice.invoiceTotal || Object.values(chargeLines).reduce((a, b) => a + b, 0));
         if (invoice.customerName || invoice.accountNumber || invoice.meterNumber || invoice.nmd) {
           setCustomer({

@@ -72,6 +72,36 @@ export interface InvoiceData {
   vat: number;
   invoiceTotal: number;
   totalInclVat: number;
+  // Extended (optional) fields extracted from real Eskom invoices
+  invoiceNo?: string;
+  billingDate?: string;
+  dueDate?: string;
+  accountMonth?: string;
+  vatReg?: string;
+  premiseId?: string;
+  utilisedCapacity?: number;
+  address?: string;
+  administrationCharge?: number;
+  serviceCharge?: number;
+  connectionCharge?: number;
+  demandPeak?: number;
+  demandStd?: number;
+  demandOffPeak?: number;
+  demandReading?: number;
+  simMaxDemand?: number;
+  loadFactor?: number;
+  reactivePeak?: number;
+  reactiveStd?: number;
+  reactiveOffPeak?: number;
+  reactiveTotal?: number;
+}
+
+export interface InvoiceLineItemStored {
+  label: string;
+  quantity?: number;
+  unit?: string;
+  rate?: number;
+  amount: number;
 }
 
 interface AppState {
@@ -80,6 +110,9 @@ interface AppState {
 
   invoice: InvoiceData | null;
   setInvoice: (i: InvoiceData | null) => void;
+
+  invoiceItems: InvoiceLineItemStored[];
+  setInvoiceItems: (items: InvoiceLineItemStored[]) => void;
 
   tariff: TariffData;
   setTariff: (t: TariffData) => void;
@@ -111,6 +144,9 @@ export const useApp = create<AppState>((set) => ({
 
   invoice: null,
   setInvoice: (invoice) => set({ invoice }),
+
+  invoiceItems: [],
+  setInvoiceItems: (invoiceItems) => set({ invoiceItems }),
 
   tariff: initialTariff,
   setTariff: (tariff) => set({ tariff }),

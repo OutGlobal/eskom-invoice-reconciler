@@ -24,6 +24,7 @@ function ReconPage() {
   const setInvoiceTotal = useApp((s) => s.setInvoiceTotal);
   const invoice = useApp((s) => s.invoice);
   const invoiceLines = useApp((s) => s.invoiceLines);
+  const invoiceItems = useApp((s) => s.invoiceItems);
 
   const diff = invoiceTotal - calculatedTotal;
   const pctErr = invoiceTotal ? (diff / invoiceTotal) * 100 : 0;
@@ -85,27 +86,74 @@ function ReconPage() {
       </div>
 
       {invoice && (
-        <Panel title="Extracted Invoice Summary" subtitle={`Source: ${invoice.source ?? "PDF"} · auto-parsed`}>
+        <Panel title="Extracted Invoice Summary" subtitle={`Source: ${invoice.source ?? "PDF"} · auto-parsed from PDF`}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
             <Info label="Customer" value={invoice.customerName || "—"} />
-            <Info label="Account" value={invoice.accountNumber || "—"} />
-            <Info label="Meter" value={invoice.meterNumber || "—"} />
+            <Info label="Address" value={invoice.address || "—"} />
+            <Info label="Account No" value={invoice.accountNumber || "—"} />
+            <Info label="Tax Invoice No" value={invoice.invoiceNo || "—"} />
+            <Info label="Account Month" value={invoice.accountMonth || "—"} />
+            <Info label="Billing Date" value={invoice.billingDate || "—"} />
+            <Info label="Due Date" value={invoice.dueDate || "—"} />
+            <Info label="VAT Reg" value={invoice.vatReg || "—"} />
+            <Info label="Premise ID" value={invoice.premiseId || invoice.meterNumber || "—"} />
             <Info label="Tariff" value={invoice.tariffName || "—"} />
             <Info label="Voltage" value={invoice.voltage || "—"} />
-            <Info label="NMD" value={invoice.nmd ? `${NUM(invoice.nmd, 0)} kVA` : "—"} />
             <Info label="Billing Period" value={invoice.billingPeriod || "—"} />
-            <Info label="Max Demand" value={invoice.maxDemandKVA ? `${NUM(invoice.maxDemandKVA, 0)} kVA` : "—"} />
+            <Info label="NMD" value={invoice.nmd ? `${NUM(invoice.nmd, 0)} kVA` : "—"} />
+            <Info label="Utilised Capacity" value={invoice.utilisedCapacity ? `${NUM(invoice.utilisedCapacity, 0)} kVA` : "—"} />
+            <Info label="Load Factor" value={invoice.loadFactor ? `${NUM(invoice.loadFactor, 2)} %` : "—"} />
+            <Info label="Simultaneous Max Demand" value={invoice.simMaxDemand ? `${NUM(invoice.simMaxDemand, 2)} kVA` : "—"} />
             <Info label="Peak kWh" value={NUM(invoice.peakKWh, 0)} />
             <Info label="Standard kWh" value={NUM(invoice.standardKWh, 0)} />
             <Info label="Off-Peak kWh" value={NUM(invoice.offPeakKWh, 0)} />
             <Info label="Total kWh" value={NUM(invoice.totalKWh, 0)} />
+            <Info label="Demand Peak (kVA)" value={invoice.demandPeak ? NUM(invoice.demandPeak, 2) : "—"} />
+            <Info label="Demand Std (kVA)" value={invoice.demandStd ? NUM(invoice.demandStd, 2) : "—"} />
+            <Info label="Demand Off-Peak (kVA)" value={invoice.demandOffPeak ? NUM(invoice.demandOffPeak, 2) : "—"} />
+            <Info label="Reactive Total (kVArh)" value={invoice.reactiveTotal ? NUM(invoice.reactiveTotal, 0) : "—"} />
             <Info label="VAT" value={invoice.vat ? ZAR(invoice.vat) : "—"} />
-            <Info label="Invoice (excl VAT)" value={invoice.invoiceTotal ? ZAR(invoice.invoiceTotal) : "—"} />
-            <Info label="Total (incl VAT)" value={invoice.totalInclVat ? ZAR(invoice.totalInclVat) : "—"} />
-            <Info label="Reactive" value={invoice.reactive ? ZAR(invoice.reactive) : "—"} />
+            <Info label="Total Charges (excl VAT)" value={invoice.invoiceTotal ? ZAR(invoice.invoiceTotal) : "—"} />
+            <Info label="Total Due (incl VAT)" value={invoice.totalInclVat ? ZAR(invoice.totalInclVat) : "—"} />
           </div>
         </Panel>
       )}
+
+      {invoice && invoiceItems.length > 0 && (
+        <Panel title="Invoice Charge Breakdown (as printed)" subtitle={`${invoiceItems.length} line items extracted directly from the Eskom PDF.`}>
+          <div className="overflow-x-auto rounded border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2">Charge</th>
+                  <th className="text-right px-3 py-2">Quantity</th>
+                  <th className="text-left px-3 py-2">Unit</th>
+                  <th className="text-right px-3 py-2">Rate (R)</th>
+                  <th className="text-right px-3 py-2">Amount (R)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoiceItems.map((li, i) => (
+                  <tr key={i} className="border-t border-border">
+                    <td className="px-3 py-2 font-medium">{li.label}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{li.quantity ? NUM(li.quantity, 2) : "—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{li.unit || "—"}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{li.rate ? NUM(li.rate, 4) : "—"}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{ZAR(li.amount)}</td>
+                  </tr>
+                ))}
+                <tr className="border-t border-border bg-secondary/40 font-semibold">
+                  <td className="px-3 py-2">TOTAL CHARGES (excl VAT)</td>
+                  <td colSpan={3} />
+                  <td className="px-3 py-2 text-right tabular-nums">{ZAR(invoice.invoiceTotal || invoiceItems.reduce((a, b) => a + b.amount, 0))}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      )}
+
+
 
       {/* Automatic variance table */}
       <Panel title="Automatic Variance Analysis" subtitle="Every calculated value auto-matched to its invoice counterpart.">
