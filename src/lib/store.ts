@@ -111,6 +111,9 @@ interface AppState {
   invoice: InvoiceData | null;
   setInvoice: (i: InvoiceData | null) => void;
 
+  invoiceItems: InvoiceLineItemStored[];
+  setInvoiceItems: (items: InvoiceLineItemStored[]) => void;
+
   tariff: TariffData;
   setTariff: (t: TariffData) => void;
 
