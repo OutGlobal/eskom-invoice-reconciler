@@ -145,6 +145,9 @@ export const useApp = create<AppState>((set) => ({
   invoice: null,
   setInvoice: (invoice) => set({ invoice }),
 
+  invoiceItems: [],
+  setInvoiceItems: (invoiceItems) => set({ invoiceItems }),
+
   tariff: initialTariff,
   setTariff: (tariff) => set({ tariff }),
 
