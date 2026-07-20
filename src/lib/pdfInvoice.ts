@@ -25,7 +25,7 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
 
   const buf = await file.arrayBuffer();
   const doc = await pdfjs.getDocument({ data: buf }).promise;
-  const pageLines: string[] = [];
+  let pageLines: string[] = [];
   let fullText = "";
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
@@ -46,6 +46,18 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
       if (line) { pageLines.push(line); fullText += line + "\n"; }
     }
   }
+
+  // Some Eskom invoices are scanned images from multifunction printers. Those
+  // PDFs have no embedded text, so pdf.js returns zero charge lines. Fall back
+  // to browser-side OCR so the upload still auto-populates the reconciliation.
+  if (pageLines.length < 8 || !/TOTAL\s*CHARGES|ENERGY\s*CONSUMPTION|NETWORK\s*CAPACITY/i.test(fullText)) {
+    const ocrText = await ocrScannedInvoice(doc);
+    if (ocrText.trim().length > fullText.trim().length) {
+      fullText = ocrText;
+      pageLines = ocrText.split(/\r?\n/).map(cleanOcrLine).filter(Boolean);
+    }
+  }
+
   const norm = fullText.replace(/\s+/g, " ");
 
   const parseNum = (s: string | undefined): number => {
@@ -111,7 +123,7 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
 
   // ---- Charge lines --------------------------------------------------------
   // Each charge row ends in "R <amount>". Capture label, optional qty/unit/rate.
-  const AMOUNT = /R\s*(-?[\d, ]+\.\d{2})\s*$/;
+  const AMOUNT = /(?:^|\s)R\s*(-?[\d, ]+\.\d{2})\s*$/;
   const QTY_RATE = /([\d,]+(?:\.\d+)?)\s*(kVa|kVA|kWh|kW|day|days)\s*(?:@|at)?\s*R?\s*([\d.,]+)?/i;
   const lineItems: InvoiceLineItem[] = [];
   for (const raw of pageLines) {
@@ -123,6 +135,7 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
     // Skip meta lines like totals of pages / balances brought forward.
     if (/^TOTAL\s*CHARGES/i.test(before) || /TOTAL\s*DUE/i.test(before) || /BALANCE/i.test(before) || /VAT\b/i.test(before)) {
       // handled separately below
+      continue;
     }
     if (!/[a-zA-Z]/.test(before)) continue;
     // Extract quantity/unit/rate if present.
@@ -216,4 +229,67 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   };
 
   return { invoice, chargeLines, lineItems, rawText: fullText.slice(0, 12000) };
+}
+
+async function ocrScannedInvoice(doc: {
+  numPages: number;
+  // pdf.js exposes rich proxy types; keep this local shape permissive so the
+  // app is not coupled to a specific pdfjs-dist minor version.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getPage: (pageNumber: number) => Promise<any>;
+}): Promise<string> {
+  if (typeof document === "undefined") return "";
+
+  const tesseract = await import("tesseract.js");
+  const worker = await tesseract.createWorker("eng");
+  await worker.setParameters({
+    tessedit_pageseg_mode: tesseract.PSM.SINGLE_BLOCK,
+    preserve_interword_spaces: "1",
+    user_defined_dpi: "220",
+  });
+
+  const pages: string[] = [];
+  try {
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      const viewport = page.getViewport({ scale: 2.6 });
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (!ctx) continue;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({ canvasContext: ctx, canvas, viewport }).promise;
+      enhanceForOcr(ctx, canvas.width, canvas.height);
+      const result = await worker.recognize(canvas);
+      pages.push(result.data.text);
+    }
+  } finally {
+    await worker.terminate();
+  }
+
+  return pages.map((p, i) => `--- OCR PAGE ${i + 1} ---\n${p}`).join("\n");
+}
+
+function enhanceForOcr(ctx: CanvasRenderingContext2D, width: number, height: number) {
+  const img = ctx.getImageData(0, 0, width, height);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const gray = (d[i] * 0.299) + (d[i + 1] * 0.587) + (d[i + 2] * 0.114);
+    const v = gray < 185 ? 0 : 255;
+    d[i] = v;
+    d[i + 1] = v;
+    d[i + 2] = v;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+function cleanOcrLine(line: string) {
+  return line
+    .replace(/[|]/g, " ")
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/\s+/g, " ")
+    .trim();
 }
