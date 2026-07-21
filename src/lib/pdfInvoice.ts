@@ -6,7 +6,7 @@ import type {
   NormalizedInvoiceJson,
 } from "./store";
 
-const PARSER_VERSION = "eskom-invoice-parser-v4.0.0";
+const PARSER_VERSION = "eskom-invoice-parser-v4.1.0";
 const REVIEW_THRESHOLD = 90;
 
 interface TextLine {
@@ -65,7 +65,7 @@ const CHARGE_ALIASES: Array<{ key: ChargeKey; test: (s: string) => boolean }> = 
   { key: "vat", test: (s) => /\b(vat|value\s*added\s*tax)\b/i.test(s) },
   { key: "ancillaryService", test: (s) => /ancillary/i.test(s) },
   { key: "serviceCharge", test: (s) => /\bservice\s*charge\b/i.test(s) && !/ancillary/i.test(s) },
-  { key: "administration", test: (s) => /admin(?:istration)?\s*charge/i.test(s) },
+  { key: "administration", test: (s) => /admin(?:istration)?(?:\s*charge)?/i.test(s) },
   { key: "transmissionNetwork", test: (s) => /(?:tx|transmission)\s*(?:network\s*)?(?:capacity\s*)?charge/i.test(s) },
   { key: "distributionNetwork", test: (s) => /(?:distribution\s*network\s*capacity|network\s*capacity)\s*charge/i.test(s) && !/(?:tx|transmission|generation|generator)/i.test(s) },
   { key: "generationCapacity", test: (s) => /generat(?:ion|or)\s*capacity\s*charge/i.test(s) },
@@ -105,16 +105,47 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   const fullText = lines.map((l) => l.text).join("\n");
   const norm = normalizeText(fullText);
 
-  const findStr = (field: string, rx: RegExp) => {
-    const hit = findLine(lines, rx);
-    const value = hit?.match?.[1]?.trim() ?? "";
+  // Robust line-by-line and neighbor search helper
+  const findStr = (field: string, rx: RegExp, fallbackRx?: RegExp) => {
+    let hit = findLine(lines, rx);
+    let value = hit?.match?.[1]?.trim() ?? "";
+
+    if (!value && fallbackRx) {
+      hit = findLine(lines, fallbackRx);
+      value = hit?.match?.[1]?.trim() ?? "";
+    }
+
+    // Neighbor search if key exists on line but value is on next/prev line
+    if (!value) {
+      const idx = lines.findIndex((l) => rx.test(l.text) || (fallbackRx && fallbackRx.test(l.text)));
+      if (idx >= 0) {
+        for (let delta of [1, -1, 2, -2]) {
+          const neighbor = lines[idx + delta]?.text;
+          if (neighbor) {
+            const numMatch = neighbor.match(/([A-Z0-9\-\/]{4,})/i);
+            if (numMatch) {
+              value = numMatch[1].trim();
+              hit = { line: lines[idx + delta], match: numMatch };
+              break;
+            }
+          }
+        }
+      }
+    }
+
     if (hit && value) bag.set(field, value, hit.line.text, hit.line.confidence);
     return value;
   };
 
-  const findNum = (field: string, rx: RegExp) => {
-    const hit = findLine(lines, rx);
-    const value = parseNum(hit?.match?.[1]);
+  const findNum = (field: string, rx: RegExp, fallbackRx?: RegExp) => {
+    let hit = findLine(lines, rx);
+    let value = parseNum(hit?.match?.[1]);
+
+    if (!value && fallbackRx) {
+      hit = findLine(lines, fallbackRx);
+      value = parseNum(hit?.match?.[1]);
+    }
+
     if (hit && value) bag.set(field, value, hit.line.text, hit.line.confidence);
     return value;
   };
@@ -127,26 +158,88 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   };
 
   // 1. Customer & Metadata Extraction
-  const accountNumber = findStr("accountNumber", /(?:your\s*)?account\s*(?:no|number)\s*[:\-]?\s*([0-9]{5,})/i);
-  const taxInvoiceNo = findStr("taxInvoiceNumber", /tax\s*invoice\s*(?:no|number)\s*[:\-]?\s*([A-Z0-9\-\/]{5,})/i);
-  const invoiceNumber = findStr("invoiceNumber", /(?<!tax\s)invoice\s*(?:no|number)\s*[:\-]?\s*([A-Z0-9\-\/]{5,})/i) || taxInvoiceNo;
-  const billingDate = findStr("billingDate", /billing\s*date\s*[:\-]?\s*([0-9]{4}[-\/]\d{1,2}[-\/]\d{1,2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/i);
-  const dueDate = findStr("dueDate", /(?:current\s*)?due\s*date\s*[:\-]?\s*([0-9]{4}[-\/]\d{1,2}[-\/]\d{1,2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/i);
-  const accountMonth = findStr("accountMonth", /account\s*month\s*[:\-]?\s*([A-Z]+\s*[0-9]{4})/i);
-  const vatReg = findStr("vatRegistrationNumber", /vat\s*(?:reg(?:istration)?\s*)?(?:no|number)\s*[:\-]?\s*([0-9]{8,})/i);
-  const premiseId = findStr("premiseId", /premise\s*(?:id\s*)?(?:no|number)?\s*[:\-]?\s*([0-9]{5,})/i);
-  const meterNumber = findStr("meterNumber", /meter\s*(?:no|number)\s*[:\-]?\s*([A-Z0-9\-\/]{4,})/i);
-  const region = findStr("region", /region\s*[:\-]?\s*([A-Za-z][A-Za-z\s-]{2,40})/i);
-  const billingOffice = findStr("billingOffice", /billing\s*office\s*[:\-]?\s*([A-Za-z][A-Za-z\s-]{2,40})/i);
-  const nmd = findNum("notifiedMaximumDemand", /notified\s*max(?:imum)?\s*demand\s*[:\-]?\s*([\d,\s]+\.?\d*)/i);
-  const utilisedCapacity = findNum("utilisedCapacity", /utili[sz]ed\s*capacity\s*[:\-]?\s*([\d,\s]+\.?\d*)/i);
-  const simMaxDemand = findNum("simultaneousMaximumDemand", /simultaneous\s*max(?:imum)?\s*demand[^0-9]*([\d,\s]+\.?\d*)/i);
-  const demandReading = findNum("demandReading", /demand\s*reading[^0-9]*([\d,\s]+\.?\d*)/i);
-  const loadFactor = findNum("loadFactor", /load\s*factor\s*[:\-]?\s*([\d,\s]+\.?\d*)\s*%?/i);
-  const tariffName = findStr("tariff", /tariff\s*(?:name)?\s*[:\-]?\s*(Megaflex\s*Gen|Megaflex|Miniflex|Nightsave|Ruraflex|Municflex|Businessrate|[A-Za-z][A-Za-z0-9\s-]{2,40})/i) || inferTariff(norm);
+  const accountNumber = findStr(
+    "accountNumber",
+    /(?:your\s*)?account\s*(?:no|number)?\s*[:\-]?\s*([0-9]{6,})/i,
+    /account\s*no\s*[:\-]?\s*([0-9]{6,})/i
+  );
+  const taxInvoiceNo = findStr(
+    "taxInvoiceNumber",
+    /tax\s*invoice\s*(?:no|number)?\s*[:\-]?\s*([A-Z0-9\-\/]{5,})/i,
+    /tax\s*invoice\s*([A-Z0-9\-\/]{5,})/i
+  );
+  const invoiceNumber = findStr(
+    "invoiceNumber",
+    /(?<!tax\s)invoice\s*(?:no|number)?\s*[:\-]?\s*([A-Z0-9\-\/]{5,})/i
+  ) || taxInvoiceNo;
+
+  const billingDate = findStr(
+    "billingDate",
+    /billing\s*date\s*[:\-]?\s*([0-9]{4}[-\/]\d{1,2}[-\/]\d{1,2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/i
+  );
+  const dueDate = findStr(
+    "dueDate",
+    /(?:current\s*)?due\s*date\s*[:\-]?\s*([0-9]{4}[-\/]\d{1,2}[-\/]\d{1,2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/i
+  );
+  const accountMonth = findStr(
+    "accountMonth",
+    /account\s*month\s*[:\-]?\s*([A-Z]+\s*[0-9]{4})/i
+  );
+  const vatReg = findStr(
+    "vatRegistrationNumber",
+    /vat\s*(?:reg(?:istration)?\s*)?(?:no|number)?\s*[:\-]?\s*([0-9]{8,})/i
+  );
+  const premiseId = findStr(
+    "premiseId",
+    /premise\s*(?:id\s*)?(?:no|number)?\s*[:\-]?\s*([0-9]{5,})/i
+  );
+  const meterNumber = findStr(
+    "meterNumber",
+    /meter\s*(?:no|number)?\s*[:\-]?\s*([A-Z0-9\-\/]{4,})/i
+  );
+  const region = findStr(
+    "region",
+    /region\s*[:\-]?\s*([A-Za-z][A-Za-z\s-]{2,40})/i
+  );
+  const billingOffice = findStr(
+    "billingOffice",
+    /billing\s*office\s*[:\-]?\s*([A-Za-z][A-Za-z\s-]{2,40})/i
+  );
+
+  const nmd = findNum(
+    "notifiedMaximumDemand",
+    /notified\s*max(?:imum)?\s*demand\s*[:\-]?\s*([\d,\s]+\.?\d*)/i
+  );
+  const utilisedCapacity = findNum(
+    "utilisedCapacity",
+    /utili[sz]ed\s*capacity\s*[:\-]?\s*([\d,\s]+\.?\d*)/i
+  );
+  const simMaxDemand = findNum(
+    "simultaneousMaximumDemand",
+    /simultaneous\s*max(?:imum)?\s*demand(?:\([^)]*\))?\s*[:\-]?\s*([\d,\s]+\.?\d*)/i,
+    /simultaneous\s*max(?:imum)?\s*demand[^\d]*([\d,\s]+\.?\d*)/i
+  );
+  const demandReading = findNum(
+    "demandReading",
+    /demand\s*reading\s*-\s*kw\/kva\s*[:\-]?\s*([\d,\s]+\.?\d*)/i,
+    /demand\s*reading[^\d]*([\d,\s]+\.?\d*)/i
+  );
+  const loadFactor = findNum(
+    "loadFactor",
+    /load\s*factor\s*[:\-]?\s*([\d,\s]+\.?\d*)\s*%?/i
+  );
+
+  const tariffName = findStr(
+    "tariff",
+    /tariff\s*(?:name)?\s*[:\-]?\s*(Megaflex\s*Diversity|Megaflex\s*Gen|Megaflex|Miniflex|Nightsave|Ruraflex|Municflex|Businessrate|[A-Za-z][A-Za-z0-9\s-]{2,40})/i
+  ) || inferTariff(norm);
+
   const voltage = /33\s*kV/i.test(norm) ? "33 kV" : /11\s*kV/i.test(norm) ? "11 kV" : findStr("voltage", /voltage\s*[:\-]?\s*([0-9]+\s*kV)/i);
 
-  const periodHit = findLine(lines, /(?:consumption\s*details|billing\s*period)\s*(?:\(|:)?\s*([0-9]{4}[-\/]\d{1,2}[-\/]\d{1,2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s*(?:-|–|to)\s*([0-9]{4}[-\/]\d{1,2}[-\/]\d{1,2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/i);
+  const periodHit = findLine(
+    lines,
+    /(?:consumption\s*details|billing\s*period)\s*(?:\(|:)?\s*([0-9]{4}[-\/]\d{1,2}[-\/]\d{1,2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})\s*(?:-|–|to)\s*([0-9]{4}[-\/]\d{1,2}[-\/]\d{1,2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/i
+  );
   const billingPeriodStart = periodHit?.match?.[1] ?? "";
   const billingPeriodEnd = periodHit?.match?.[2] ?? "";
   const billingPeriod = billingPeriodStart && billingPeriodEnd ? `${billingPeriodStart} - ${billingPeriodEnd}` : "";
@@ -156,18 +249,47 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   if (customer.name) bag.set("customerName", customer.name, customer.raw, customer.confidence);
 
   // 2. Consumption Data Extraction
-  const peakKWh = findSemanticNum("peakKwh", [/energy/i, /consumption/i, /peak/i, /kwh/i], [/off\s*peak/i]) || findNum("peakKwh", /energy\s*consumption\s*peak\s*kwh\s*([\d,\s]+\.?\d*)/i);
-  const standardKWh = findSemanticNum("standardKwh", [/energy/i, /consumption/i, /(?:standard|std)/i, /kwh/i]) || findNum("standardKwh", /energy\s*consumption\s*(?:std|standard)\s*kwh\s*([\d,\s]+\.?\d*)/i);
-  const offPeakKWh = findSemanticNum("offPeakKwh", [/energy/i, /consumption/i, /off\s*peak/i, /kwh/i]) || findNum("offPeakKwh", /energy\s*consumption\s*off\s*peak\s*kwh\s*([\d,\s]+\.?\d*)/i);
-  const totalKWh = findSemanticNum("totalKwh", [/energy/i, /consumption/i, /(?:all|total)/i, /kwh/i]) || (peakKWh + standardKWh + offPeakKWh);
+  const peakKWh =
+    findNum("peakKwh", /energy\s*consumption\s*peak\s*kwh\s*([\d,\s]+\.?\d*)/i) ||
+    findSemanticNum("peakKwh", [/energy/i, /consumption/i, /peak/i, /kwh/i], [/off\s*peak/i]);
 
-  const demandPeak = findSemanticNum("peakDemand", [/demand/i, /consumption/i, /peak/i], [/off\s*peak/i]);
-  const demandStd = findSemanticNum("standardDemand", [/demand/i, /consumption/i, /(?:standard|std)/i]);
-  const demandOffPeak = findSemanticNum("offPeakDemand", [/demand/i, /consumption/i, /off\s*peak/i]);
+  const standardKWh =
+    findNum("standardKwh", /energy\s*consumption\s*(?:std|standard)\s*kwh\s*([\d,\s]+\.?\d*)/i) ||
+    findSemanticNum("standardKwh", [/energy/i, /consumption/i, /(?:standard|std)/i, /kwh/i]);
 
-  const reactivePeak = findSemanticNum("peakReactive", [/reactive/i, /peak/i], [/off\s*peak/i]);
-  const reactiveStd = findSemanticNum("standardReactive", [/reactive/i, /(?:standard|std)/i]);
-  const reactiveOffPeak = findSemanticNum("offPeakReactive", [/reactive/i, /off\s*peak/i]);
+  const offPeakKWh =
+    findNum("offPeakKwh", /energy\s*consumption\s*off\s*peak\s*kwh\s*([\d,\s]+\.?\d*)/i) ||
+    findSemanticNum("offPeakKwh", [/energy/i, /consumption/i, /off\s*peak/i, /kwh/i]);
+
+  const totalKWh =
+    findNum("totalKwh", /energy\s*consumption\s*(?:all|total)\s*kwh\s*([\d,\s]+\.?\d*)/i) ||
+    findSemanticNum("totalKwh", [/energy/i, /consumption/i, /(?:all|total)/i, /kwh/i]) ||
+    peakKWh + standardKWh + offPeakKWh;
+
+  const demandPeak =
+    findNum("peakDemand", /demand\s*consumption\s*-\s*peak\s*([\d,\s]+\.?\d*)/i) ||
+    findSemanticNum("peakDemand", [/demand/i, /consumption/i, /peak/i], [/off\s*peak/i]);
+
+  const demandStd =
+    findNum("standardDemand", /demand\s*consumption\s*-\s*(?:std|standard)\s*([\d,\s]+\.?\d*)/i) ||
+    findSemanticNum("standardDemand", [/demand/i, /consumption/i, /(?:standard|std)/i]);
+
+  const demandOffPeak =
+    findNum("offPeakDemand", /demand\s*consumption\s*-\s*off\s*peak\s*([\d,\s]+\.?\d*)/i) ||
+    findSemanticNum("offPeakDemand", [/demand/i, /consumption/i, /off\s*peak/i]);
+
+  const reactivePeak =
+    findNum("peakReactive", /reactive\s*energy\s*-\s*peak\s*([\d,\s]+\.?\d*)/i) ||
+    findSemanticNum("peakReactive", [/reactive/i, /peak/i], [/off\s*peak/i]);
+
+  const reactiveStd =
+    findNum("standardReactive", /reactive\s*energy\s*-\s*(?:std|standard)\s*([\d,\s]+\.?\d*)/i) ||
+    findSemanticNum("standardReactive", [/reactive/i, /(?:standard|std)/i]);
+
+  const reactiveOffPeak =
+    findNum("offPeakReactive", /reactive\s*energy\s*-\s*off\s*peak\s*([\d,\s]+\.?\d*)/i) ||
+    findSemanticNum("offPeakReactive", [/reactive/i, /off\s*peak/i]);
+
   const reactiveTotal = reactivePeak + reactiveStd + reactiveOffPeak;
   const maxDemandKVA = simMaxDemand || demandReading || Math.max(demandPeak, demandStd, demandOffPeak);
 
@@ -368,19 +490,30 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
     const items = content.items as Array<{ str: string; transform: number[] }>;
-    const buckets = new Map<number, { x: number; s: string }[]>();
 
-    for (const it of items) {
-      if (!("str" in it) || !it.str?.trim()) continue;
-      const y = Math.round(it.transform[5]);
-      const x = it.transform[4];
-      if (!buckets.has(y)) buckets.set(y, []);
-      buckets.get(y)!.push({ x, s: it.str });
+    // 3.5px Vertical Line Clustering for PDF.js text items
+    const itemsWithPos = items
+      .filter((it) => "str" in it && it.str?.trim())
+      .map((it) => ({
+        x: it.transform[4],
+        y: it.transform[5],
+        s: it.str,
+      }))
+      .sort((a, b) => b.y - a.y); // top to bottom
+
+    const lineBuckets: Array<{ y: number; items: Array<{ x: number; s: string }> }> = [];
+
+    for (const item of itemsWithPos) {
+      const existingLine = lineBuckets.find((b) => Math.abs(b.y - item.y) <= 3.5);
+      if (existingLine) {
+        existingLine.items.push({ x: item.x, s: item.s });
+      } else {
+        lineBuckets.push({ y: item.y, items: [{ x: item.x, s: item.s }] });
+      }
     }
 
-    for (const y of [...buckets.keys()].sort((a, b) => b - a)) {
-      const text = buckets
-        .get(y)!
+    for (const bucket of lineBuckets) {
+      const text = bucket.items
         .sort((a, b) => a.x - b.x)
         .map((p) => p.s)
         .join(" ")
@@ -393,7 +526,7 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
   const embeddedText = embeddedLines.map((l) => l.text).join("\n");
   if (
     embeddedLines.length >= 8 &&
-    /TOTAL\s*CHARGES|ENERGY\s*CONSUMPTION|NETWORK\s*CAPACITY/i.test(embeddedText)
+    /TOTAL\s*CHARGES|ENERGY\s*CONSUMPTION|NETWORK\s*CAPACITY|YOUR\s*ACCOUNT\s*NO/i.test(embeddedText)
   ) {
     return { documentType: "embedded-text", lines: embeddedLines, rawText: embeddedText, confidence: 100 };
   }
@@ -631,7 +764,7 @@ function extractCustomer(lines: TextLine[]) {
 }
 
 function inferTariff(norm: string) {
-  return ["Megaflex Gen", "Megaflex", "Miniflex", "Nightsave", "Ruraflex", "Municflex", "Businessrate"].find((k) => new RegExp(k, "i").test(norm)) || "";
+  return ["Megaflex Diversity", "Megaflex Gen", "Megaflex", "Miniflex", "Nightsave", "Ruraflex", "Municflex", "Businessrate"].find((k) => new RegExp(k, "i").test(norm)) || "";
 }
 
 function parseNum(s: string | undefined): number {
