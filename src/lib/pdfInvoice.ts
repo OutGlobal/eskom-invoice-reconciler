@@ -119,7 +119,8 @@ export async function extractInvoiceFromPdf(file: File): Promise<{ invoice: Invo
   const lineItems = extractChargeLineItems(lines);
   for (const item of lineItems) bag.set(`charge.${item.normalizedName || item.label}.amount`, item.amount, item.originalValue || item.label, item.confidence ?? extracted.confidence, item.alternatives);
   const chargeTotals = aggregateCharges(lineItems);
-  const sumInvoiceSubTotal = lineItems.filter((l) => l.normalizedName && ![CHARGE_LABELS.vat, CHARGE_LABELS.totalInvoice, CHARGE_LABELS.totalInclVat].includes(l.normalizedName as typeof CHARGE_LABELS[keyof typeof CHARGE_LABELS])).reduce((a, b) => a + b.amount, 0);
+  const excludedTotals = new Set<string>([CHARGE_LABELS.vat, CHARGE_LABELS.totalInvoice, CHARGE_LABELS.totalInclVat]);
+  const sumInvoiceSubTotal = lineItems.filter((l) => l.normalizedName && !excludedTotals.has(l.normalizedName)).reduce((a, b) => a + b.amount, 0);
   const invoiceTotal = chargeTotals.totalInvoice || roundMoney(sumInvoiceSubTotal);
   const vat = chargeTotals.vat;
   const totalInclVat = chargeTotals.totalInclVat || (invoiceTotal && vat ? roundMoney(invoiceTotal + vat) : 0);

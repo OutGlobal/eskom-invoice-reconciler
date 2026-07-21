@@ -29,7 +29,7 @@ function UploadPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <DropZone kind="tariff" title="Eskom Tariff PDF" hint="Auto-extracts tariff structure" accept=".pdf" icon={<FileText className="h-6 w-6" />} />
         <DropZone kind="meter" title="Raw Meter Data (.xlsx)" hint="30-minute interval export" accept=".xlsx,.xls,.csv" icon={<FileSpreadsheet className="h-6 w-6" />} />
-        <DropZone kind="invoice" title="Eskom Invoice (PDF)" hint="Auto-extract & reconcile" accept=".pdf" icon={<Receipt className="h-6 w-6" />} />
+        <DropZone kind="invoice" title="Eskom Invoice" hint="PDF, scan, or image auto-reconciles" accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff" icon={<Receipt className="h-6 w-6" />} />
       </div>
 
       <Panel title="Upload History" subtitle="Files parsed this session.">
@@ -120,7 +120,7 @@ function DropZone({
         setInvoice(invoice);
         setInvoiceLines(chargeLines);
         useApp.getState().setInvoiceItems(lineItems);
-        setInvoiceTotal(invoice.invoiceTotal || Object.values(chargeLines).reduce((a, b) => a + b, 0));
+        setInvoiceTotal(invoice.invoiceTotal || Object.values(chargeLines).reduce((a: number, b: number) => a + b, 0));
         if (invoice.customerName || invoice.accountNumber || invoice.meterNumber || invoice.nmd) {
           setCustomer({
             ...(invoice.customerName && { name: invoice.customerName }),
