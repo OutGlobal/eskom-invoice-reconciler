@@ -21,7 +21,6 @@ function ReconPage() {
   const nmd = useApp((s) => s.customer.nmd);
   const setCustomer = useApp((s) => s.setCustomer);
   const invoiceTotal = useApp((s) => s.invoiceTotal);
-  const setInvoiceTotal = useApp((s) => s.setInvoiceTotal);
   const invoice = useApp((s) => s.invoice);
   const invoiceLines = useApp((s) => s.invoiceLines);
   const invoiceItems = useApp((s) => s.invoiceItems);
@@ -29,8 +28,8 @@ function ReconPage() {
   const diff = invoiceTotal - calculatedTotal;
   const pctErr = invoiceTotal ? (diff / invoiceTotal) * 100 : 0;
   const abs = Math.abs(pctErr);
-  const tone: "good" | "warn" | "bad" | undefined = !invoiceTotal ? undefined : abs < 2 ? "good" : abs < 5 ? "warn" : "bad";
-  const verdict = !invoiceTotal ? "Awaiting invoice" : abs < 2 ? "PASS" : "FAIL";
+  const tone: "good" | "warn" | "bad" | undefined = !invoiceTotal ? undefined : abs <= 1 ? "good" : abs < 5 ? "warn" : "bad";
+  const verdict = !invoiceTotal ? "Awaiting invoice" : abs <= 1 ? "PASS" : "FAIL";
 
   // Variance table across the standard reconciliation dimensions
   const rows = useMemo(() => reconciliationRows(invoice, invoiceLines, totals, charges), [invoice, invoiceLines, totals, charges]);
@@ -80,7 +79,8 @@ function ReconPage() {
             <Stat label="Calculated" value={ZAR(calculatedTotal)} />
             <Stat label="Difference" value={invoiceTotal ? ZAR(diff) : "—"} />
             <Stat label="% Error" value={invoiceTotal ? `${pctErr.toFixed(2)}%` : "—"} />
-            <Stat label="Accuracy" value={invoiceTotal ? `${accuracy.toFixed(0)}% (${matches}/${matches + variances})` : "—"} />
+          <Stat label="Accuracy" value={invoiceTotal ? `${accuracy.toFixed(0)}% (${matches}/${matches + variances})` : "—"} />
+          <Stat label="Extraction" value={invoice?.extraction ? `${invoice.extraction.overallConfidence.toFixed(0)}%${invoice.extraction.needsReview ? " · review" : ""}` : "—"} />
           </div>
         </div>
       </div>
@@ -92,6 +92,12 @@ function ReconPage() {
             <Info label="Address" value={invoice.address || "—"} />
             <Info label="Account No" value={invoice.accountNumber || "—"} />
             <Info label="Tax Invoice No" value={invoice.invoiceNo || "—"} />
+            <Info label="Invoice No" value={invoice.invoiceNumber || "—"} />
+            <Info label="Document Type" value={invoice.extraction?.documentType || "—"} />
+            <Info label="Extraction Confidence" value={invoice.extraction ? `${invoice.extraction.overallConfidence.toFixed(1)}%` : "—"} />
+            <Info label="Review Flag" value={invoice.extraction?.needsReview ? "Needs review" : invoice.extraction ? "Clear" : "—"} />
+            <Info label="Region" value={invoice.region || "—"} />
+            <Info label="Billing Office" value={invoice.billingOffice || "—"} />
             <Info label="Account Month" value={invoice.accountMonth || "—"} />
             <Info label="Billing Date" value={invoice.billingDate || "—"} />
             <Info label="Due Date" value={invoice.dueDate || "—"} />
@@ -126,26 +132,31 @@ function ReconPage() {
               <thead className="bg-secondary text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="text-left px-3 py-2">Charge</th>
+                  <th className="text-left px-3 py-2">Mapped To</th>
                   <th className="text-right px-3 py-2">Quantity</th>
                   <th className="text-left px-3 py-2">Unit</th>
                   <th className="text-right px-3 py-2">Rate (R)</th>
                   <th className="text-right px-3 py-2">Amount (R)</th>
+                  <th className="text-left px-3 py-2">Confidence</th>
                 </tr>
               </thead>
               <tbody>
                 {invoiceItems.map((li, i) => (
                   <tr key={i} className="border-t border-border">
                     <td className="px-3 py-2 font-medium">{li.label}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{li.normalizedName || "Unmapped"}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{li.quantity ? NUM(li.quantity, 2) : "—"}</td>
                     <td className="px-3 py-2 text-muted-foreground">{li.unit || "—"}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{li.rate ? NUM(li.rate, 4) : "—"}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{ZAR(li.amount)}</td>
+                    <td className="px-3 py-2 text-xs">{li.confidence != null ? `${li.confidence.toFixed(0)}%${li.needsReview ? " · review" : ""}` : "—"}</td>
                   </tr>
                 ))}
                 <tr className="border-t border-border bg-secondary/40 font-semibold">
                   <td className="px-3 py-2">TOTAL CHARGES (excl VAT)</td>
-                  <td colSpan={3} />
+                  <td colSpan={4} />
                   <td className="px-3 py-2 text-right tabular-nums">{ZAR(invoice.invoiceTotal || invoiceItems.reduce((a, b) => a + b.amount, 0))}</td>
+                  <td />
                 </tr>
               </tbody>
             </table>
@@ -202,17 +213,12 @@ function ReconPage() {
         <ChargeTable charges={charges} />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-4">
           <MetricCard label="Calculated Total" value={ZAR(calculatedTotal)} accent />
-          <div className="rounded-md border border-border bg-card p-4">
-            <div className="text-xs uppercase text-muted-foreground">Eskom Invoice Total (excl VAT)</div>
-            <input type="number" value={invoiceTotal || ""} placeholder="Auto-filled from PDF"
-              onChange={(e) => setInvoiceTotal(Number(e.target.value) || 0)}
-              className="mt-2 w-full bg-transparent border border-border rounded px-2 py-1 text-lg font-semibold" />
-          </div>
+            <MetricCard label="Eskom Invoice Total (excl VAT)" value={invoiceTotal ? ZAR(invoiceTotal) : "Awaiting extraction"} />
           <MetricCard label="Difference" value={invoiceTotal ? ZAR(diff) : "—"} tone={tone} />
           <MetricCard label="% Error / Verdict"
             value={invoiceTotal ? `${pctErr.toFixed(2)}%  ·  ${verdict}` : verdict}
             tone={tone}
-            sub={invoiceTotal ? (abs < 2 ? "Green · Match" : abs < 5 ? "Amber · Small variance" : "Red · Large variance") : undefined}
+            sub={invoiceTotal ? (abs <= 1 ? "Green · Match" : abs < 5 ? "Amber · Small variance" : "Red · Large variance") : undefined}
           />
         </div>
       </Panel>
@@ -279,7 +285,7 @@ function reconciliationRows(
     const hasInvoice = inv > 0;
     const pct = calc ? ((inv - calc) / calc) * 100 : 0;
     const abs = Math.abs(pct);
-    const status: Status = !hasInvoice ? "none" : abs < 0.5 ? "match" : abs < 5 ? "minor" : "major";
+    const status: Status = !hasInvoice ? "none" : abs <= 1 ? "match" : abs < 5 ? "minor" : "major";
     let reason = "";
     if (hasInvoice && status !== "match") {
       const dir = inv > calc ? "higher" : "lower";
