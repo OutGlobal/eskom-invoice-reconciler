@@ -52,6 +52,8 @@ export interface InvoiceData {
   voltage: string;
   nmd: number;
   billingPeriod: string;
+  billingPeriodStart?: string;
+  billingPeriodEnd?: string;
   peakKWh: number;
   standardKWh: number;
   offPeakKWh: number;
@@ -94,14 +96,116 @@ export interface InvoiceData {
   reactiveStd?: number;
   reactiveOffPeak?: number;
   reactiveTotal?: number;
+  region?: string;
+  billingOffice?: string;
+  taxInvoiceNo?: string;
+  invoiceNumber?: string;
+  meterReadings?: InvoiceMeterReadingStored[];
+  extraction?: InvoiceExtractionAudit;
+  normalizedJson?: NormalizedInvoiceJson;
 }
 
 export interface InvoiceLineItemStored {
   label: string;
+  normalizedName?: string;
   quantity?: number;
   unit?: string;
   rate?: number;
+  rateUnit?: string;
   amount: number;
+  confidence?: number;
+  needsReview?: boolean;
+  originalValue?: string;
+  alternatives?: string[];
+}
+
+export interface InvoiceMeterReadingStored {
+  label: string;
+  previousReading?: number;
+  currentReading?: number;
+  readingDate?: string;
+  multiplier?: number;
+  meterConstant?: number;
+  confidence?: number;
+  needsReview?: boolean;
+}
+
+export interface InvoiceFieldExtraction {
+  value: string | number;
+  confidence: number;
+  raw: string;
+  needsReview: boolean;
+  alternatives?: string[];
+}
+
+export interface InvoiceExtractionAudit {
+  documentType: "embedded-text" | "scanned-pdf" | "image";
+  parserVersion: string;
+  extractedAt: string;
+  overallConfidence: number;
+  needsReview: boolean;
+  totalValidation: "passed" | "review" | "not-available";
+  originalInvoice: {
+    name: string;
+    size: number;
+    type: string;
+    lastModified: number;
+  };
+  fields: Record<string, InvoiceFieldExtraction>;
+  rawTextPreview: string;
+}
+
+export interface NormalizedInvoiceJson {
+  metadata: {
+    customerName: string;
+    accountNumber: string;
+    premiseId: string;
+    meterNumber: string;
+    tariff: string;
+    region: string;
+    billingOffice: string;
+    billingDate: string;
+    billingPeriod: { start: string; end: string };
+    invoiceNumber: string;
+    vatNumber: string;
+    accountMonth: string;
+    dueDate: string;
+    notifiedMaximumDemand: number;
+    utilisedCapacity: number;
+    simultaneousMaximumDemand: number;
+    loadFactor: number;
+  };
+  consumption: {
+    peakKwh: number;
+    standardKwh: number;
+    offPeakKwh: number;
+    totalKwh: number;
+    peakDemand: number;
+    standardDemand: number;
+    offPeakDemand: number;
+    peakReactive: number;
+    standardReactive: number;
+    offPeakReactive: number;
+  };
+  charges: {
+    administration: number;
+    transmissionNetwork: number;
+    distributionNetwork: number;
+    generationCapacity: number;
+    networkDemand: number;
+    peakEnergy: number;
+    standardEnergy: number;
+    offPeakEnergy: number;
+    ancillaryService: number;
+    legacy: number;
+    affordabilitySubsidy: number;
+    electrificationSubsidy: number;
+    serviceCharge: number;
+    connectionCharge: number;
+    vat: number;
+    totalInvoice: number;
+    totalInclVat: number;
+  };
 }
 
 interface AppState {
@@ -113,6 +217,9 @@ interface AppState {
 
   invoiceItems: InvoiceLineItemStored[];
   setInvoiceItems: (items: InvoiceLineItemStored[]) => void;
+
+  processedInvoiceNumbers: string[];
+  addProcessedInvoiceNumber: (invoiceNumber: string) => void;
 
   tariff: TariffData;
   setTariff: (t: TariffData) => void;
@@ -147,6 +254,13 @@ export const useApp = create<AppState>((set) => ({
 
   invoiceItems: [],
   setInvoiceItems: (invoiceItems) => set({ invoiceItems }),
+
+  processedInvoiceNumbers: [],
+  addProcessedInvoiceNumber: (invoiceNumber) => set((s) => (
+    invoiceNumber && !s.processedInvoiceNumbers.includes(invoiceNumber)
+      ? { processedInvoiceNumbers: [...s.processedInvoiceNumbers, invoiceNumber] }
+      : s
+  )),
 
   tariff: initialTariff,
   setTariff: (tariff) => set({ tariff }),

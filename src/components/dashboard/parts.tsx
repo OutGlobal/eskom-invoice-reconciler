@@ -274,7 +274,6 @@ export function DeficitAnalysis({
   totals: { totalKWh: number };
 }) {
   const invoiceLines = useApp((s) => s.invoiceLines);
-  const setInvoiceLines = useApp((s) => s.setInvoiceLines);
 
   const rows = charges.map((c) => {
     const inv = invoiceLines[c.label] || 0;
@@ -295,7 +294,7 @@ export function DeficitAnalysis({
 
   return (
     <Panel title="Line-Item Deficit Analysis"
-      subtitle="Enter each Eskom invoice line to see per-charge variance (R and %). Positive = over-billed vs calculation, negative = under-billed.">
+      subtitle="Auto-populated from the extracted Eskom invoice. Positive = over-billed vs calculation, negative = under-billed.">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="overflow-x-auto rounded border border-border">
           <table className="w-full text-sm">
@@ -310,16 +309,12 @@ export function DeficitAnalysis({
             </thead>
             <tbody>
               {rows.map((r) => {
-                const tone = !r.inv ? "" : Math.abs(r.pct) < 0.5 ? "text-emerald-500" : Math.abs(r.pct) < 5 ? "text-amber-500" : "text-red-500";
+                const tone = !r.inv ? "" : Math.abs(r.pct) <= 1 ? "text-emerald-500" : Math.abs(r.pct) < 5 ? "text-amber-500" : "text-red-500";
                 return (
                   <tr key={r.label} className="border-t border-border">
                     <td className="px-3 py-2">{r.label}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{ZAR(r.amount)}</td>
-                    <td className="px-3 py-2 text-right">
-                      <input type="number" value={r.inv || ""} placeholder="0.00"
-                        onChange={(e) => setInvoiceLines({ ...invoiceLines, [r.label]: Number(e.target.value) || 0 })}
-                        className="w-28 bg-transparent border border-border rounded px-2 py-0.5 text-right tabular-nums" />
-                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">{r.inv ? ZAR(r.inv) : <span className="text-muted-foreground">not extracted</span>}</td>
                     <td className={`px-3 py-2 text-right tabular-nums font-medium ${tone}`}>
                       {r.inv ? ZAR(r.variance) : "—"}
                     </td>
@@ -366,7 +361,7 @@ export function DeficitAnalysis({
               <div className="text-[10px] uppercase text-muted-foreground">Blended Cost / kWh (Invoice)</div>
               <div className="text-lg font-semibold">{invBlendedRate ? `R ${invBlendedRate.toFixed(4)}` : "—"}</div>
               <div className="text-xs text-muted-foreground">
-                {invBlendedRate ? `${(((invBlendedRate - blendedRate) / blendedRate) * 100).toFixed(2)}% vs calc` : "enter invoice lines"}
+                {invBlendedRate ? `${(((invBlendedRate - blendedRate) / blendedRate) * 100).toFixed(2)}% vs calc` : "awaiting invoice extraction"}
               </div>
             </div>
           </div>

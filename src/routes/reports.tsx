@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
-import { Download, FileText, FileSpreadsheet } from "lucide-react";
+import { Download, FileJson, FileText, FileSpreadsheet } from "lucide-react";
 import { Panel, MetricCard, ZAR, NUM, useBootstrapMeter, useDerived } from "@/components/dashboard/parts";
 import { useApp } from "@/lib/store";
 
@@ -16,6 +16,8 @@ function ReportsPage() {
   const customer = useApp((s) => s.customer);
   const tariff = useApp((s) => s.tariff);
   const invoiceTotal = useApp((s) => s.invoiceTotal);
+  const invoice = useApp((s) => s.invoice);
+  const invoiceItems = useApp((s) => s.invoiceItems);
   const diff = invoiceTotal - calculatedTotal;
   const pctErr = invoiceTotal ? (diff / invoiceTotal) * 100 : 0;
 
@@ -107,6 +109,26 @@ function ReportsPage() {
     setTimeout(() => w.print(), 400);
   };
 
+  const downloadText = (name: string, text: string, type: string) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const exportJson = () => {
+    downloadText(`invoice_reconciliation_${format(new Date(), "yyyyMMdd_HHmm")}.json`, JSON.stringify({ invoice: invoice?.normalizedJson ?? invoice, invoiceItems, calculated: { totals, charges, calculatedTotal, invoiceTotal, diff, pctErr } }, null, 2), "application/json");
+    toast.success("JSON export downloaded");
+  };
+
+  const exportCsv = () => {
+    const header = "Charge,Mapped To,Quantity,Unit,Rate,Amount,Confidence\n";
+    const body = invoiceItems.map((i) => [i.label, i.normalizedName || "", i.quantity || "", i.unit || "", i.rate || "", i.amount, i.confidence ?? ""].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    downloadText(`invoice_charges_${format(new Date(), "yyyyMMdd_HHmm")}.csv`, header + body, "text/csv");
+    toast.success("CSV export downloaded");
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -114,7 +136,7 @@ function ReportsPage() {
         <p className="text-xs text-muted-foreground">Download the full reconciliation package as PDF or Excel.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <button onClick={exportPdf} className="text-left rounded-lg border border-border bg-card p-5 hover:border-accent transition group">
           <div className="flex items-center gap-3">
             <div className="rounded-md bg-secondary p-2 text-accent"><FileText className="h-5 w-5" /></div>
@@ -132,6 +154,20 @@ function ReportsPage() {
               <div className="font-semibold text-sm">Excel Export</div>
               <div className="text-xs text-muted-foreground">Summary + per-charge breakdown, ready for further analysis.</div>
             </div>
+            <Download className="ml-auto h-4 w-4 opacity-60 group-hover:opacity-100" />
+          </div>
+        </button>
+        <button onClick={exportJson} className="text-left rounded-lg border border-border bg-card p-5 hover:border-accent transition group">
+          <div className="flex items-center gap-3">
+            <div className="rounded-md bg-secondary p-2 text-accent"><FileJson className="h-5 w-5" /></div>
+            <div><div className="font-semibold text-sm">JSON Export</div><div className="text-xs text-muted-foreground">Structured invoice extraction and reconciliation data.</div></div>
+            <Download className="ml-auto h-4 w-4 opacity-60 group-hover:opacity-100" />
+          </div>
+        </button>
+        <button onClick={exportCsv} className="text-left rounded-lg border border-border bg-card p-5 hover:border-accent transition group">
+          <div className="flex items-center gap-3">
+            <div className="rounded-md bg-secondary p-2 text-accent"><FileSpreadsheet className="h-5 w-5" /></div>
+            <div><div className="font-semibold text-sm">CSV Export</div><div className="text-xs text-muted-foreground">Extracted charge lines for audit review.</div></div>
             <Download className="ml-auto h-4 w-4 opacity-60 group-hover:opacity-100" />
           </div>
         </button>
