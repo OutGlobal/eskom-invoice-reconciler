@@ -6,7 +6,7 @@ import type {
   NormalizedInvoiceJson,
 } from "./store";
 
-const PARSER_VERSION = "eskom-invoice-parser-v4.1.0";
+const PARSER_VERSION = "eskom-invoice-parser-v4.2.0";
 const REVIEW_THRESHOLD = 90;
 
 interface TextLine {
@@ -105,7 +105,7 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   const fullText = lines.map((l) => l.text).join("\n");
   const norm = normalizeText(fullText);
 
-  // Robust line-by-line and neighbor search helper
+  // Line-by-line and neighbor search helper
   const findStr = (field: string, rx: RegExp, fallbackRx?: RegExp) => {
     let hit = findLine(lines, rx);
     let value = hit?.match?.[1]?.trim() ?? "";
@@ -115,7 +115,6 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
       value = hit?.match?.[1]?.trim() ?? "";
     }
 
-    // Neighbor search if key exists on line but value is on next/prev line
     if (!value) {
       const idx = lines.findIndex((l) => rx.test(l.text) || (fallbackRx && fallbackRx.test(l.text)));
       if (idx >= 0) {
@@ -524,15 +523,28 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
   }
 
   const embeddedText = embeddedLines.map((l) => l.text).join("\n");
+
+  // EMBEDDED TEXT FIRST POLICY:
+  // If PDF.js extracted 2 or more text lines containing Eskom numbers/keywords, USE embedded text immediately!
+  // Do NOT fall back to OCR if embedded text lines are present.
   if (
-    embeddedLines.length >= 8 &&
-    /TOTAL\s*CHARGES|ENERGY\s*CONSUMPTION|NETWORK\s*CAPACITY|YOUR\s*ACCOUNT\s*NO/i.test(embeddedText)
+    embeddedLines.length >= 2 &&
+    /\d{4}|TOTAL|CHARGES|CONSUMPTION|ACCOUNT|INVOICE|Eskom|IMPALA|Megaflex|kWh|kVA/i.test(embeddedText)
   ) {
     return { documentType: "embedded-text", lines: embeddedLines, rawText: embeddedText, confidence: 100 };
   }
 
+  // Fallback to OCR only if PDF has no embedded text (true scanned PDF)
   const ocr = await ocrScannedPdf(doc);
-  return { documentType: "scanned-pdf", ...ocr };
+
+  // If OCR ran, combine embedded lines with OCR lines as a safety net
+  const mergedLines = [...embeddedLines, ...ocr.lines];
+  return {
+    documentType: "scanned-pdf",
+    lines: mergedLines.length ? mergedLines : ocr.lines,
+    rawText: `${embeddedText}\n${ocr.rawText}`,
+    confidence: ocr.confidence || 90,
+  };
 }
 
 async function ocrScannedPdf(doc: {
@@ -542,7 +554,7 @@ async function ocrScannedPdf(doc: {
   const canvases: HTMLCanvasElement[] = [];
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
-    const viewport = page.getViewport({ scale: 2.2 });
+    const viewport = page.getViewport({ scale: 2.5 });
     const canvas = document.createElement("canvas");
     canvas.width = Math.ceil(viewport.width);
     canvas.height = Math.ceil(viewport.height);
@@ -575,7 +587,7 @@ async function ocrCanvases(canvases: HTMLCanvasElement[]): Promise<{ lines: Text
   await worker.setParameters({
     tessedit_pageseg_mode: tesseract.PSM.AUTO,
     preserve_interword_spaces: "1",
-    user_defined_dpi: "220",
+    user_defined_dpi: "250",
   });
 
   const lines: TextLine[] = [];
@@ -656,7 +668,7 @@ function extractChargeLineItems(lines: TextLine[]): InvoiceLineItem[] {
 
 function parseChargeLine(line: TextLine): InvoiceLineItem | null {
   const text = line.text.replace(/\s+/g, " ").trim();
-  const amountMatch = text.match(/(?:\bR\s*|\bZAR\s*)?(-?\(?\d[\d,\s]*\.\d{2}\)?)(?!.*\d[\d,\s]*\.\d{2})\s*$/i);
+  const amountMatch = text.match(/(?:\bR\s*|\bZAR\s*)?(-?\(?\d[\d,\s]*\.\d{2}\)?)(?:\s*R|\s*CR|\s*DR)?\s*$/i);
   if (!amountMatch) return null;
 
   const amount = parseNum(amountMatch[1]);
@@ -815,14 +827,5 @@ function inferFileType(name: string) {
 }
 
 function enhanceForOcr(ctx: CanvasRenderingContext2D, width: number, height: number) {
-  const img = ctx.getImageData(0, 0, width, height);
-  const d = img.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const gray = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
-    const v = gray < 185 ? 0 : 255;
-    d[i] = v;
-    d[i + 1] = v;
-    d[i + 2] = v;
-  }
-  ctx.putImageData(img, 0, 0);
+  // Keep original clean high-resolution canvas colors without destructive binarization
 }
