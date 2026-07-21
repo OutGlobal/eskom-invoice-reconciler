@@ -241,6 +241,12 @@ interface AppState {
   billingStart: string;
   billingEnd: string;
   setBilling: (s: string, e: string) => void;
+
+  batchInvoices: InvoiceData[];
+  addBatchInvoice: (inv: InvoiceData) => void;
+
+  overrideInvoiceField: (fieldPath: string, newValue: number | string) => void;
+  overrideInvoiceChargeLine: (labelOrNormalized: string, newAmount: number) => void;
 }
 
 const initialTariff: TariffData = { ...DEFAULT_TARIFF } as TariffData;
@@ -288,4 +294,43 @@ export const useApp = create<AppState>((set) => ({
   billingStart: "",
   billingEnd: "",
   setBilling: (billingStart, billingEnd) => set({ billingStart, billingEnd }),
+
+  batchInvoices: [],
+  addBatchInvoice: (inv) => set((s) => ({ batchInvoices: [...s.batchInvoices, inv] })),
+
+  overrideInvoiceField: (fieldPath, newValue) => set((s) => {
+    if (!s.invoice) return s;
+    const inv = { ...s.invoice };
+    const ext = inv.extraction ? { ...inv.extraction, fields: { ...inv.extraction.fields } } : undefined;
+    if (ext && ext.fields[fieldPath]) {
+      ext.fields[fieldPath] = {
+        ...ext.fields[fieldPath],
+        value: newValue,
+        needsReview: false,
+      };
+    }
+    return {
+      invoice: {
+        ...inv,
+        extraction: ext,
+      },
+    };
+  }),
+
+  overrideInvoiceChargeLine: (labelOrNormalized, newAmount) => set((s) => {
+    const lines = { ...s.invoiceLines, [labelOrNormalized]: newAmount };
+    const items = s.invoiceItems.map((item) => {
+      if (item.label === labelOrNormalized || item.normalizedName === labelOrNormalized) {
+        return { ...item, amount: newAmount, needsReview: false };
+      }
+      return item;
+    });
+    const total = Object.values(lines).reduce((a, b) => a + b, 0);
+    return {
+      invoiceLines: lines,
+      invoiceItems: items,
+      invoiceTotal: s.invoice?.invoiceTotal ? s.invoice.invoiceTotal : total,
+    };
+  }),
 }));
+

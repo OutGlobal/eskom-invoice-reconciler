@@ -4,9 +4,11 @@ import toast from "react-hot-toast";
 import { Download, FileJson, FileText, FileSpreadsheet } from "lucide-react";
 import { Panel, MetricCard, ZAR, NUM, useBootstrapMeter, useDerived } from "@/components/dashboard/parts";
 import { useApp } from "@/lib/store";
+import { exportToExcel, exportToCsv, exportToJson } from "@/lib/exportReports";
+import { buildStandardReconciliationTable } from "@/lib/reconciliation";
 
 export const Route = createFileRoute("/reports")({
-  head: () => ({ meta: [{ title: "Reports — Meter Reconciliation" }] }),
+  head: () => ({ meta: [{ title: "Reconciliation Reports — Eskom Bill Balancer" }] }),
   component: ReportsPage,
 });
 
@@ -17,170 +19,168 @@ function ReportsPage() {
   const tariff = useApp((s) => s.tariff);
   const invoiceTotal = useApp((s) => s.invoiceTotal);
   const invoice = useApp((s) => s.invoice);
+  const invoiceLines = useApp((s) => s.invoiceLines);
   const invoiceItems = useApp((s) => s.invoiceItems);
+  const batchInvoices = useApp((s) => s.batchInvoices);
+
   const diff = invoiceTotal - calculatedTotal;
   const pctErr = invoiceTotal ? (diff / invoiceTotal) * 100 : 0;
 
-  const exportExcel = async () => {
-    const XLSX = await import("xlsx");
-    const wb = XLSX.utils.book_new();
-    const summary = [
-      ["Customer", customer.name],
-      ["Meter", customer.meter],
-      ["Tariff", tariff.name],
-      ["NMD (kVA)", customer.nmd],
-      ["Period Start", rows[0]?.ts.toISOString() ?? ""],
-      ["Period End", rows.at(-1)?.ts.toISOString() ?? ""],
-      [],
-      ["Metric", "Value"],
-      ["Total Energy (kWh)", totals.totalKWh],
-      ["Peak Energy (kWh)", totals.peakKWh],
-      ["Standard Energy (kWh)", totals.standardKWh],
-      ["Off-Peak Energy (kWh)", totals.offPeakKWh],
-      ["Max Demand (kVA)", totals.maxDemandKVA],
-      ["Max Demand At", totals.maxDemandAt?.toISOString() ?? ""],
-      ["Calculated Total (R)", calculatedTotal],
-      ["Invoice Total (R)", invoiceTotal],
-      ["Difference (R)", diff],
-      ["% Error", pctErr],
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), "Summary");
+  const reconRows = buildStandardReconciliationTable(invoiceLines, charges, invoice?.vat, invoice?.invoiceTotal || invoiceTotal);
+  const exportRows = reconRows.map((r) => ({
+    charge: r.charge,
+    calculated: r.calculated,
+    invoice: r.invoice,
+    varianceR: r.varianceR,
+    variancePct: r.variancePct,
+    status: r.statusText,
+    reason: r.reason,
+  }));
 
-    const chargesSheet = [
-      ["Group", "Charge", "Basis", "Quantity", "Unit", "Rate", "Rate Unit", "Amount (R)"],
-      ...charges.map((c) => [c.group, c.label, c.basis, c.quantity, c.qtyUnit, c.rate, c.rateUnit, c.amount]),
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(chargesSheet), "Charges");
-
-    XLSX.writeFile(wb, `reconciliation_${format(new Date(), "yyyyMMdd_HHmm")}.xlsx`);
+  const handleExportExcel = () => {
+    exportToExcel(invoice, exportRows, invoiceItems);
     toast.success("Excel report downloaded");
   };
 
-  const exportPdf = () => {
-    const html = `
-      <html><head><title>Reconciliation Report</title>
-      <style>
-        body{font-family:system-ui,sans-serif;padding:32px;color:#111}
-        h1{margin:0 0 4px;font-size:20px} h2{font-size:14px;margin-top:24px;border-bottom:1px solid #ccc;padding-bottom:4px}
-        table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
-        th,td{border:1px solid #ddd;padding:6px;text-align:left}
-        th{background:#f3f4f6}
-        .r{text-align:right}
-        .muted{color:#666;font-size:12px}
-      </style></head><body>
-      <h1>Eskom Meter Data Reconciliation Report</h1>
-      <div class="muted">${customer.name} · ${customer.meter} · Generated ${format(new Date(), "dd MMM yyyy HH:mm")}</div>
-
-      <h2>Customer &amp; Meter</h2>
-      <table><tbody>
-        <tr><th>Customer</th><td>${customer.name}</td><th>Meter</th><td>${customer.meter}</td></tr>
-        <tr><th>Account</th><td>${customer.accountNumber}</td><th>Address</th><td>${customer.address}</td></tr>
-        <tr><th>Tariff</th><td>${tariff.name}</td><th>NMD</th><td>${customer.nmd} kVA</td></tr>
-        <tr><th>Period</th><td colspan="3">${rows[0] ? format(rows[0].ts, "dd MMM yyyy") : "—"} → ${rows.at(-1) ? format(rows.at(-1)!.ts, "dd MMM yyyy") : "—"}</td></tr>
-      </tbody></table>
-
-      <h2>Energy &amp; Demand Summary</h2>
-      <table><thead><tr><th>Metric</th><th class="r">Peak</th><th class="r">Standard</th><th class="r">Off-Peak</th><th class="r">Total</th></tr></thead>
-      <tbody>
-        <tr><td>Energy (kWh)</td><td class="r">${NUM(totals.peakKWh, 0)}</td><td class="r">${NUM(totals.standardKWh, 0)}</td><td class="r">${NUM(totals.offPeakKWh, 0)}</td><td class="r"><b>${NUM(totals.totalKWh, 0)}</b></td></tr>
-        <tr><td>Demand (kVAh)</td><td class="r">${NUM(totals.peakKVAh, 0)}</td><td class="r">${NUM(totals.standardKVAh, 0)}</td><td class="r">${NUM(totals.offPeakKVAh, 0)}</td><td class="r"><b>${NUM(totals.totalKVAh, 0)}</b></td></tr>
-      </tbody></table>
-      <p class="muted">Maximum Simultaneous Demand: <b>${NUM(totals.maxDemandKVA)} kVA</b> at ${totals.maxDemandAt ? format(totals.maxDemandAt, "EEE dd MMM yyyy HH:mm") : "—"}</p>
-
-      <h2>Charge Breakdown</h2>
-      <table><thead><tr><th>Charge</th><th>Basis</th><th class="r">Quantity</th><th class="r">Rate</th><th class="r">Amount</th></tr></thead>
-      <tbody>
-        ${charges.map((c) => `<tr><td>${c.label}</td><td>${c.basis}</td><td class="r">${NUM(c.quantity, c.qtyUnit === "kVA" ? 2 : 0)} ${c.qtyUnit}</td><td class="r">${NUM(c.rate, 4)} ${c.rateUnit}</td><td class="r">${ZAR(c.amount)}</td></tr>`).join("")}
-        <tr><th colspan="4" class="r">TOTAL</th><th class="r">${ZAR(calculatedTotal)}</th></tr>
-      </tbody></table>
-
-      <h2>Reconciliation Summary</h2>
-      <table><tbody>
-        <tr><th>Calculated Total</th><td>${ZAR(calculatedTotal)}</td></tr>
-        <tr><th>Invoice Total</th><td>${invoiceTotal ? ZAR(invoiceTotal) : "—"}</td></tr>
-        <tr><th>Difference</th><td>${invoiceTotal ? ZAR(diff) : "—"}</td></tr>
-        <tr><th>% Error</th><td>${invoiceTotal ? pctErr.toFixed(2) + "%" : "—"}</td></tr>
-      </tbody></table>
-      </body></html>`;
-    const w = window.open("", "_blank");
-    if (!w) return toast.error("Popup blocked");
-    w.document.write(html);
-    w.document.close();
-    setTimeout(() => w.print(), 400);
+  const handleExportCsv = () => {
+    exportToCsv(invoice, exportRows);
+    toast.success("CSV report downloaded");
   };
 
-  const downloadText = (name: string, text: string, type: string) => {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([text], { type }));
-    a.download = name;
-    a.click();
-    URL.revokeObjectURL(a.href);
+  const handleExportJson = () => {
+    exportToJson(invoice);
+    toast.success("JSON extracted data downloaded");
   };
 
-  const exportJson = () => {
-    downloadText(`invoice_reconciliation_${format(new Date(), "yyyyMMdd_HHmm")}.json`, JSON.stringify({ invoice: invoice?.normalizedJson ?? invoice, invoiceItems, calculated: { totals, charges, calculatedTotal, invoiceTotal, diff, pctErr } }, null, 2), "application/json");
-    toast.success("JSON export downloaded");
-  };
-
-  const exportCsv = () => {
-    const header = "Charge,Mapped To,Quantity,Unit,Rate,Amount,Confidence\n";
-    const body = invoiceItems.map((i) => [i.label, i.normalizedName || "", i.quantity || "", i.unit || "", i.rate || "", i.amount, i.confidence ?? ""].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-    downloadText(`invoice_charges_${format(new Date(), "yyyyMMdd_HHmm")}.csv`, header + body, "text/csv");
-    toast.success("CSV export downloaded");
+  const handleExportPdf = () => {
+    window.print();
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Reports</h1>
-        <p className="text-xs text-muted-foreground">Download the full reconciliation package as PDF or Excel.</p>
+        <h1 className="text-xl font-semibold">Reconciliation Reports &amp; Exports</h1>
+        <p className="text-xs text-muted-foreground">
+          Export full enterprise reconciliation packages in Excel, PDF, JSON, and CSV formats.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <button onClick={exportPdf} className="text-left rounded-lg border border-border bg-card p-5 hover:border-accent transition group">
+        <button
+          onClick={handleExportExcel}
+          className="text-left rounded-lg border border-border bg-card p-5 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition group"
+        >
           <div className="flex items-center gap-3">
-            <div className="rounded-md bg-secondary p-2 text-accent"><FileText className="h-5 w-5" /></div>
+            <div className="rounded-md bg-emerald-500/10 p-2 text-emerald-400">
+              <FileSpreadsheet className="h-5 w-5" />
+            </div>
             <div>
-              <div className="font-semibold text-sm">PDF Export</div>
-              <div className="text-xs text-muted-foreground">Print-friendly, includes summary, charges, and reconciliation.</div>
+              <div className="font-semibold text-sm">Excel Package (.xlsx)</div>
+              <div className="text-xs text-muted-foreground">Metadata, 13-point recon table, and line items.</div>
             </div>
             <Download className="ml-auto h-4 w-4 opacity-60 group-hover:opacity-100" />
           </div>
         </button>
-        <button onClick={exportExcel} className="text-left rounded-lg border border-border bg-card p-5 hover:border-accent transition group">
+
+        <button
+          onClick={handleExportPdf}
+          className="text-left rounded-lg border border-border bg-card p-5 hover:border-primary/50 hover:bg-primary/5 transition group"
+        >
           <div className="flex items-center gap-3">
-            <div className="rounded-md bg-secondary p-2 text-accent"><FileSpreadsheet className="h-5 w-5" /></div>
+            <div className="rounded-md bg-primary/10 p-2 text-primary">
+              <FileText className="h-5 w-5" />
+            </div>
             <div>
-              <div className="font-semibold text-sm">Excel Export</div>
-              <div className="text-xs text-muted-foreground">Summary + per-charge breakdown, ready for further analysis.</div>
+              <div className="font-semibold text-sm">PDF Report</div>
+              <div className="text-xs text-muted-foreground">Print-friendly full reconciliation report.</div>
             </div>
             <Download className="ml-auto h-4 w-4 opacity-60 group-hover:opacity-100" />
           </div>
         </button>
-        <button onClick={exportJson} className="text-left rounded-lg border border-border bg-card p-5 hover:border-accent transition group">
+
+        <button
+          onClick={handleExportJson}
+          className="text-left rounded-lg border border-border bg-card p-5 hover:border-cyan-500/50 hover:bg-cyan-500/5 transition group"
+        >
           <div className="flex items-center gap-3">
-            <div className="rounded-md bg-secondary p-2 text-accent"><FileJson className="h-5 w-5" /></div>
-            <div><div className="font-semibold text-sm">JSON Export</div><div className="text-xs text-muted-foreground">Structured invoice extraction and reconciliation data.</div></div>
+            <div className="rounded-md bg-cyan-500/10 p-2 text-cyan-400">
+              <FileJson className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-semibold text-sm">JSON Data (.json)</div>
+              <div className="text-xs text-muted-foreground">Normalized JSON for API or ERP integration.</div>
+            </div>
             <Download className="ml-auto h-4 w-4 opacity-60 group-hover:opacity-100" />
           </div>
         </button>
-        <button onClick={exportCsv} className="text-left rounded-lg border border-border bg-card p-5 hover:border-accent transition group">
+
+        <button
+          onClick={handleExportCsv}
+          className="text-left rounded-lg border border-border bg-card p-5 hover:border-border/80 hover:bg-secondary/60 transition group"
+        >
           <div className="flex items-center gap-3">
-            <div className="rounded-md bg-secondary p-2 text-accent"><FileSpreadsheet className="h-5 w-5" /></div>
-            <div><div className="font-semibold text-sm">CSV Export</div><div className="text-xs text-muted-foreground">Extracted charge lines for audit review.</div></div>
+            <div className="rounded-md bg-secondary p-2 text-foreground">
+              <Download className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-semibold text-sm">CSV File (.csv)</div>
+              <div className="text-xs text-muted-foreground">Comma-separated reconciliation variance table.</div>
+            </div>
             <Download className="ml-auto h-4 w-4 opacity-60 group-hover:opacity-100" />
           </div>
         </button>
       </div>
 
-      <Panel title="Report Preview">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <MetricCard label="Total Energy" value={`${NUM(totals.totalKWh, 0)} kWh`} />
-          <MetricCard label="Max Demand" value={`${NUM(totals.maxDemandKVA, 0)} kVA`} />
-          <MetricCard label="Calculated" value={ZAR(calculatedTotal)} accent />
-          <MetricCard label="Invoice" value={invoiceTotal ? ZAR(invoiceTotal) : "—"} />
+      <Panel title="Session Reconciliation Overview" subtitle="Key metrics for active invoice reconciliation session.">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <MetricCard label="Calculated Total" value={ZAR(calculatedTotal)} accent />
+          <MetricCard label="Eskom Invoice Total" value={invoiceTotal ? ZAR(invoiceTotal) : "Awaiting invoice"} />
+          <MetricCard label="Variance Amount" value={invoiceTotal ? ZAR(diff) : "—"} />
+          <MetricCard label="% Error" value={invoiceTotal ? `${pctErr.toFixed(2)}%` : "—"} />
         </div>
       </Panel>
+
+      {batchInvoices.length > 0 && (
+        <Panel title="Batch Session Invoices" subtitle={`${batchInvoices.length} extracted invoices available for report export.`}>
+          <div className="overflow-x-auto rounded border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2">Invoice No</th>
+                  <th className="text-left px-3 py-2">Customer</th>
+                  <th className="text-left px-3 py-2">Tariff</th>
+                  <th className="text-right px-3 py-2">Total Charges</th>
+                  <th className="text-right px-3 py-2">OCR Confidence</th>
+                  <th className="text-left px-3 py-2">Export</th>
+                </tr>
+              </thead>
+              <tbody>
+                {batchInvoices.map((inv, idx) => (
+                  <tr key={idx} className="border-t border-border">
+                    <td className="px-3 py-2 font-medium">{inv.invoiceNumber || inv.invoiceNo || "—"}</td>
+                    <td className="px-3 py-2">{inv.customerName || "—"}</td>
+                    <td className="px-3 py-2">{inv.tariffName || "—"}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {inv.invoiceTotal ? ZAR(inv.invoiceTotal) : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {inv.extraction ? `${inv.extraction.overallConfidence.toFixed(1)}%` : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      <button
+                        onClick={() => exportToJson(inv)}
+                        className="text-cyan-400 hover:underline inline-flex items-center gap-1"
+                      >
+                        <FileJson className="h-3 w-3" /> Export JSON
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      )}
     </div>
   );
 }

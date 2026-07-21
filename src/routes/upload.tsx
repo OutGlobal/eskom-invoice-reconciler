@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
-import { FileSpreadsheet, FileText, Receipt, UploadCloud } from "lucide-react";
+import { FileSpreadsheet, FileText, Receipt } from "lucide-react";
 import { Panel } from "@/components/dashboard/parts";
 import { useApp, type UploadedFile } from "@/lib/store";
 import { parseMeterWorkbook } from "@/lib/parseMeter";
@@ -12,7 +12,7 @@ import { validateMeterRows } from "@/lib/validation";
 import { Progress } from "@/components/ui/progress";
 
 export const Route = createFileRoute("/upload")({
-  head: () => ({ meta: [{ title: "Meter Data Upload — Meter Reconciliation" }] }),
+  head: () => ({ meta: [{ title: "Meter & Invoice Data Upload — Eskom Bill Balancer" }] }),
   component: UploadPage,
 });
 
@@ -20,17 +20,82 @@ type Kind = "tariff" | "meter" | "invoice";
 
 function UploadPage() {
   const uploads = useApp((s) => s.uploads);
+  const batchInvoices = useApp((s) => s.batchInvoices);
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Meter Data Upload</h1>
-        <p className="text-xs text-muted-foreground">Drag &amp; drop your Eskom tariff booklet, raw meter export, or invoice.</p>
+        <h1 className="text-xl font-semibold">Meter &amp; Invoice Upload</h1>
+        <p className="text-xs text-muted-foreground">
+          Upload Eskom tariff booklets, raw meter exports (.xlsx), or Eskom invoices (PDF, PNG, JPG, TIFF) to auto-extract &amp; reconcile.
+        </p>
       </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <DropZone kind="tariff" title="Eskom Tariff PDF" hint="Auto-extracts tariff structure" accept=".pdf" icon={<FileText className="h-6 w-6" />} />
-        <DropZone kind="meter" title="Raw Meter Data (.xlsx)" hint="30-minute interval export" accept=".xlsx,.xls,.csv" icon={<FileSpreadsheet className="h-6 w-6" />} />
-        <DropZone kind="invoice" title="Eskom Invoice" hint="PDF, scan, or image auto-reconciles" accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff" icon={<Receipt className="h-6 w-6" />} />
+        <DropZone
+          kind="tariff"
+          title="Eskom Tariff PDF"
+          hint="Auto-extracts tariff structure"
+          accept=".pdf"
+          icon={<FileText className="h-6 w-6" />}
+        />
+        <DropZone
+          kind="meter"
+          title="Raw Meter Data (.xlsx)"
+          hint="30-minute interval export"
+          accept=".xlsx,.xls,.csv"
+          icon={<FileSpreadsheet className="h-6 w-6" />}
+        />
+        <DropZone
+          kind="invoice"
+          title="Eskom Invoice (PDF &amp; Scans)"
+          hint="PDF, scan, or image auto-reconciles table"
+          accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff"
+          icon={<Receipt className="h-6 w-6" />}
+          multiple
+        />
       </div>
+
+      {batchInvoices.length > 0 && (
+        <Panel title="Batch Processed Invoices" subtitle={`${batchInvoices.length} invoice(s) extracted in this session.`}>
+          <div className="overflow-x-auto rounded border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2">Invoice No</th>
+                  <th className="text-left px-3 py-2">Customer</th>
+                  <th className="text-left px-3 py-2">Doc Type</th>
+                  <th className="text-right px-3 py-2">Total (excl VAT)</th>
+                  <th className="text-right px-3 py-2">OCR Confidence</th>
+                  <th className="text-left px-3 py-2">Validation</th>
+                </tr>
+              </thead>
+              <tbody>
+                {batchInvoices.map((inv, idx) => (
+                  <tr key={idx} className="border-t border-border">
+                    <td className="px-3 py-2 font-medium">{inv.invoiceNumber || inv.invoiceNo || "—"}</td>
+                    <td className="px-3 py-2">{inv.customerName || "—"}</td>
+                    <td className="px-3 py-2 capitalize">{inv.extraction?.documentType || "PDF"}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      R {inv.invoiceTotal ? inv.invoiceTotal.toLocaleString("en-ZA", { minimumFractionDigits: 2 }) : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {inv.extraction ? `${inv.extraction.overallConfidence.toFixed(1)}%` : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      {inv.extraction?.needsReview ? (
+                        <span className="text-amber-500 font-medium">⚠️ Review Flagged</span>
+                      ) : (
+                        <span className="text-emerald-500 font-medium">✓ Passed</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      )}
 
       <Panel title="Upload History" subtitle="Files parsed this session.">
         {uploads.length === 0 ? (
@@ -67,14 +132,28 @@ function UploadPage() {
 }
 
 function DropZone({
-  kind, title, hint, accept, icon, disabled,
+  kind,
+  title,
+  hint,
+  accept,
+  icon,
+  disabled,
+  multiple,
 }: {
-  kind: Kind; title: string; hint: string; accept: string; icon: React.ReactNode; disabled?: boolean;
+  kind: Kind;
+  title: string;
+  hint: string;
+  accept: string;
+  icon: React.ReactNode;
+  disabled?: boolean;
+  multiple?: boolean;
 }) {
   const [drag, setDrag] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [statusMsg, setStatusMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
+
   const setRows = useApp((s) => s.setRows);
   const setTariff = useApp((s) => s.setTariff);
   const addUpload = useApp((s) => s.addUpload);
@@ -84,90 +163,142 @@ function DropZone({
   const setInvoiceLines = useApp((s) => s.setInvoiceLines);
   const setInvoiceTotal = useApp((s) => s.setInvoiceTotal);
   const setCustomer = useApp((s) => s.setCustomer);
+  const addProcessedInvoiceNumber = useApp((s) => s.addProcessedInvoiceNumber);
+  const processedInvoiceNumbers = useApp((s) => s.processedInvoiceNumbers);
+  const addBatchInvoice = useApp((s) => s.addBatchInvoice);
   const navigate = useNavigate();
 
-  const handle = useCallback(async (file: File) => {
-    if (disabled) return;
-    setBusy(true);
-    setProgress(15);
+  const processFile = async (file: File) => {
     const upload: UploadedFile = { name: file.name, size: file.size, type: kind, uploadedAt: new Date() };
-    try {
-      if (kind === "meter") {
-        setProgress(40);
-        const buf = await file.arrayBuffer();
-        setProgress(65);
-        const parsed = await parseMeterWorkbook(buf);
-        setRows(parsed);
-        setValidation(validateMeterRows(parsed));
-        if (parsed.length) {
-          setBilling(format(parsed[0].ts, "yyyy-MM-dd"), format(parsed[parsed.length - 1].ts, "yyyy-MM-dd"));
-        }
-        setProgress(100);
-        toast.success(`Parsed ${parsed.length.toLocaleString()} intervals from ${file.name}`);
-        if (useApp.getState().invoice) {
-          toast("Auto-reconciling…", { icon: "⚙️" });
-          setTimeout(() => navigate({ to: "/reconciliation" }), 300);
-        }
-      } else if (kind === "tariff") {
-        setProgress(35);
-        const { tariff } = await extractTariffFromPdf(file);
-        setTariff(tariff);
-        setProgress(100);
-        toast.success(`Tariff extracted from ${file.name}`);
-      } else {
-        setProgress(35);
-        const { invoice, chargeLines, lineItems } = await extractInvoiceFromPdf(file);
-        setInvoice(invoice);
-        setInvoiceLines(chargeLines);
-        useApp.getState().setInvoiceItems(lineItems);
-        setInvoiceTotal(invoice.invoiceTotal || Object.values(chargeLines).reduce((a: number, b: number) => a + b, 0));
-        if (invoice.customerName || invoice.accountNumber || invoice.meterNumber || invoice.nmd) {
-          setCustomer({
-            ...(invoice.customerName && { name: invoice.customerName }),
-            ...(invoice.meterNumber && { meter: invoice.meterNumber }),
-            ...(invoice.accountNumber && { accountNumber: invoice.accountNumber }),
-            ...(invoice.nmd && { nmd: invoice.nmd }),
-          });
-        }
-        setProgress(100);
-        toast.success(`Invoice extracted from ${file.name}`);
-        toast("Auto-reconciling…", { icon: "⚙️" });
-        setTimeout(() => navigate({ to: "/reconciliation" }), 400);
+
+    if (kind === "meter") {
+      setStatusMsg("Parsing meter intervals...");
+      setProgress(40);
+      const buf = await file.arrayBuffer();
+      setProgress(65);
+      const parsed = await parseMeterWorkbook(buf);
+      setRows(parsed);
+      setValidation(validateMeterRows(parsed));
+      if (parsed.length) {
+        setBilling(format(parsed[0].ts, "yyyy-MM-dd"), format(parsed[parsed.length - 1].ts, "yyyy-MM-dd"));
       }
-      addUpload(upload);
-    } catch (e) {
-      toast.error(`Failed: ${String((e as Error).message || e)}`);
-    } finally {
-      setBusy(false);
-      setTimeout(() => setProgress(0), 800);
+      setProgress(100);
+      toast.success(`Parsed ${parsed.length.toLocaleString()} intervals from ${file.name}`);
+      if (useApp.getState().invoice) {
+        toast("Auto-reconciling table…", { icon: "⚙️" });
+        setTimeout(() => navigate({ to: "/reconciliation" }), 300);
+      }
+    } else if (kind === "tariff") {
+      setStatusMsg("Extracting tariff structure...");
+      setProgress(35);
+      const { tariff } = await extractTariffFromPdf(file);
+      setTariff(tariff);
+      setProgress(100);
+      toast.success(`Tariff extracted from ${file.name}`);
+    } else {
+      // Eskom Invoice Processing
+      setStatusMsg("Detecting document type & extracting text/OCR...");
+      setProgress(25);
+
+      const { invoice, chargeLines, lineItems } = await extractInvoiceFromPdf(file);
+
+      const invNo = invoice.invoiceNumber || invoice.invoiceNo;
+      if (invNo && processedInvoiceNumbers.includes(invNo)) {
+        toast.error(`Duplicate Invoice Detected! (${invNo}) already processed.`, { duration: 4000 });
+      } else if (invNo) {
+        addProcessedInvoiceNumber(invNo);
+      }
+
+      setStatusMsg("Normalizing Eskom charge line items...");
+      setProgress(60);
+
+      setInvoice(invoice);
+      setInvoiceLines(chargeLines);
+      useApp.getState().setInvoiceItems(lineItems);
+      setInvoiceTotal(invoice.invoiceTotal || Object.values(chargeLines).reduce((a: number, b: number) => a + b, 0));
+      addBatchInvoice(invoice);
+
+      if (invoice.customerName || invoice.accountNumber || invoice.meterNumber || invoice.nmd) {
+        setCustomer({
+          ...(invoice.customerName && { name: invoice.customerName }),
+          ...(invoice.meterNumber && { meter: invoice.meterNumber }),
+          ...(invoice.accountNumber && { accountNumber: invoice.accountNumber }),
+          ...(invoice.nmd && { nmd: invoice.nmd }),
+        });
+      }
+
+      setStatusMsg("Populating reconciliation table...");
+      setProgress(100);
+      toast.success(`Invoice extracted (${invoice.extraction?.documentType}) from ${file.name}`);
+      toast("Auto-populating reconciliation table…", { icon: "📊" });
+      setTimeout(() => navigate({ to: "/reconciliation" }), 400);
     }
-  }, [kind, disabled, setRows, setTariff, addUpload, setValidation, setBilling, setInvoice, setInvoiceLines, setInvoiceTotal, setCustomer, navigate]);
+    addUpload(upload);
+  };
+
+  const handleFiles = useCallback(
+    async (fileList: FileList | File[]) => {
+      if (disabled || !fileList.length) return;
+      setBusy(true);
+      try {
+        for (let i = 0; i < fileList.length; i++) {
+          await processFile(fileList[i]);
+        }
+      } catch (e) {
+        toast.error(`Extraction Error: ${String((e as Error).message || e)}`);
+      } finally {
+        setBusy(false);
+        setTimeout(() => {
+          setProgress(0);
+          setStatusMsg("");
+        }, 800);
+      }
+    },
+    [disabled, kind, processedInvoiceNumbers]
+  );
 
   return (
     <div
-      onDragOver={(e) => { e.preventDefault(); if (!disabled) setDrag(true); }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        if (!disabled) setDrag(true);
+      }}
       onDragLeave={() => setDrag(false)}
       onDrop={(e) => {
-        e.preventDefault(); setDrag(false);
-        const f = e.dataTransfer.files?.[0];
-        if (f) handle(f);
+        e.preventDefault();
+        setDrag(false);
+        if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
       }}
-      className={`rounded-lg border-2 border-dashed p-6 transition ${disabled ? "opacity-50" : "cursor-pointer hover:border-accent"} ${drag ? "border-accent bg-accent/5" : "border-border bg-card"}`}
-      onClick={() => !disabled && ref.current?.click()}
+      onClick={() => ref.current?.click()}
+      className={`relative cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition ${
+        drag
+          ? "border-primary bg-primary/10"
+          : disabled
+          ? "opacity-50 cursor-not-allowed border-border"
+          : "border-border hover:border-primary/50 hover:bg-secondary/40"
+      }`}
     >
-      <input ref={ref} type="file" accept={accept} hidden onChange={(e) => e.target.files?.[0] && handle(e.target.files[0])} />
-      <div className="flex items-start gap-3">
-        <div className="rounded-md bg-secondary p-2 text-accent">{icon}</div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold">{title}</div>
-          <div className="text-xs text-muted-foreground">{hint}</div>
+      <input
+        ref={ref}
+        type="file"
+        accept={accept}
+        multiple={multiple}
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files?.length) handleFiles(e.target.files);
+        }}
+      />
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-primary mb-3">
+        {icon}
+      </div>
+      <div className="font-semibold text-sm">{title}</div>
+      <div className="text-xs text-muted-foreground mt-1">{hint}</div>
+      {busy && (
+        <div className="mt-4 space-y-2">
+          <Progress value={progress} className="h-1.5" />
+          <div className="text-[11px] text-primary font-medium">{statusMsg || "Processing..."}</div>
         </div>
-      </div>
-      <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-        <UploadCloud className="h-4 w-4" />
-        {disabled ? "Coming soon" : "Drag file or click to browse"}
-      </div>
-      {(busy || progress > 0) && <Progress value={progress} className="mt-3 h-1" />}
+      )}
     </div>
   );
 }
