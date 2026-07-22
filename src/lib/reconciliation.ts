@@ -269,8 +269,17 @@ export function buildStandardReconciliationTable(
   calcMap["VAT"] = calcMap["VAT"] || sumSubTotalCalc * 0.15;
   calcMap["Total Charges"] = calcMap["Total Charges"] || sumSubTotalCalc;
 
+  // Resilient, character-insensitive key normalization
+  const normalizeKey = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  const normalizedInvoiceLines: Record<string, number> = {};
+  for (const [k, v] of Object.entries(invoiceLines || {})) {
+    normalizedInvoiceLines[normalizeKey(k)] = v;
+  }
+
   return REQUIRED_13_ITEMS.map((item) => {
-    let inv = invoiceLines[item] ?? 0;
+    const key = normalizeKey(item);
+    let inv = normalizedInvoiceLines[key] ?? 0;
     if (item === "VAT" && !inv && vatInvoice) inv = vatInvoice;
     if (item === "Total Charges" && !inv && totalInvoice) inv = totalInvoice;
 

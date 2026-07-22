@@ -6,7 +6,7 @@ import type {
   NormalizedInvoiceJson,
 } from "./store";
 
-const PARSER_VERSION = "eskom-invoice-parser-v4.2.0";
+const PARSER_VERSION = "eskom-invoice-parser-v4.3.0";
 const REVIEW_THRESHOLD = 90;
 
 interface TextLine {
@@ -479,8 +479,8 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
   }
 
   const pdfjs = await import("pdfjs-dist");
-  const workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default as string;
-  pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+  // Robust CDN fallback worker source to prevent bundler asset load issues in production
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
   const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
   const embeddedLines: TextLine[] = [];
@@ -492,7 +492,7 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
 
     // 3.5px Vertical Line Clustering for PDF.js text items
     const itemsWithPos = items
-      .filter((it) => "str" in it && it.str?.trim())
+      .filter((it) => "str" in it && it.str?.trim() && it.transform && it.transform.length >= 6)
       .map((it) => ({
         x: it.transform[4],
         y: it.transform[5],
@@ -526,7 +526,6 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
 
   // EMBEDDED TEXT FIRST POLICY:
   // If PDF.js extracted 2 or more text lines containing Eskom numbers/keywords, USE embedded text immediately!
-  // Do NOT fall back to OCR if embedded text lines are present.
   if (
     embeddedLines.length >= 2 &&
     /\d{4}|TOTAL|CHARGES|CONSUMPTION|ACCOUNT|INVOICE|Eskom|IMPALA|Megaflex|kWh|kVA/i.test(embeddedText)
@@ -576,19 +575,8 @@ async function ocrImageFile(file: File) {
 async function ocrCanvases(canvases: HTMLCanvasElement[]): Promise<{ lines: TextLine[]; rawText: string; confidence: number }> {
   if (typeof document === "undefined") return { lines: [], rawText: "", confidence: 0 };
   const tesseract = await import("tesseract.js");
-  const worker = await tesseract.createWorker("eng", tesseract.OEM.LSTM_ONLY, {
-    workerPath: "/tesseract/worker.min.js",
-    corePath: "/tesseract/tesseract-core-lstm.wasm.js",
-    langPath: "/tessdata",
-    gzip: true,
-    workerBlobURL: false,
-  });
-
-  await worker.setParameters({
-    tessedit_pageseg_mode: tesseract.PSM.AUTO,
-    preserve_interword_spaces: "1",
-    user_defined_dpi: "250",
-  });
+  // Use clean, robust CDN creation without fragile local server path configuration
+  const worker = await tesseract.createWorker("eng");
 
   const lines: TextLine[] = [];
   const pageTexts: string[] = [];
@@ -767,6 +755,7 @@ function findLine(lines: TextLine[], rx: RegExp) {
   return undefined;
 }
 
+// Fixed IMPALA / MINE / PTY word boundaries to correctly match Impala Plats Rustenburg Mine
 function extractCustomer(lines: TextLine[]) {
   const idx = lines.findIndex((l) => /\b(PTY|LTD|MINE|MUNICIPALITY|CC|TRUST|PROPRIETARY|IMPALA)\b/i.test(l.text) && !/eskom|vat|tax/i.test(l.text));
   if (idx < 0) return { name: "", address: "", raw: "", confidence: 0 };
