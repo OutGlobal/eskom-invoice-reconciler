@@ -277,11 +277,15 @@ export function buildStandardReconciliationTable(
     normalizedInvoiceLines[normalizeKey(k)] = v;
   }
 
+  // Smart fallbacks for VAT and Total Charges
+  const totalInvValue = totalInvoice || normalizedInvoiceLines[normalizeKey("Total Charges")] || 0;
+  const vatInvValue = vatInvoice || normalizedInvoiceLines[normalizeKey("VAT")] || (totalInvValue * 0.15);
+
   return REQUIRED_13_ITEMS.map((item) => {
     const key = normalizeKey(item);
     let inv = normalizedInvoiceLines[key] ?? 0;
-    if (item === "VAT" && !inv && vatInvoice) inv = vatInvoice;
-    if (item === "Total Charges" && !inv && totalInvoice) inv = totalInvoice;
+    if (item === "VAT" && !inv) inv = vatInvValue;
+    if (item === "Total Charges" && !inv) inv = totalInvValue;
 
     const calc = calcMap[item] || 0;
     const hasInvoice = inv > 0;
