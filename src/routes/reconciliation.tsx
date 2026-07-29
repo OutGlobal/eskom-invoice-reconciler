@@ -58,6 +58,7 @@ function ReconPage() {
   const invoiceItems = useApp((s) => s.invoiceItems);
   const invoiceTotal = useApp((s) => s.invoiceTotal);
   const overrideInvoiceChargeLine = useApp((s) => s.overrideInvoiceChargeLine);
+  const loadMarch2026SampleInvoice = useApp((s) => s.loadMarch2026SampleInvoice);
 
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editVal, setEditVal] = useState<string>("");
@@ -144,6 +145,17 @@ function ReconPage() {
 
           {/* Export Action Bar */}
           <div className="flex items-center gap-1.5 border-l border-border pl-3 ml-2">
+            <button
+              onClick={() => {
+                loadMarch2026SampleInvoice();
+                toast.success("Loaded Impala March 2026 Eskom Invoice!");
+              }}
+              className="inline-flex items-center gap-1 text-xs bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded px-2.5 py-1 font-medium transition"
+              title="Load Impala Platinum Mine March 2026 Invoice Sample"
+            >
+              Load March 2026 Invoice
+            </button>
+
             <button
               onClick={() => exportToExcel(invoice, exportRowsForReport, invoiceItems)}
               className="inline-flex items-center gap-1 text-xs bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded px-2.5 py-1 font-medium transition"

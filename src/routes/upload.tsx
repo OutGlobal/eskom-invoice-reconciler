@@ -21,14 +21,27 @@ type Kind = "tariff" | "meter" | "invoice";
 function UploadPage() {
   const uploads = useApp((s) => s.uploads);
   const batchInvoices = useApp((s) => s.batchInvoices);
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Meter &amp; Invoice Upload</h1>
-        <p className="text-xs text-muted-foreground">
-          Upload Eskom tariff booklets, raw meter exports (.xlsx), or Eskom invoices (PDF, PNG, JPG, TIFF) to auto-extract &amp; reconcile.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/10 p-3">
+        <div className="text-xs font-medium">
+          Impala Platinum Rustenburg Mine (March 2026 Eskom Invoice)
+          <span className="block text-[11px] font-normal text-muted-foreground mt-0.5">
+            Account: 7856504676 · Tariff: Megaflex Diversity · Period: 2026-02-17 to 2026-03-18
+          </span>
+        </div>
+        <button
+          onClick={() => {
+            useApp.getState().loadMarch2026SampleInvoice();
+            toast.success("Loaded Impala March 2026 Eskom Invoice!");
+            navigate({ to: "/reconciliation" });
+          }}
+          className="shrink-0 text-xs bg-primary text-primary-foreground hover:bg-primary/90 rounded px-3 py-1.5 font-medium transition"
+        >
+          Load March 2026 Demo Invoice
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

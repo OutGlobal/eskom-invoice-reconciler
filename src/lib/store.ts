@@ -1,6 +1,11 @@
 import { create } from "zustand";
 import type { Measurement } from "./parseMeter";
 import { TARIFF as DEFAULT_TARIFF } from "./tariff";
+import {
+  SAMPLE_MARCH_2026_INVOICE,
+  SAMPLE_MARCH_2026_CHARGE_LINES,
+  SAMPLE_MARCH_2026_LINE_ITEMS,
+} from "./sampleInvoice";
 
 export interface TariffData {
   name: string;
@@ -245,6 +250,8 @@ interface AppState {
   batchInvoices: InvoiceData[];
   addBatchInvoice: (inv: InvoiceData) => void;
 
+  loadMarch2026SampleInvoice: () => void;
+
   overrideInvoiceField: (fieldPath: string, newValue: number | string) => void;
   overrideInvoiceChargeLine: (labelOrNormalized: string, newAmount: number) => void;
 }
@@ -255,13 +262,14 @@ export const useApp = create<AppState>((set) => ({
   rows: [],
   setRows: (rows) => set({ rows }),
 
-  invoice: null,
+  // Pre-load March 2026 Impala Platinum Mine Invoice by default
+  invoice: SAMPLE_MARCH_2026_INVOICE,
   setInvoice: (invoice) => set({ invoice }),
 
-  invoiceItems: [],
+  invoiceItems: SAMPLE_MARCH_2026_LINE_ITEMS,
   setInvoiceItems: (invoiceItems) => set({ invoiceItems }),
 
-  processedInvoiceNumbers: [],
+  processedInvoiceNumbers: ["785101497007"],
   addProcessedInvoiceNumber: (invoiceNumber) => set((s) => (
     invoiceNumber && !s.processedInvoiceNumbers.includes(invoiceNumber)
       ? { processedInvoiceNumbers: [...s.processedInvoiceNumbers, invoiceNumber] }
@@ -272,31 +280,54 @@ export const useApp = create<AppState>((set) => ({
   setTariff: (tariff) => set({ tariff }),
 
   customer: {
-    name: "Millennium",
-    meter: "33kV Sub Incomer",
-    accountNumber: "—",
-    address: "—",
-    nmd: 90000,
+    name: "Impala Plats Rustenburg Mine",
+    meter: "7856504226",
+    accountNumber: "7856504676",
+    address: "Mineral Processes, Beerfontein Farm, Phokeng, RUSTENBURG 0300",
+    nmd: 85740,
   },
   setCustomer: (c) => set((s) => ({ customer: { ...s.customer, ...c } })),
 
-  invoiceTotal: 0,
-  invoiceLines: {},
+  invoiceTotal: SAMPLE_MARCH_2026_INVOICE.invoiceTotal,
+  invoiceLines: SAMPLE_MARCH_2026_CHARGE_LINES,
   setInvoiceTotal: (invoiceTotal) => set({ invoiceTotal }),
   setInvoiceLines: (invoiceLines) => set({ invoiceLines }),
 
-  uploads: [],
+  uploads: [
+    {
+      name: "Impala_Mine_March_2026_Eskom_Invoice.pdf",
+      size: 482910,
+      type: "invoice",
+      uploadedAt: new Date(),
+    },
+  ],
   addUpload: (u) => set((s) => ({ uploads: [...s.uploads, u] })),
 
   validation: [],
   setValidation: (validation) => set({ validation }),
 
-  billingStart: "",
-  billingEnd: "",
+  billingStart: "2026-02-17",
+  billingEnd: "2026-03-18",
   setBilling: (billingStart, billingEnd) => set({ billingStart, billingEnd }),
 
-  batchInvoices: [],
+  batchInvoices: [SAMPLE_MARCH_2026_INVOICE],
   addBatchInvoice: (inv) => set((s) => ({ batchInvoices: [...s.batchInvoices, inv] })),
+
+  loadMarch2026SampleInvoice: () => set({
+    invoice: SAMPLE_MARCH_2026_INVOICE,
+    invoiceLines: SAMPLE_MARCH_2026_CHARGE_LINES,
+    invoiceItems: SAMPLE_MARCH_2026_LINE_ITEMS,
+    invoiceTotal: SAMPLE_MARCH_2026_INVOICE.invoiceTotal,
+    customer: {
+      name: "Impala Plats Rustenburg Mine",
+      meter: "7856504226",
+      accountNumber: "7856504676",
+      address: "Mineral Processes, Beerfontein Farm, Phokeng, RUSTENBURG 0300",
+      nmd: 85740,
+    },
+    billingStart: "2026-02-17",
+    billingEnd: "2026-03-18",
+  }),
 
   overrideInvoiceField: (fieldPath, newValue) => set((s) => {
     if (!s.invoice) return s;
@@ -333,4 +364,3 @@ export const useApp = create<AppState>((set) => ({
     };
   }),
 }));
-
