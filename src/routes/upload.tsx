@@ -27,21 +27,33 @@ function UploadPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/10 p-3">
         <div className="text-xs font-medium">
-          Impala Platinum Rustenburg Mine (March 2026 Eskom Invoice)
+          Impala Platinum Rustenburg Mine (Sample Eskom Invoices)
           <span className="block text-[11px] font-normal text-muted-foreground mt-0.5">
-            Account: 7856504676 · Tariff: Megaflex Diversity · Period: 2026-02-17 to 2026-03-18
+            Account: 7856504676 · Tariff: Megaflex Diversity · Periods: 17/01/2026 - 16/02/2026 &amp; 17/02/2026 - 18/03/2026
           </span>
         </div>
-        <button
-          onClick={() => {
-            useApp.getState().loadMarch2026SampleInvoice();
-            toast.success("Loaded Impala March 2026 Eskom Invoice!");
-            navigate({ to: "/reconciliation" });
-          }}
-          className="shrink-0 text-xs bg-primary text-primary-foreground hover:bg-primary/90 rounded px-3 py-1.5 font-medium transition"
-        >
-          Load March 2026 Demo Invoice
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              useApp.getState().loadFeb2026SampleInvoice();
+              toast.success("Loaded Impala February 2026 Invoice (17/01/2026 - 16/02/2026)!");
+              navigate({ to: "/reconciliation" });
+            }}
+            className="shrink-0 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded px-3 py-1.5 font-medium transition"
+          >
+            Load Feb 2026 Invoice (17/01 - 16/02)
+          </button>
+          <button
+            onClick={() => {
+              useApp.getState().loadMarch2026SampleInvoice();
+              toast.success("Loaded Impala March 2026 Invoice (17/02/2026 - 18/03/2026)!");
+              navigate({ to: "/reconciliation" });
+            }}
+            className="shrink-0 text-xs bg-primary text-primary-foreground hover:bg-primary/90 rounded px-3 py-1.5 font-medium transition"
+          >
+            Load March 2026 Invoice (17/02 - 18/03)
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

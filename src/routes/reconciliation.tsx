@@ -143,17 +143,28 @@ function ReconPage() {
           />
           <PeriodPicker />
 
-          {/* Export Action Bar */}
+          {/* Demo Invoices Selector */}
           <div className="flex items-center gap-1.5 border-l border-border pl-3 ml-2">
             <button
               onClick={() => {
-                loadMarch2026SampleInvoice();
-                toast.success("Loaded Impala March 2026 Eskom Invoice!");
+                useApp.getState().loadFeb2026SampleInvoice();
+                toast.success("Loaded Impala February 2026 Invoice (17/01/2026 - 16/02/2026)");
+              }}
+              className="inline-flex items-center gap-1 text-xs bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 rounded px-2.5 py-1 font-medium transition"
+              title="Load Impala Mine Feb 2026 Invoice (17/01/2026 - 16/02/2026)"
+            >
+              Feb 2026 Invoice
+            </button>
+
+            <button
+              onClick={() => {
+                useApp.getState().loadMarch2026SampleInvoice();
+                toast.success("Loaded Impala March 2026 Invoice (17/02/2026 - 18/03/2026)");
               }}
               className="inline-flex items-center gap-1 text-xs bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded px-2.5 py-1 font-medium transition"
-              title="Load Impala Platinum Mine March 2026 Invoice Sample"
+              title="Load Impala Mine March 2026 Invoice (17/02/2026 - 18/03/2026)"
             >
-              Load March 2026 Invoice
+              March 2026 Invoice
             </button>
 
             <button
