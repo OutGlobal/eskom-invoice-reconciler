@@ -56,7 +56,10 @@ function UploadPage() {
       </div>
 
       {batchInvoices.length > 0 && (
-        <Panel title="Batch Processed Invoices" subtitle={`${batchInvoices.length} invoice(s) extracted in this session.`}>
+        <Panel
+          title="Batch Processed Invoices"
+          subtitle={`${batchInvoices.length} invoice(s) extracted in this session.`}
+        >
           <div className="overflow-x-auto rounded border border-border">
             <table className="w-full text-sm">
               <thead className="bg-secondary text-xs uppercase text-muted-foreground">
@@ -72,11 +75,18 @@ function UploadPage() {
               <tbody>
                 {batchInvoices.map((inv, idx) => (
                   <tr key={idx} className="border-t border-border">
-                    <td className="px-3 py-2 font-medium">{inv.invoiceNumber || inv.invoiceNo || "—"}</td>
+                    <td className="px-3 py-2 font-medium">
+                      {inv.invoiceNumber || inv.invoiceNo || "—"}
+                    </td>
                     <td className="px-3 py-2">{inv.customerName || "—"}</td>
-                    <td className="px-3 py-2 capitalize">{inv.extraction?.documentType || "PDF"}</td>
+                    <td className="px-3 py-2 capitalize">
+                      {inv.extraction?.documentType || "PDF"}
+                    </td>
                     <td className="px-3 py-2 text-right tabular-nums">
-                      R {inv.invoiceTotal ? inv.invoiceTotal.toLocaleString("en-ZA", { minimumFractionDigits: 2 }) : "—"}
+                      R{" "}
+                      {inv.invoiceTotal
+                        ? inv.invoiceTotal.toLocaleString("en-ZA", { minimumFractionDigits: 2 })
+                        : "—"}
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">
                       {inv.extraction ? `${inv.extraction.overallConfidence.toFixed(1)}%` : "—"}
@@ -117,8 +127,12 @@ function UploadPage() {
                   <tr key={i} className="border-t border-border">
                     <td className="px-3 py-2 font-medium">{u.name}</td>
                     <td className="px-3 py-2 capitalize">{u.type}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{(u.size / 1024).toFixed(1)}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{format(u.uploadedAt, "dd MMM yyyy HH:mm")}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {(u.size / 1024).toFixed(1)}
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {format(u.uploadedAt, "dd MMM yyyy HH:mm")}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -168,7 +182,12 @@ function DropZone({
   const navigate = useNavigate();
 
   const processFile = async (file: File) => {
-    const upload: UploadedFile = { name: file.name, size: file.size, type: kind, uploadedAt: new Date() };
+    const upload: UploadedFile = {
+      name: file.name,
+      size: file.size,
+      type: kind,
+      uploadedAt: new Date(),
+    };
 
     if (kind === "meter") {
       setStatusMsg("Parsing meter intervals...");
@@ -179,7 +198,10 @@ function DropZone({
       setRows(parsed);
       setValidation(validateMeterRows(parsed));
       if (parsed.length) {
-        setBilling(format(parsed[0].ts, "yyyy-MM-dd"), format(parsed[parsed.length - 1].ts, "yyyy-MM-dd"));
+        setBilling(
+          format(parsed[0].ts, "yyyy-MM-dd"),
+          format(parsed[parsed.length - 1].ts, "yyyy-MM-dd"),
+        );
       }
       setProgress(100);
       toast.success(`Parsed ${parsed.length.toLocaleString()} intervals from ${file.name}`);
@@ -203,7 +225,9 @@ function DropZone({
 
       const invNo = invoice.invoiceNumber || invoice.invoiceNo;
       if (invNo && processedInvoiceNumbers.includes(invNo)) {
-        toast.error(`Duplicate Invoice Detected! (${invNo}) already processed.`, { duration: 4000 });
+        toast.error(`Duplicate Invoice Detected! (${invNo}) already processed.`, {
+          duration: 4000,
+        });
       } else if (invNo) {
         addProcessedInvoiceNumber(invNo);
       }
@@ -214,7 +238,10 @@ function DropZone({
       setInvoice(invoice);
       setInvoiceLines(chargeLines);
       useApp.getState().setInvoiceItems(lineItems);
-      setInvoiceTotal(invoice.invoiceTotal || Object.values(chargeLines).reduce((a: number, b: number) => a + b, 0));
+      setInvoiceTotal(
+        invoice.invoiceTotal ||
+          Object.values(chargeLines).reduce((a: number, b: number) => a + b, 0),
+      );
       addBatchInvoice(invoice);
 
       if (invoice.customerName || invoice.accountNumber || invoice.meterNumber || invoice.nmd) {
@@ -253,7 +280,7 @@ function DropZone({
         }, 800);
       }
     },
-    [disabled, kind, processedInvoiceNumbers]
+    [disabled, kind, processedInvoiceNumbers],
   );
 
   return (
@@ -273,8 +300,8 @@ function DropZone({
         drag
           ? "border-primary bg-primary/10"
           : disabled
-          ? "opacity-50 cursor-not-allowed border-border"
-          : "border-border hover:border-primary/50 hover:bg-secondary/40"
+            ? "opacity-50 cursor-not-allowed border-border"
+            : "border-border hover:border-primary/50 hover:bg-secondary/40"
       }`}
     >
       <input

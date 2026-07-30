@@ -7,7 +7,10 @@ export function validateMeterRows(rows: Measurement[]): ValidationIssue[] {
     issues.push({ severity: "error", message: "No rows parsed from file." });
     return issues;
   }
-  let missingTs = 0, dupes = 0, missingMeas = 0, gaps = 0;
+  let missingTs = 0,
+    dupes = 0,
+    missingMeas = 0,
+    gaps = 0;
   const seen = new Set<number>();
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
@@ -23,9 +26,11 @@ export function validateMeterRows(rows: Measurement[]): ValidationIssue[] {
       if (dt > 45) gaps++;
     }
   }
-  if (missingTs) issues.push({ severity: "error", message: "Missing/invalid timestamps", count: missingTs });
+  if (missingTs)
+    issues.push({ severity: "error", message: "Missing/invalid timestamps", count: missingTs });
   if (dupes) issues.push({ severity: "warning", message: "Duplicate timestamps", count: dupes });
-  if (missingMeas) issues.push({ severity: "error", message: "Missing measurements", count: missingMeas });
+  if (missingMeas)
+    issues.push({ severity: "error", message: "Missing measurements", count: missingMeas });
   if (gaps) issues.push({ severity: "warning", message: "Interval gaps > 30min", count: gaps });
   if (!issues.length) issues.push({ severity: "warning", message: "All checks passed" });
   return issues;

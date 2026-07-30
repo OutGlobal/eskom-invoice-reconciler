@@ -32,7 +32,7 @@ interface FieldBag {
     value: string | number,
     raw: string,
     confidence: number,
-    alternatives?: string[]
+    alternatives?: string[],
   ) => void;
 }
 
@@ -66,13 +66,39 @@ const CHARGE_ALIASES: Array<{ key: ChargeKey; test: (s: string) => boolean }> = 
   { key: "ancillaryService", test: (s) => /ancillary/i.test(s) },
   { key: "serviceCharge", test: (s) => /\bservice\s*charge\b/i.test(s) && !/ancillary/i.test(s) },
   { key: "administration", test: (s) => /admin(?:istration)?(?:\s*charge)?/i.test(s) },
-  { key: "transmissionNetwork", test: (s) => /(?:tx|transmission)\s*(?:network\s*)?(?:capacity\s*)?charge/i.test(s) },
-  { key: "distributionNetwork", test: (s) => /(?:distribution\s*network\s*capacity|network\s*capacity)\s*charge/i.test(s) && !/(?:tx|transmission|generation|generator)/i.test(s) },
+  {
+    key: "transmissionNetwork",
+    test: (s) => /(?:tx|transmission)\s*(?:network\s*)?(?:capacity\s*)?charge/i.test(s),
+  },
+  {
+    key: "distributionNetwork",
+    test: (s) =>
+      /(?:distribution\s*network\s*capacity|network\s*capacity)\s*charge/i.test(s) &&
+      !/(?:tx|transmission|generation|generator)/i.test(s),
+  },
   { key: "generationCapacity", test: (s) => /generat(?:ion|or)\s*capacity\s*charge/i.test(s) },
   { key: "networkDemand", test: (s) => /network\s*demand\s*charge/i.test(s) },
-  { key: "offPeakEnergy", test: (s) => /(?:low|high)?\s*season\s*off\s*[- ]?\s*peak\s*energy(?:\s*charge)?|off\s*[- ]?\s*peak\s*energy(?:\s*charge)?/i.test(s) },
-  { key: "standardEnergy", test: (s) => /(?:low|high)?\s*season\s*(?:standard|std)\s*energy(?:\s*charge)?|(?:standard|std)\s*energy(?:\s*charge)?/i.test(s) },
-  { key: "peakEnergy", test: (s) => /(?:low|high)?\s*season\s*peak\s*energy(?:\s*charge)?|\bpeak\b\s*energy(?:\s*charge)?/i.test(s) && !/off\s*[- ]?\s*peak/i.test(s) },
+  {
+    key: "offPeakEnergy",
+    test: (s) =>
+      /(?:low|high)?\s*season\s*off\s*[- ]?\s*peak\s*energy(?:\s*charge)?|off\s*[- ]?\s*peak\s*energy(?:\s*charge)?/i.test(
+        s,
+      ),
+  },
+  {
+    key: "standardEnergy",
+    test: (s) =>
+      /(?:low|high)?\s*season\s*(?:standard|std)\s*energy(?:\s*charge)?|(?:standard|std)\s*energy(?:\s*charge)?/i.test(
+        s,
+      ),
+  },
+  {
+    key: "peakEnergy",
+    test: (s) =>
+      /(?:low|high)?\s*season\s*peak\s*energy(?:\s*charge)?|\bpeak\b\s*energy(?:\s*charge)?/i.test(
+        s,
+      ) && !/off\s*[- ]?\s*peak/i.test(s),
+  },
   { key: "legacy", test: (s) => /legacy\s*charge/i.test(s) },
   { key: "affordabilitySubsidy", test: (s) => /affordability\s*(?:subsidy)?/i.test(s) },
   { key: "electrificationSubsidy", test: (s) => /electrification|rural\s*subsidy/i.test(s) },
@@ -101,17 +127,14 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
     },
   };
 
-  const lines = extracted.lines.map((l) => ({ ...l, text: cleanOcrLine(l.text) })).filter((l) => l.text);
+  const lines = extracted.lines
+    .map((l) => ({ ...l, text: cleanOcrLine(l.text) }))
+    .filter((l) => l.text);
   const fullText = lines.map((l) => l.text).join("\n");
   const norm = normalizeText(fullText);
 
   // Generalized Field Extractor with Neighbor Fallback Search
-  const extractField = (
-    field: string,
-    keyRx: RegExp,
-    valRx: RegExp,
-    isNumber = false
-  ): any => {
+  const extractField = (field: string, keyRx: RegExp, valRx: RegExp, isNumber = false): any => {
     // 1. Try to find key and value on the same line
     for (const line of lines) {
       if (keyRx.test(line.text)) {
@@ -145,37 +168,92 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   };
 
   // 1. Customer & Metadata Extraction
-  const accountNumber = extractField("accountNumber", /account\s*(?:no|number)/i, /\b[0-9]{8,12}\b/);
-  const taxInvoiceNo = extractField("taxInvoiceNumber", /tax\s*invoice\s*(?:no|number)?/i, /\b[0-9]{10,14}\b/);
-  const invoiceNumber = extractField("invoiceNumber", /(?<!tax\s)invoice\s*(?:no|number)?/i, /\b[0-9]{10,14}\b/) || taxInvoiceNo;
+  const accountNumber = extractField(
+    "accountNumber",
+    /account\s*(?:no|number)/i,
+    /\b[0-9]{8,12}\b/,
+  );
+  const taxInvoiceNo = extractField(
+    "taxInvoiceNumber",
+    /tax\s*invoice\s*(?:no|number)?/i,
+    /\b[0-9]{10,14}\b/,
+  );
+  const invoiceNumber =
+    extractField("invoiceNumber", /(?<!tax\s)invoice\s*(?:no|number)?/i, /\b[0-9]{10,14}\b/) ||
+    taxInvoiceNo;
 
-  const billingDate = extractField("billingDate", /billing\s*date/i, /\b\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\b|\b\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}\b/);
-  const dueDate = extractField("dueDate", /due\s*date/i, /\b\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\b|\b\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}\b/);
+  const billingDate = extractField(
+    "billingDate",
+    /billing\s*date/i,
+    /\b\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\b|\b\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}\b/,
+  );
+  const dueDate = extractField(
+    "dueDate",
+    /due\s*date/i,
+    /\b\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\b|\b\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}\b/,
+  );
   const accountMonth = extractField("accountMonth", /account\s*month/i, /\b[A-Za-z]+\s*[0-9]{4}\b/);
-  const vatReg = extractField("vatRegistrationNumber", /vat\s*(?:reg|registration)/i, /\b[0-9]{9,12}\b/);
+  const vatReg = extractField(
+    "vatRegistrationNumber",
+    /vat\s*(?:reg|registration)/i,
+    /\b[0-9]{9,12}\b/,
+  );
   const premiseId = extractField("premiseId", /premise\s*(?:id)?/i, /\b[0-9]{9,13}\b/);
-  const meterNumber = extractField("meterNumber", /meter\s*(?:no|number)/i, /\b[A-Z0-9\-\/]{6,12}\b/);
+  const meterNumber = extractField(
+    "meterNumber",
+    /meter\s*(?:no|number)/i,
+    /\b[A-Z0-9\-\/]{6,12}\b/,
+  );
   const region = extractField("region", /region/i, /\b[A-Za-z][A-Za-z\s-]{2,30}\b/);
-  const billingOffice = extractField("billingOffice", /billing\s*office/i, /\b[A-Za-z][A-Za-z\s-]{2,30}\b/);
+  const billingOffice = extractField(
+    "billingOffice",
+    /billing\s*office/i,
+    /\b[A-Za-z][A-Za-z\s-]{2,30}\b/,
+  );
 
-  const nmd = extractField("notifiedMaximumDemand", /notified\s*max(?:imum)?\s*demand/i, /\b[\d,\s]+\.?\d*/, true);
-  const utilisedCapacity = extractField("utilisedCapacity", /utili[sz]ed\s*capacity/i, /\b[\d,\s]+\.?\d*/, true);
-  const simMaxDemand = extractField("simultaneousMaximumDemand", /simultaneous\s*max(?:imum)?\s*demand/i, /\b[\d,\s]+\.?\d*/, true);
-  const demandReading = extractField("demandReading", /demand\s*reading/i, /\b[\d,\s]+\.?\d*/, true);
+  const nmd = extractField(
+    "notifiedMaximumDemand",
+    /notified\s*max(?:imum)?\s*demand/i,
+    /\b[\d,\s]+\.?\d*/,
+    true,
+  );
+  const utilisedCapacity = extractField(
+    "utilisedCapacity",
+    /utili[sz]ed\s*capacity/i,
+    /\b[\d,\s]+\.?\d*/,
+    true,
+  );
+  const simMaxDemand = extractField(
+    "simultaneousMaximumDemand",
+    /simultaneous\s*max(?:imum)?\s*demand/i,
+    /\b[\d,\s]+\.?\d*/,
+    true,
+  );
+  const demandReading = extractField(
+    "demandReading",
+    /demand\s*reading/i,
+    /\b[\d,\s]+\.?\d*/,
+    true,
+  );
   const loadFactor = extractField("loadFactor", /load\s*factor/i, /\b[\d,\s]+\.?\d*/, true);
 
-  const tariffName = extractField(
-    "tariff",
-    /tariff\s*(?:name)?/i,
-    /\b(Megaflex\s*Diversity|Megaflex\s*Gen|Megaflex|Miniflex|Nightsave|Ruraflex|Municflex|Businessrate|[A-Za-z][A-Za-z0-9\s-]{2,40})\b/
-  ) || inferTariff(norm);
+  const tariffName =
+    extractField(
+      "tariff",
+      /tariff\s*(?:name)?/i,
+      /\b(Megaflex\s*Diversity|Megaflex\s*Gen|Megaflex|Miniflex|Nightsave|Ruraflex|Municflex|Businessrate|[A-Za-z][A-Za-z0-9\s-]{2,40})\b/,
+    ) || inferTariff(norm);
 
-  const voltage = /33\s*kV/i.test(norm) ? "33 kV" : /11\s*kV/i.test(norm) ? "11 kV" : extractField("voltage", /voltage/i, /\b[0-9]+\s*kV\b/);
+  const voltage = /33\s*kV/i.test(norm)
+    ? "33 kV"
+    : /11\s*kV/i.test(norm)
+      ? "11 kV"
+      : extractField("voltage", /voltage/i, /\b[0-9]+\s*kV\b/);
 
   const billingPeriod = extractField(
     "billingPeriod",
     /(?:consumption\s*details|billing\s*period)/i,
-    /\b\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\s*(?:-|to)\s*\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\b/
+    /\b\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\s*(?:-|to)\s*\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\b/,
   );
   let billingPeriodStart = "";
   let billingPeriodEnd = "";
@@ -191,21 +269,73 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   if (customer.name) bag.set("customerName", customer.name, customer.raw, customer.confidence);
 
   // 2. Consumption Data Extraction
-  const peakKWh = extractField("peakKwh", /energy\s*consumption\s*peak\s*kwh/i, /\b[\d,\s]+\.?\d*/, true);
-  const standardKWh = extractField("standardKwh", /energy\s*consumption\s*(?:std|standard)\s*kwh/i, /\b[\d,\s]+\.?\d*/, true);
-  const offPeakKWh = extractField("offPeakKwh", /energy\s*consumption\s*off\s*peak\s*kwh/i, /\b[\d,\s]+\.?\d*/, true);
-  const totalKWh = extractField("totalKwh", /energy\s*consumption\s*(?:all|total)\s*kwh/i, /\b[\d,\s]+\.?\d*/, true) || peakKWh + standardKWh + offPeakKWh;
+  const peakKWh = extractField(
+    "peakKwh",
+    /energy\s*consumption\s*peak\s*kwh/i,
+    /\b[\d,\s]+\.?\d*/,
+    true,
+  );
+  const standardKWh = extractField(
+    "standardKwh",
+    /energy\s*consumption\s*(?:std|standard)\s*kwh/i,
+    /\b[\d,\s]+\.?\d*/,
+    true,
+  );
+  const offPeakKWh = extractField(
+    "offPeakKwh",
+    /energy\s*consumption\s*off\s*peak\s*kwh/i,
+    /\b[\d,\s]+\.?\d*/,
+    true,
+  );
+  const totalKWh =
+    extractField(
+      "totalKwh",
+      /energy\s*consumption\s*(?:all|total)\s*kwh/i,
+      /\b[\d,\s]+\.?\d*/,
+      true,
+    ) || peakKWh + standardKWh + offPeakKWh;
 
-  const demandPeak = extractField("peakDemand", /demand\s*consumption\s*-\s*peak/i, /\b[\d,\s]+\.?\d*/, true);
-  const demandStd = extractField("standardDemand", /demand\s*consumption\s*-\s*(?:std|standard)/i, /\b[\d,\s]+\.?\d*/, true);
-  const demandOffPeak = extractField("offPeakDemand", /demand\s*consumption\s*-\s*off\s*peak/i, /\b[\d,\s]+\.?\d*/, true);
+  const demandPeak = extractField(
+    "peakDemand",
+    /demand\s*consumption\s*-\s*peak/i,
+    /\b[\d,\s]+\.?\d*/,
+    true,
+  );
+  const demandStd = extractField(
+    "standardDemand",
+    /demand\s*consumption\s*-\s*(?:std|standard)/i,
+    /\b[\d,\s]+\.?\d*/,
+    true,
+  );
+  const demandOffPeak = extractField(
+    "offPeakDemand",
+    /demand\s*consumption\s*-\s*off\s*peak/i,
+    /\b[\d,\s]+\.?\d*/,
+    true,
+  );
 
-  const reactivePeak = extractField("peakReactive", /reactive\s*energy\s*-\s*peak/i, /\b[\d,\s]+\.?\d*/, true);
-  const reactiveStd = extractField("standardReactive", /reactive\s*energy\s*-\s*(?:std|standard)/i, /\b[\d,\s]+\.?\d*/, true);
-  const reactiveOffPeak = extractField("offPeakReactive", /reactive\s*energy\s*-\s*off\s*peak/i, /\b[\d,\s]+\.?\d*/, true);
+  const reactivePeak = extractField(
+    "peakReactive",
+    /reactive\s*energy\s*-\s*peak/i,
+    /\b[\d,\s]+\.?\d*/,
+    true,
+  );
+  const reactiveStd = extractField(
+    "standardReactive",
+    /reactive\s*energy\s*-\s*(?:std|standard)/i,
+    /\b[\d,\s]+\.?\d*/,
+    true,
+  );
+  const reactiveOffPeak = extractField(
+    "offPeakReactive",
+    /reactive\s*energy\s*-\s*off\s*peak/i,
+    /\b[\d,\s]+\.?\d*/,
+    true,
+  );
 
   const reactiveTotal = reactivePeak + reactiveStd + reactiveOffPeak;
-  const maxDemandKVA = simMaxDemand || demandReading || Math.max(demandPeak, demandStd, demandOffPeak);
+  const maxDemandKVA =
+    simMaxDemand || demandReading || Math.max(demandPeak, demandStd, demandOffPeak);
 
   // 3. Meter Readings & Line Items Extraction
   const meterReadings = extractMeterReadings(lines);
@@ -217,12 +347,16 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
       item.amount,
       item.originalValue || item.label,
       item.confidence ?? extracted.confidence,
-      item.alternatives
+      item.alternatives,
     );
   }
 
   const chargeTotals = aggregateCharges(lineItems);
-  const excludedTotals = new Set<string>([CHARGE_LABELS.vat, CHARGE_LABELS.totalInvoice, CHARGE_LABELS.totalInclVat]);
+  const excludedTotals = new Set<string>([
+    CHARGE_LABELS.vat,
+    CHARGE_LABELS.totalInvoice,
+    CHARGE_LABELS.totalInclVat,
+  ]);
   const sumInvoiceSubTotal = lineItems
     .filter((l) => l.normalizedName && !excludedTotals.has(l.normalizedName))
     .reduce((a, b) => a + b.amount, 0);
@@ -231,8 +365,11 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   const vat = chargeTotals.vat || roundMoney(invoiceTotal * 0.15);
   const totalInclVat = chargeTotals.totalInclVat || roundMoney(invoiceTotal * 1.15);
 
-  const totalValidation =
-    !invoiceTotal ? "not-available" : Math.abs(sumInvoiceSubTotal - invoiceTotal) <= Math.max(5, invoiceTotal * 0.005) ? "passed" : "review";
+  const totalValidation = !invoiceTotal
+    ? "not-available"
+    : Math.abs(sumInvoiceSubTotal - invoiceTotal) <= Math.max(5, invoiceTotal * 0.005)
+      ? "passed"
+      : "review";
 
   // 4. Structured Normalized JSON Construction
   const normalizedJson: NormalizedInvoiceJson = {
@@ -289,7 +426,10 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   };
 
   const lowConfidenceFields = Object.values(bag.fields).filter((f) => f.needsReview).length;
-  const needsReview = extracted.confidence < REVIEW_THRESHOLD || lowConfidenceFields > 0 || totalValidation === "review";
+  const needsReview =
+    extracted.confidence < REVIEW_THRESHOLD ||
+    lowConfidenceFields > 0 ||
+    totalValidation === "review";
 
   const invoice: InvoiceData = {
     source: file.name,
@@ -443,9 +583,16 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
   // If PDF.js extracted 2 or more text lines containing Eskom numbers/keywords, USE embedded text immediately!
   if (
     embeddedLines.length >= 2 &&
-    /\d{4}|TOTAL|CHARGES|CONSUMPTION|ACCOUNT|INVOICE|Eskom|IMPALA|Megaflex|kWh|kVA/i.test(embeddedText)
+    /\d{4}|TOTAL|CHARGES|CONSUMPTION|ACCOUNT|INVOICE|Eskom|IMPALA|Megaflex|kWh|kVA/i.test(
+      embeddedText,
+    )
   ) {
-    return { documentType: "embedded-text", lines: embeddedLines, rawText: embeddedText, confidence: 100 };
+    return {
+      documentType: "embedded-text",
+      lines: embeddedLines,
+      rawText: embeddedText,
+      confidence: 100,
+    };
   }
 
   // Fallback to OCR only if PDF has no embedded text (true scanned PDF)
@@ -487,7 +634,9 @@ async function ocrImageFile(file: File) {
   return ocrCanvases(await imageFileToCanvases(file));
 }
 
-async function ocrCanvases(canvases: HTMLCanvasElement[]): Promise<{ lines: TextLine[]; rawText: string; confidence: number }> {
+async function ocrCanvases(
+  canvases: HTMLCanvasElement[],
+): Promise<{ lines: TextLine[]; rawText: string; confidence: number }> {
   if (typeof document === "undefined") return { lines: [], rawText: "", confidence: 0 };
   const tesseract = await import("tesseract.js");
   // Use clean, robust CDN creation without fragile local server path configuration
@@ -512,7 +661,9 @@ async function ocrCanvases(canvases: HTMLCanvasElement[]): Promise<{ lines: Text
     await worker.terminate();
   }
 
-  const confidence = confidences.length ? confidences.reduce((a, b) => a + b, 0) / confidences.length : 0;
+  const confidence = confidences.length
+    ? confidences.reduce((a, b) => a + b, 0) / confidences.length
+    : 0;
   return { lines, rawText: pageTexts.join("\n"), confidence: clampConfidence(confidence) };
 }
 
@@ -571,17 +722,20 @@ function extractChargeLineItems(lines: TextLine[]): InvoiceLineItem[] {
 
 function parseChargeLine(line: TextLine): InvoiceLineItem | null {
   const text = line.text.replace(/\s+/g, " ").trim();
-  const amountMatch = text.match(/(?:\bR\s*|\bZAR\s*)?(-?\(?\d[\d,\s]*\.\d{2}\)?)(?:\s*R|\s*CR|\s*DR)?\s*$/i);
+  const amountMatch = text.match(
+    /(?:\bR\s*|\bZAR\s*)?(-?\(?\d[\d,\s]*\.\d{2}\)?)(?:\s*R|\s*CR|\s*DR)?\s*$/i,
+  );
   if (!amountMatch) return null;
 
   const amount = parseNum(amountMatch[1]);
   if (!amount) return null;
 
   const before = text.slice(0, amountMatch.index).trim();
-  if (!/[A-Za-z]/.test(before) || /balance\s*brought\s*forward|payment\s*received/i.test(before)) return null;
+  if (!/[A-Za-z]/.test(before) || /balance\s*brought\s*forward|payment\s*received/i.test(before))
+    return null;
 
   const quantityRate = before.match(
-    /([\d,\s]+(?:\.\d+)?)\s*(kva?h?|kwh|kvarh|kw|days?|month)\b(?:\s*(?:@|at)?\s*R?\s*([\d,]+(?:\.\d+)?)(?:\s*\/\s*([A-Za-z]+))?)?/i
+    /([\d,\s]+(?:\.\d+)?)\s*(kva?h?|kwh|kvarh|kw|days?|month)\b(?:\s*(?:@|at)?\s*R?\s*([\d,]+(?:\.\d+)?)(?:\s*\/\s*([A-Za-z]+))?)?/i,
   );
 
   let label = before;
@@ -594,7 +748,11 @@ function parseChargeLine(line: TextLine): InvoiceLineItem | null {
     quantity = parseNum(quantityRate[1]);
     unit = normalizeUnit(quantityRate[2]);
     rate = parseNum(quantityRate[3]);
-    rateUnit = quantityRate[4] ? `R/${normalizeUnit(quantityRate[4])}` : rate ? `R/${unit}` : undefined;
+    rateUnit = quantityRate[4]
+      ? `R/${normalizeUnit(quantityRate[4])}`
+      : rate
+        ? `R/${unit}`
+        : undefined;
     label = before.slice(0, quantityRate.index).trim();
   }
 
@@ -623,10 +781,14 @@ function parseChargeLine(line: TextLine): InvoiceLineItem | null {
 }
 
 function aggregateCharges(items: InvoiceLineItem[]): Record<ChargeKey, number> {
-  const totals = Object.fromEntries(Object.keys(CHARGE_LABELS).map((k) => [k, 0])) as Record<ChargeKey, number>;
+  const totals = Object.fromEntries(Object.keys(CHARGE_LABELS).map((k) => [k, 0])) as Record<
+    ChargeKey,
+    number
+  >;
   for (const item of items) {
     const entry = Object.entries(CHARGE_LABELS).find(([, label]) => label === item.normalizedName);
-    if (entry) totals[entry[0] as ChargeKey] = roundMoney(totals[entry[0] as ChargeKey] + item.amount);
+    if (entry)
+      totals[entry[0] as ChargeKey] = roundMoney(totals[entry[0] as ChargeKey] + item.amount);
   }
   return totals;
 }
@@ -634,16 +796,30 @@ function aggregateCharges(items: InvoiceLineItem[]): Record<ChargeKey, number> {
 function extractMeterReadings(lines: TextLine[]): InvoiceMeterReadingStored[] {
   const readings: InvoiceMeterReadingStored[] = [];
   for (const line of lines) {
-    if (!/reading|multiplier|meter\s*constant/i.test(line.text) || /demand\s*reading|load\s*factor/i.test(line.text)) continue;
-    const nums = line.text.match(/\d[\d,\s]*(?:\.\d+)?/g)?.map(parseNum).filter(Boolean) ?? [];
+    if (
+      !/reading|multiplier|meter\s*constant/i.test(line.text) ||
+      /demand\s*reading|load\s*factor/i.test(line.text)
+    )
+      continue;
+    const nums =
+      line.text
+        .match(/\d[\d,\s]*(?:\.\d+)?/g)
+        ?.map(parseNum)
+        .filter(Boolean) ?? [];
     if (nums.length < 2) continue;
     readings.push({
-      label: line.text.replace(/\d[\d,\s]*(?:\.\d+)?/g, " ").replace(/\s+/g, " ").trim() || "Meter reading",
+      label:
+        line.text
+          .replace(/\d[\d,\s]*(?:\.\d+)?/g, " ")
+          .replace(/\s+/g, " ")
+          .trim() || "Meter reading",
       previousReading: nums[0],
       currentReading: nums[1],
       multiplier: nums[2],
       meterConstant: nums[3],
-      readingDate: line.text.match(/\d{4}[-\/]\d{1,2}[-\/]\d{1,2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}/)?.[0],
+      readingDate: line.text.match(
+        /\d{4}[-\/]\d{1,2}[-\/]\d{1,2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}/,
+      )?.[0],
       confidence: line.confidence,
       needsReview: line.confidence < REVIEW_THRESHOLD,
     });
@@ -659,7 +835,9 @@ function normalizeChargeName(label: string): string | undefined {
 
 function matchingChargeAliases(label: string): string[] {
   const simplified = normalizeText(label);
-  return CHARGE_ALIASES.filter((alias) => alias.test(simplified)).map((alias) => CHARGE_LABELS[alias.key]);
+  return CHARGE_ALIASES.filter((alias) => alias.test(simplified)).map(
+    (alias) => CHARGE_LABELS[alias.key],
+  );
 }
 
 function findLine(lines: TextLine[], rx: RegExp) {
@@ -671,15 +849,39 @@ function findLine(lines: TextLine[], rx: RegExp) {
 }
 
 function extractCustomer(lines: TextLine[]) {
-  const idx = lines.findIndex((l) => /\b(PTY|LTD|MINE|MUNICIPALITY|CC|TRUST|PROPRIETARY|IMPALA)\b/i.test(l.text) && !/eskom|vat|tax/i.test(l.text));
+  const idx = lines.findIndex(
+    (l) =>
+      /\b(PTY|LTD|MINE|MUNICIPALITY|CC|TRUST|PROPRIETARY|IMPALA)\b/i.test(l.text) &&
+      !/eskom|vat|tax/i.test(l.text),
+  );
   if (idx < 0) return { name: "", address: "", raw: "", confidence: 0 };
   const name = lines[idx].text.replace(/\s+/g, " ").trim();
-  const address = lines.slice(idx + 1, idx + 5).map((l) => l.text).filter((l) => !/account|consumption|tariff|invoice|billing|premise/i.test(l)).join(", ");
-  return { name, address, raw: [name, address].filter(Boolean).join(" · "), confidence: lines[idx].confidence };
+  const address = lines
+    .slice(idx + 1, idx + 5)
+    .map((l) => l.text)
+    .filter((l) => !/account|consumption|tariff|invoice|billing|premise/i.test(l))
+    .join(", ");
+  return {
+    name,
+    address,
+    raw: [name, address].filter(Boolean).join(" · "),
+    confidence: lines[idx].confidence,
+  };
 }
 
 function inferTariff(norm: string) {
-  return ["Megaflex Diversity", "Megaflex Gen", "Megaflex", "Miniflex", "Nightsave", "Ruraflex", "Municflex", "Businessrate"].find((k) => new RegExp(k, "i").test(norm)) || "";
+  return (
+    [
+      "Megaflex Diversity",
+      "Megaflex Gen",
+      "Megaflex",
+      "Miniflex",
+      "Nightsave",
+      "Ruraflex",
+      "Municflex",
+      "Businessrate",
+    ].find((k) => new RegExp(k, "i").test(norm)) || ""
+  );
 }
 
 function parseNum(s: string | undefined): number {
@@ -696,11 +898,22 @@ function numberAtEnd(s: string | undefined) {
 }
 
 function normalizeText(s: string) {
-  return s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[|]/g, " ").replace(/0ff\s*peak/gi, "off peak").replace(/standerd/gi, "standard").replace(/\s+/g, " ").trim();
+  return s
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[|]/g, " ")
+    .replace(/0ff\s*peak/gi, "off peak")
+    .replace(/standerd/gi, "standard")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function cleanOcrLine(line: string) {
-  return normalizeText(line).replace(/\bK\s*W\s*H\b/gi, "kWh").replace(/\bK\s*V\s*A\b/gi, "kVA").replace(/\bK\s*V\s*A\s*H\b/gi, "kVAh").trim();
+  return normalizeText(line)
+    .replace(/\bK\s*W\s*H\b/gi, "kWh")
+    .replace(/\bK\s*V\s*A\b/gi, "kVA")
+    .replace(/\bK\s*V\s*A\s*H\b/gi, "kVAh")
+    .trim();
 }
 
 function normalizeUnit(unit: string) {

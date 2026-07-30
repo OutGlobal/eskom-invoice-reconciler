@@ -9,13 +9,13 @@ export const TARIFF = {
   powerFactor: 0.96,
 
   // R/kVA/month  (applied to NMD or chargeable demand)
-  networkCapacity: 35.98,       // Distribution network capacity charge
-  networkDemand: 24.17,         // Distribution network demand charge (per max demand)
-  generationCapacity: 8.09,     // Generation capacity charge (per NMD)
-  transmissionNetwork: 10.25,   // Transmission network charge (per NMD)
+  networkCapacity: 35.98, // Distribution network capacity charge
+  networkDemand: 24.17, // Distribution network demand charge (per max demand)
+  generationCapacity: 8.09, // Generation capacity charge (per NMD)
+  transmissionNetwork: 10.25, // Transmission network charge (per NMD)
 
   // c/kWh (converted to R/kWh in code)
-  legacy: 22.20,
+  legacy: 22.2,
   ancillary: 0.39,
   electrification: 4.94,
   affordability: 4.69,
@@ -23,7 +23,7 @@ export const TARIFF = {
   // Active energy c/kWh
   energy: {
     high: { peak: 666.92, standard: 166.73, offPeak: 111.15 }, // Jun-Aug
-    low:  { peak: 276.78, standard: 155.62, offPeak: 111.15 }, // Sep-May
+    low: { peak: 276.78, standard: 155.62, offPeak: 111.15 }, // Sep-May
   },
 } as const;
 
@@ -37,10 +37,30 @@ export function getSeason(d: Date): Season {
 
 // SA public holidays 2025-2026 (fixed + observed)
 const HOLIDAYS = new Set<string>([
-  "2025-01-01","2025-03-21","2025-04-18","2025-04-21","2025-04-28","2025-05-01",
-  "2025-06-16","2025-08-09","2025-09-24","2025-12-16","2025-12-25","2025-12-26",
-  "2026-01-01","2026-03-21","2026-03-23","2026-04-03","2026-04-06","2026-04-27",
-  "2026-05-01","2026-06-16","2026-08-10","2026-09-24","2026-12-16","2026-12-25",
+  "2025-01-01",
+  "2025-03-21",
+  "2025-04-18",
+  "2025-04-21",
+  "2025-04-28",
+  "2025-05-01",
+  "2025-06-16",
+  "2025-08-09",
+  "2025-09-24",
+  "2025-12-16",
+  "2025-12-25",
+  "2025-12-26",
+  "2026-01-01",
+  "2026-03-21",
+  "2026-03-23",
+  "2026-04-03",
+  "2026-04-06",
+  "2026-04-27",
+  "2026-05-01",
+  "2026-06-16",
+  "2026-08-10",
+  "2026-09-24",
+  "2026-12-16",
+  "2026-12-25",
   "2026-12-28",
 ]);
 

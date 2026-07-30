@@ -75,12 +75,16 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
               }`}
               title={`Load Impala ${p.label} (${p.dates}) - Total: ${p.total}`}
             >
-              {isActive && <CheckCircle2 className="h-3.5 w-3.5 text-primary-foreground shrink-0" />}
+              {isActive && (
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary-foreground shrink-0" />
+              )}
               <span>{p.label}</span>
               {!compact && (
                 <span
                   className={`hidden sm:inline-block text-[10px] rounded px-1.5 py-0.2 font-normal transition ${
-                    isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                    isActive
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
                   }`}
                 >
                   {p.total}
@@ -95,7 +99,10 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
         <div className="hidden xl:flex items-center gap-2 text-xs text-muted-foreground ml-auto bg-muted/30 border border-border/50 rounded-md px-2.5 py-1">
           <FileText className="h-3.5 w-3.5 text-primary" />
           <span>
-            Inv: <strong className="text-foreground font-mono">{invoice.taxInvoiceNo || invoice.accountNumber}</strong>
+            Inv:{" "}
+            <strong className="text-foreground font-mono">
+              {invoice.taxInvoiceNo || invoice.accountNumber}
+            </strong>
           </span>
           <span>·</span>
           <span>

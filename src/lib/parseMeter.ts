@@ -27,7 +27,10 @@ export async function parseMeterWorkbook(buffer: ArrayBuffer): Promise<Measureme
     if (!json.length) continue;
     const keys = Object.keys(json[0]);
     const dtKey = pickCol(keys, (k) => k.includes("date") || k.includes("time")) ?? keys[0];
-    const kwKey = pickCol(keys, (k) => k.includes("kw") && !k.includes("kvar") && !k.includes("kva"));
+    const kwKey = pickCol(
+      keys,
+      (k) => k.includes("kw") && !k.includes("kvar") && !k.includes("kva"),
+    );
     const kvarKey = pickCol(keys, (k) => k.includes("kvar"));
     const kvaKey = pickCol(keys, (k) => k.includes("kva") && !k.includes("kvar"));
     const pfKey = pickCol(keys, (k) => k.includes("pf") || k.includes("power factor"));

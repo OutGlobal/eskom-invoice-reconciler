@@ -1,7 +1,17 @@
 import { useEffect, useMemo, useRef } from "react";
 import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  BarChart, Bar, Legend, ReferenceDot, Cell,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  BarChart,
+  Bar,
+  Legend,
+  ReferenceDot,
+  Cell,
 } from "recharts";
 import { format } from "date-fns";
 import meterAsset from "@/assets/meter.xlsx.asset.json";
@@ -39,7 +49,9 @@ export function useBootstrapMeter() {
             format(parsed[parsed.length - 1].ts, "yyyy-MM-dd"),
           );
         }
-      } catch { /* noop */ }
+      } catch {
+        /* noop */
+      }
     })();
   }, [rows.length, setRows, setValidation, setBilling]);
 }
@@ -65,9 +77,15 @@ export function useDerived() {
 }
 
 export function Panel({
-  title, subtitle, children, action,
+  title,
+  subtitle,
+  children,
+  action,
 }: {
-  title?: string; subtitle?: string; children: React.ReactNode; action?: React.ReactNode;
+  title?: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  action?: React.ReactNode;
 }) {
   return (
     <section className="rounded-lg border border-border bg-card p-5">
@@ -95,42 +113,87 @@ export function SummaryTile({ label, value }: { label: string; value: React.Reac
 }
 
 export function MetricCard({
-  label, value, accent, tone, sub,
+  label,
+  value,
+  accent,
+  tone,
+  sub,
 }: {
-  label: string; value: React.ReactNode; accent?: boolean;
-  tone?: "good" | "warn" | "bad"; sub?: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  accent?: boolean;
+  tone?: "good" | "warn" | "bad";
+  sub?: React.ReactNode;
 }) {
-  const toneCls = tone === "good" ? "text-emerald-500" : tone === "bad" ? "text-red-500" : tone === "warn" ? "text-amber-500" : "";
+  const toneCls =
+    tone === "good"
+      ? "text-emerald-500"
+      : tone === "bad"
+        ? "text-red-500"
+        : tone === "warn"
+          ? "text-amber-500"
+          : "";
   return (
-    <div className={`rounded-md border border-border p-4 ${accent ? "bg-accent text-accent-foreground" : "bg-card"}`}>
-      <div className={`text-xs uppercase ${accent ? "opacity-80" : "text-muted-foreground"}`}>{label}</div>
+    <div
+      className={`rounded-md border border-border p-4 ${accent ? "bg-accent text-accent-foreground" : "bg-card"}`}
+    >
+      <div className={`text-xs uppercase ${accent ? "opacity-80" : "text-muted-foreground"}`}>
+        {label}
+      </div>
       <div className={`mt-2 text-lg font-semibold ${toneCls}`}>{value}</div>
-      {sub && <div className={`mt-1 text-xs ${accent ? "opacity-70" : "text-muted-foreground"}`}>{sub}</div>}
+      {sub && (
+        <div className={`mt-1 text-xs ${accent ? "opacity-70" : "text-muted-foreground"}`}>
+          {sub}
+        </div>
+      )}
     </div>
   );
 }
 
-export function TotalsRow({ items, unit }: { items: { label: string; v: number; strong?: boolean }[]; unit: string }) {
+export function TotalsRow({
+  items,
+  unit,
+}: {
+  items: { label: string; v: number; strong?: boolean }[];
+  unit: string;
+}) {
   return (
     <div className="grid grid-cols-4 gap-2 mt-3 text-sm">
       {items.map((i) => (
-        <div key={i.label} className={`rounded border border-border px-3 py-2 ${i.strong ? "bg-secondary" : ""}`}>
+        <div
+          key={i.label}
+          className={`rounded border border-border px-3 py-2 ${i.strong ? "bg-secondary" : ""}`}
+        >
           <div className="text-[10px] uppercase text-muted-foreground">{i.label}</div>
-          <div className="font-medium">{NUM(i.v, 0)} <span className="text-xs text-muted-foreground">{unit}</span></div>
+          <div className="font-medium">
+            {NUM(i.v, 0)} <span className="text-xs text-muted-foreground">{unit}</span>
+          </div>
         </div>
       ))}
     </div>
   );
 }
 
-export function ChartTip({ active, payload, label, unit }: { active?: boolean; payload?: Array<{ value: number; payload: { tou?: TouPeriod } }>; label?: string; unit: string }) {
+export function ChartTip({
+  active,
+  payload,
+  label,
+  unit,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number; payload: { tou?: TouPeriod } }>;
+  label?: string;
+  unit: string;
+}) {
   if (!active || !payload?.length) return null;
   const p = payload[0];
   const tou = p.payload.tou as TouPeriod | undefined;
   return (
     <div className="rounded-md border border-border bg-popover text-popover-foreground px-3 py-2 text-xs shadow-lg">
       <div className="font-medium">{label}</div>
-      <div className="tabular-nums">{NUM(p.value)} {unit}</div>
+      <div className="tabular-nums">
+        {NUM(p.value)} {unit}
+      </div>
       {tou && <div style={{ color: TOU_COLOR[tou] }}>{TOU_LABEL[tou]}</div>}
     </div>
   );
@@ -162,24 +225,51 @@ export function EnergyLineChart({ rows }: { rows: Measurement[] }) {
     <ResponsiveContainer width="100%" height={340}>
       <LineChart data={data} margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
         <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-        <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} minTickGap={40} />
-        <YAxis tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} unit=" kW" width={80} />
+        <XAxis
+          dataKey="label"
+          tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+          minTickGap={40}
+        />
+        <YAxis
+          tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+          unit=" kW"
+          width={80}
+        />
         <Tooltip content={<ChartTip unit="kW" />} />
-        <Line type="monotone" dataKey="kW" stroke="var(--color-accent)" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+        <Line
+          type="monotone"
+          dataKey="kW"
+          stroke="var(--color-accent)"
+          strokeWidth={1.5}
+          dot={false}
+          isAnimationActive={false}
+        />
       </LineChart>
     </ResponsiveContainer>
   );
 }
 
-export function DemandLineChart({ rows, maxDemandAt, maxDemandKVA }: { rows: Measurement[]; maxDemandAt: Date | null; maxDemandKVA: number }) {
+export function DemandLineChart({
+  rows,
+  maxDemandAt,
+  maxDemandKVA,
+}: {
+  rows: Measurement[];
+  maxDemandAt: Date | null;
+  maxDemandKVA: number;
+}) {
   const data = useChartData(rows);
   const maxIdx = useMemo(() => {
     if (!data.length || !maxDemandAt) return -1;
     const t = maxDemandAt.getTime();
-    let bestIdx = 0, bestDiff = Infinity;
+    let bestIdx = 0,
+      bestDiff = Infinity;
     data.forEach((d, i) => {
       const diff = Math.abs(d.t - t);
-      if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestIdx = i;
+      }
     });
     return bestIdx;
   }, [data, maxDemandAt]);
@@ -188,13 +278,34 @@ export function DemandLineChart({ rows, maxDemandAt, maxDemandKVA }: { rows: Mea
       <ResponsiveContainer width="100%" height={340}>
         <LineChart data={data} margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
           <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-          <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} minTickGap={40} />
-          <YAxis tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} unit=" kVA" width={80} />
+          <XAxis
+            dataKey="label"
+            tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+            minTickGap={40}
+          />
+          <YAxis
+            tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+            unit=" kVA"
+            width={80}
+          />
           <Tooltip content={<ChartTip unit="kVA" />} />
-          <Line type="monotone" dataKey="kVA" stroke="#22d3ee" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+          <Line
+            type="monotone"
+            dataKey="kVA"
+            stroke="#22d3ee"
+            strokeWidth={1.5}
+            dot={false}
+            isAnimationActive={false}
+          />
           {maxIdx >= 0 && (
-            <ReferenceDot x={data[maxIdx].label} y={data[maxIdx].kVA}
-              r={6} fill="#ef4444" stroke="#fff" strokeWidth={2} />
+            <ReferenceDot
+              x={data[maxIdx].label}
+              y={data[maxIdx].kVA}
+              r={6}
+              fill="#ef4444"
+              stroke="#fff"
+              strokeWidth={2}
+            />
           )}
         </LineChart>
       </ResponsiveContainer>
@@ -202,14 +313,23 @@ export function DemandLineChart({ rows, maxDemandAt, maxDemandKVA }: { rows: Mea
         <div className="mt-2 text-sm">
           <span className="text-muted-foreground">Simultaneous Maximum Demand: </span>
           <span className="font-semibold">{NUM(maxDemandKVA)} kVA</span>
-          <span className="text-muted-foreground"> · {format(maxDemandAt, "EEE dd MMM yyyy 'at' HH:mm")}</span>
+          <span className="text-muted-foreground">
+            {" "}
+            · {format(maxDemandAt, "EEE dd MMM yyyy 'at' HH:mm")}
+          </span>
         </div>
       )}
     </>
   );
 }
 
-export function TouBarChart({ data, unit }: { data: { period: string; value: number; color: string }[]; unit: string }) {
+export function TouBarChart({
+  data,
+  unit,
+}: {
+  data: { period: string; value: number; color: string }[];
+  unit: string;
+}) {
   return (
     <ResponsiveContainer width="100%" height={240}>
       <BarChart data={data}>
@@ -218,7 +338,9 @@ export function TouBarChart({ data, unit }: { data: { period: string; value: num
         <YAxis tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} width={80} />
         <Tooltip content={<ChartTip unit={unit} />} />
         <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-          {data.map((b, i) => <Cell key={i} fill={b.color} />)}
+          {data.map((b, i) => (
+            <Cell key={i} fill={b.color} />
+          ))}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
@@ -236,7 +358,9 @@ export function ChargeTable({ charges }: { charges: Charge[] }) {
     <div className="space-y-4">
       {groups.map((g) => (
         <div key={g.key}>
-          <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">{g.title}</div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+            {g.title}
+          </div>
           <div className="overflow-x-auto rounded border border-border">
             <table className="w-full text-sm">
               <thead className="bg-secondary text-xs uppercase text-muted-foreground">
@@ -249,15 +373,25 @@ export function ChargeTable({ charges }: { charges: Charge[] }) {
                 </tr>
               </thead>
               <tbody>
-                {charges.filter((c) => c.group === g.key).map((c) => (
-                  <tr key={c.label} className="border-t border-border">
-                    <td className="px-3 py-2 font-medium">{c.label}</td>
-                    <td className="px-3 py-2 text-muted-foreground text-xs">{c.basis}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{NUM(c.quantity, c.qtyUnit === "kVA" ? 2 : 0)} <span className="text-xs text-muted-foreground">{c.qtyUnit}</span></td>
-                    <td className="px-3 py-2 text-right tabular-nums">{NUM(c.rate, 4)} <span className="text-xs text-muted-foreground">{c.rateUnit}</span></td>
-                    <td className="px-3 py-2 text-right font-semibold tabular-nums">{ZAR(c.amount)}</td>
-                  </tr>
-                ))}
+                {charges
+                  .filter((c) => c.group === g.key)
+                  .map((c) => (
+                    <tr key={c.label} className="border-t border-border">
+                      <td className="px-3 py-2 font-medium">{c.label}</td>
+                      <td className="px-3 py-2 text-muted-foreground text-xs">{c.basis}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {NUM(c.quantity, c.qtyUnit === "kVA" ? 2 : 0)}{" "}
+                        <span className="text-xs text-muted-foreground">{c.qtyUnit}</span>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {NUM(c.rate, 4)}{" "}
+                        <span className="text-xs text-muted-foreground">{c.rateUnit}</span>
+                      </td>
+                      <td className="px-3 py-2 text-right font-semibold tabular-nums">
+                        {ZAR(c.amount)}
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
@@ -268,7 +402,8 @@ export function ChargeTable({ charges }: { charges: Charge[] }) {
 }
 
 export function DeficitAnalysis({
-  charges, totals,
+  charges,
+  totals,
 }: {
   charges: Charge[];
   totals: { totalKWh: number };
@@ -289,12 +424,14 @@ export function DeficitAnalysis({
     Calculated: Math.round(r.amount),
     Invoice: Math.round(r.inv),
   }));
-  const blendedRate = totals.totalKWh ? (calcTotal / totals.totalKWh) : 0;
-  const invBlendedRate = totals.totalKWh && invTotal ? (invTotal / totals.totalKWh) : 0;
+  const blendedRate = totals.totalKWh ? calcTotal / totals.totalKWh : 0;
+  const invBlendedRate = totals.totalKWh && invTotal ? invTotal / totals.totalKWh : 0;
 
   return (
-    <Panel title="Line-Item Deficit Analysis"
-      subtitle="Auto-populated from the extracted Eskom invoice. Positive = over-billed vs calculation, negative = under-billed.">
+    <Panel
+      title="Line-Item Deficit Analysis"
+      subtitle="Auto-populated from the extracted Eskom invoice. Positive = over-billed vs calculation, negative = under-billed."
+    >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="overflow-x-auto rounded border border-border">
           <table className="w-full text-sm">
@@ -309,12 +446,24 @@ export function DeficitAnalysis({
             </thead>
             <tbody>
               {rows.map((r) => {
-                const tone = !r.inv ? "" : Math.abs(r.pct) <= 1 ? "text-emerald-500" : Math.abs(r.pct) < 5 ? "text-amber-500" : "text-red-500";
+                const tone = !r.inv
+                  ? ""
+                  : Math.abs(r.pct) <= 1
+                    ? "text-emerald-500"
+                    : Math.abs(r.pct) < 5
+                      ? "text-amber-500"
+                      : "text-red-500";
                 return (
                   <tr key={r.label} className="border-t border-border">
                     <td className="px-3 py-2">{r.label}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{ZAR(r.amount)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{r.inv ? ZAR(r.inv) : <span className="text-muted-foreground">not extracted</span>}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {r.inv ? (
+                        ZAR(r.inv)
+                      ) : (
+                        <span className="text-muted-foreground">not extracted</span>
+                      )}
+                    </td>
                     <td className={`px-3 py-2 text-right tabular-nums font-medium ${tone}`}>
                       {r.inv ? ZAR(r.variance) : "—"}
                     </td>
@@ -328,7 +477,9 @@ export function DeficitAnalysis({
                 <td className="px-3 py-2">TOTAL</td>
                 <td className="px-3 py-2 text-right tabular-nums">{ZAR(calcTotal)}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{ZAR(invTotal)}</td>
-                <td className={`px-3 py-2 text-right tabular-nums ${!invTotal ? "" : Math.abs(totalVar) < 10 ? "text-emerald-500" : totalVar > 0 ? "text-red-500" : "text-amber-500"}`}>
+                <td
+                  className={`px-3 py-2 text-right tabular-nums ${!invTotal ? "" : Math.abs(totalVar) < 10 ? "text-emerald-500" : totalVar > 0 ? "text-red-500" : "text-amber-500"}`}
+                >
                   {invTotal ? ZAR(totalVar) : "—"}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">
@@ -343,9 +494,27 @@ export function DeficitAnalysis({
           <ResponsiveContainer width="100%" height={360}>
             <BarChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 60 }}>
               <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-              <XAxis dataKey="name" tick={{ fontSize: 9, fill: "var(--color-muted-foreground)" }} angle={-35} textAnchor="end" interval={0} height={70} />
-              <YAxis tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} width={80} tickFormatter={(v) => `R${(v / 1000).toFixed(0)}k`} />
-              <Tooltip formatter={(v: number) => ZAR(v)} contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", fontSize: 12 }} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 9, fill: "var(--color-muted-foreground)" }}
+                angle={-35}
+                textAnchor="end"
+                interval={0}
+                height={70}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+                width={80}
+                tickFormatter={(v) => `R${(v / 1000).toFixed(0)}k`}
+              />
+              <Tooltip
+                formatter={(v: number) => ZAR(v)}
+                contentStyle={{
+                  background: "var(--color-popover)",
+                  border: "1px solid var(--color-border)",
+                  fontSize: 12,
+                }}
+              />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <Bar dataKey="Calculated" fill="var(--color-accent)" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Invoice" fill="#22d3ee" radius={[4, 4, 0, 0]} />
@@ -353,15 +522,23 @@ export function DeficitAnalysis({
           </ResponsiveContainer>
           <div className="grid grid-cols-2 gap-3 mt-3">
             <div className="rounded-md border border-border p-3">
-              <div className="text-[10px] uppercase text-muted-foreground">Blended Cost / kWh (Calculated)</div>
+              <div className="text-[10px] uppercase text-muted-foreground">
+                Blended Cost / kWh (Calculated)
+              </div>
               <div className="text-lg font-semibold">R {blendedRate.toFixed(4)}</div>
               <div className="text-xs text-muted-foreground">on {NUM(totals.totalKWh, 0)} kWh</div>
             </div>
             <div className="rounded-md border border-border p-3">
-              <div className="text-[10px] uppercase text-muted-foreground">Blended Cost / kWh (Invoice)</div>
-              <div className="text-lg font-semibold">{invBlendedRate ? `R ${invBlendedRate.toFixed(4)}` : "—"}</div>
+              <div className="text-[10px] uppercase text-muted-foreground">
+                Blended Cost / kWh (Invoice)
+              </div>
+              <div className="text-lg font-semibold">
+                {invBlendedRate ? `R ${invBlendedRate.toFixed(4)}` : "—"}
+              </div>
               <div className="text-xs text-muted-foreground">
-                {invBlendedRate ? `${(((invBlendedRate - blendedRate) / blendedRate) * 100).toFixed(2)}% vs calc` : "awaiting invoice extraction"}
+                {invBlendedRate
+                  ? `${(((invBlendedRate - blendedRate) / blendedRate) * 100).toFixed(2)}% vs calc`
+                  : "awaiting invoice extraction"}
               </div>
             </div>
           </div>
@@ -374,13 +551,17 @@ export function DeficitAnalysis({
 export function DailyCostPanel({ rows }: { rows: Measurement[] }) {
   const daily = useMemo(() => {
     if (!rows.length) return [];
-    const map = new Map<string, { day: string; kWh: number; cost: number; peak: number; std: number; off: number }>();
+    const map = new Map<
+      string,
+      { day: string; kWh: number; cost: number; peak: number; std: number; off: number }
+    >();
     for (const r of rows) {
       const day = format(r.ts, "dd MMM");
       const kWh = r.kW * 0.5;
       const season = getSeason(r.ts);
       const rate = TARIFF.energy[season][r.tou] / 100;
-      const add = (TARIFF.ancillary + TARIFF.legacy + TARIFF.affordability + TARIFF.electrification) / 100;
+      const add =
+        (TARIFF.ancillary + TARIFF.legacy + TARIFF.affordability + TARIFF.electrification) / 100;
       const cost = kWh * (rate + add);
       const cur = map.get(day) || { day, kWh: 0, cost: 0, peak: 0, std: 0, off: 0 };
       cur.kWh += kWh;
@@ -396,28 +577,83 @@ export function DailyCostPanel({ rows }: { rows: Measurement[] }) {
   if (!daily.length) return null;
 
   return (
-    <Panel title="Daily Cost vs Consumption"
-      subtitle="Energy consumption (kWh) plotted against variable energy cost (R). Divergence between the two lines signals expensive TOU exposure.">
+    <Panel
+      title="Daily Cost vs Consumption"
+      subtitle="Energy consumption (kWh) plotted against variable energy cost (R). Divergence between the two lines signals expensive TOU exposure."
+    >
       <ResponsiveContainer width="100%" height={320}>
         <LineChart data={daily} margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
           <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-          <XAxis dataKey="day" tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} minTickGap={20} />
-          <YAxis yAxisId="l" tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} width={70} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-          <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} width={70} tickFormatter={(v) => `R${(v / 1000).toFixed(0)}k`} />
-          <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", fontSize: 12 }}
-            formatter={(v: number, name: string) => name === "Cost (R)" ? ZAR(v) : `${NUM(v, 0)} kWh`} />
+          <XAxis
+            dataKey="day"
+            tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+            minTickGap={20}
+          />
+          <YAxis
+            yAxisId="l"
+            tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+            width={70}
+            tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+          />
+          <YAxis
+            yAxisId="r"
+            orientation="right"
+            tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+            width={70}
+            tickFormatter={(v) => `R${(v / 1000).toFixed(0)}k`}
+          />
+          <Tooltip
+            contentStyle={{
+              background: "var(--color-popover)",
+              border: "1px solid var(--color-border)",
+              fontSize: 12,
+            }}
+            formatter={(v: number, name: string) =>
+              name === "Cost (R)" ? ZAR(v) : `${NUM(v, 0)} kWh`
+            }
+          />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Line yAxisId="l" type="monotone" dataKey="kWh" name="Energy (kWh)" stroke="var(--color-accent)" strokeWidth={1.8} dot={false} />
-          <Line yAxisId="r" type="monotone" dataKey="cost" name="Cost (R)" stroke="#ef4444" strokeWidth={1.8} dot={false} />
+          <Line
+            yAxisId="l"
+            type="monotone"
+            dataKey="kWh"
+            name="Energy (kWh)"
+            stroke="var(--color-accent)"
+            strokeWidth={1.8}
+            dot={false}
+          />
+          <Line
+            yAxisId="r"
+            type="monotone"
+            dataKey="cost"
+            name="Cost (R)"
+            stroke="#ef4444"
+            strokeWidth={1.8}
+            dot={false}
+          />
         </LineChart>
       </ResponsiveContainer>
       <ResponsiveContainer width="100%" height={240}>
         <BarChart data={daily} margin={{ top: 20, right: 24, left: 8, bottom: 8 }}>
           <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-          <XAxis dataKey="day" tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} minTickGap={20} />
-          <YAxis tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} width={70} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-          <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", fontSize: 12 }}
-            formatter={(v: number) => `${NUM(v, 0)} kWh`} />
+          <XAxis
+            dataKey="day"
+            tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+            minTickGap={20}
+          />
+          <YAxis
+            tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+            width={70}
+            tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+          />
+          <Tooltip
+            contentStyle={{
+              background: "var(--color-popover)",
+              border: "1px solid var(--color-border)",
+              fontSize: 12,
+            }}
+            formatter={(v: number) => `${NUM(v, 0)} kWh`}
+          />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar dataKey="peak" name="Peak" stackId="a" fill={TOU_COLOR.peak} />
           <Bar dataKey="std" name="Standard" stackId="a" fill={TOU_COLOR.standard} />
@@ -434,11 +670,19 @@ export function PeriodPicker() {
   const setBilling = useApp((s) => s.setBilling);
   return (
     <div className="flex items-center gap-2 text-xs">
-      <input type="date" value={bs} onChange={(e) => setBilling(e.target.value, be)}
-        className="bg-transparent border border-border rounded px-2 py-1" />
+      <input
+        type="date"
+        value={bs}
+        onChange={(e) => setBilling(e.target.value, be)}
+        className="bg-transparent border border-border rounded px-2 py-1"
+      />
       <span>→</span>
-      <input type="date" value={be} onChange={(e) => setBilling(bs, e.target.value)}
-        className="bg-transparent border border-border rounded px-2 py-1" />
+      <input
+        type="date"
+        value={be}
+        onChange={(e) => setBilling(bs, e.target.value)}
+        className="bg-transparent border border-border rounded px-2 py-1"
+      />
     </div>
   );
 }

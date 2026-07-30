@@ -250,7 +250,8 @@ export const SAMPLE_FEB_2026_LINE_ITEMS: InvoiceLineItem[] = [
     amount: 26042409.43,
     confidence: 100,
     needsReview: false,
-    originalValue: "Low Season Off Peak Energy Charge 23,429,968 kWh @ R1.1115 /kWh R 26,042,409.43",
+    originalValue:
+      "Low Season Off Peak Energy Charge 23,429,968 kWh @ R1.1115 /kWh R 26,042,409.43",
   },
   {
     label: "Low Season Standard Energy Charge",
@@ -262,7 +263,8 @@ export const SAMPLE_FEB_2026_LINE_ITEMS: InvoiceLineItem[] = [
     amount: 30240946.76,
     confidence: 100,
     needsReview: false,
-    originalValue: "Low Season Standard Energy Charge 19,432,558 kWh @ R1.5562 /kWh R 30,240,946.76",
+    originalValue:
+      "Low Season Standard Energy Charge 19,432,558 kWh @ R1.5562 /kWh R 30,240,946.76",
   },
   {
     label: "Affordability Subsidy",
@@ -575,7 +577,8 @@ export const SAMPLE_MARCH_2026_LINE_ITEMS: InvoiceLineItem[] = [
     amount: 24473673.9,
     confidence: 100,
     needsReview: false,
-    originalValue: "Low Season Off Peak Energy Charge 22,018,599.60 kWh @ R1.1115/kWh R 24,473,673.90",
+    originalValue:
+      "Low Season Off Peak Energy Charge 22,018,599.60 kWh @ R1.1115/kWh R 24,473,673.90",
   },
   {
     label: "Low Season Standard Energy Charge",
@@ -587,7 +590,8 @@ export const SAMPLE_MARCH_2026_LINE_ITEMS: InvoiceLineItem[] = [
     amount: 31433067.54,
     confidence: 100,
     needsReview: false,
-    originalValue: "Low Season Standard Energy Charge 20,198,604.00 kWh @ R1.5562/kWh R 31,433,067.54",
+    originalValue:
+      "Low Season Standard Energy Charge 20,198,604.00 kWh @ R1.5562/kWh R 31,433,067.54",
   },
   {
     label: "Affordability Subsidy",
@@ -611,7 +615,8 @@ export const SAMPLE_MARCH_2026_LINE_ITEMS: InvoiceLineItem[] = [
     amount: 2432854.21,
     confidence: 100,
     needsReview: false,
-    originalValue: "Electrification and Rural Subsidy 49,248,061.20 kWh @ R0.0494/kWh R 2,432,854.21",
+    originalValue:
+      "Electrification and Rural Subsidy 49,248,061.20 kWh @ R0.0494/kWh R 2,432,854.21",
   },
   {
     label: "Premium Connection Charge",
@@ -788,7 +793,8 @@ export const SAMPLE_APRIL_2026_LINE_ITEMS: InvoiceLineItem[] = [
     amount: 393960.52,
     confidence: 100,
     needsReview: false,
-    originalValue: "TX Network Capacity Charge 85,740 kVA @ R10.25 : (for 13 of 29 days) = R4.594827 R 393,960.52",
+    originalValue:
+      "TX Network Capacity Charge 85,740 kVA @ R10.25 : (for 13 of 29 days) = R4.594827 R 393,960.52",
   },
   {
     label: "TX Network Capacity Charge (16 days)",
@@ -800,7 +806,8 @@ export const SAMPLE_APRIL_2026_LINE_ITEMS: InvoiceLineItem[] = [
     amount: 527448.83,
     confidence: 100,
     needsReview: false,
-    originalValue: "TX Network Capacity Charge 85,740 kVA @ R11.15 : (for 16 of 29 days) = R6.151724 R 527,448.83",
+    originalValue:
+      "TX Network Capacity Charge 85,740 kVA @ R11.15 : (for 16 of 29 days) = R6.151724 R 527,448.83",
   },
   {
     label: "Network Capacity Charge (13 days)",
@@ -812,7 +819,8 @@ export const SAMPLE_APRIL_2026_LINE_ITEMS: InvoiceLineItem[] = [
     amount: 1382897.5,
     confidence: 100,
     needsReview: false,
-    originalValue: "Network Capacity Charge 85,740 kVA @ R35.98 : (for 13 of 29 days) = R16.1289655 R 1,382,897.50",
+    originalValue:
+      "Network Capacity Charge 85,740 kVA @ R35.98 : (for 13 of 29 days) = R16.1289655 R 1,382,897.50",
   },
   {
     label: "Network Capacity Charge (16 days)",
@@ -824,7 +832,8 @@ export const SAMPLE_APRIL_2026_LINE_ITEMS: InvoiceLineItem[] = [
     amount: 1851037.9,
     confidence: 100,
     needsReview: false,
-    originalValue: "Network Capacity Charge 85,740 kVA @ R39.13 : (for 16 of 29 days) = R21.5889655 R 1,851,037.90",
+    originalValue:
+      "Network Capacity Charge 85,740 kVA @ R39.13 : (for 16 of 29 days) = R21.5889655 R 1,851,037.90",
   },
   {
     label: "Network Demand Charge (13 days)",
@@ -836,7 +845,8 @@ export const SAMPLE_APRIL_2026_LINE_ITEMS: InvoiceLineItem[] = [
     amount: 895388.31,
     confidence: 100,
     needsReview: false,
-    originalValue: "Network Demand Charge 82,639.83 kVA @ R24.17 : (for 13 of 29 days) = R10.8348276 R 895,388.31",
+    originalValue:
+      "Network Demand Charge 82,639.83 kVA @ R24.17 : (for 13 of 29 days) = R10.8348276 R 895,388.31",
   },
   {
     label: "Network Demand Charge (16 days)",
@@ -848,7 +858,8 @@ export const SAMPLE_APRIL_2026_LINE_ITEMS: InvoiceLineItem[] = [
     amount: 1198676.49,
     confidence: 100,
     needsReview: false,
-    originalValue: "Network Demand Charge 82,639.83 kVA @ R26.29 : (for 16 of 29 days) = R14.5048276 R 1,198,676.49",
+    originalValue:
+      "Network Demand Charge 82,639.83 kVA @ R26.29 : (for 16 of 29 days) = R14.5048276 R 1,198,676.49",
   },
   {
     label: "Ancillary Service Charge (P1)",
@@ -884,7 +895,8 @@ export const SAMPLE_APRIL_2026_LINE_ITEMS: InvoiceLineItem[] = [
     amount: 310940.54,
     confidence: 100,
     needsReview: false,
-    originalValue: "Generator Capacity Charge 85,740 kVA @ R8.09 : (for 13 of 29 days) = R3.6265517 R 310,940.54",
+    originalValue:
+      "Generator Capacity Charge 85,740 kVA @ R8.09 : (for 13 of 29 days) = R3.6265517 R 310,940.54",
   },
   {
     label: "Generator Capacity Charge (16 days)",
@@ -896,7 +908,8 @@ export const SAMPLE_APRIL_2026_LINE_ITEMS: InvoiceLineItem[] = [
     amount: 580430.23,
     confidence: 100,
     needsReview: false,
-    originalValue: "Generator Capacity Charge 85,740 kVA @ R12.27 : (for 16 of 29 days) = R6.7696552 R 580,430.23",
+    originalValue:
+      "Generator Capacity Charge 85,740 kVA @ R12.27 : (for 16 of 29 days) = R6.7696552 R 580,430.23",
   },
   {
     label: "Legacy Charge (P1)",
@@ -968,7 +981,8 @@ export const SAMPLE_APRIL_2026_LINE_ITEMS: InvoiceLineItem[] = [
     amount: 14088785.32,
     confidence: 100,
     needsReview: false,
-    originalValue: "Low Season Off Peak Energy Charge 11,737,720 kWh @ R1.2003 /kWh R 14,088,785.32",
+    originalValue:
+      "Low Season Off Peak Energy Charge 11,737,720 kWh @ R1.2003 /kWh R 14,088,785.32",
   },
   {
     label: "Low Season Standard Energy Charge (P1)",
@@ -1337,7 +1351,8 @@ export const SAMPLE_MAY_2026_LINE_ITEMS: InvoiceLineItem[] = [
     amount: 29774184.81,
     confidence: 100,
     needsReview: false,
-    originalValue: "Low Season Standard Energy Charge 17,717,456 kWh @ R1.6805 /kWh R 29,774,184.81",
+    originalValue:
+      "Low Season Standard Energy Charge 17,717,456 kWh @ R1.6805 /kWh R 29,774,184.81",
   },
   {
     label: "Low Season Off Peak Energy Charge",
@@ -1349,7 +1364,8 @@ export const SAMPLE_MAY_2026_LINE_ITEMS: InvoiceLineItem[] = [
     amount: 27084272.58,
     confidence: 100,
     needsReview: false,
-    originalValue: "Low Season Off Peak Energy Charge 22,564,586 kWh @ R1.2003 /kWh R 27,084,272.58",
+    originalValue:
+      "Low Season Off Peak Energy Charge 22,564,586 kWh @ R1.2003 /kWh R 27,084,272.58",
   },
   {
     label: "Low Season Peak Energy Charge",
@@ -1432,5 +1448,3 @@ export const SAMPLE_MAY_2026_LINE_ITEMS: InvoiceLineItem[] = [
     originalValue: "Premium Connection Charge @ R34,861.21 R 34,861.21",
   },
 ];
-
-

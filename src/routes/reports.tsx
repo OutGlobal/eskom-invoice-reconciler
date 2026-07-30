@@ -2,7 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
 import { Download, FileJson, FileText, FileSpreadsheet } from "lucide-react";
-import { Panel, MetricCard, ZAR, NUM, useBootstrapMeter, useDerived } from "@/components/dashboard/parts";
+import {
+  Panel,
+  MetricCard,
+  ZAR,
+  NUM,
+  useBootstrapMeter,
+  useDerived,
+} from "@/components/dashboard/parts";
 import { useApp } from "@/lib/store";
 import { exportToExcel, exportToCsv, exportToJson } from "@/lib/exportReports";
 import { buildStandardReconciliationTable } from "@/lib/reconciliation";
@@ -26,7 +33,12 @@ function ReportsPage() {
   const diff = invoiceTotal - calculatedTotal;
   const pctErr = invoiceTotal ? (diff / invoiceTotal) * 100 : 0;
 
-  const reconRows = buildStandardReconciliationTable(invoiceLines, charges, invoice?.vat, invoice?.invoiceTotal || invoiceTotal);
+  const reconRows = buildStandardReconciliationTable(
+    invoiceLines,
+    charges,
+    invoice?.vat,
+    invoice?.invoiceTotal || invoiceTotal,
+  );
   const exportRows = reconRows.map((r) => ({
     charge: r.charge,
     calculated: r.calculated,
@@ -76,7 +88,9 @@ function ReportsPage() {
             </div>
             <div>
               <div className="font-semibold text-sm">Excel Package (.xlsx)</div>
-              <div className="text-xs text-muted-foreground">Metadata, 13-point recon table, and line items.</div>
+              <div className="text-xs text-muted-foreground">
+                Metadata, 13-point recon table, and line items.
+              </div>
             </div>
             <Download className="ml-auto h-4 w-4 opacity-60 group-hover:opacity-100" />
           </div>
@@ -92,7 +106,9 @@ function ReportsPage() {
             </div>
             <div>
               <div className="font-semibold text-sm">PDF Report</div>
-              <div className="text-xs text-muted-foreground">Print-friendly full reconciliation report.</div>
+              <div className="text-xs text-muted-foreground">
+                Print-friendly full reconciliation report.
+              </div>
             </div>
             <Download className="ml-auto h-4 w-4 opacity-60 group-hover:opacity-100" />
           </div>
@@ -108,7 +124,9 @@ function ReportsPage() {
             </div>
             <div>
               <div className="font-semibold text-sm">JSON Data (.json)</div>
-              <div className="text-xs text-muted-foreground">Normalized JSON for API or ERP integration.</div>
+              <div className="text-xs text-muted-foreground">
+                Normalized JSON for API or ERP integration.
+              </div>
             </div>
             <Download className="ml-auto h-4 w-4 opacity-60 group-hover:opacity-100" />
           </div>
@@ -124,17 +142,25 @@ function ReportsPage() {
             </div>
             <div>
               <div className="font-semibold text-sm">CSV File (.csv)</div>
-              <div className="text-xs text-muted-foreground">Comma-separated reconciliation variance table.</div>
+              <div className="text-xs text-muted-foreground">
+                Comma-separated reconciliation variance table.
+              </div>
             </div>
             <Download className="ml-auto h-4 w-4 opacity-60 group-hover:opacity-100" />
           </div>
         </button>
       </div>
 
-      <Panel title="Session Reconciliation Overview" subtitle="Key metrics for active invoice reconciliation session.">
+      <Panel
+        title="Session Reconciliation Overview"
+        subtitle="Key metrics for active invoice reconciliation session."
+      >
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <MetricCard label="Calculated Total" value={ZAR(calculatedTotal)} accent />
-          <MetricCard label="Eskom Invoice Total" value={invoiceTotal ? ZAR(invoiceTotal) : "Awaiting invoice"} />
+          <MetricCard
+            label="Eskom Invoice Total"
+            value={invoiceTotal ? ZAR(invoiceTotal) : "Awaiting invoice"}
+          />
           <MetricCard label="Variance Amount" value={invoiceTotal ? ZAR(diff) : "—"} />
           <MetricCard label="% Error" value={invoiceTotal ? `${pctErr.toFixed(2)}%` : "—"} />
         </div>
@@ -163,11 +189,19 @@ function ReportsPage() {
               <tr className="hover:bg-muted/40 transition">
                 <td className="px-3 py-2.5 font-medium">February 2026</td>
                 <td className="px-3 py-2.5 font-mono text-xs">785101497007</td>
-                <td className="px-3 py-2.5 text-xs text-muted-foreground">17/01/2026 - 16/02/2026</td>
-                <td className="px-3 py-2.5 text-right font-mono tabular-nums">{NUM(49264449.6, 0)}</td>
-                <td className="px-3 py-2.5 text-right font-mono tabular-nums">{NUM(87034.19, 2)}</td>
+                <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                  17/01/2026 - 16/02/2026
+                </td>
+                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                  {NUM(49264449.6, 0)}
+                </td>
+                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                  {NUM(87034.19, 2)}
+                </td>
                 <td className="px-3 py-2.5 text-right font-mono font-medium">{ZAR(97009239.11)}</td>
-                <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">{ZAR(111560624.98)}</td>
+                <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">
+                  {ZAR(111560624.98)}
+                </td>
                 <td className="px-3 py-2.5 text-center">
                   <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400 border border-emerald-500/30">
                     🟢 Reconciled
@@ -189,11 +223,19 @@ function ReportsPage() {
               <tr className="hover:bg-muted/40 transition">
                 <td className="px-3 py-2.5 font-medium">March 2026</td>
                 <td className="px-3 py-2.5 font-mono text-xs">7856504676</td>
-                <td className="px-3 py-2.5 text-xs text-muted-foreground">17/02/2026 - 18/03/2026</td>
-                <td className="px-3 py-2.5 text-right font-mono tabular-nums">{NUM(49248061.2, 0)}</td>
-                <td className="px-3 py-2.5 text-right font-mono tabular-nums">{NUM(92948.29, 2)}</td>
+                <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                  17/02/2026 - 18/03/2026
+                </td>
+                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                  {NUM(49248061.2, 0)}
+                </td>
+                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                  {NUM(92948.29, 2)}
+                </td>
                 <td className="px-3 py-2.5 text-right font-mono font-medium">{ZAR(98380358.13)}</td>
-                <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">{ZAR(113137411.85)}</td>
+                <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">
+                  {ZAR(113137411.85)}
+                </td>
                 <td className="px-3 py-2.5 text-center">
                   <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400 border border-emerald-500/30">
                     🟢 Reconciled
@@ -215,11 +257,19 @@ function ReportsPage() {
               <tr className="hover:bg-muted/40 transition">
                 <td className="px-3 py-2.5 font-medium">April 2026</td>
                 <td className="px-3 py-2.5 font-mono text-xs">785684906677</td>
-                <td className="px-3 py-2.5 text-xs text-muted-foreground">19/03/2026 - 16/04/2026</td>
-                <td className="px-3 py-2.5 text-right font-mono tabular-nums">{NUM(44148796.8, 0)}</td>
-                <td className="px-3 py-2.5 text-right font-mono tabular-nums">{NUM(85760.81, 2)}</td>
+                <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                  19/03/2026 - 16/04/2026
+                </td>
+                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                  {NUM(44148796.8, 0)}
+                </td>
+                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                  {NUM(85760.81, 2)}
+                </td>
                 <td className="px-3 py-2.5 text-right font-mono font-medium">{ZAR(91251855.72)}</td>
-                <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">{ZAR(104939634.08)}</td>
+                <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">
+                  {ZAR(104939634.08)}
+                </td>
                 <td className="px-3 py-2.5 text-center">
                   <span className="inline-flex items-center rounded-full bg-cyan-500/10 px-2 py-0.5 text-xs font-medium text-cyan-400 border border-cyan-500/30">
                     🟢 Reconciled (Split Rates)
@@ -241,11 +291,19 @@ function ReportsPage() {
               <tr className="hover:bg-muted/40 transition">
                 <td className="px-3 py-2.5 font-medium">May 2026</td>
                 <td className="px-3 py-2.5 font-mono text-xs">785595072130</td>
-                <td className="px-3 py-2.5 text-xs text-muted-foreground">17/04/2026 - 16/05/2026</td>
-                <td className="px-3 py-2.5 text-right font-mono tabular-nums">{NUM(45766884.0, 0)}</td>
-                <td className="px-3 py-2.5 text-right font-mono tabular-nums">{NUM(84529.33, 2)}</td>
+                <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                  17/04/2026 - 16/05/2026
+                </td>
+                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                  {NUM(45766884.0, 0)}
+                </td>
+                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                  {NUM(84529.33, 2)}
+                </td>
                 <td className="px-3 py-2.5 text-right font-mono font-medium">{ZAR(97169250.0)}</td>
-                <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">{ZAR(111744637.5)}</td>
+                <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">
+                  {ZAR(111744637.5)}
+                </td>
                 <td className="px-3 py-2.5 text-center">
                   <span className="inline-flex items-center rounded-full bg-purple-500/10 px-2 py-0.5 text-xs font-medium text-purple-400 border border-purple-500/30">
                     🟢 Reconciled

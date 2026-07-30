@@ -3,7 +3,9 @@
 import type { TariffData } from "./store";
 import { TARIFF as DEFAULTS } from "./tariff";
 
-export async function extractTariffFromPdf(file: File): Promise<{ tariff: TariffData; rawText: string }> {
+export async function extractTariffFromPdf(
+  file: File,
+): Promise<{ tariff: TariffData; rawText: string }> {
   const pdfjs = await import("pdfjs-dist");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default as string;
@@ -33,8 +35,14 @@ export async function extractTariffFromPdf(file: File): Promise<{ tariff: Tariff
     powerFactor: 0.96,
     networkCapacity: num(/Network capacity[^R\d]*R?\s*([\d.,]+)/i, DEFAULTS.networkCapacity),
     networkDemand: num(/Network demand[^R\d]*R?\s*([\d.,]+)/i, DEFAULTS.networkDemand),
-    generationCapacity: num(/Generation capacity[^R\d]*R?\s*([\d.,]+)/i, DEFAULTS.generationCapacity),
-    transmissionNetwork: num(/Transmission network[^R\d]*R?\s*([\d.,]+)/i, DEFAULTS.transmissionNetwork),
+    generationCapacity: num(
+      /Generation capacity[^R\d]*R?\s*([\d.,]+)/i,
+      DEFAULTS.generationCapacity,
+    ),
+    transmissionNetwork: num(
+      /Transmission network[^R\d]*R?\s*([\d.,]+)/i,
+      DEFAULTS.transmissionNetwork,
+    ),
     legacy: num(/Legacy[^c\d]*([\d.,]+)\s*c/i, DEFAULTS.legacy),
     ancillary: num(/Ancillary[^c\d]*([\d.,]+)\s*c/i, DEFAULTS.ancillary),
     electrification: num(/Electrification[^c\d]*([\d.,]+)\s*c/i, DEFAULTS.electrification),

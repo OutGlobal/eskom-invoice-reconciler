@@ -72,9 +72,15 @@ export function computeCharges(totals: Totals, nmd: number, rows: Measurement[])
         Math.max(1e-9, seasonMix.high[p] + seasonMix.low[p]) /
         100;
 
-  const peakAmt = (seasonMix.high.peak * TARIFF.energy.high.peak) / 100 + (seasonMix.low.peak * TARIFF.energy.low.peak) / 100;
-  const stdAmt = (seasonMix.high.standard * TARIFF.energy.high.standard) / 100 + (seasonMix.low.standard * TARIFF.energy.low.standard) / 100;
-  const offAmt = (seasonMix.high.offPeak * TARIFF.energy.high.offPeak) / 100 + (seasonMix.low.offPeak * TARIFF.energy.low.offPeak) / 100;
+  const peakAmt =
+    (seasonMix.high.peak * TARIFF.energy.high.peak) / 100 +
+    (seasonMix.low.peak * TARIFF.energy.low.peak) / 100;
+  const stdAmt =
+    (seasonMix.high.standard * TARIFF.energy.high.standard) / 100 +
+    (seasonMix.low.standard * TARIFF.energy.low.standard) / 100;
+  const offAmt =
+    (seasonMix.high.offPeak * TARIFF.energy.high.offPeak) / 100 +
+    (seasonMix.low.offPeak * TARIFF.energy.low.offPeak) / 100;
 
   const txNetwork = nmd * TARIFF.transmissionNetwork;
   const distNetwork = nmd * TARIFF.networkCapacity;
@@ -86,7 +92,18 @@ export function computeCharges(totals: Totals, nmd: number, rows: Measurement[])
   const electrification = (totals.totalKWh * TARIFF.electrification) / 100;
   const networkDemand = totals.maxDemandKVA * TARIFF.networkDemand;
 
-  const subTotal = txNetwork + distNetwork + genCapacity + peakAmt + stdAmt + offAmt + ancillary + legacy + affordability + electrification + networkDemand;
+  const subTotal =
+    txNetwork +
+    distNetwork +
+    genCapacity +
+    peakAmt +
+    stdAmt +
+    offAmt +
+    ancillary +
+    legacy +
+    affordability +
+    electrification +
+    networkDemand;
   const vat = subTotal * 0.15;
 
   return [
@@ -242,7 +259,7 @@ export function buildStandardReconciliationTable(
   invoiceLines: Record<string, number>,
   calculatedCharges: Charge[],
   vatInvoice?: number,
-  totalInvoice?: number
+  totalInvoice?: number,
 ): StandardReconciliationRow[] {
   const REQUIRED_13_ITEMS = [
     "Transmission Network Charge",
@@ -260,7 +277,9 @@ export function buildStandardReconciliationTable(
     "Total Charges",
   ] as const;
 
-  const calcMap: Record<string, number> = Object.fromEntries(calculatedCharges.map((c) => [c.label, c.amount]));
+  const calcMap: Record<string, number> = Object.fromEntries(
+    calculatedCharges.map((c) => [c.label, c.amount]),
+  );
 
   const sumSubTotalCalc = calculatedCharges
     .filter((c) => c.label !== "VAT" && c.label !== "Total Charges")
@@ -279,7 +298,8 @@ export function buildStandardReconciliationTable(
 
   // Smart fallbacks for VAT and Total Charges
   const totalInvValue = totalInvoice || normalizedInvoiceLines[normalizeKey("Total Charges")] || 0;
-  const vatInvValue = vatInvoice || normalizedInvoiceLines[normalizeKey("VAT")] || (totalInvValue * 0.15);
+  const vatInvValue =
+    vatInvoice || normalizedInvoiceLines[normalizeKey("VAT")] || totalInvValue * 0.15;
 
   return REQUIRED_13_ITEMS.map((item) => {
     const key = normalizeKey(item);
@@ -308,7 +328,10 @@ export function buildStandardReconciliationTable(
       } else {
         status = "red";
         statusText = `🔴 Discrepancy (${variancePct >= 0 ? "+" : ""}${variancePct.toFixed(2)}%)`;
-        reason = inv > calc ? `Invoice charge is higher than calculated.` : `Invoice charge is lower than calculated.`;
+        reason =
+          inv > calc
+            ? `Invoice charge is higher than calculated.`
+            : `Invoice charge is lower than calculated.`;
       }
     }
 

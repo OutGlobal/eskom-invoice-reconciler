@@ -15,7 +15,7 @@ export function exportToExcel(
   invoice: InvoiceData | null,
   rows: ReconciliationRowExport[],
   lineItems: InvoiceLineItemStored[],
-  filenamePrefix = "Eskom_Reconciliation_Report"
+  filenamePrefix = "Eskom_Reconciliation_Report",
 ) {
   const wb = XLSX.utils.book_new();
 
@@ -57,7 +57,15 @@ export function exportToExcel(
 
   // Sheet 2: Reconciliation Table
   const reconData = [
-    ["Charge Item", "Calculated (R)", "Invoice (R)", "Variance (R)", "Variance (%)", "Status", "Notes / Cause"],
+    [
+      "Charge Item",
+      "Calculated (R)",
+      "Invoice (R)",
+      "Variance (R)",
+      "Variance (%)",
+      "Status",
+      "Notes / Cause",
+    ],
     ...rows.map((r) => [
       r.charge,
       r.calculated,
@@ -74,7 +82,16 @@ export function exportToExcel(
 
   // Sheet 3: Extracted Charge Line Items (As Printed)
   const lineData = [
-    ["Line Item Label", "Normalized Charge Name", "Quantity", "Unit", "Rate (R)", "Amount (R)", "OCR Confidence", "Review Flag"],
+    [
+      "Line Item Label",
+      "Normalized Charge Name",
+      "Quantity",
+      "Unit",
+      "Rate (R)",
+      "Amount (R)",
+      "OCR Confidence",
+      "Review Flag",
+    ],
     ...lineItems.map((li) => [
       li.label,
       li.normalizedName || "Unmapped",
@@ -98,20 +115,30 @@ export function exportToExcel(
 export function exportToCsv(
   invoice: InvoiceData | null,
   rows: ReconciliationRowExport[],
-  filenamePrefix = "Eskom_Reconciliation"
+  filenamePrefix = "Eskom_Reconciliation",
 ) {
-  const headers = ["Charge Item", "Calculated (R)", "Invoice (R)", "Variance (R)", "Variance (%)", "Status", "Notes"];
+  const headers = [
+    "Charge Item",
+    "Calculated (R)",
+    "Invoice (R)",
+    "Variance (R)",
+    "Variance (%)",
+    "Status",
+    "Notes",
+  ];
   const csvRows = [
     headers.join(","),
-    ...rows.map((r) => [
-      `"${r.charge.replace(/"/g, '""')}"`,
-      r.calculated.toFixed(2),
-      r.invoice > 0 ? r.invoice.toFixed(2) : "",
-      r.invoice > 0 ? r.varianceR.toFixed(2) : "",
-      r.invoice > 0 ? `${r.variancePct.toFixed(2)}%` : "",
-      `"${r.status}"`,
-      `"${(r.reason || "").replace(/"/g, '""')}"`,
-    ].join(",")),
+    ...rows.map((r) =>
+      [
+        `"${r.charge.replace(/"/g, '""')}"`,
+        r.calculated.toFixed(2),
+        r.invoice > 0 ? r.invoice.toFixed(2) : "",
+        r.invoice > 0 ? r.varianceR.toFixed(2) : "",
+        r.invoice > 0 ? `${r.variancePct.toFixed(2)}%` : "",
+        `"${r.status}"`,
+        `"${(r.reason || "").replace(/"/g, '""')}"`,
+      ].join(","),
+    ),
   ];
 
   const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
@@ -137,23 +164,22 @@ export function exportToJson(invoice: InvoiceData | null, filenamePrefix = "Esko
   URL.revokeObjectURL(url);
 }
 
+function sanitizeCsvCell(value: string | number): string {
+  if (typeof value === "number") return value.toFixed(2);
+  const str = String(value ?? "");
+  const safeStr = /^[=+\-@]/.test(str) ? `'${str}` : str;
+  return `"${safeStr.replace(/"/g, '""')}"`;
+}
+
 export function exportCustomCsv(
   filenamePrefix: string,
   headers: string[],
-  rows: (string | number)[][]
+  rows: (string | number)[][],
 ) {
   const csvContent = [
-    headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(","),
+    headers.map((h) => sanitizeCsvCell(h)).join(","),
     ...rows.map((row) =>
-      row
-        ? row
-            .map((cell) =>
-              typeof cell === "number"
-                ? cell.toFixed(2)
-                : `"${String(cell).replace(/"/g, '""')}"`
-            )
-            .join(",")
-        : ""
+      row ? row.map((cell) => sanitizeCsvCell(cell)).join(",") : "",
     ),
   ].join("\n");
 

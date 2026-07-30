@@ -38,12 +38,7 @@ import {
 import { useApp } from "@/lib/store";
 import { TOU_COLOR } from "@/lib/tariff";
 import { buildStandardReconciliationTable } from "@/lib/reconciliation";
-import {
-  exportToExcel,
-  exportToCsv,
-  exportToJson,
-  exportToPdfPrint,
-} from "@/lib/exportReports";
+import { exportToExcel, exportToCsv, exportToJson, exportToPdfPrint } from "@/lib/exportReports";
 
 export const Route = createFileRoute("/reconciliation")({
   head: () => ({ meta: [{ title: "Reconciliation — Eskom Bill Balancer" }] }),
@@ -75,9 +70,9 @@ function ReconPage() {
         invoiceLines,
         charges,
         invoice?.vat,
-        invoice?.invoiceTotal || invoiceTotal
+        invoice?.invoiceTotal || invoiceTotal,
       ),
-    [invoiceLines, charges, invoice, invoiceTotal]
+    [invoiceLines, charges, invoice, invoiceTotal],
   );
 
   const filteredReconRows = useMemo(() => {
@@ -90,8 +85,8 @@ function ReconPage() {
         filterTab === "all"
           ? true
           : filterTab === "discrepancies"
-          ? r.status === "amber" || r.status === "red" || r.status === "grey"
-          : r.status === "green";
+            ? r.status === "amber" || r.status === "red" || r.status === "grey"
+            : r.status === "green";
       return matchesSearch && matchesTab;
     });
   }, [reconRows, searchTerm, filterTab]);
@@ -106,20 +101,32 @@ function ReconPage() {
   const tone: "good" | "warn" | "bad" | undefined = !invoiceTotal
     ? undefined
     : absPct <= 1
-    ? "good"
-    : absPct < 5
-    ? "warn"
-    : "bad";
+      ? "good"
+      : absPct < 5
+        ? "warn"
+        : "bad";
 
   const energyCmp = [
     { name: "Peak kWh", Invoice: invoice?.peakKWh || 0, Calculated: Math.round(totals.peakKWh) },
-    { name: "Standard kWh", Invoice: invoice?.standardKWh || 0, Calculated: Math.round(totals.standardKWh) },
-    { name: "Off-Peak kWh", Invoice: invoice?.offPeakKWh || 0, Calculated: Math.round(totals.offPeakKWh) },
+    {
+      name: "Standard kWh",
+      Invoice: invoice?.standardKWh || 0,
+      Calculated: Math.round(totals.standardKWh),
+    },
+    {
+      name: "Off-Peak kWh",
+      Invoice: invoice?.offPeakKWh || 0,
+      Calculated: Math.round(totals.offPeakKWh),
+    },
     { name: "Total kWh", Invoice: invoice?.totalKWh || 0, Calculated: Math.round(totals.totalKWh) },
   ];
 
   const demandCmp = [
-    { name: "Max Demand kVA", Invoice: invoice?.maxDemandKVA || 0, Calculated: Math.round(totals.maxDemandKVA) },
+    {
+      name: "Max Demand kVA",
+      Invoice: invoice?.maxDemandKVA || 0,
+      Calculated: Math.round(totals.maxDemandKVA),
+    },
   ];
 
   const handleSaveEdit = (chargeName: string) => {
@@ -211,10 +218,10 @@ function ReconPage() {
           !invoiceTotal
             ? "border-border bg-card"
             : absPct <= 1
-            ? "border-emerald-500/40 bg-emerald-500/5"
-            : absPct <= 5
-            ? "border-amber-500/40 bg-amber-500/5"
-            : "border-red-500/40 bg-red-500/5"
+              ? "border-emerald-500/40 bg-emerald-500/5"
+              : absPct <= 5
+                ? "border-amber-500/40 bg-amber-500/5"
+                : "border-red-500/40 bg-red-500/5"
         }`}
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -239,19 +246,19 @@ function ReconPage() {
                 tone === "good"
                   ? "text-emerald-500"
                   : tone === "bad"
-                  ? "text-red-500"
-                  : tone === "warn"
-                  ? "text-amber-500"
-                  : ""
+                    ? "text-red-500"
+                    : tone === "warn"
+                      ? "text-amber-500"
+                      : ""
               }`}
             >
               {!invoiceTotal
                 ? "Upload Eskom invoice PDF/Scan to auto-reconcile"
                 : absPct <= 1
-                ? "✓ Eskom Invoice Successfully Reconciled"
-                : absPct <= 5
-                ? "⚠ Minor Billing Variance Detected"
-                : "✗ Invoice Billing Discrepancy Detected"}
+                  ? "✓ Eskom Invoice Successfully Reconciled"
+                  : absPct <= 5
+                    ? "⚠ Minor Billing Variance Detected"
+                    : "✗ Invoice Billing Discrepancy Detected"}
             </div>
           </div>
 
@@ -262,7 +269,9 @@ function ReconPage() {
             <Stat label="% Error" value={invoiceTotal ? `${pctErr.toFixed(2)}%` : "—"} />
             <Stat
               label="Recon Accuracy"
-              value={invoiceTotal ? `${accuracyPct.toFixed(0)}% (${matchedCount}/${foundCount})` : "—"}
+              value={
+                invoiceTotal ? `${accuracyPct.toFixed(0)}% (${matchedCount}/${foundCount})` : "—"
+              }
             />
           </div>
         </div>
@@ -271,7 +280,8 @@ function ReconPage() {
           <div className="mt-3 rounded border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-300 flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
             <span>
-              Some fields have OCR confidence below 90% or total validation warnings. Review flagged fields in the tables below. Original OCR values are preserved for audit.
+              Some fields have OCR confidence below 90% or total validation warnings. Review flagged
+              fields in the tables below. Original OCR values are preserved for audit.
             </span>
           </div>
         )}
@@ -297,7 +307,9 @@ function ReconPage() {
               <button
                 onClick={() => setFilterTab("all")}
                 className={`px-2 py-0.5 rounded font-medium transition ${
-                  filterTab === "all" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                  filterTab === "all"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 All ({reconRows.length})
@@ -305,7 +317,9 @@ function ReconPage() {
               <button
                 onClick={() => setFilterTab("discrepancies")}
                 className={`px-2 py-0.5 rounded font-medium transition ${
-                  filterTab === "discrepancies" ? "bg-amber-500/20 text-amber-400" : "text-muted-foreground hover:text-foreground"
+                  filterTab === "discrepancies"
+                    ? "bg-amber-500/20 text-amber-400"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Variances ({reconRows.filter((r) => r.status !== "green").length})
@@ -313,7 +327,9 @@ function ReconPage() {
               <button
                 onClick={() => setFilterTab("matches")}
                 className={`px-2 py-0.5 rounded font-medium transition ${
-                  filterTab === "matches" ? "bg-emerald-500/20 text-emerald-400" : "text-muted-foreground hover:text-foreground"
+                  filterTab === "matches"
+                    ? "bg-emerald-500/20 text-emerald-400"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Matches ({matchedCount})
@@ -345,10 +361,10 @@ function ReconPage() {
                       r.status === "green"
                         ? "bg-emerald-500/5 hover:bg-emerald-500/10"
                         : r.status === "amber"
-                        ? "bg-amber-500/5 hover:bg-amber-500/10"
-                        : r.status === "red"
-                        ? "bg-red-500/5 hover:bg-red-500/10"
-                        : "hover:bg-secondary/40"
+                          ? "bg-amber-500/5 hover:bg-amber-500/10"
+                          : r.status === "red"
+                            ? "bg-red-500/5 hover:bg-red-500/10"
+                            : "hover:bg-secondary/40"
                     }`}
                   >
                     <td className="px-3 py-2 font-medium">{r.charge}</td>
@@ -383,10 +399,10 @@ function ReconPage() {
                         r.status === "green"
                           ? "text-emerald-500 font-medium"
                           : r.status === "amber"
-                          ? "text-amber-500 font-medium"
-                          : r.status === "red"
-                          ? "text-red-500 font-semibold"
-                          : "text-muted-foreground"
+                            ? "text-amber-500 font-medium"
+                            : r.status === "red"
+                              ? "text-red-500 font-semibold"
+                              : "text-muted-foreground"
                       }`}
                     >
                       {r.hasInvoice ? ZAR(r.varianceR) : "—"}
@@ -397,20 +413,24 @@ function ReconPage() {
                         r.status === "green"
                           ? "text-emerald-500 font-medium"
                           : r.status === "amber"
-                          ? "text-amber-500 font-medium"
-                          : r.status === "red"
-                          ? "text-red-500 font-semibold"
-                          : "text-muted-foreground"
+                            ? "text-amber-500 font-medium"
+                            : r.status === "red"
+                              ? "text-red-500 font-semibold"
+                              : "text-muted-foreground"
                       }`}
                     >
-                      {r.hasInvoice ? `${r.variancePct >= 0 ? "+" : ""}${r.variancePct.toFixed(2)}%` : "—"}
+                      {r.hasInvoice
+                        ? `${r.variancePct >= 0 ? "+" : ""}${r.variancePct.toFixed(2)}%`
+                        : "—"}
                     </td>
 
                     <td className="px-3 py-2 text-xs">{r.statusText}</td>
 
                     <td className="px-3 py-2 text-xs text-muted-foreground">
                       <div className="flex items-center gap-2">
-                        <span>{r.reason || (r.hasInvoice ? "Auto-matched" : "Not present on invoice")}</span>
+                        <span>
+                          {r.reason || (r.hasInvoice ? "Auto-matched" : "Not present on invoice")}
+                        </span>
                         <button
                           onClick={() => {
                             setEditingItem(r.charge);
@@ -433,7 +453,10 @@ function ReconPage() {
 
       {/* Extracted Invoice Metadata Card */}
       {invoice && (
-        <Panel title="Extracted Invoice Summary" subtitle={`Source: ${invoice.source ?? "PDF"} · documentType: ${invoice.extraction?.documentType}`}>
+        <Panel
+          title="Extracted Invoice Summary"
+          subtitle={`Source: ${invoice.source ?? "PDF"} · documentType: ${invoice.extraction?.documentType}`}
+        >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
             <Info label="Customer" value={invoice.customerName || "—"} />
             <Info label="Address" value={invoice.address || "—"} />
@@ -441,8 +464,16 @@ function ReconPage() {
             <Info label="Tax Invoice No" value={invoice.taxInvoiceNo || invoice.invoiceNo || "—"} />
             <Info label="Invoice No" value={invoice.invoiceNumber || "—"} />
             <Info label="Document Type" value={invoice.extraction?.documentType || "—"} />
-            <Info label="Extraction Confidence" value={invoice.extraction ? `${invoice.extraction.overallConfidence.toFixed(1)}%` : "—"} />
-            <Info label="Total Validation" value={invoice.extraction?.totalValidation || "passed"} />
+            <Info
+              label="Extraction Confidence"
+              value={
+                invoice.extraction ? `${invoice.extraction.overallConfidence.toFixed(1)}%` : "—"
+              }
+            />
+            <Info
+              label="Total Validation"
+              value={invoice.extraction?.totalValidation || "passed"}
+            />
             <Info label="Region" value={invoice.region || "—"} />
             <Info label="Billing Office" value={invoice.billingOffice || "—"} />
             <Info label="Account Month" value={invoice.accountMonth || "—"} />
@@ -453,21 +484,51 @@ function ReconPage() {
             <Info label="Tariff" value={invoice.tariffName || "—"} />
             <Info label="Voltage" value={invoice.voltage || "—"} />
             <Info label="Billing Period" value={invoice.billingPeriod || "—"} />
-            <Info label="Notified Max Demand" value={invoice.nmd ? `${NUM(invoice.nmd, 0)} kVA` : "—"} />
-            <Info label="Utilised Capacity" value={invoice.utilisedCapacity ? `${NUM(invoice.utilisedCapacity, 0)} kVA` : "—"} />
-            <Info label="Load Factor" value={invoice.loadFactor ? `${NUM(invoice.loadFactor, 2)} %` : "—"} />
-            <Info label="Simultaneous Max Demand" value={invoice.simMaxDemand ? `${NUM(invoice.simMaxDemand, 2)} kVA` : "—"} />
+            <Info
+              label="Notified Max Demand"
+              value={invoice.nmd ? `${NUM(invoice.nmd, 0)} kVA` : "—"}
+            />
+            <Info
+              label="Utilised Capacity"
+              value={invoice.utilisedCapacity ? `${NUM(invoice.utilisedCapacity, 0)} kVA` : "—"}
+            />
+            <Info
+              label="Load Factor"
+              value={invoice.loadFactor ? `${NUM(invoice.loadFactor, 2)} %` : "—"}
+            />
+            <Info
+              label="Simultaneous Max Demand"
+              value={invoice.simMaxDemand ? `${NUM(invoice.simMaxDemand, 2)} kVA` : "—"}
+            />
             <Info label="Peak Energy (kWh)" value={NUM(invoice.peakKWh, 0)} />
             <Info label="Standard Energy (kWh)" value={NUM(invoice.standardKWh, 0)} />
             <Info label="Off-Peak Energy (kWh)" value={NUM(invoice.offPeakKWh, 0)} />
             <Info label="Total Energy (kWh)" value={NUM(invoice.totalKWh, 0)} />
-            <Info label="Demand Peak (kVA)" value={invoice.demandPeak ? NUM(invoice.demandPeak, 2) : "—"} />
-            <Info label="Demand Std (kVA)" value={invoice.demandStd ? NUM(invoice.demandStd, 2) : "—"} />
-            <Info label="Demand Off-Peak (kVA)" value={invoice.demandOffPeak ? NUM(invoice.demandOffPeak, 2) : "—"} />
-            <Info label="Reactive Total (kVArh)" value={invoice.reactiveTotal ? NUM(invoice.reactiveTotal, 0) : "—"} />
+            <Info
+              label="Demand Peak (kVA)"
+              value={invoice.demandPeak ? NUM(invoice.demandPeak, 2) : "—"}
+            />
+            <Info
+              label="Demand Std (kVA)"
+              value={invoice.demandStd ? NUM(invoice.demandStd, 2) : "—"}
+            />
+            <Info
+              label="Demand Off-Peak (kVA)"
+              value={invoice.demandOffPeak ? NUM(invoice.demandOffPeak, 2) : "—"}
+            />
+            <Info
+              label="Reactive Total (kVArh)"
+              value={invoice.reactiveTotal ? NUM(invoice.reactiveTotal, 0) : "—"}
+            />
             <Info label="VAT" value={invoice.vat ? ZAR(invoice.vat) : "—"} />
-            <Info label="Total Charges (excl VAT)" value={invoice.invoiceTotal ? ZAR(invoice.invoiceTotal) : "—"} />
-            <Info label="Total Due (incl VAT)" value={invoice.totalInclVat ? ZAR(invoice.totalInclVat) : "—"} />
+            <Info
+              label="Total Charges (excl VAT)"
+              value={invoice.invoiceTotal ? ZAR(invoice.invoiceTotal) : "—"}
+            />
+            <Info
+              label="Total Due (incl VAT)"
+              value={invoice.totalInclVat ? ZAR(invoice.totalInclVat) : "—"}
+            />
           </div>
         </Panel>
       )}
@@ -495,14 +556,26 @@ function ReconPage() {
                 {invoiceItems.map((li, i) => (
                   <tr key={i} className="border-t border-border">
                     <td className="px-3 py-2 font-medium">{li.label}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{li.normalizedName || "Unmapped"}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{li.quantity ? NUM(li.quantity, 2) : "—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {li.normalizedName || "Unmapped"}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {li.quantity ? NUM(li.quantity, 2) : "—"}
+                    </td>
                     <td className="px-3 py-2 text-muted-foreground">{li.unit || "—"}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{li.rate ? NUM(li.rate, 4) : "—"}</td>
-                    <td className="px-3 py-2 text-right tabular-nums font-semibold">{ZAR(li.amount)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {li.rate ? NUM(li.rate, 4) : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums font-semibold">
+                      {ZAR(li.amount)}
+                    </td>
                     <td className="px-3 py-2 text-xs">
                       {li.confidence != null ? (
-                        <span className={li.needsReview ? "text-amber-400 font-medium" : "text-emerald-400"}>
+                        <span
+                          className={
+                            li.needsReview ? "text-amber-400 font-medium" : "text-emerald-400"
+                          }
+                        >
                           {li.confidence.toFixed(1)}%{li.needsReview ? " · review" : ""}
                         </span>
                       ) : (
@@ -537,17 +610,35 @@ function ReconPage() {
         </div>
       )}
 
-      <Panel title="System Calculated Charges Breakdown" subtitle="Rates calculated from Eskom Tariff Structure and interval data (excl. VAT).">
+      <Panel
+        title="System Calculated Charges Breakdown"
+        subtitle="Rates calculated from Eskom Tariff Structure and interval data (excl. VAT)."
+      >
         <ChargeTable charges={charges} />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-4">
           <MetricCard label="System Calculated Total" value={ZAR(calculatedTotal)} accent />
-          <MetricCard label="Eskom Invoice Total" value={invoiceTotal ? ZAR(invoiceTotal) : "Awaiting invoice"} />
+          <MetricCard
+            label="Eskom Invoice Total"
+            value={invoiceTotal ? ZAR(invoiceTotal) : "Awaiting invoice"}
+          />
           <MetricCard label="Variance Amount" value={invoiceTotal ? ZAR(diff) : "—"} tone={tone} />
           <MetricCard
             label="% Error / Verdict"
-            value={invoiceTotal ? `${pctErr.toFixed(2)}%  ·  ${absPct <= 1 ? "PASS" : "FAIL"}` : "Awaiting invoice"}
+            value={
+              invoiceTotal
+                ? `${pctErr.toFixed(2)}%  ·  ${absPct <= 1 ? "PASS" : "FAIL"}`
+                : "Awaiting invoice"
+            }
             tone={tone}
-            sub={invoiceTotal ? (absPct <= 1 ? "Green · Reconciled" : absPct < 5 ? "Amber · Small variance" : "Red · High variance") : undefined}
+            sub={
+              invoiceTotal
+                ? absPct <= 1
+                  ? "Green · Reconciled"
+                  : absPct < 5
+                    ? "Amber · Small variance"
+                    : "Red · High variance"
+                : undefined
+            }
           />
         </div>
       </Panel>
@@ -575,15 +666,29 @@ function Info({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function ComparisonBar({ data, unit }: { data: { name: string; Invoice: number; Calculated: number }[]; unit: string }) {
+function ComparisonBar({
+  data,
+  unit,
+}: {
+  data: { name: string; Invoice: number; Calculated: number }[];
+  unit: string;
+}) {
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
         <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
         <XAxis dataKey="name" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
-        <YAxis tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} width={80} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+        <YAxis
+          tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+          width={80}
+          tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+        />
         <Tooltip
-          contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", fontSize: 12 }}
+          contentStyle={{
+            background: "var(--color-popover)",
+            border: "1px solid var(--color-border)",
+            fontSize: 12,
+          }}
           formatter={(v: number) => `${NUM(v, 0)} ${unit}`}
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
