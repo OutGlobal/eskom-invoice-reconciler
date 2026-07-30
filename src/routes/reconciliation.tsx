@@ -20,7 +20,10 @@ import {
   Edit2,
   Check,
   AlertTriangle,
+  Search,
+  Filter,
 } from "lucide-react";
+import { InvoiceSelector } from "@/components/InvoiceSelector";
 import {
   useBootstrapMeter,
   useDerived,
@@ -62,6 +65,8 @@ function ReconPage() {
 
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editVal, setEditVal] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [filterTab, setFilterTab] = useState<"all" | "discrepancies" | "matches">("all");
 
   // Build the 13 standard reconciliation table rows
   const reconRows = useMemo(
@@ -74,6 +79,22 @@ function ReconPage() {
       ),
     [invoiceLines, charges, invoice, invoiceTotal]
   );
+
+  const filteredReconRows = useMemo(() => {
+    return reconRows.filter((r) => {
+      const matchesSearch =
+        !searchTerm ||
+        r.charge.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (r.reason ? r.reason.toLowerCase().includes(searchTerm.toLowerCase()) : false);
+      const matchesTab =
+        filterTab === "all"
+          ? true
+          : filterTab === "discrepancies"
+          ? r.status === "amber" || r.status === "red" || r.status === "grey"
+          : r.status === "green";
+      return matchesSearch && matchesTab;
+    });
+  }, [reconRows, searchTerm, filterTab]);
 
   const matchedCount = reconRows.filter((r) => r.status === "green").length;
   const foundCount = reconRows.filter((r) => r.hasInvoice).length;
@@ -139,56 +160,11 @@ function ReconPage() {
             type="number"
             value={nmd}
             onChange={(e) => setCustomer({ nmd: Number(e.target.value) || 0 })}
-            className="w-28 bg-transparent border border-border rounded px-2 py-1 text-sm"
+            className="w-24 bg-transparent border border-border rounded px-2 py-1 text-sm font-mono"
           />
           <PeriodPicker />
 
-          {/* Demo Invoices Selector */}
-          <div className="flex items-center gap-1.5 border-l border-border pl-3 ml-2">
-            <button
-              onClick={() => {
-                useApp.getState().loadFeb2026SampleInvoice();
-                toast.success("Loaded Impala February 2026 Invoice (17/01/2026 - 16/02/2026)");
-              }}
-              className="inline-flex items-center gap-1 text-xs bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 rounded px-2.5 py-1 font-medium transition"
-              title="Load Impala Mine Feb 2026 Invoice (17/01/2026 - 16/02/2026)"
-            >
-              Feb 2026 Invoice
-            </button>
-
-            <button
-              onClick={() => {
-                useApp.getState().loadMarch2026SampleInvoice();
-                toast.success("Loaded Impala March 2026 Invoice (17/02/2026 - 18/03/2026)");
-              }}
-              className="inline-flex items-center gap-1 text-xs bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded px-2.5 py-1 font-medium transition"
-              title="Load Impala Mine March 2026 Invoice (17/02/2026 - 18/03/2026)"
-            >
-              March 2026 Invoice
-            </button>
-
-            <button
-              onClick={() => {
-                useApp.getState().loadApril2026SampleInvoice();
-                toast.success("Loaded Impala April 2026 Invoice (19/03/2026 - 16/04/2026)");
-              }}
-              className="inline-flex items-center gap-1 text-xs bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30 rounded px-2.5 py-1 font-medium transition"
-              title="Load Impala Mine April 2026 Invoice (19/03/2026 - 16/04/2026)"
-            >
-              April 2026 Invoice
-            </button>
-
-            <button
-              onClick={() => {
-                useApp.getState().loadMay2026SampleInvoice();
-                toast.success("Loaded Impala May 2026 Invoice (17/04/2026 - 16/05/2026)");
-              }}
-              className="inline-flex items-center gap-1 text-xs bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30 rounded px-2.5 py-1 font-medium transition"
-              title="Load Impala Mine May 2026 Invoice (17/04/2026 - 16/05/2026)"
-            >
-              May 2026 Invoice
-            </button>
-
+          <div className="flex items-center gap-1.5 border-l border-border pl-3 ml-1">
             <button
               onClick={() => exportToExcel(invoice, exportRowsForReport, invoiceItems)}
               className="inline-flex items-center gap-1 text-xs bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded px-2.5 py-1 font-medium transition"
@@ -222,6 +198,11 @@ function ReconPage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Invoice Selector Banner */}
+      <div className="rounded-lg border border-primary/20 bg-card p-3 shadow-sm">
+        <InvoiceSelector />
       </div>
 
       {/* Executive Summary Banner */}
@@ -300,6 +281,46 @@ function ReconPage() {
       <Panel
         title="Automated 13-Point Eskom Reconciliation Table"
         subtitle="Every calculated charge auto-compared to invoice value. Green (Match 0%), Amber (Within ±1%), Red (Discrepancy >1%), Grey (Not Found)."
+        action={
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search charge line item..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8 pr-3 py-1 bg-background border border-border rounded text-xs w-48 focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div className="flex items-center gap-1 bg-secondary p-0.5 rounded border border-border text-xs">
+              <button
+                onClick={() => setFilterTab("all")}
+                className={`px-2 py-0.5 rounded font-medium transition ${
+                  filterTab === "all" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                All ({reconRows.length})
+              </button>
+              <button
+                onClick={() => setFilterTab("discrepancies")}
+                className={`px-2 py-0.5 rounded font-medium transition ${
+                  filterTab === "discrepancies" ? "bg-amber-500/20 text-amber-400" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Variances ({reconRows.filter((r) => r.status !== "green").length})
+              </button>
+              <button
+                onClick={() => setFilterTab("matches")}
+                className={`px-2 py-0.5 rounded font-medium transition ${
+                  filterTab === "matches" ? "bg-emerald-500/20 text-emerald-400" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Matches ({matchedCount})
+              </button>
+            </div>
+          </div>
+        }
       >
         <div className="overflow-x-auto rounded border border-border">
           <table className="w-full text-sm">
@@ -315,7 +336,7 @@ function ReconPage() {
               </tr>
             </thead>
             <tbody>
-              {reconRows.map((r) => {
+              {filteredReconRows.map((r) => {
                 const isEditing = editingItem === r.charge;
                 return (
                   <tr

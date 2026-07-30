@@ -11,6 +11,8 @@ import { extractInvoiceFromPdf } from "@/lib/pdfInvoice";
 import { validateMeterRows } from "@/lib/validation";
 import { Progress } from "@/components/ui/progress";
 
+import { InvoiceSelector } from "@/components/InvoiceSelector";
+
 export const Route = createFileRoute("/upload")({
   head: () => ({ meta: [{ title: "Meter & Invoice Data Upload — Eskom Bill Balancer" }] }),
   component: UploadPage,
@@ -21,59 +23,11 @@ type Kind = "tariff" | "meter" | "invoice";
 function UploadPage() {
   const uploads = useApp((s) => s.uploads);
   const batchInvoices = useApp((s) => s.batchInvoices);
-  const navigate = useNavigate();
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/10 p-3">
-        <div className="text-xs font-medium">
-          Impala Platinum Rustenburg Mine (Sample Eskom Invoices)
-          <span className="block text-[11px] font-normal text-muted-foreground mt-0.5">
-            Account: 7856504676 · Tariff: Megaflex Diversity · Periods: 17/01/2026 - 16/02/2026 &amp; 17/02/2026 - 18/03/2026
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              useApp.getState().loadFeb2026SampleInvoice();
-              toast.success("Loaded Impala February 2026 Invoice (17/01/2026 - 16/02/2026)!");
-              navigate({ to: "/reconciliation" });
-            }}
-            className="shrink-0 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded px-3 py-1.5 font-medium transition"
-          >
-            Load Feb 2026 Invoice (17/01 - 16/02)
-          </button>
-          <button
-            onClick={() => {
-              useApp.getState().loadMarch2026SampleInvoice();
-              toast.success("Loaded Impala March 2026 Invoice (17/02/2026 - 18/03/2026)!");
-              navigate({ to: "/reconciliation" });
-            }}
-            className="shrink-0 text-xs bg-primary text-primary-foreground hover:bg-primary/90 rounded px-3 py-1.5 font-medium transition"
-          >
-            Load March 2026 Invoice (17/02 - 18/03)
-          </button>
-          <button
-            onClick={() => {
-              useApp.getState().loadApril2026SampleInvoice();
-              toast.success("Loaded Impala April 2026 Invoice (19/03/2026 - 16/04/2026)!");
-              navigate({ to: "/reconciliation" });
-            }}
-            className="shrink-0 text-xs bg-cyan-600 hover:bg-cyan-700 text-white rounded px-3 py-1.5 font-medium transition"
-          >
-            Load April 2026 Invoice (19/03 - 16/04)
-          </button>
-          <button
-            onClick={() => {
-              useApp.getState().loadMay2026SampleInvoice();
-              toast.success("Loaded Impala May 2026 Invoice (17/04/2026 - 16/05/2026)!");
-              navigate({ to: "/reconciliation" });
-            }}
-            className="shrink-0 text-xs bg-purple-600 hover:bg-purple-700 text-white rounded px-3 py-1.5 font-medium transition"
-          >
-            Load May 2026 Invoice (17/04 - 16/05)
-          </button>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/10 p-3.5">
+        <InvoiceSelector />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
