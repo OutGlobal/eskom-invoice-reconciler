@@ -137,6 +137,35 @@ export function exportToJson(invoice: InvoiceData | null, filenamePrefix = "Esko
   URL.revokeObjectURL(url);
 }
 
+export function exportCustomCsv(
+  filenamePrefix: string,
+  headers: string[],
+  rows: (string | number)[][]
+) {
+  const csvContent = [
+    headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(","),
+    ...rows.map((row) =>
+      row
+        ? row
+            .map((cell) =>
+              typeof cell === "number"
+                ? cell.toFixed(2)
+                : `"${String(cell).replace(/"/g, '""')}"`
+            )
+            .join(",")
+        : ""
+    ),
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filenamePrefix}_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function exportToPdfPrint() {
   window.print();
 }

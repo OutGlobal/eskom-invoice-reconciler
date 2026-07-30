@@ -17,6 +17,7 @@ import { Route as ReconciliationRouteImport } from './routes/reconciliation'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TariffRouteImport } from './routes/tariff'
+import { Route as TrendsRouteImport } from './routes/trends'
 import { Route as UploadRouteImport } from './routes/upload'
 
 const IndexRoute = IndexRouteImport.update({
@@ -59,6 +60,11 @@ const TariffRoute = TariffRouteImport.update({
   path: '/tariff',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TrendsRoute = TrendsRouteImport.update({
+  id: '/trends',
+  path: '/trends',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UploadRoute = UploadRouteImport.update({
   id: '/upload',
   path: '/upload',
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/tariff': typeof TariffRoute
+  '/trends': typeof TrendsRoute
   '/upload': typeof UploadRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/tariff': typeof TariffRoute
+  '/trends': typeof TrendsRoute
   '/upload': typeof UploadRoute
 }
 export interface FileRoutesById {
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/tariff': typeof TariffRoute
+  '/trends': typeof TrendsRoute
   '/upload': typeof UploadRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/tariff'
+    | '/trends'
     | '/upload'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/tariff'
+    | '/trends'
     | '/upload'
   id:
     | '__root__'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/tariff'
+    | '/trends'
     | '/upload'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +156,7 @@ export interface RootRouteChildren {
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
   TariffRoute: typeof TariffRoute
+  TrendsRoute: typeof TrendsRoute
   UploadRoute: typeof UploadRoute
 }
 
@@ -205,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TariffRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/trends': {
+      id: '/trends'
+      path: '/trends'
+      fullPath: '/trends'
+      preLoaderRoute: typeof TrendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/upload': {
       id: '/upload'
       path: '/upload'
@@ -224,6 +244,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
   TariffRoute: TariffRoute,
+  TrendsRoute: TrendsRoute,
   UploadRoute: UploadRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Upload, ReceiptText, Zap, Activity,
-  Scale, FileBarChart, Settings as SettingsIcon,
+  Scale, FileBarChart, Settings as SettingsIcon, TrendingUp,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -16,6 +16,7 @@ const items = [
   { title: "Energy Analysis", url: "/energy", icon: Zap },
   { title: "Demand Analysis", url: "/demand", icon: Activity },
   { title: "Reconciliation", url: "/reconciliation", icon: Scale },
+  { title: "Trends & Recoveries", url: "/trends", icon: TrendingUp },
   { title: "Reports", url: "/reports", icon: FileBarChart },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ];
