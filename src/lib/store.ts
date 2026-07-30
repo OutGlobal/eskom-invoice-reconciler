@@ -8,6 +8,9 @@ import {
   SAMPLE_FEB_2026_INVOICE,
   SAMPLE_FEB_2026_CHARGE_LINES,
   SAMPLE_FEB_2026_LINE_ITEMS,
+  SAMPLE_APRIL_2026_INVOICE,
+  SAMPLE_APRIL_2026_CHARGE_LINES,
+  SAMPLE_APRIL_2026_LINE_ITEMS,
 } from "./sampleInvoice";
 
 export interface TariffData {
@@ -255,6 +258,7 @@ interface AppState {
 
   loadMarch2026SampleInvoice: () => void;
   loadFeb2026SampleInvoice: () => void;
+  loadApril2026SampleInvoice: () => void;
 
   overrideInvoiceField: (fieldPath: string, newValue: number | string) => void;
   overrideInvoiceChargeLine: (labelOrNormalized: string, newAmount: number) => void;
@@ -347,6 +351,22 @@ export const useApp = create<AppState>((set) => ({
     },
     billingStart: "2026-01-17",
     billingEnd: "2026-02-16",
+  }),
+
+  loadApril2026SampleInvoice: () => set({
+    invoice: SAMPLE_APRIL_2026_INVOICE,
+    invoiceLines: SAMPLE_APRIL_2026_CHARGE_LINES,
+    invoiceItems: SAMPLE_APRIL_2026_LINE_ITEMS,
+    invoiceTotal: SAMPLE_APRIL_2026_INVOICE.invoiceTotal,
+    customer: {
+      name: "Impala Plats Rustenburg Mine",
+      meter: "7856504226",
+      accountNumber: "7856504676",
+      address: "Mineral Processes, Beerfontein Farm, Phokeng, RUSTENBURG 0300",
+      nmd: 85740,
+    },
+    billingStart: "2026-03-19",
+    billingEnd: "2026-04-16",
   }),
 
   overrideInvoiceField: (fieldPath, newValue) => set((s) => {

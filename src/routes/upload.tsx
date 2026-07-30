@@ -53,6 +53,16 @@ function UploadPage() {
           >
             Load March 2026 Invoice (17/02 - 18/03)
           </button>
+          <button
+            onClick={() => {
+              useApp.getState().loadApril2026SampleInvoice();
+              toast.success("Loaded Impala April 2026 Invoice (19/03/2026 - 16/04/2026)!");
+              navigate({ to: "/reconciliation" });
+            }}
+            className="shrink-0 text-xs bg-cyan-600 hover:bg-cyan-700 text-white rounded px-3 py-1.5 font-medium transition"
+          >
+            Load April 2026 Invoice (19/03 - 16/04)
+          </button>
         </div>
       </div>
 

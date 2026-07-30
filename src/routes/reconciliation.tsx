@@ -168,6 +168,17 @@ function ReconPage() {
             </button>
 
             <button
+              onClick={() => {
+                useApp.getState().loadApril2026SampleInvoice();
+                toast.success("Loaded Impala April 2026 Invoice (19/03/2026 - 16/04/2026)");
+              }}
+              className="inline-flex items-center gap-1 text-xs bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30 rounded px-2.5 py-1 font-medium transition"
+              title="Load Impala Mine April 2026 Invoice (19/03/2026 - 16/04/2026)"
+            >
+              April 2026 Invoice
+            </button>
+
+            <button
               onClick={() => exportToExcel(invoice, exportRowsForReport, invoiceItems)}
               className="inline-flex items-center gap-1 text-xs bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded px-2.5 py-1 font-medium transition"
               title="Export Excel Report (.xlsx)"
