@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, Cell,
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, Cell, ComposedChart,
 } from "recharts";
 import toast from "react-hot-toast";
 import {
@@ -236,17 +236,17 @@ export function TrendsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Charge Breakdown Trend Chart */}
         <Panel
-          title="Eskom Charge Component Trend by Billing Period (ZAR)"
-          subtitle="Monthly progression of Peak, Standard, Off-Peak Energy, Network & Subsidies."
+          title="Eskom Charge Component Breakdown & Overall Bill Trend Line (ZAR)"
+          subtitle="Monthly breakdown of Peak, Standard, Off-Peak Energy, Network & Subsidies with overall Invoiced Bill Trend Line."
         >
           <div className="h-72 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={HISTORICAL_TRENDS_DATA} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+              <ComposedChart data={HISTORICAL_TRENDS_DATA} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis dataKey="period" stroke="#888888" fontSize={11} />
                 <YAxis stroke="#888888" fontSize={10} tickFormatter={(v) => `R ${(v / 1e6).toFixed(1)}M`} />
                 <Tooltip
-                  formatter={(val: number) => [ZAR(val), ""]}
+                  formatter={(val: number, name: string) => [ZAR(val), name]}
                   contentStyle={{ backgroundColor: "rgba(15, 23, 42, 0.95)", borderColor: "#334155", borderRadius: "6px", fontSize: "12px" }}
                 />
                 <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
@@ -256,26 +256,36 @@ export function TrendsPage() {
                 <Bar dataKey="networkCapacity" name="Network Capacity" stackId="a" fill="#3b82f6" />
                 <Bar dataKey="demandCharge" name="Demand Charge" stackId="a" fill="#8b5cf6" />
                 <Bar dataKey="subsidiesAndLegacy" name="Subsidies & Legacy" stackId="a" fill="#64748b" />
-              </BarChart>
+                <Line
+                  type="monotone"
+                  dataKey="totalInvoice"
+                  name="Total Invoiced Bill (Trend Line)"
+                  stroke="#06b6d4"
+                  strokeWidth={3}
+                  dot={{ r: 5, fill: "#06b6d4" }}
+                  activeDot={{ r: 7 }}
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </Panel>
 
         {/* Identified Overcharge Recoveries Trend */}
         <Panel
-          title="Identified Overcharges & Recoveries Pipeline (ZAR)"
-          subtitle="Historical billing overcharges identified by system calculations and dispute status."
+          title="Identified Overcharge Recoveries & Recovery Trend Line (ZAR)"
+          subtitle="Monthly overcharge recoveries identified by system calculations overlayed with 4-month recovery trend line."
         >
           <div className="h-72 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={HISTORICAL_TRENDS_DATA} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+              <ComposedChart data={HISTORICAL_TRENDS_DATA} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis dataKey="period" stroke="#888888" fontSize={11} />
                 <YAxis stroke="#888888" fontSize={10} tickFormatter={(v) => `R ${(v / 1e3).toFixed(0)}k`} />
                 <Tooltip
-                  formatter={(val: number) => [ZAR(val), "Identified Overcharge Recovery"]}
+                  formatter={(val: number, name: string) => [ZAR(val), name]}
                   contentStyle={{ backgroundColor: "rgba(15, 23, 42, 0.95)", borderColor: "#334155", borderRadius: "6px", fontSize: "12px" }}
                 />
+                <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
                 <Bar dataKey="recoveryAmount" name="Recovery Amount (ZAR)">
                   {HISTORICAL_TRENDS_DATA.map((entry, index) => (
                     <Cell
@@ -284,7 +294,17 @@ export function TrendsPage() {
                     />
                   ))}
                 </Bar>
-              </BarChart>
+                <Line
+                  type="monotone"
+                  dataKey="recoveryAmount"
+                  name="Recovery Trend Line"
+                  stroke="#10b981"
+                  strokeWidth={3}
+                  strokeDasharray="4 4"
+                  dot={{ r: 5, fill: "#10b981" }}
+                  activeDot={{ r: 7 }}
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </Panel>
@@ -293,7 +313,7 @@ export function TrendsPage() {
       {/* Period-by-Period Recoveries Audit Table */}
       <Panel
         title="Period-by-Period Overcharge & Recovery Audit Log"
-        subtitle="Detailed register of identified billing overcharges, Eskom tariff non-compliance, and claim status."
+        subtitle="Detailed register of identified billing overcharges, supply points, Eskom tariff non-compliance, and claim status."
         action={
           <div className="flex items-center gap-1 bg-secondary p-0.5 rounded border border-border text-xs">
             <button
@@ -335,55 +355,59 @@ export function TrendsPage() {
           <table className="w-full text-sm">
             <thead className="bg-secondary text-xs uppercase text-muted-foreground">
               <tr>
-                <th className="text-left px-3.5 py-2.5">Billing Period</th>
-                <th className="text-left px-3.5 py-2.5">Invoice #</th>
-                <th className="text-left px-3.5 py-2.5">Overcharge Category</th>
-                <th className="text-right px-3.5 py-2.5">Invoiced (R)</th>
-                <th className="text-right px-3.5 py-2.5">Reconciled (R)</th>
-                <th className="text-right px-3.5 py-2.5">Recovery Claim (R)</th>
-                <th className="text-left px-3.5 py-2.5">Tariff Ref &amp; Root Cause</th>
-                <th className="text-center px-3.5 py-2.5">Status</th>
-                <th className="text-right px-3.5 py-2.5">Action</th>
+                <th className="text-left px-3 py-2.5">Billing Period</th>
+                <th className="text-left px-3 py-2.5">Supply Location</th>
+                <th className="text-left px-3 py-2.5">Overcharge Category</th>
+                <th className="text-right px-3 py-2.5">Invoiced (R)</th>
+                <th className="text-right px-3 py-2.5">Reconciled (R)</th>
+                <th className="text-right px-3 py-2.5">Recovery Claim (R)</th>
+                <th className="text-left px-3 py-2.5">Tariff Ref &amp; Root Cause</th>
+                <th className="text-center px-3 py-2.5">Status</th>
+                <th className="text-right px-3 py-2.5">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredRecoveries.map((item, idx) => (
                 <tr key={idx} className="hover:bg-muted/40 transition">
-                  <td className="px-3.5 py-3">
-                    <div className="font-medium">{item.period}</div>
+                  <td className="px-3 py-3">
+                    <div className="font-medium text-xs">{item.period}</div>
                     <div className="text-[11px] text-muted-foreground">{item.dates}</div>
+                    <div className="text-[10px] font-mono text-muted-foreground">Inv: {item.invoiceNo}</div>
                   </td>
-                  <td className="px-3.5 py-3 font-mono text-xs text-muted-foreground">{item.invoiceNo}</td>
-                  <td className="px-3.5 py-3">
+                  <td className="px-3 py-3">
+                    <div className="text-xs font-medium">Millennium 33kV</div>
+                    <div className="text-[10px] text-muted-foreground font-mono">Premise: 7856504226</div>
+                  </td>
+                  <td className="px-3 py-3">
                     <div className="font-medium text-xs">{item.chargeCategory}</div>
                   </td>
-                  <td className="px-3.5 py-3 text-right font-mono text-xs">{ZAR(item.invoicedAmount)}</td>
-                  <td className="px-3.5 py-3 text-right font-mono text-xs text-muted-foreground">{ZAR(item.calculatedAmount)}</td>
-                  <td className="px-3.5 py-3 text-right font-mono text-xs font-semibold text-emerald-400">
+                  <td className="px-3 py-3 text-right font-mono text-xs">{ZAR(item.invoicedAmount)}</td>
+                  <td className="px-3 py-3 text-right font-mono text-xs text-muted-foreground">{ZAR(item.calculatedAmount)}</td>
+                  <td className="px-3 py-3 text-right font-mono text-xs font-semibold text-emerald-400">
                     {ZAR(item.recoveryAmount)}
                   </td>
-                  <td className="px-3.5 py-3 max-w-xs">
+                  <td className="px-3 py-3 max-w-xs">
                     <div className="text-xs text-foreground truncate">{item.rootCause}</div>
                     <div className="text-[10px] text-muted-foreground font-mono">{item.tariffRef}</div>
                   </td>
-                  <td className="px-3.5 py-3 text-center">
+                  <td className="px-3 py-3 text-center">
                     {item.status === "approved" && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400 border border-emerald-500/30">
-                        <CheckCircle2 className="h-3 w-3" /> Approved
+                        <CheckCircle2 className="h-3 w-3" /> Approved &amp; Credited
                       </span>
                     )}
                     {item.status === "pending" && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400 border border-amber-500/30">
-                        <AlertTriangle className="h-3 w-3" /> Under Review
+                        <AlertTriangle className="h-3 w-3" /> Dispute Under Review
                       </span>
                     )}
                     {item.status === "ready" && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-xs font-medium text-cyan-400 border border-cyan-500/30">
-                        <ShieldCheck className="h-3 w-3" /> Ready to File
+                        <ShieldCheck className="h-3 w-3" /> Ready for Filing
                       </span>
                     )}
                   </td>
-                  <td className="px-3.5 py-3 text-right">
+                  <td className="px-3 py-3 text-right">
                     <button
                       onClick={() => {
                         item.actionLoad();
