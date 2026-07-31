@@ -1,4 +1,5 @@
-import { computeTotals, computeCharges, type Measurement } from "../reconciliation";
+import { computeTotals, computeCharges } from "../reconciliation";
+import type { Measurement } from "../parseMeter";
 import { TARIFF } from "../tariff";
 
 function assert(condition: boolean, message: string) {
@@ -18,9 +19,9 @@ assert(TARIFF.energy.low.offPeak === 111.15, "Off-Peak Low Season Rate matches N
 
 // Test 2: Reconciliation Engine Meter Data Integration
 const mockIntervalData: Measurement[] = [
-  { ts: new Date("2026-03-01T08:00:00Z"), kW: 50000, tou: "peak" },
-  { ts: new Date("2026-03-01T12:00:00Z"), kW: 60000, tou: "standard" },
-  { ts: new Date("2026-03-01T22:00:00Z"), kW: 40000, tou: "offPeak" },
+  { ts: new Date("2026-03-01T08:00:00Z"), kW: 50000, kVAr: 15000, kVA: 52083, pf: 0.96, tou: "peak" },
+  { ts: new Date("2026-03-01T12:00:00Z"), kW: 60000, kVAr: 18000, kVA: 62500, pf: 0.96, tou: "standard" },
+  { ts: new Date("2026-03-01T22:00:00Z"), kW: 40000, kVAr: 12000, kVA: 41666, pf: 0.96, tou: "offPeak" },
 ];
 
 const totals = computeTotals(mockIntervalData);

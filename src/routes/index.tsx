@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
+import { Zap, Activity, Flame } from "lucide-react";
 import { useApp } from "@/lib/store";
+import { InvoiceSelector } from "@/components/InvoiceSelector";
 import {
   useBootstrapMeter,
   useDerived,
@@ -22,9 +24,16 @@ function DashboardPage() {
   const { rows, totals, charges, calculatedTotal } = useDerived();
   const customer = useApp((s) => s.customer);
   const tariff = useApp((s) => s.tariff);
+  const invoice = useApp((s) => s.invoice);
   const invoiceTotal = useApp((s) => s.invoiceTotal);
   const bs = useApp((s) => s.billingStart);
   const be = useApp((s) => s.billingEnd);
+
+  // Source active kWh totals from current invoice or derived meter totals
+  const peakKWh = invoice?.peakKWh || totals.peakKWh || 0;
+  const stdKWh = invoice?.standardKWh || totals.standardKWh || 0;
+  const offKWh = invoice?.offPeakKWh || totals.offPeakKWh || 0;
+  const totalKWh = invoice?.totalKWh || totals.totalKWh || (peakKWh + stdKWh + offKWh);
 
   const diff = invoiceTotal - calculatedTotal;
   const pctErr = invoiceTotal ? (diff / invoiceTotal) * 100 : 0;
@@ -36,7 +45,9 @@ function DashboardPage() {
       : Math.abs(pctErr) < 5
         ? "warn"
         : "bad";
-  const peakPct = totals.totalKWh ? (totals.peakKWh / totals.totalKWh) * 100 : 0;
+  const peakPct = totalKWh ? (peakKWh / totalKWh) * 100 : 0;
+  const stdPct = totalKWh ? (stdKWh / totalKWh) * 100 : 0;
+  const offPct = totalKWh ? (offKWh / totalKWh) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -50,10 +61,46 @@ function DashboardPage() {
         <PeriodPicker />
       </div>
 
+      {/* Invoice Period Selector Banner */}
+      <div className="rounded-lg border border-primary/20 bg-card p-3 shadow-sm">
+        <InvoiceSelector />
+      </div>
+
+      {/* Time-Of-Use Energy Breakdown Grid (Peak, Standard, Off-Peak & Total Energy kWh) */}
+      <Panel
+        title="Time-Of-Use (TOU) Energy Breakdown (kWh)"
+        subtitle="Itemized active energy consumption across Peak, Standard, Off-Peak TOU buckets & Total kWh"
+      >
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <MetricCard
+            label="PEAK ENERGY"
+            value={`${NUM(peakKWh, 0)} kWh`}
+            sub={`${peakPct.toFixed(1)}% of active total`}
+          />
+          <MetricCard
+            label="STANDARD ENERGY"
+            value={`${NUM(stdKWh, 0)} kWh`}
+            sub={`${stdPct.toFixed(1)}% of active total`}
+          />
+          <MetricCard
+            label="OFF-PEAK ENERGY"
+            value={`${NUM(offKWh, 0)} kWh`}
+            sub={`${offPct.toFixed(1)}% of active total`}
+          />
+          <MetricCard
+            label="TOTAL ENERGY"
+            value={`${NUM(totalKWh, 0)} kWh`}
+            sub={`Sum of Peak + Std + Off-Peak`}
+            accent
+          />
+        </section>
+      </Panel>
+
+      {/* Operational Summary Grid */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <MetricCard
           label="Total Energy"
-          value={`${NUM(totals.totalKWh, 0)} kWh`}
+          value={`${NUM(totalKWh, 0)} kWh`}
           sub={`${NUM(totals.totalKVAh, 0)} kVAh`}
           accent
         />
@@ -64,13 +111,13 @@ function DashboardPage() {
         />
         <MetricCard
           label="Peak Consumption"
-          value={`${NUM(totals.peakKWh, 0)} kWh`}
+          value={`${NUM(peakKWh, 0)} kWh`}
           sub={`${peakPct.toFixed(1)}% of total`}
         />
         <MetricCard
           label="Maximum Demand"
-          value={`${NUM(totals.maxDemandKVA, 0)} kVA`}
-          sub={totals.maxDemandAt ? format(totals.maxDemandAt, "dd MMM yyyy HH:mm") : "—"}
+          value={`${NUM(invoice?.maxDemandKVA || totals.maxDemandKVA, 0)} kVA`}
+          sub={totals.maxDemandAt ? format(totals.maxDemandAt, "dd MMM yyyy HH:mm") : "NMD Cap 90,000 kVA"}
         />
       </section>
 
