@@ -10,6 +10,7 @@ import { extractTariffFromPdf } from "@/lib/pdfTariff";
 import { extractInvoiceFromPdf } from "@/lib/pdfInvoice";
 import { validateMeterRows } from "@/lib/validation";
 import { Progress } from "@/components/ui/progress";
+import { syncInvoiceToSupabase } from "@/lib/supabase";
 
 import { InvoiceSelector } from "@/components/InvoiceSelector";
 
@@ -243,6 +244,23 @@ function DropZone({
           Object.values(chargeLines).reduce((a: number, b: number) => a + b, 0),
       );
       addBatchInvoice(invoice);
+
+      syncInvoiceToSupabase({
+        account_number: invoice.accountNumber || "7856504676",
+        invoice_number: invoice.invoiceNumber || invoice.invoiceNo || `INV-${Date.now()}`,
+        customer_name: invoice.customerName || "Impala Plats Rustenburg Mine",
+        premise_id: invoice.premiseId || "7856504226",
+        tariff_name: invoice.tariffName || "Megaflex Non-Local Authority",
+        billing_period: invoice.billingPeriod || "Current Period",
+        peak_kwh: invoice.peakKWh,
+        standard_kwh: invoice.standardKWh,
+        off_peak_kwh: invoice.offPeakKWh,
+        total_kwh: invoice.totalKWh,
+        max_demand_kva: invoice.maxDemandKVA,
+        invoiced_total: invoice.invoiceTotal,
+        status: "Processed",
+        raw_json: invoice,
+      }).then(() => toast.success("Invoice synced to Supabase database!"));
 
       if (invoice.customerName || invoice.accountNumber || invoice.meterNumber || invoice.nmd) {
         setCustomer({

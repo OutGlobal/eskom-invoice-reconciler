@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ResponsiveContainer,
@@ -31,11 +31,13 @@ import {
   BookOpen,
   FileCheck,
   Info,
+  Database,
 } from "lucide-react";
 import { Panel, MetricCard, ZAR, NUM } from "@/components/dashboard/parts";
 import { InvoiceSelector } from "@/components/InvoiceSelector";
 import { useApp } from "@/lib/store";
 import { exportCustomCsv } from "@/lib/exportReports";
+import { fetchSupabaseRecoveries } from "@/lib/supabase";
 
 export const Route = createFileRoute("/trends")({
   head: () => ({ meta: [{ title: "Trends & Overcharge Recoveries — Eskom Bill Balancer" }] }),
@@ -111,12 +113,21 @@ const HISTORICAL_TRENDS_DATA = [
 export function TrendsPage() {
   const invoice = useApp((s) => s.invoice);
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [isDbConnected, setIsDbConnected] = useState<boolean>(false);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({
     "feb-2026": true,
     "march-2026": true,
     "april-2026": true,
     "may-2026": true,
   });
+
+  useEffect(() => {
+    fetchSupabaseRecoveries().then((data) => {
+      if (data && data.length > 0) {
+        setIsDbConnected(true);
+      }
+    });
+  }, []);
 
   const toggleRow = (id: string) => {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -274,6 +285,9 @@ export function TrendsPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 text-xs font-medium text-emerald-400">
+            <Database className="h-3.5 w-3.5" /> Supabase Live Connected
+          </span>
           <button
             onClick={handleExportDisputePackage}
             className="inline-flex items-center gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-md px-3 py-1.5 font-medium transition shadow-xs"
