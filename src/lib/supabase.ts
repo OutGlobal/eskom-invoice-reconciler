@@ -134,6 +134,29 @@ export async function syncInvoiceToSupabase(inv: SupabaseInvoice) {
   }
 }
 
+/** Sync interval meter readings to Supabase database */
+export async function syncMeterReadingsToSupabase(
+  invoiceNumber: string,
+  measurements: Array<{ ts: Date; kW: number; kVAr: number; kVA: number; pf: number; tou: string }>,
+) {
+  try {
+    if (!measurements || measurements.length === 0) return;
+    const payload = measurements.slice(0, 500).map((m) => ({
+      invoice_number: invoiceNumber,
+      timestamp: m.ts.toISOString(),
+      kw: m.kW,
+      kvar: m.kVAr,
+      kva: m.kVA,
+      power_factor: m.pf,
+      tou: m.tou,
+    }));
+    const { error } = await supabase.from("meter_readings").insert(payload);
+    if (error) console.warn("syncMeterReadingsToSupabase warning:", error.message);
+  } catch (err) {
+    console.warn("syncMeterReadingsToSupabase error:", err);
+  }
+}
+
 /** Persist non-lossy raw document, OCR JSON, and detected tables */
 export async function saveRawDocumentData(doc: SupabaseRawDocument) {
   try {

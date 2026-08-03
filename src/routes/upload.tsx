@@ -10,7 +10,7 @@ import { extractTariffFromPdf } from "@/lib/pdfTariff";
 import { extractInvoiceFromPdf } from "@/lib/pdfInvoice";
 import { validateMeterRows } from "@/lib/validation";
 import { Progress } from "@/components/ui/progress";
-import { syncInvoiceToSupabase } from "@/lib/supabase";
+import { syncInvoiceToSupabase, syncMeterReadingsToSupabase } from "@/lib/supabase";
 import { runIngestionPipeline, type IngestionPipelineResult } from "@/lib/ingestionPipeline";
 import { RawDataViewer } from "@/components/RawDataViewer";
 
@@ -205,6 +205,10 @@ function DropZone({
           format(parsed[0].ts, "yyyy-MM-dd"),
           format(parsed[parsed.length - 1].ts, "yyyy-MM-dd"),
         );
+        const currentInvNo = useApp.getState().invoice?.invoiceNumber || "785101497007";
+        syncMeterReadingsToSupabase(currentInvNo, parsed).then(() => {
+          toast.success("Interval meter readings synced to Supabase database!");
+        });
       }
       setProgress(100);
       toast.success(`Parsed ${parsed.length.toLocaleString()} intervals from ${file.name}`);
