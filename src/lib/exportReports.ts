@@ -164,7 +164,7 @@ export function exportToJson(invoice: InvoiceData | null, filenamePrefix = "Esko
   URL.revokeObjectURL(url);
 }
 
-function sanitizeCsvCell(value: string | number): string {
+export function sanitizeCsvCell(value: string | number): string {
   if (typeof value === "number") return value.toFixed(2);
   const str = String(value ?? "");
   const safeStr = /^[=+\-@]/.test(str) ? `'${str}` : str;

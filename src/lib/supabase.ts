@@ -52,6 +52,32 @@ export interface SupabaseRecovery {
   created_at?: string;
 }
 
+export interface SupabaseRawDocument {
+  id?: string;
+  upload_id: string;
+  invoice_number?: string;
+  raw_text: string;
+  ocr_json?: any;
+  detected_tables?: any;
+  page_metadata?: any;
+  confidence_score?: number;
+  parser_type?: "pdfjs" | "tesseract_ocr" | "ai_fallback" | "hybrid";
+  created_at?: string;
+}
+
+export interface SupabaseValidationResult {
+  id?: string;
+  upload_id: string;
+  invoice_number?: string;
+  rule_id: string;
+  rule_name: string;
+  status: "pass" | "warning" | "fail";
+  message: string;
+  expected_value?: string;
+  actual_value?: string;
+  created_at?: string;
+}
+
 /** Utility to fetch all seeded invoices from Supabase */
 export async function fetchSupabaseInvoices(): Promise<SupabaseInvoice[]> {
   try {
@@ -105,5 +131,50 @@ export async function syncInvoiceToSupabase(inv: SupabaseInvoice) {
   } catch (err) {
     console.error("Error syncing invoice to Supabase:", err);
     return null;
+  }
+}
+
+/** Persist non-lossy raw document, OCR JSON, and detected tables */
+export async function saveRawDocumentData(doc: SupabaseRawDocument) {
+  try {
+    const { data, error } = await supabase.from("raw_documents").insert(doc);
+    if (error) console.warn("saveRawDocumentData warning:", error.message);
+    return data;
+  } catch (err) {
+    console.warn("saveRawDocumentData error:", err);
+    return null;
+  }
+}
+
+/** Persist automated validation engine results */
+export async function saveValidationResults(results: SupabaseValidationResult[]) {
+  try {
+    const { data, error } = await supabase.from("validation_results").insert(results);
+    if (error) console.warn("saveValidationResults warning:", error.message);
+    return data;
+  } catch (err) {
+    console.warn("saveValidationResults error:", err);
+    return null;
+  }
+}
+
+/** Log pipeline step execution */
+export async function saveProcessingLog(
+  uploadId: string,
+  stage: string,
+  level: "info" | "warn" | "error",
+  message: string,
+  details?: any,
+) {
+  try {
+    await supabase.from("processing_logs").insert({
+      upload_id: uploadId,
+      stage,
+      level,
+      message,
+      details,
+    });
+  } catch (err) {
+    // Silent fallback
   }
 }

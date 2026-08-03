@@ -4,13 +4,15 @@ import toast from "react-hot-toast";
 import { format } from "date-fns";
 import { FileSpreadsheet, FileText, Receipt } from "lucide-react";
 import { Panel } from "@/components/dashboard/parts";
-import { useApp, type UploadedFile } from "@/lib/store";
+import { useApp, type UploadedFile, type InvoiceData } from "@/lib/store";
 import { parseMeterWorkbook } from "@/lib/parseMeter";
 import { extractTariffFromPdf } from "@/lib/pdfTariff";
 import { extractInvoiceFromPdf } from "@/lib/pdfInvoice";
 import { validateMeterRows } from "@/lib/validation";
 import { Progress } from "@/components/ui/progress";
 import { syncInvoiceToSupabase } from "@/lib/supabase";
+import { runIngestionPipeline, type IngestionPipelineResult } from "@/lib/ingestionPipeline";
+import { RawDataViewer } from "@/components/RawDataViewer";
 
 import { InvoiceSelector } from "@/components/InvoiceSelector";
 
@@ -218,11 +220,17 @@ function DropZone({
       setProgress(100);
       toast.success(`Tariff extracted from ${file.name}`);
     } else {
-      // Eskom Invoice Processing
-      setStatusMsg("Detecting document type & extracting text/OCR...");
-      setProgress(25);
+      // Enterprise Eskom Invoice Processing Pipeline
+      setStatusMsg("Executing Non-Lossy Ingestion Pipeline...");
+      setProgress(15);
 
-      const { invoice, chargeLines, lineItems } = await extractInvoiceFromPdf(file);
+      const pipelineRes = await runIngestionPipeline(file, (stage, pct, details) => {
+        setStatusMsg(`${stage}: ${details || ""}`);
+        setProgress(pct);
+      });
+
+      const { invoice, validationReport } = pipelineRes;
+      const { chargeLines, lineItems } = await extractInvoiceFromPdf(file);
 
       const invNo = invoice.invoiceNumber || invoice.invoiceNo;
       if (invNo && processedInvoiceNumbers.includes(invNo)) {
@@ -233,34 +241,13 @@ function DropZone({
         addProcessedInvoiceNumber(invNo);
       }
 
-      setStatusMsg("Normalizing Eskom charge line items...");
-      setProgress(60);
-
-      setInvoice(invoice);
+      const fullInvoice = invoice as InvoiceData;
+      setInvoice(fullInvoice);
       setInvoiceLines(chargeLines);
       useApp.getState().setInvoiceItems(lineItems);
-      setInvoiceTotal(
-        invoice.invoiceTotal ||
-          Object.values(chargeLines).reduce((a: number, b: number) => a + b, 0),
-      );
-      addBatchInvoice(invoice);
-
-      syncInvoiceToSupabase({
-        account_number: invoice.accountNumber || "7856504676",
-        invoice_number: invoice.invoiceNumber || invoice.invoiceNo || `INV-${Date.now()}`,
-        customer_name: invoice.customerName || "Impala Plats Rustenburg Mine",
-        premise_id: invoice.premiseId || "7856504226",
-        tariff_name: invoice.tariffName || "Megaflex Non-Local Authority",
-        billing_period: invoice.billingPeriod || "Current Period",
-        peak_kwh: invoice.peakKWh,
-        standard_kwh: invoice.standardKWh,
-        off_peak_kwh: invoice.offPeakKWh,
-        total_kwh: invoice.totalKWh,
-        max_demand_kva: invoice.maxDemandKVA,
-        invoiced_total: invoice.invoiceTotal,
-        status: "Processed",
-        raw_json: invoice,
-      }).then(() => toast.success("Invoice synced to Supabase database!"));
+      const totalVal = fullInvoice.invoiceTotal || Object.values(chargeLines).reduce((a: number, b: number) => a + b, 0);
+      setInvoiceTotal(totalVal);
+      addBatchInvoice(fullInvoice);
 
       if (invoice.customerName || invoice.accountNumber || invoice.meterNumber || invoice.nmd) {
         setCustomer({
@@ -273,7 +260,7 @@ function DropZone({
 
       setStatusMsg("Populating reconciliation table...");
       setProgress(100);
-      toast.success(`Invoice extracted (${invoice.extraction?.documentType}) from ${file.name}`);
+      toast.success(`Invoice ingested & validated (${validationReport.score}% Score) from ${file.name}`);
       toast("Auto-populating reconciliation table…", { icon: "📊" });
       setTimeout(() => navigate({ to: "/reconciliation" }), 400);
     }
