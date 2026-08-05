@@ -30,10 +30,11 @@ function DashboardPage() {
   const be = useApp((s) => s.billingEnd);
 
   // Source active kWh totals from current invoice or derived meter totals
-  const peakKWh = invoice?.peakKWh || totals.peakKWh || 0;
-  const stdKWh = invoice?.standardKWh || totals.standardKWh || 0;
-  const offKWh = invoice?.offPeakKWh || totals.offPeakKWh || 0;
-  const totalKWh = invoice?.totalKWh || totals.totalKWh || (peakKWh + stdKWh + offKWh);
+  const peakKWh = invoice?.peakKWh ?? invoice?.normalizedJson?.consumption?.peakKwh ?? totals.peakKWh ?? 0;
+  const stdKWh = invoice?.standardKWh ?? invoice?.normalizedJson?.consumption?.standardKwh ?? totals.standardKWh ?? 0;
+  const offKWh = invoice?.offPeakKWh ?? invoice?.normalizedJson?.consumption?.offPeakKwh ?? totals.offPeakKWh ?? 0;
+  const totalKWh = invoice?.totalKWh ?? invoice?.normalizedJson?.consumption?.totalKwh ?? totals.totalKWh ?? (peakKWh + stdKWh + offKWh);
+  const maxDemandKVA = invoice?.maxDemandKVA ?? invoice?.normalizedJson?.consumption?.peakDemand ?? totals.maxDemandKVA ?? 85740;
 
   const diff = invoiceTotal - calculatedTotal;
   const pctErr = invoiceTotal ? (diff / invoiceTotal) * 100 : 0;
