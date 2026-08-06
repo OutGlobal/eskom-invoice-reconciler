@@ -249,7 +249,7 @@ export function useChartData(rows: Measurement[]) {
         t: r.ts.getTime(),
         label: format(r.ts, "dd MMM HH:mm"),
         kW: Math.round(r.kW),
-        kVA: Math.round(r.kW / TARIFF.powerFactor),
+        kVA: Math.round(r.kVA),
         tou: r.tou,
       });
     }

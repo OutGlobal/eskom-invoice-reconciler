@@ -270,6 +270,16 @@ interface AppState {
 
 const initialTariff: TariffData = { ...DEFAULT_TARIFF } as TariffData;
 
+function invoiceLinesFromItems(invoice: InvoiceData, items: InvoiceLineItemStored[]) {
+  const lines: Record<string, number> = {};
+  for (const item of items) {
+    if (!item.normalizedName) continue;
+    lines[item.normalizedName] = (lines[item.normalizedName] || 0) + item.amount;
+  }
+  lines["Total Charges"] = invoice.invoiceTotal;
+  return lines;
+}
+
 export const useApp = create<AppState>((set) => ({
   rows: [],
   setRows: (rows) => set({ rows }),
@@ -312,7 +322,7 @@ export const useApp = create<AppState>((set) => ({
   setCustomer: (c) => set((s) => ({ customer: { ...s.customer, ...c } })),
 
   invoiceTotal: SAMPLE_MARCH_2026_INVOICE.invoiceTotal,
-  invoiceLines: SAMPLE_MARCH_2026_CHARGE_LINES,
+  invoiceLines: invoiceLinesFromItems(SAMPLE_MARCH_2026_INVOICE, SAMPLE_MARCH_2026_LINE_ITEMS),
   setInvoiceTotal: (invoiceTotal) => set({ invoiceTotal }),
   setInvoiceLines: (invoiceLines) => set({ invoiceLines }),
 
@@ -339,7 +349,7 @@ export const useApp = create<AppState>((set) => ({
   loadMarch2026SampleInvoice: () =>
     set({
       invoice: SAMPLE_MARCH_2026_INVOICE,
-      invoiceLines: SAMPLE_MARCH_2026_CHARGE_LINES,
+      invoiceLines: invoiceLinesFromItems(SAMPLE_MARCH_2026_INVOICE, SAMPLE_MARCH_2026_LINE_ITEMS),
       invoiceItems: SAMPLE_MARCH_2026_LINE_ITEMS,
       invoiceTotal: SAMPLE_MARCH_2026_INVOICE.invoiceTotal,
       customer: {
@@ -356,7 +366,7 @@ export const useApp = create<AppState>((set) => ({
   loadFeb2026SampleInvoice: () =>
     set({
       invoice: SAMPLE_FEB_2026_INVOICE,
-      invoiceLines: SAMPLE_FEB_2026_CHARGE_LINES,
+      invoiceLines: invoiceLinesFromItems(SAMPLE_FEB_2026_INVOICE, SAMPLE_FEB_2026_LINE_ITEMS),
       invoiceItems: SAMPLE_FEB_2026_LINE_ITEMS,
       invoiceTotal: SAMPLE_FEB_2026_INVOICE.invoiceTotal,
       customer: {
@@ -373,7 +383,7 @@ export const useApp = create<AppState>((set) => ({
   loadApril2026SampleInvoice: () =>
     set({
       invoice: SAMPLE_APRIL_2026_INVOICE,
-      invoiceLines: SAMPLE_APRIL_2026_CHARGE_LINES,
+      invoiceLines: invoiceLinesFromItems(SAMPLE_APRIL_2026_INVOICE, SAMPLE_APRIL_2026_LINE_ITEMS),
       invoiceItems: SAMPLE_APRIL_2026_LINE_ITEMS,
       invoiceTotal: SAMPLE_APRIL_2026_INVOICE.invoiceTotal,
       customer: {
@@ -390,7 +400,7 @@ export const useApp = create<AppState>((set) => ({
   loadMay2026SampleInvoice: () =>
     set({
       invoice: SAMPLE_MAY_2026_INVOICE,
-      invoiceLines: SAMPLE_MAY_2026_CHARGE_LINES,
+      invoiceLines: invoiceLinesFromItems(SAMPLE_MAY_2026_INVOICE, SAMPLE_MAY_2026_LINE_ITEMS),
       invoiceItems: SAMPLE_MAY_2026_LINE_ITEMS,
       invoiceTotal: SAMPLE_MAY_2026_INVOICE.invoiceTotal,
       customer: {

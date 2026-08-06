@@ -271,7 +271,7 @@ export interface StandardReconciliationRow {
 export function buildStandardReconciliationTable(
   invoiceLines: Record<string, number>,
   calculatedCharges: Charge[],
-  vatInvoice?: number,
+  _vatInvoice?: number,
   totalInvoice?: number,
 ): StandardReconciliationRow[] {
   const REQUIRED_ITEMS = [
@@ -312,8 +312,6 @@ export function buildStandardReconciliationTable(
 
   // Smart fallbacks for VAT and Total Charges
   const totalInvValue = totalInvoice || normalizedInvoiceLines[normalizeKey("Total Charges")] || 0;
-  const vatInvValue = vatInvoice || normalizedInvoiceLines[normalizeKey("VAT")] || 0;
-
   return REQUIRED_ITEMS.map((item) => {
     const key = normalizeKey(item);
     let inv = normalizedInvoiceLines[key] ?? 0;
