@@ -317,7 +317,6 @@ export function buildStandardReconciliationTable(
   return REQUIRED_ITEMS.map((item) => {
     const key = normalizeKey(item);
     let inv = normalizedInvoiceLines[key] ?? 0;
-    if (item === "VAT" && !inv) inv = vatInvValue;
     if (item === "Total Charges" && !inv) inv = totalInvValue;
 
     const calc = calcMap[item] || 0;
