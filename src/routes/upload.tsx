@@ -234,20 +234,22 @@ function DropZone({
         setProgress(pct);
       });
 
-      const { invoice, validationReport } = pipelineRes;
-      const { chargeLines, lineItems } = await extractInvoiceFromPdf(file);
+      const { invoice, validationReport, chargeLines, lineItems } = pipelineRes;
 
       const invNo = invoice.invoiceNumber || invoice.invoiceNo;
       if (invNo && processedInvoiceNumbers.includes(invNo)) {
         toast.error(`Duplicate Invoice Detected! (${invNo}) already processed.`, {
           duration: 4000,
         });
+        setProgress(100);
+        return;
       } else if (invNo) {
         addProcessedInvoiceNumber(invNo);
       }
 
       const fullInvoice = invoice as InvoiceData;
       setInvoice(fullInvoice);
+      setBilling(fullInvoice.billingPeriodStart || "", fullInvoice.billingPeriodEnd || "");
       setInvoiceLines(chargeLines);
       useApp.getState().setInvoiceItems(lineItems);
       const totalVal = fullInvoice.invoiceTotal || Object.values(chargeLines).reduce((a: number, b: number) => a + b, 0);

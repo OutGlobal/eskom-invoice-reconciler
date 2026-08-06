@@ -21,6 +21,8 @@ export interface IngestionPipelineResult {
   aiResult?: AiParserResult;
   rawText: string;
   detectedTables: any[];
+  chargeLines: Record<string, number>;
+  lineItems: import("./store").InvoiceLineItemStored[];
   confidenceScore: number;
   logs: { stage: string; message: string; timestamp: string }[];
 }
@@ -172,6 +174,8 @@ export async function runIngestionPipeline(
     aiResult,
     rawText,
     detectedTables: pdfResult?.lineItems || [],
+    chargeLines: pdfResult.chargeLines,
+    lineItems: pdfResult.lineItems,
     confidenceScore,
     logs,
   };

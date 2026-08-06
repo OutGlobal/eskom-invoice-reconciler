@@ -630,6 +630,30 @@ export const SAMPLE_MARCH_2026_LINE_ITEMS: InvoiceLineItem[] = [
     needsReview: false,
     originalValue: "Premium Connection Charge @ R174,681.00 R 174,681.00",
   },
+  {
+    label: "Residual Connection Charge",
+    normalizedName: CHARGE_LABELS.connectionCharge,
+    amount: 11661.0,
+    confidence: 100,
+    needsReview: false,
+    originalValue: "Residual Connection Charge @ R11,661.00 R 11,661.00",
+  },
+  {
+    label: "Premium Connection Charge",
+    normalizedName: CHARGE_LABELS.connectionCharge,
+    amount: 130684.0,
+    confidence: 100,
+    needsReview: false,
+    originalValue: "Premium Connection Charge @ R130,684.00 R 130,684.00",
+  },
+  {
+    label: "Premium Connection Charge",
+    normalizedName: CHARGE_LABELS.connectionCharge,
+    amount: 34861.21,
+    confidence: 100,
+    needsReview: false,
+    originalValue: "Premium Connection Charge @ R34,861.21 R 34,861.21",
+  },
 ];
 
 export const SAMPLE_APRIL_2026_INVOICE: InvoiceData = {
