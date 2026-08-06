@@ -27,7 +27,6 @@ export function computeTotals(rows: Measurement[]): Totals {
     maxDemandKVA: 0,
     maxDemandAt: null,
   };
-  const PF = TARIFF.powerFactor;
   for (const r of rows) {
     const kWh = r.kW * 0.5; // 30-minute integration
     const kVAh = r.kVA * 0.5;

@@ -11,7 +11,6 @@ import {
   Legend,
   Cell,
 } from "recharts";
-import toast from "react-hot-toast";
 import {
   Download,
   FileSpreadsheet,
