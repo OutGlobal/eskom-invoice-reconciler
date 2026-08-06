@@ -276,6 +276,27 @@ function invoiceLinesFromItems(invoice: InvoiceData, items: InvoiceLineItemStore
   return lines;
 }
 
+function activateInvoice(
+  invoice: InvoiceData,
+  items: InvoiceLineItemStored[],
+): Partial<AppState> {
+  return {
+    invoice,
+    invoiceLines: invoiceLinesFromItems(invoice, items),
+    invoiceItems: items,
+    invoiceTotal: invoice.invoiceTotal,
+    customer: {
+      name: invoice.customerName,
+      meter: invoice.meterNumber,
+      accountNumber: invoice.accountNumber,
+      address: invoice.address || "",
+      nmd: invoice.nmd,
+    },
+    billingStart: invoice.billingPeriodStart || "",
+    billingEnd: invoice.billingPeriodEnd || "",
+  };
+}
+
 export const useApp = create<AppState>((set) => ({
   rows: [],
   setRows: (rows) => set({ rows }),
@@ -343,72 +364,16 @@ export const useApp = create<AppState>((set) => ({
   addBatchInvoice: (inv) => set((s) => ({ batchInvoices: [...s.batchInvoices, inv] })),
 
   loadMarch2026SampleInvoice: () =>
-    set({
-      invoice: SAMPLE_MARCH_2026_INVOICE,
-      invoiceLines: invoiceLinesFromItems(SAMPLE_MARCH_2026_INVOICE, SAMPLE_MARCH_2026_LINE_ITEMS),
-      invoiceItems: SAMPLE_MARCH_2026_LINE_ITEMS,
-      invoiceTotal: SAMPLE_MARCH_2026_INVOICE.invoiceTotal,
-      customer: {
-        name: "Impala Plats Rustenburg Mine",
-        meter: "7856504226",
-        accountNumber: "7856504676",
-        address: "Mineral Processes, Beerfontein Farm, Phokeng, RUSTENBURG 0300",
-        nmd: 85740,
-      },
-      billingStart: "2026-02-17",
-      billingEnd: "2026-03-18",
-    }),
+    set(activateInvoice(SAMPLE_MARCH_2026_INVOICE, SAMPLE_MARCH_2026_LINE_ITEMS)),
 
   loadFeb2026SampleInvoice: () =>
-    set({
-      invoice: SAMPLE_FEB_2026_INVOICE,
-      invoiceLines: invoiceLinesFromItems(SAMPLE_FEB_2026_INVOICE, SAMPLE_FEB_2026_LINE_ITEMS),
-      invoiceItems: SAMPLE_FEB_2026_LINE_ITEMS,
-      invoiceTotal: SAMPLE_FEB_2026_INVOICE.invoiceTotal,
-      customer: {
-        name: "Impala Plats Rustenburg Mine",
-        meter: "7856504226",
-        accountNumber: "7856504676",
-        address: "Mineral Processes, Beerfontein Farm, Phokeng, RUSTENBURG 0300",
-        nmd: 85740,
-      },
-      billingStart: "2026-01-17",
-      billingEnd: "2026-02-16",
-    }),
+    set(activateInvoice(SAMPLE_FEB_2026_INVOICE, SAMPLE_FEB_2026_LINE_ITEMS)),
 
   loadApril2026SampleInvoice: () =>
-    set({
-      invoice: SAMPLE_APRIL_2026_INVOICE,
-      invoiceLines: invoiceLinesFromItems(SAMPLE_APRIL_2026_INVOICE, SAMPLE_APRIL_2026_LINE_ITEMS),
-      invoiceItems: SAMPLE_APRIL_2026_LINE_ITEMS,
-      invoiceTotal: SAMPLE_APRIL_2026_INVOICE.invoiceTotal,
-      customer: {
-        name: "Impala Plats Rustenburg Mine",
-        meter: "7856504226",
-        accountNumber: "7856504676",
-        address: "Mineral Processes, Beerfontein Farm, Phokeng, RUSTENBURG 0300",
-        nmd: 85740,
-      },
-      billingStart: "2026-03-19",
-      billingEnd: "2026-04-16",
-    }),
+    set(activateInvoice(SAMPLE_APRIL_2026_INVOICE, SAMPLE_APRIL_2026_LINE_ITEMS)),
 
   loadMay2026SampleInvoice: () =>
-    set({
-      invoice: SAMPLE_MAY_2026_INVOICE,
-      invoiceLines: invoiceLinesFromItems(SAMPLE_MAY_2026_INVOICE, SAMPLE_MAY_2026_LINE_ITEMS),
-      invoiceItems: SAMPLE_MAY_2026_LINE_ITEMS,
-      invoiceTotal: SAMPLE_MAY_2026_INVOICE.invoiceTotal,
-      customer: {
-        name: "Impala Plats Rustenburg Mine",
-        meter: "7856504226",
-        accountNumber: "7856504676",
-        address: "Mineral Processes, Beerfontein Farm, Phokeng, RUSTENBURG 0300",
-        nmd: 85740,
-      },
-      billingStart: "2026-04-17",
-      billingEnd: "2026-05-16",
-    }),
+    set(activateInvoice(SAMPLE_MAY_2026_INVOICE, SAMPLE_MAY_2026_LINE_ITEMS)),
 
   overrideInvoiceField: (fieldPath, newValue) =>
     set((s) => {
