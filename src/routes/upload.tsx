@@ -201,9 +201,10 @@ function DropZone({
       setRows(parsed);
       setValidation(validateMeterRows(parsed));
       if (parsed.length) {
+        const activeInvoice = useApp.getState().invoice;
         setBilling(
-          format(parsed[0].ts, "yyyy-MM-dd"),
-          format(parsed[parsed.length - 1].ts, "yyyy-MM-dd"),
+          activeInvoice?.billingPeriodStart || format(parsed[0].ts, "yyyy-MM-dd"),
+          activeInvoice?.billingPeriodEnd || format(parsed[parsed.length - 1].ts, "yyyy-MM-dd"),
         );
         const currentInvNo = useApp.getState().invoice?.invoiceNumber || "785101497007";
         syncMeterReadingsToSupabase(currentInvNo, parsed).then(() => {

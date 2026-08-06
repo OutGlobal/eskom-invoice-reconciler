@@ -43,7 +43,7 @@ export function useBootstrapMeter() {
         const parsed = await parseMeterWorkbook(buf);
         setRows(parsed);
         setValidation(validateMeterRows(parsed));
-        if (parsed.length) {
+        if (parsed.length && !useApp.getState().invoice?.billingPeriodStart) {
           setBilling(
             format(parsed[0].ts, "yyyy-MM-dd"),
             format(parsed[parsed.length - 1].ts, "yyyy-MM-dd"),
@@ -54,7 +54,7 @@ export function useBootstrapMeter() {
         const fallbackParsed = await parseMeterWorkbook(new ArrayBuffer(0));
         setRows(fallbackParsed);
         setValidation(validateMeterRows(fallbackParsed));
-        if (fallbackParsed.length) {
+        if (fallbackParsed.length && !useApp.getState().invoice?.billingPeriodStart) {
           setBilling(
             format(fallbackParsed[0].ts, "yyyy-MM-dd"),
             format(fallbackParsed[fallbackParsed.length - 1].ts, "yyyy-MM-dd"),
