@@ -7,7 +7,6 @@ import { Panel } from "@/components/dashboard/parts";
 import { useApp, type UploadedFile, type InvoiceData } from "@/lib/store";
 import { parseMeterWorkbook } from "@/lib/parseMeter";
 import { extractTariffFromPdf } from "@/lib/pdfTariff";
-import { extractInvoiceFromPdf } from "@/lib/pdfInvoice";
 import { validateMeterRows } from "@/lib/validation";
 import { Progress } from "@/components/ui/progress";
 import { syncInvoiceToSupabase, syncMeterReadingsToSupabase } from "@/lib/supabase";
