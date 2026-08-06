@@ -276,12 +276,22 @@ export const useApp = create<AppState>((set) => ({
 
   // Pre-load March 2026 Impala Platinum Mine Invoice by default
   invoice: SAMPLE_MARCH_2026_INVOICE,
-  setInvoice: (invoice) => set({ invoice }),
+  setInvoice: (invoice) =>
+    set(
+      invoice
+        ? {
+            invoice,
+            invoiceTotal: invoice.invoiceTotal,
+            billingStart: invoice.billingPeriodStart || "",
+            billingEnd: invoice.billingPeriodEnd || "",
+          }
+        : { invoice: null, invoiceTotal: 0 },
+    ),
 
   invoiceItems: SAMPLE_MARCH_2026_LINE_ITEMS,
   setInvoiceItems: (invoiceItems) => set({ invoiceItems }),
 
-  processedInvoiceNumbers: ["785101497007"],
+  processedInvoiceNumbers: ["785762166034"],
   addProcessedInvoiceNumber: (invoiceNumber) =>
     set((s) =>
       invoiceNumber && !s.processedInvoiceNumbers.includes(invoiceNumber)

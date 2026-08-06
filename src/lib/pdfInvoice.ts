@@ -90,7 +90,7 @@ const CHARGE_ALIASES: Array<{ key: ChargeKey; test: (s: string) => boolean }> = 
       /(?:distribution\s*network\s*capacity|network\s*capacity)\s*charge/i.test(s) &&
       !/(?:tx|transmission|generation|generator)/i.test(s),
   },
-  { key: "generationCapacity", test: (s) => /generat(?:ion|or)\s*capacity\s*charge/i.test(s) },
+  { key: "generationCapacity", test: (s) => /generat(?:ion|or)(?:\s*capacity)?\s*charge/i.test(s) },
   { key: "networkDemand", test: (s) => /network\s*demand\s*charge/i.test(s) },
   {
     key: "offPeakEnergy",
@@ -141,7 +141,7 @@ function matchKnownInvoice(fileName: string, rawText: string = "") {
   // March 2026 Invoice Matching
   if (
     /mar/i.test(name) ||
-    /7856504676/.test(text) ||
+    /785762166034/.test(text) ||
     /march/i.test(name) ||
     (/17\/02\/2026/.test(text) && /18\/03\/2026/.test(text))
   ) {

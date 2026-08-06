@@ -76,8 +76,8 @@ export function useDerived() {
   const filtered = useMemo(() => {
     if (!rows.length) return [];
     const s = bs ? new Date(bs + "T00:00:00") : rows[0].ts;
-    const e = be ? new Date(be + "T23:59:59") : rows[rows.length - 1].ts;
-    return rows.filter((r) => r.ts >= s && r.ts <= e);
+    const e = be ? new Date(new Date(be + "T00:00:00").getTime() + 86400000) : rows[rows.length - 1].ts;
+    return rows.filter((r) => r.ts > s && r.ts <= e);
   }, [rows, bs, be]);
 
   const totals = useMemo(() => {
@@ -107,7 +107,10 @@ export function useDerived() {
   }, [filtered, invoice]);
 
   const charges = useMemo(() => computeCharges(totals, nmd, filtered), [totals, nmd, filtered]);
-  const calculatedTotal = useMemo(() => charges.reduce((a, c) => a + c.amount, 0), [charges]);
+  const calculatedTotal = useMemo(
+    () => charges.find((c) => c.label === "Total Charges")?.amount ?? 0,
+    [charges],
+  );
   return { rows: filtered, totals, charges, calculatedTotal };
 }
 
@@ -388,6 +391,7 @@ export function ChargeTable({ charges }: { charges: Charge[] }) {
     { title: "Energy Charges (Peak / Standard / Off-Peak)", key: "energy" },
     { title: "Additional Charges (per Total kWh)", key: "additional" },
     { title: "Demand Charge (Max Demand × Network Demand Rate)", key: "demand" },
+    { title: "Calculated Total", key: "tax" },
   ];
   return (
     <div className="space-y-4">
