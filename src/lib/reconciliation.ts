@@ -27,11 +27,10 @@ export function computeTotals(rows: Measurement[]): Totals {
     maxDemandKVA: 0,
     maxDemandAt: null,
   };
-  const PF = TARIFF.powerFactor;
   for (const r of rows) {
     const kWh = r.kW * 0.5; // 30-minute integration
-    const kVAh = kWh / PF;
-    const kVA_inst = r.kW / PF;
+    const kVAh = r.kVA * 0.5;
+    const kVA_inst = r.kVA;
     t.totalKWh += kWh;
     t.totalKVAh += kVAh;
     if (r.tou === "peak") {
@@ -65,32 +64,52 @@ export interface Charge {
 
 export function computeCharges(totals: Totals, nmd: number, rows: Measurement[]): Charge[] {
   const seasonMix = seasonBreakdown(rows);
+  const oldRows = rows.filter((r) => r.ts < new Date("2026-04-01T00:00:00"));
+  const newRows = rows.filter((r) => r.ts >= new Date("2026-04-01T00:00:00"));
+  const oldKWh = oldRows.reduce((sum, r) => sum + r.kW * 0.5, 0);
+  const newKWh = newRows.reduce((sum, r) => sum + r.kW * 0.5, 0);
+  const totalIntervals = Math.max(1, oldRows.length + newRows.length);
+  const oldShare = oldRows.length / totalIntervals;
+  const newShare = newRows.length / totalIntervals;
+  const weightedMonthly = (oldRate: number, newRate: number) =>
+    oldRate * oldShare + newRate * newShare;
+  const next = TARIFF.next;
   const energyRate = (p: TouPeriod) =>
     seasonMix.high.totalKWh + seasonMix.low.totalKWh === 0
       ? 0
-      : (seasonMix.high[p] * TARIFF.energy.high[p] + seasonMix.low[p] * TARIFF.energy.low[p]) /
-        Math.max(1e-9, seasonMix.high[p] + seasonMix.low[p]) /
-        100;
+       : (seasonMix.highOld[p] * TARIFF.energy.high[p] +
+           seasonMix.lowOld[p] * TARIFF.energy.low[p] +
+           seasonMix.highNew[p] * next.energy.high[p] +
+           seasonMix.lowNew[p] * next.energy.low[p]) /
+         Math.max(1e-9, seasonMix.high[p] + seasonMix.low[p]) / 100;
 
   const peakAmt =
-    (seasonMix.high.peak * TARIFF.energy.high.peak) / 100 +
-    (seasonMix.low.peak * TARIFF.energy.low.peak) / 100;
+    (seasonMix.highOld.peak * TARIFF.energy.high.peak + seasonMix.lowOld.peak * TARIFF.energy.low.peak +
+      seasonMix.highNew.peak * next.energy.high.peak + seasonMix.lowNew.peak * next.energy.low.peak) / 100;
   const stdAmt =
-    (seasonMix.high.standard * TARIFF.energy.high.standard) / 100 +
-    (seasonMix.low.standard * TARIFF.energy.low.standard) / 100;
+    (seasonMix.highOld.standard * TARIFF.energy.high.standard + seasonMix.lowOld.standard * TARIFF.energy.low.standard +
+      seasonMix.highNew.standard * next.energy.high.standard + seasonMix.lowNew.standard * next.energy.low.standard) / 100;
   const offAmt =
-    (seasonMix.high.offPeak * TARIFF.energy.high.offPeak) / 100 +
-    (seasonMix.low.offPeak * TARIFF.energy.low.offPeak) / 100;
+    (seasonMix.highOld.offPeak * TARIFF.energy.high.offPeak + seasonMix.lowOld.offPeak * TARIFF.energy.low.offPeak +
+      seasonMix.highNew.offPeak * next.energy.high.offPeak + seasonMix.lowNew.offPeak * next.energy.low.offPeak) / 100;
 
-  const txNetwork = nmd * TARIFF.transmissionNetwork;
-  const distNetwork = nmd * TARIFF.networkCapacity;
-  const genCapacity = nmd * TARIFF.generationCapacity;
+  const txRate = weightedMonthly(TARIFF.transmissionNetwork, next.transmissionNetwork);
+  const distRate = weightedMonthly(TARIFF.networkCapacity, next.networkCapacity);
+  const genRate = weightedMonthly(TARIFF.generationCapacity, next.generationCapacity);
+  const demandRate = weightedMonthly(TARIFF.networkDemand, next.networkDemand);
+  const txNetwork = nmd * txRate;
+  const distNetwork = nmd * distRate;
+  const genCapacity = nmd * genRate;
 
-  const ancillary = (totals.totalKWh * TARIFF.ancillary) / 100;
-  const legacy = (totals.totalKWh * TARIFF.legacy) / 100;
-  const affordability = (totals.totalKWh * TARIFF.affordability) / 100;
-  const electrification = (totals.totalKWh * TARIFF.electrification) / 100;
-  const networkDemand = totals.maxDemandKVA * TARIFF.networkDemand;
+  const ancillary = (oldKWh * TARIFF.ancillary + newKWh * next.ancillary) / 100;
+  const legacy = (oldKWh * TARIFF.legacy + newKWh * next.legacy) / 100;
+  const affordability = (oldKWh * TARIFF.affordability + newKWh * next.affordability) / 100;
+  const electrification = (oldKWh * TARIFF.electrification + newKWh * next.electrification) / 100;
+  const networkDemand = totals.maxDemandKVA * demandRate;
+  const billingDays = rows.length ? Math.round(rows.length / 48) : 0;
+  const administration = billingDays * weightedMonthly(TARIFF.administrationDaily, next.administrationDaily);
+  const service = billingDays * weightedMonthly(TARIFF.serviceDaily, next.serviceDaily);
+  const connection = TARIFF.connectionMonthly;
 
   const subTotal =
     txNetwork +
@@ -104,14 +123,14 @@ export function computeCharges(totals: Totals, nmd: number, rows: Measurement[])
     affordability +
     electrification +
     networkDemand;
-  const vat = subTotal * 0.15;
+  const invoiceComparableTotal = subTotal + administration + service + connection;
 
   return [
     {
       group: "fixed",
       label: "Transmission Network Charge",
       basis: "NMD × TX Rate",
-      rate: TARIFF.transmissionNetwork,
+      rate: txRate,
       rateUnit: "R/kVA/m",
       quantity: nmd,
       qtyUnit: "kVA",
@@ -121,7 +140,7 @@ export function computeCharges(totals: Totals, nmd: number, rows: Measurement[])
       group: "fixed",
       label: "Distribution Network Capacity Charge",
       basis: "NMD × Capacity Rate",
-      rate: TARIFF.networkCapacity,
+      rate: distRate,
       rateUnit: "R/kVA/m",
       quantity: nmd,
       qtyUnit: "kVA",
@@ -131,7 +150,7 @@ export function computeCharges(totals: Totals, nmd: number, rows: Measurement[])
       group: "fixed",
       label: "Generation Capacity Charge",
       basis: "NMD × Generation Rate",
-      rate: TARIFF.generationCapacity,
+      rate: genRate,
       rateUnit: "R/kVA/m",
       quantity: nmd,
       qtyUnit: "kVA",
@@ -214,31 +233,24 @@ export function computeCharges(totals: Totals, nmd: number, rows: Measurement[])
       group: "demand",
       label: "Network Demand Charge",
       basis: "Max Demand × Network Demand Rate",
-      rate: TARIFF.networkDemand,
+      rate: demandRate,
       rateUnit: "R/kVA/m",
       quantity: totals.maxDemandKVA,
       qtyUnit: "kVA",
       amount: networkDemand,
     },
-    {
-      group: "tax",
-      label: "VAT",
-      basis: "15% of Subtotal",
-      rate: 0.15,
-      rateUnit: "%",
-      quantity: subTotal,
-      qtyUnit: "R",
-      amount: vat,
-    },
+    { group: "fixed", label: "Administration Charge", basis: "Billing days × daily rate", rate: administration / Math.max(1, billingDays), rateUnit: "R/day", quantity: billingDays, qtyUnit: "days", amount: administration },
+    { group: "fixed", label: "Service Charge", basis: "Billing days × daily rate", rate: service / Math.max(1, billingDays), rateUnit: "R/day", quantity: billingDays, qtyUnit: "days", amount: service },
+    { group: "fixed", label: "Connection Charge", basis: "Monthly connection charges", rate: connection, rateUnit: "R/month", quantity: 1, qtyUnit: "month", amount: connection },
     {
       group: "tax",
       label: "Total Charges",
-      basis: "Subtotal + VAT",
+      basis: "Sum of all billed charges",
       rate: 1,
       rateUnit: "sum",
       quantity: 1,
       qtyUnit: "bill",
-      amount: subTotal,
+      amount: invoiceComparableTotal,
     },
   ];
 }
@@ -258,10 +270,11 @@ export interface StandardReconciliationRow {
 export function buildStandardReconciliationTable(
   invoiceLines: Record<string, number>,
   calculatedCharges: Charge[],
-  vatInvoice?: number,
+  _vatInvoice?: number,
   totalInvoice?: number,
 ): StandardReconciliationRow[] {
-  const REQUIRED_13_ITEMS = [
+  const REQUIRED_ITEMS = [
+    "Administration Charge",
     "Transmission Network Charge",
     "Distribution Network Capacity Charge",
     "Generation Capacity Charge",
@@ -273,7 +286,8 @@ export function buildStandardReconciliationTable(
     "Affordability Subsidy",
     "Electrification & Rural Subsidy",
     "Network Demand Charge",
-    "VAT",
+    "Service Charge",
+    "Connection Charge",
     "Total Charges",
   ] as const;
 
@@ -285,7 +299,6 @@ export function buildStandardReconciliationTable(
     .filter((c) => c.label !== "VAT" && c.label !== "Total Charges")
     .reduce((a, b) => a + b.amount, 0);
 
-  calcMap["VAT"] = calcMap["VAT"] || sumSubTotalCalc * 0.15;
   calcMap["Total Charges"] = calcMap["Total Charges"] || sumSubTotalCalc;
 
   // Resilient, character-insensitive key normalization
@@ -298,13 +311,9 @@ export function buildStandardReconciliationTable(
 
   // Smart fallbacks for VAT and Total Charges
   const totalInvValue = totalInvoice || normalizedInvoiceLines[normalizeKey("Total Charges")] || 0;
-  const vatInvValue =
-    vatInvoice || normalizedInvoiceLines[normalizeKey("VAT")] || totalInvValue * 0.15;
-
-  return REQUIRED_13_ITEMS.map((item) => {
+  return REQUIRED_ITEMS.map((item) => {
     const key = normalizeKey(item);
     let inv = normalizedInvoiceLines[key] ?? 0;
-    if (item === "VAT" && !inv) inv = vatInvValue;
     if (item === "Total Charges" && !inv) inv = totalInvValue;
 
     const calc = calcMap[item] || 0;
@@ -352,18 +361,29 @@ export function buildStandardReconciliationTable(
 interface SeasonBreak {
   high: { peak: number; standard: number; offPeak: number; totalKWh: number };
   low: { peak: number; standard: number; offPeak: number; totalKWh: number };
+  highOld: { peak: number; standard: number; offPeak: number };
+  lowOld: { peak: number; standard: number; offPeak: number };
+  highNew: { peak: number; standard: number; offPeak: number };
+  lowNew: { peak: number; standard: number; offPeak: number };
 }
 
 function seasonBreakdown(rows: Measurement[]): SeasonBreak {
   const s: SeasonBreak = {
     high: { peak: 0, standard: 0, offPeak: 0, totalKWh: 0 },
     low: { peak: 0, standard: 0, offPeak: 0, totalKWh: 0 },
+    highOld: { peak: 0, standard: 0, offPeak: 0 },
+    lowOld: { peak: 0, standard: 0, offPeak: 0 },
+    highNew: { peak: 0, standard: 0, offPeak: 0 },
+    lowNew: { peak: 0, standard: 0, offPeak: 0 },
   };
   for (const r of rows) {
     const kWh = r.kW * 0.5;
     const bucket = getSeason(r.ts) === "high" ? s.high : s.low;
     bucket[r.tou] += kWh;
     bucket.totalKWh += kWh;
+    const era = r.ts < new Date("2026-04-01T00:00:00") ? "Old" : "New";
+    const season = getSeason(r.ts) === "high" ? "high" : "low";
+    s[`${season}${era}` as "highOld" | "lowOld" | "highNew" | "lowNew"][r.tou] += kWh;
   }
   return s;
 }

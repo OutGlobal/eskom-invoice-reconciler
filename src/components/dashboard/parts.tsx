@@ -43,7 +43,7 @@ export function useBootstrapMeter() {
         const parsed = await parseMeterWorkbook(buf);
         setRows(parsed);
         setValidation(validateMeterRows(parsed));
-        if (parsed.length) {
+        if (parsed.length && !useApp.getState().invoice?.billingPeriodStart) {
           setBilling(
             format(parsed[0].ts, "yyyy-MM-dd"),
             format(parsed[parsed.length - 1].ts, "yyyy-MM-dd"),
@@ -54,7 +54,7 @@ export function useBootstrapMeter() {
         const fallbackParsed = await parseMeterWorkbook(new ArrayBuffer(0));
         setRows(fallbackParsed);
         setValidation(validateMeterRows(fallbackParsed));
-        if (fallbackParsed.length) {
+        if (fallbackParsed.length && !useApp.getState().invoice?.billingPeriodStart) {
           setBilling(
             format(fallbackParsed[0].ts, "yyyy-MM-dd"),
             format(fallbackParsed[fallbackParsed.length - 1].ts, "yyyy-MM-dd"),
@@ -76,8 +76,8 @@ export function useDerived() {
   const filtered = useMemo(() => {
     if (!rows.length) return [];
     const s = bs ? new Date(bs + "T00:00:00") : rows[0].ts;
-    const e = be ? new Date(be + "T23:59:59") : rows[rows.length - 1].ts;
-    return rows.filter((r) => r.ts >= s && r.ts <= e);
+    const e = be ? new Date(new Date(be + "T00:00:00").getTime() + 86400000) : rows[rows.length - 1].ts;
+    return rows.filter((r) => r.ts > s && r.ts <= e);
   }, [rows, bs, be]);
 
   const totals = useMemo(() => {
@@ -107,7 +107,10 @@ export function useDerived() {
   }, [filtered, invoice]);
 
   const charges = useMemo(() => computeCharges(totals, nmd, filtered), [totals, nmd, filtered]);
-  const calculatedTotal = useMemo(() => charges.reduce((a, c) => a + c.amount, 0), [charges]);
+  const calculatedTotal = useMemo(
+    () => charges.find((c) => c.label === "Total Charges")?.amount ?? 0,
+    [charges],
+  );
   return { rows: filtered, totals, charges, calculatedTotal };
 }
 
@@ -246,7 +249,7 @@ export function useChartData(rows: Measurement[]) {
         t: r.ts.getTime(),
         label: format(r.ts, "dd MMM HH:mm"),
         kW: Math.round(r.kW),
-        kVA: Math.round(r.kW / TARIFF.powerFactor),
+        kVA: Math.round(r.kVA),
         tou: r.tou,
       });
     }
@@ -388,6 +391,7 @@ export function ChargeTable({ charges }: { charges: Charge[] }) {
     { title: "Energy Charges (Peak / Standard / Off-Peak)", key: "energy" },
     { title: "Additional Charges (per Total kWh)", key: "additional" },
     { title: "Demand Charge (Max Demand × Network Demand Rate)", key: "demand" },
+    { title: "Calculated Total", key: "tax" },
   ];
   return (
     <div className="space-y-4">

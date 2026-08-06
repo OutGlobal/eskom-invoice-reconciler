@@ -21,6 +21,8 @@ export interface IngestionPipelineResult {
   aiResult?: AiParserResult;
   rawText: string;
   detectedTables: any[];
+  chargeLines: Record<string, number>;
+  lineItems: import("./store").InvoiceLineItemStored[];
   confidenceScore: number;
   logs: { stage: string; message: string; timestamp: string }[];
 }
@@ -89,6 +91,10 @@ export async function runIngestionPipeline(
     premiseId: "7856504226",
     tariffName: "Megaflex Non-Local Authority",
   };
+
+  if (!pdfResult) {
+    throw new Error("Invoice extraction failed: no verified fields were recovered from the document.");
+  }
 
   // Stage 3: AI Fallback Check (If confidence < 90% or fields missing)
   let aiResult: AiParserResult | undefined;
@@ -168,6 +174,8 @@ export async function runIngestionPipeline(
     aiResult,
     rawText,
     detectedTables: pdfResult?.lineItems || [],
+    chargeLines: pdfResult.chargeLines,
+    lineItems: pdfResult.lineItems,
     confidenceScore,
     logs,
   };

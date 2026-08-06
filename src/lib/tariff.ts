@@ -25,6 +25,27 @@ export const TARIFF = {
     high: { peak: 666.92, standard: 166.73, offPeak: 111.15 }, // Jun-Aug
     low: { peak: 276.78, standard: 155.62, offPeak: 111.15 }, // Sep-May
   },
+  // Eskom 2026/27 rates effective 1 April 2026. April bills are day/interval weighted.
+  next: {
+    effectiveFrom: "2026-04-01",
+    networkCapacity: 39.13,
+    networkDemand: 26.29,
+    generationCapacity: 12.27,
+    transmissionNetwork: 11.15,
+    legacy: 24.14,
+    ancillary: 0.42,
+    electrification: 5.37,
+    affordability: 5.1,
+    administrationDaily: 21.07,
+    serviceDaily: 1216.44,
+    energy: {
+      high: { peak: 720.27, standard: 180.07, offPeak: 120.03 },
+      low: { peak: 298.89, standard: 168.05, offPeak: 120.03 },
+    },
+  },
+  administrationDaily: 19.37,
+  serviceDaily: 1118.46,
+  connectionMonthly: 351887.21,
 } as const;
 
 export type TouPeriod = "peak" | "standard" | "offPeak";
@@ -74,10 +95,13 @@ function isHoliday(d: Date) {
 // Megaflex TOU (Eskom Appendix A) — half-hour block index 0..47 (block ending)
 // Returns period for the 30-min interval ending at (hour, minute).
 export function classifyTou(d: Date): TouPeriod {
-  const season = getSeason(d);
-  const dow = d.getDay(); // 0 Sun .. 6 Sat
-  const holiday = isHoliday(d);
-  const h = d.getHours();
+  // Meter timestamps mark the end of each 30-minute block. Classify the block itself,
+  // so an interval ending exactly at 07:00 remains in the preceding 06:30 block.
+  const block = new Date(d.getTime() - 1);
+  const season = getSeason(block);
+  const dow = block.getDay(); // 0 Sun .. 6 Sat
+  const holiday = isHoliday(block);
+  const h = block.getHours();
   const inRange = (start: number, end: number) => h >= start && h < end;
 
   // Sundays and public holidays: all off-peak

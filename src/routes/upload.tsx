@@ -7,7 +7,6 @@ import { Panel } from "@/components/dashboard/parts";
 import { useApp, type UploadedFile, type InvoiceData } from "@/lib/store";
 import { parseMeterWorkbook } from "@/lib/parseMeter";
 import { extractTariffFromPdf } from "@/lib/pdfTariff";
-import { extractInvoiceFromPdf } from "@/lib/pdfInvoice";
 import { validateMeterRows } from "@/lib/validation";
 import { Progress } from "@/components/ui/progress";
 import { syncInvoiceToSupabase, syncMeterReadingsToSupabase } from "@/lib/supabase";
@@ -201,9 +200,10 @@ function DropZone({
       setRows(parsed);
       setValidation(validateMeterRows(parsed));
       if (parsed.length) {
+        const activeInvoice = useApp.getState().invoice;
         setBilling(
-          format(parsed[0].ts, "yyyy-MM-dd"),
-          format(parsed[parsed.length - 1].ts, "yyyy-MM-dd"),
+          activeInvoice?.billingPeriodStart || format(parsed[0].ts, "yyyy-MM-dd"),
+          activeInvoice?.billingPeriodEnd || format(parsed[parsed.length - 1].ts, "yyyy-MM-dd"),
         );
         const currentInvNo = useApp.getState().invoice?.invoiceNumber || "785101497007";
         syncMeterReadingsToSupabase(currentInvNo, parsed).then(() => {
@@ -233,20 +233,22 @@ function DropZone({
         setProgress(pct);
       });
 
-      const { invoice, validationReport } = pipelineRes;
-      const { chargeLines, lineItems } = await extractInvoiceFromPdf(file);
+      const { invoice, validationReport, chargeLines, lineItems } = pipelineRes;
 
       const invNo = invoice.invoiceNumber || invoice.invoiceNo;
       if (invNo && processedInvoiceNumbers.includes(invNo)) {
         toast.error(`Duplicate Invoice Detected! (${invNo}) already processed.`, {
           duration: 4000,
         });
+        setProgress(100);
+        return;
       } else if (invNo) {
         addProcessedInvoiceNumber(invNo);
       }
 
       const fullInvoice = invoice as InvoiceData;
       setInvoice(fullInvoice);
+      setBilling(fullInvoice.billingPeriodStart || "", fullInvoice.billingPeriodEnd || "");
       setInvoiceLines(chargeLines);
       useApp.getState().setInvoiceItems(lineItems);
       const totalVal = fullInvoice.invoiceTotal || Object.values(chargeLines).reduce((a: number, b: number) => a + b, 0);

@@ -11,14 +11,11 @@ import {
   Legend,
   Cell,
 } from "recharts";
-import toast from "react-hot-toast";
 import {
   Download,
   FileSpreadsheet,
   FileText,
   Printer,
-  Edit2,
-  Check,
   AlertTriangle,
   Search,
   Filter,
@@ -55,11 +52,8 @@ function ReconPage() {
   const invoiceLines = useApp((s) => s.invoiceLines);
   const invoiceItems = useApp((s) => s.invoiceItems);
   const invoiceTotal = useApp((s) => s.invoiceTotal);
-  const overrideInvoiceChargeLine = useApp((s) => s.overrideInvoiceChargeLine);
   const loadMarch2026SampleInvoice = useApp((s) => s.loadMarch2026SampleInvoice);
 
-  const [editingItem, setEditingItem] = useState<string | null>(null);
-  const [editVal, setEditVal] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [filterTab, setFilterTab] = useState<"all" | "discrepancies" | "matches">("all");
 
@@ -128,17 +122,6 @@ function ReconPage() {
       Calculated: Math.round(totals.maxDemandKVA),
     },
   ];
-
-  const handleSaveEdit = (chargeName: string) => {
-    const num = parseFloat(editVal.replace(/[^0-9.]/g, ""));
-    if (isNaN(num)) {
-      toast.error("Invalid number format");
-      return;
-    }
-    overrideInvoiceChargeLine(chargeName, num);
-    setEditingItem(null);
-    toast.success(`Updated ${chargeName} to ${ZAR(num)}`);
-  };
 
   const exportRowsForReport = reconRows.map((r) => ({
     charge: r.charge,
@@ -353,7 +336,6 @@ function ReconPage() {
             </thead>
             <tbody>
               {filteredReconRows.map((r) => {
-                const isEditing = editingItem === r.charge;
                 return (
                   <tr
                     key={r.charge}
@@ -371,23 +353,7 @@ function ReconPage() {
                     <td className="px-3 py-2 text-right tabular-nums">{ZAR(r.calculated)}</td>
 
                     <td className="px-3 py-2 text-right tabular-nums font-semibold">
-                      {isEditing ? (
-                        <div className="flex items-center justify-end gap-1">
-                          <input
-                            type="text"
-                            value={editVal}
-                            onChange={(e) => setEditVal(e.target.value)}
-                            className="w-28 bg-background border border-primary rounded px-1.5 py-0.5 text-xs text-right"
-                            autoFocus
-                          />
-                          <button
-                            onClick={() => handleSaveEdit(r.charge)}
-                            className="text-emerald-400 hover:text-emerald-300 p-0.5"
-                          >
-                            <Check className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ) : r.hasInvoice ? (
+                      {r.hasInvoice ? (
                         ZAR(r.invoice)
                       ) : (
                         <span className="text-muted-foreground italic font-normal">Blank</span>
@@ -431,16 +397,6 @@ function ReconPage() {
                         <span>
                           {r.reason || (r.hasInvoice ? "Auto-matched" : "Not present on invoice")}
                         </span>
-                        <button
-                          onClick={() => {
-                            setEditingItem(r.charge);
-                            setEditVal(r.hasInvoice ? String(r.invoice) : "");
-                          }}
-                          className="text-muted-foreground hover:text-primary p-0.5 rounded hover:bg-secondary"
-                          title="Override value (audit preserved)"
-                        >
-                          <Edit2 className="h-3 w-3" />
-                        </button>
                       </div>
                     </td>
                   </tr>
