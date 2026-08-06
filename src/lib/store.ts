@@ -272,6 +272,23 @@ function invoiceLinesFromItems(invoice: InvoiceData, items: InvoiceLineItemStore
     if (!item.normalizedName) continue;
     lines[item.normalizedName] = (lines[item.normalizedName] || 0) + item.amount;
   }
+  const ensure = (label: string, value?: number) => {
+    if (value && !lines[label]) lines[label] = value;
+  };
+  ensure("Administration Charge", invoice.administrationCharge);
+  ensure("Transmission Network Charge", invoice.transmissionNetworkCharge);
+  ensure("Distribution Network Capacity Charge", invoice.networkCapacityCharge);
+  ensure("Generation Capacity Charge", invoice.generationCapacityCharge);
+  ensure("Network Demand Charge", invoice.networkDemandCharge);
+  ensure("Peak Energy", invoice.peakEnergyCharge);
+  ensure("Standard Energy", invoice.standardEnergyCharge);
+  ensure("Off-Peak Energy", invoice.offPeakEnergyCharge);
+  ensure("Ancillary Service Charge", invoice.ancillary);
+  ensure("Legacy Charge", invoice.legacy);
+  ensure("Affordability Subsidy", invoice.affordability);
+  ensure("Electrification & Rural Subsidy", invoice.electrification);
+  ensure("Service Charge", invoice.serviceCharge);
+  ensure("Connection Charge", invoice.connectionCharge);
   lines["Total Charges"] = invoice.invoiceTotal;
   return lines;
 }

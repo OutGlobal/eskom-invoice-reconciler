@@ -90,6 +90,10 @@ export async function runIngestionPipeline(
     tariffName: "Megaflex Non-Local Authority",
   };
 
+  if (!pdfResult) {
+    throw new Error("Invoice extraction failed: no verified fields were recovered from the document.");
+  }
+
   // Stage 3: AI Fallback Check (If confidence < 90% or fields missing)
   let aiResult: AiParserResult | undefined;
   if (!invoice.invoiceTotal || confidenceScore < 90) {
