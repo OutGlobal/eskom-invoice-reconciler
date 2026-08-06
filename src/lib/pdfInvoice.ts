@@ -448,8 +448,10 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
     .reduce((a, b) => a + b.amount, 0);
 
   const invoiceTotal = chargeTotals.totalInvoice || roundMoney(sumInvoiceSubTotal);
-  const vat = chargeTotals.vat || roundMoney(invoiceTotal * 0.15);
-  const totalInclVat = chargeTotals.totalInclVat || roundMoney(invoiceTotal * 1.15);
+  // These Eskom detail pages print TOTAL CHARGES as the complete reconciled amount;
+  // never invent a VAT line when one was not present in the source document.
+  const vat = chargeTotals.vat;
+  const totalInclVat = chargeTotals.totalInclVat || invoiceTotal;
 
   const totalValidation = !invoiceTotal
     ? "not-available"
@@ -594,6 +596,7 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   };
 
   const chargeLines: Record<string, number> = {
+    [CHARGE_LABELS.administration]: chargeTotals.administration,
     [CHARGE_LABELS.transmissionNetwork]: chargeTotals.transmissionNetwork,
     [CHARGE_LABELS.distributionNetwork]: chargeTotals.distributionNetwork,
     [CHARGE_LABELS.generationCapacity]: chargeTotals.generationCapacity,
@@ -605,6 +608,8 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
     [CHARGE_LABELS.affordabilitySubsidy]: chargeTotals.affordabilitySubsidy,
     [CHARGE_LABELS.electrificationSubsidy]: chargeTotals.electrificationSubsidy,
     [CHARGE_LABELS.networkDemand]: chargeTotals.networkDemand,
+    [CHARGE_LABELS.serviceCharge]: chargeTotals.serviceCharge,
+    [CHARGE_LABELS.connectionCharge]: chargeTotals.connectionCharge,
     [CHARGE_LABELS.vat]: vat,
     [CHARGE_LABELS.totalInvoice]: invoiceTotal,
   };
