@@ -25,7 +25,7 @@ export const SAMPLE_FEB_2026_INVOICE: InvoiceData = {
   legacy: 10936707.81,
   affordability: 2310502.71,
   electrification: 2433663.83,
-  reactive: 8847540.0,
+  reactive: 8857540.0,
   peakEnergyCharge: 17719245.25,
   standardEnergyCharge: 30240946.76,
   offPeakEnergyCharge: 26042409.43,
@@ -51,9 +51,9 @@ export const SAMPLE_FEB_2026_INVOICE: InvoiceData = {
   simMaxDemand: 86432.56,
   loadFactor: 78.0,
   reactiveOffPeak: 4134508.8,
-  reactiveStd: 3651268.8,
+  reactiveStd: 3661268.8,
   reactivePeak: 1061762.4,
-  reactiveTotal: 8847540.0,
+  reactiveTotal: 8857540.0,
   region: "NORTHERN REGION",
   billingOffice: "PO Box 8610 Johannesburg 2000",
   meterReadings: [],
@@ -102,7 +102,7 @@ export const SAMPLE_FEB_2026_INVOICE: InvoiceData = {
       standardDemand: 87034.19,
       offPeakDemand: 85031.36,
       peakReactive: 1061762.4,
-      standardReactive: 3651268.8,
+      standardReactive: 3661268.8,
       offPeakReactive: 4134508.8,
     },
     charges: {
@@ -128,6 +128,9 @@ export const SAMPLE_FEB_2026_INVOICE: InvoiceData = {
 };
 
 export const SAMPLE_FEB_2026_CHARGE_LINES: Record<string, number> = {
+  [CHARGE_LABELS.administration]: 600.47,
+  [CHARGE_LABELS.serviceCharge]: 34672.26,
+  [CHARGE_LABELS.connectionCharge]: 351887.21,
   [CHARGE_LABELS.transmissionNetwork]: 878835.0,
   [CHARGE_LABELS.distributionNetwork]: 3084925.2,
   [CHARGE_LABELS.generationCapacity]: 693636.6,
@@ -139,7 +142,6 @@ export const SAMPLE_FEB_2026_CHARGE_LINES: Record<string, number> = {
   [CHARGE_LABELS.affordabilitySubsidy]: 2310502.71,
   [CHARGE_LABELS.electrificationSubsidy]: 2433663.83,
   [CHARGE_LABELS.networkDemand]: 2089075.22,
-  [CHARGE_LABELS.vat]: 14551385.87,
   [CHARGE_LABELS.totalInvoice]: 97009239.11,
 };
 
@@ -463,6 +465,9 @@ export const SAMPLE_MARCH_2026_INVOICE: InvoiceData = {
 };
 
 export const SAMPLE_MARCH_2026_CHARGE_LINES: Record<string, number> = {
+  [CHARGE_LABELS.administration]: 581.1,
+  [CHARGE_LABELS.serviceCharge]: 33553.8,
+  [CHARGE_LABELS.connectionCharge]: 351887.21,
   [CHARGE_LABELS.transmissionNetwork]: 878835.0,
   [CHARGE_LABELS.distributionNetwork]: 3084925.2,
   [CHARGE_LABELS.generationCapacity]: 693636.6,
@@ -474,7 +479,6 @@ export const SAMPLE_MARCH_2026_CHARGE_LINES: Record<string, number> = {
   [CHARGE_LABELS.affordabilitySubsidy]: 2309734.06,
   [CHARGE_LABELS.electrificationSubsidy]: 2432854.21,
   [CHARGE_LABELS.networkDemand]: 2102463.71,
-  [CHARGE_LABELS.vat]: 14757053.72,
   [CHARGE_LABELS.totalInvoice]: 98380358.13,
 };
 
@@ -621,6 +625,18 @@ export const SAMPLE_MARCH_2026_LINE_ITEMS: InvoiceLineItem[] = [
     needsReview: false,
     originalValue:
       "Electrification and Rural Subsidy 49,248,061.20 kWh @ R0.0494/kWh R 2,432,854.21",
+  },
+  {
+    label: "Service Charge",
+    normalizedName: CHARGE_LABELS.serviceCharge,
+    quantity: 30,
+    unit: "days",
+    rate: 1118.46,
+    rateUnit: "R/day",
+    amount: 33553.8,
+    confidence: 100,
+    needsReview: false,
+    originalValue: "Service Charge @ R1,118.46 per day for 30 days R 33,553.80",
   },
   {
     label: "Premium Connection Charge",
@@ -783,6 +799,9 @@ export const SAMPLE_APRIL_2026_INVOICE: InvoiceData = {
 };
 
 export const SAMPLE_APRIL_2026_CHARGE_LINES: Record<string, number> = {
+  [CHARGE_LABELS.administration]: 588.7,
+  [CHARGE_LABELS.serviceCharge]: 34003.02,
+  [CHARGE_LABELS.connectionCharge]: 351887.21,
   [CHARGE_LABELS.transmissionNetwork]: 921409.35,
   [CHARGE_LABELS.distributionNetwork]: 3233935.4,
   [CHARGE_LABELS.generationCapacity]: 891370.77,
@@ -794,7 +813,6 @@ export const SAMPLE_APRIL_2026_CHARGE_LINES: Record<string, number> = {
   [CHARGE_LABELS.affordabilitySubsidy]: 2166293.24,
   [CHARGE_LABELS.electrificationSubsidy]: 2281334.24,
   [CHARGE_LABELS.networkDemand]: 2094064.8,
-  [CHARGE_LABELS.vat]: 13687778.36,
   [CHARGE_LABELS.totalInvoice]: 91251855.72,
 };
 
@@ -1269,6 +1287,9 @@ export const SAMPLE_MAY_2026_INVOICE: InvoiceData = {
 };
 
 export const SAMPLE_MAY_2026_CHARGE_LINES: Record<string, number> = {
+  [CHARGE_LABELS.administration]: 632.1,
+  [CHARGE_LABELS.serviceCharge]: 36493.2,
+  [CHARGE_LABELS.connectionCharge]: 351887.21,
   [CHARGE_LABELS.transmissionNetwork]: 956001.0,
   [CHARGE_LABELS.distributionNetwork]: 3355006.2,
   [CHARGE_LABELS.generationCapacity]: 1052029.8,
@@ -1280,7 +1301,6 @@ export const SAMPLE_MAY_2026_CHARGE_LINES: Record<string, number> = {
   [CHARGE_LABELS.affordabilitySubsidy]: 2334111.08,
   [CHARGE_LABELS.electrificationSubsidy]: 2457681.67,
   [CHARGE_LABELS.networkDemand]: 2132962.38,
-  [CHARGE_LABELS.vat]: 14575387.5,
   [CHARGE_LABELS.totalInvoice]: 97169250.0,
 };
 
