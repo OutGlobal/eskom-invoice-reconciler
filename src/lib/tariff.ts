@@ -99,13 +99,14 @@ export function classifyTou(d: Date): TouPeriod {
   // so an interval ending exactly at 07:00 remains in the preceding 06:30 block.
   const block = new Date(d.getTime() - 1);
   const season = getSeason(block);
-  const dow = block.getDay(); // 0 Sun .. 6 Sat
-  const holiday = isHoliday(block);
+  // Public holidays are billed on the Saturday profile (validated against the
+  // Feb–May 2026 Eskom invoices: holiday-as-Sunday overstated off-peak by ~6%).
+  const dow = isHoliday(block) ? 6 : block.getDay(); // 0 Sun .. 6 Sat
   const h = block.getHours();
   const inRange = (start: number, end: number) => h >= start && h < end;
 
-  // Sundays and public holidays: all off-peak
-  if (dow === 0 || holiday) return "offPeak";
+  // Sundays: all off-peak
+  if (dow === 0) return "offPeak";
 
   if (season === "high") {
     if (dow >= 1 && dow <= 5) {
@@ -127,6 +128,7 @@ export function classifyTou(d: Date): TouPeriod {
   if (inRange(7, 12) || inRange(18, 20)) return "standard";
   return "offPeak";
 }
+
 
 export const TOU_LABEL: Record<TouPeriod, string> = {
   peak: "Peak",
