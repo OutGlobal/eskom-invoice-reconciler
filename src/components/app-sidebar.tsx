@@ -32,6 +32,8 @@ const items = [
   { title: "Energy Analysis", url: "/energy", icon: Zap },
   { title: "Demand Analysis", url: "/demand", icon: Activity },
   { title: "Reconciliation", url: "/reconciliation", icon: Scale },
+  { title: "Municipal Statements", url: "/municipal", icon: Building2 },
+
   { title: "Trends & Recoveries", url: "/trends", icon: TrendingUp },
   { title: "Reports", url: "/reports", icon: FileBarChart },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
