@@ -14,6 +14,8 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { AuthGate, SignOutButton } from "@/components/AuthGate";
+
 
 function NotFoundComponent() {
   return (
@@ -139,33 +141,39 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background text-foreground">
-          <AppSidebar />
-          <div className="flex-1 flex flex-col min-w-0">
-            <header className="h-12 flex items-center gap-2 border-b border-border bg-card px-3 sticky top-0 z-10">
-              <SidebarTrigger />
-              <div className="text-sm font-medium">Eskom Meter Data Reconciliation</div>
-              <div className="ml-auto text-xs text-muted-foreground hidden sm:block">
-                2025/2026 Tariff Book · 30-min interval analytics
-              </div>
-            </header>
-            <main className="flex-1 min-w-0 p-4 md:p-6 animate-in fade-in duration-200">
-              <Outlet />
-            </main>
+      <AuthGate>
+        <SidebarProvider>
+          <div className="min-h-screen flex w-full bg-background text-foreground">
+            <AppSidebar />
+            <div className="flex-1 flex flex-col min-w-0">
+              <header className="h-12 flex items-center gap-2 border-b border-border bg-card px-3 sticky top-0 z-10">
+                <SidebarTrigger />
+                <div className="text-sm font-medium">Eskom Meter Data Reconciliation</div>
+                <div className="ml-auto flex items-center gap-3">
+                  <div className="text-xs text-muted-foreground hidden sm:block">
+                    2025/2026 Tariff Book · 30-min interval analytics
+                  </div>
+                  <SignOutButton />
+                </div>
+              </header>
+              <main className="flex-1 min-w-0 p-4 md:p-6 animate-in fade-in duration-200">
+                <Outlet />
+              </main>
+            </div>
           </div>
-        </div>
-        <Toaster
-          position="bottom-right"
-          toastOptions={{
-            style: {
-              background: "var(--color-popover)",
-              color: "var(--color-popover-foreground)",
-              border: "1px solid var(--color-border)",
-            },
-          }}
-        />
-      </SidebarProvider>
+        </SidebarProvider>
+      </AuthGate>
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: "var(--color-popover)",
+            color: "var(--color-popover-foreground)",
+            border: "1px solid var(--color-border)",
+          },
+        }}
+      />
     </QueryClientProvider>
   );
 }
+
