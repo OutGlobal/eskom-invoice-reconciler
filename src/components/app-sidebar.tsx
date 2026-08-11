@@ -10,6 +10,8 @@ import {
   FileBarChart,
   Settings as SettingsIcon,
   TrendingUp,
+  Building2,
+
 } from "lucide-react";
 import {
   Sidebar,
