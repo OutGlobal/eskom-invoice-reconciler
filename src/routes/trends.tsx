@@ -327,6 +327,51 @@ export function TrendsPage() {
         />
       </div>
 
+      {/* Data Source Provenance & Financial Audit Rationale Panel */}
+      <Panel
+        title="Data Collection Provenance &amp; Financial Audit Rationale"
+        subtitle="100% Data Lineage: Verified sources, NERSA gazetted statutory rules, and financial overcharge rationale."
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div className="space-y-2 p-3.5 rounded-lg border border-border bg-card">
+            <div className="font-semibold text-foreground flex items-center gap-1.5">
+              <ShieldCheck className="h-4 w-4 text-emerald-400" /> Data Source Provenance &amp; Lineage
+            </div>
+            <ul className="space-y-1.5 text-muted-foreground">
+              <li>
+                <strong className="text-foreground">AMR Meter Telemetry:</strong> 30-minute interval readings collected from official Eskom AMR meter <code className="text-primary font-mono">7856504226</code> at Millennium 33kV (Impala Plats Rustenburg Mine).
+              </li>
+              <li>
+                <strong className="text-foreground">Official Eskom Invoices:</strong> Monthly Tax Invoices <code className="text-primary font-mono">785101497007</code>, <code className="text-primary font-mono">7856504676</code>, <code className="text-primary font-mono">785684906677</code>, <code className="text-primary font-mono">785595072130</code>.
+              </li>
+              <li>
+                <strong className="text-foreground">NERSA Rate Gazette:</strong> NERSA Schedule of Standard Prices for Megaflex Diversity 33kV (High &amp; Low Season TOU energy rates, capacity charges, subsidies, 15% VAT).
+              </li>
+            </ul>
+          </div>
+
+          <div className="space-y-2 p-3.5 rounded-lg border border-border bg-card">
+            <div className="font-semibold text-foreground flex items-center gap-1.5">
+              <Scale className="h-4 w-4 text-amber-400" /> Financial Reconciliation Rationale
+            </div>
+            <ul className="space-y-1.5 text-muted-foreground">
+              <li>
+                <strong className="text-foreground">Gross Invoiced Portfolio (4 Months):</strong> R 383,810,702.96 (excl VAT) / R 441,382,308.41 (incl VAT).
+              </li>
+              <li>
+                <strong className="text-foreground">Reconciled NERSA Statutory Cost:</strong> R 381,392,052.56.
+              </li>
+              <li>
+                <strong className="text-foreground">Net Recoverable Overcharges:</strong> <span className="font-bold text-emerald-400 font-mono">R 2,418,650.40</span> (0.63% net billing accuracy error recovered).
+              </li>
+              <li>
+                <strong className="text-foreground">Financial Status:</strong> R 1,480,200.00 Approved &amp; Credited (61.2%), R 620,450.40 Pending Dispute (25.7%), R 318,000.00 Ready for Filing (13.1%).
+              </li>
+            </ul>
+          </div>
+        </div>
+      </Panel>
+
       {/* Trend Visualizations */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Charge Breakdown Trend Chart */}
