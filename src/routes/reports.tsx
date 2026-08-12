@@ -96,23 +96,24 @@ function ReportsPage() {
           </div>
         </button>
 
-        <button
-          onClick={handleExportPdf}
-          className="text-left rounded-lg border border-border bg-card p-5 hover:border-primary/50 hover:bg-primary/5 transition group"
+        <a
+          href="/system_architecture_report.pdf"
+          download="Eskom_Bill_Balancer_System_Architecture_and_Formulas.pdf"
+          className="text-left rounded-lg border border-border bg-card p-5 hover:border-primary/50 hover:bg-primary/5 transition group block"
         >
           <div className="flex items-center gap-3">
             <div className="rounded-md bg-primary/10 p-2 text-primary">
               <FileText className="h-5 w-5" />
             </div>
             <div>
-              <div className="font-semibold text-sm">PDF Report</div>
+              <div className="font-semibold text-sm">System Architecture PDF</div>
               <div className="text-xs text-muted-foreground">
-                Print-friendly full reconciliation report.
+                Download full technical &amp; audit formula PDF.
               </div>
             </div>
             <Download className="ml-auto h-4 w-4 opacity-60 group-hover:opacity-100" />
           </div>
-        </button>
+        </a>
 
         <button
           onClick={handleExportJson}
