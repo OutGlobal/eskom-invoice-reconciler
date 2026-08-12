@@ -13,6 +13,8 @@ import {
 } from "@/components/dashboard/parts";
 import { TOU_COLOR } from "@/lib/tariff";
 
+import { InvoiceSelector } from "@/components/InvoiceSelector";
+
 export const Route = createFileRoute("/demand")({
   head: () => ({ meta: [{ title: "Demand Analysis — Meter Reconciliation" }] }),
   component: DemandPage,
@@ -29,12 +31,12 @@ function DemandPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
         <div>
-          <h1 className="text-xl font-semibold">Demand Analysis</h1>
-          <p className="text-xs text-muted-foreground">kVA = kW / 0.96 · kVAh = kWh / 0.96</p>
+          <h1 className="text-xl font-semibold">Demand Analysis &amp; Notified Capacity Audit</h1>
+          <p className="text-xs text-muted-foreground">Apparent Demand kVA = kW / PF · Notified Max Demand = 85,740 kVA</p>
         </div>
-        <PeriodPicker />
+        <InvoiceSelector />
       </div>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">

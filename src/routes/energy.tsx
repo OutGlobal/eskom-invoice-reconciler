@@ -14,6 +14,7 @@ import {
 import { TOU_COLOR } from "@/lib/tariff";
 import { useApp } from "@/lib/store";
 import { format, startOfDay, startOfWeek, startOfMonth } from "date-fns";
+import { InvoiceSelector } from "@/components/InvoiceSelector";
 
 export const Route = createFileRoute("/energy")({
   head: () => ({ meta: [{ title: "Energy Analysis — Meter Reconciliation" }] }),
@@ -43,29 +44,33 @@ function EnergyPage() {
       s = 0,
       o = 0;
     for (const r of filteredByBucket) {
-      const k = r.kW * 0.5;
-      if (r.tou === "peak") p += k;
-      else if (r.tou === "standard") s += k;
-      else o += k;
+      const kWh = r.kW * 0.5;
+      if (r.tou === "peak") p += kWh;
+      else if (r.tou === "standard") s += kWh;
+      else o += kWh;
     }
-    return { peak: p, std: s, off: o, total: p + s + o };
+    return { peakKWh: p, standardKWh: s, offPeakKWh: o, totalKWh: p + s + o };
   }, [filteredByBucket]);
 
+  const displayTotals = bucket === "period" ? totals : bucketTotals;
+
   const touData = [
-    { period: "Peak", value: bucketTotals.peak, color: TOU_COLOR.peak },
-    { period: "Standard", value: bucketTotals.std, color: TOU_COLOR.standard },
-    { period: "Off-Peak", value: bucketTotals.off, color: TOU_COLOR.offPeak },
+    { period: "Peak", value: displayTotals.peakKWh, color: TOU_COLOR.peak },
+    { period: "Standard", value: displayTotals.standardKWh, color: TOU_COLOR.standard },
+    { period: "Off-Peak", value: displayTotals.offPeakKWh, color: TOU_COLOR.offPeak },
   ];
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
         <div>
-          <h1 className="text-xl font-semibold">Energy Analysis</h1>
-          <p className="text-xs text-muted-foreground">
-            Real power consumption from 30-minute measurements.
-          </p>
+          <h1 className="text-xl font-semibold">Time-Of-Use (TOU) Energy Analysis</h1>
+          <p className="text-xs text-muted-foreground">30-minute interval active power (kW) &amp; kWh energy breakdown</p>
         </div>
+        <InvoiceSelector />
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex rounded-md border border-border overflow-hidden text-xs">
             {(["day", "week", "month", "period"] as const).map((b) => (
@@ -83,10 +88,10 @@ function EnergyPage() {
       </div>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="Peak Energy" value={`${NUM(bucketTotals.peak, 0)} kWh`} />
-        <MetricCard label="Standard Energy" value={`${NUM(bucketTotals.std, 0)} kWh`} />
-        <MetricCard label="Off-Peak Energy" value={`${NUM(bucketTotals.off, 0)} kWh`} />
-        <MetricCard label="Total Energy" value={`${NUM(bucketTotals.total, 0)} kWh`} accent />
+        <MetricCard label="Peak Energy" value={`${NUM(displayTotals.peakKWh, 0)} kWh`} />
+        <MetricCard label="Standard Energy" value={`${NUM(displayTotals.standardKWh, 0)} kWh`} />
+        <MetricCard label="Off-Peak Energy" value={`${NUM(displayTotals.offPeakKWh, 0)} kWh`} />
+        <MetricCard label="Total Energy" value={`${NUM(displayTotals.totalKWh, 0)} kWh`} accent />
       </section>
 
       <Panel

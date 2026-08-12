@@ -14,6 +14,8 @@ import { useApp } from "@/lib/store";
 import { exportToExcel, exportToCsv, exportToJson } from "@/lib/exportReports";
 import { buildStandardReconciliationTable } from "@/lib/reconciliation";
 
+import { InvoiceSelector } from "@/components/InvoiceSelector";
+
 export const Route = createFileRoute("/reports")({
   head: () => ({ meta: [{ title: "Reconciliation Reports — Eskom Bill Balancer" }] }),
   component: ReportsPage,
@@ -70,11 +72,14 @@ function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Reconciliation Reports &amp; Exports</h1>
-        <p className="text-xs text-muted-foreground">
-          Export full enterprise reconciliation packages in Excel, PDF, JSON, and CSV formats.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
+        <div>
+          <h1 className="text-xl font-semibold">Reconciliation Reports &amp; Audit Exports</h1>
+          <p className="text-xs text-muted-foreground">
+            Export full enterprise reconciliation packages in Excel, PDF, JSON, and CSV formats.
+          </p>
+        </div>
+        <InvoiceSelector />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
