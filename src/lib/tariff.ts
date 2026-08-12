@@ -1,6 +1,6 @@
 // Eskom Megaflex Non-local Authority 2025/2026 tariff (VAT-exclusive)
-// Voltage: >=500V & <66kV  |  Transmission Zone: <=300km
-// Source: Eskom Tariffs and Charges Booklet 2025/2026, p.13
+// Voltage: >=500V & <66kV (33kV supply)  |  Transmission Zone: <=300km
+// Source: Eskom Schedule of Standard Prices 2025/2026, NERSA-approved, Table 3, p.16
 
 export const TARIFF = {
   name: "Megaflex (Non-local Authority)",
@@ -8,24 +8,24 @@ export const TARIFF = {
   zone: "<=300km",
   powerFactor: 0.96,
 
-  // R/kVA/month  (applied to NMD or chargeable demand)
-  networkCapacity: 35.98, // Distribution network capacity charge
-  networkDemand: 24.17, // Distribution network demand charge (per max demand)
-  generationCapacity: 8.09, // Generation capacity charge (per NMD)
-  transmissionNetwork: 10.25, // Transmission network charge (per NMD)
+  // R/kVA/month  (applied to NMD or annual utilised capacity)
+  networkCapacity: 35.98, // Distribution network capacity charge (Table 3, p.16)
+  networkDemand: 24.17, // Distribution network demand charge (Table 3, p.16)
+  generationCapacity: 8.09, // Generation capacity charge (Table 3, p.16)
+  transmissionNetwork: 10.25, // Transmission network charge (Table 3, p.16)
 
   // c/kWh (converted to R/kWh in code)
-  legacy: 22.2,
-  ancillary: 0.39,
-  electrification: 4.94,
-  affordability: 4.69,
+  legacy: 22.2, // c/kWh (Table 3, p.16)
+  ancillary: 0.39, // c/kWh (Table 3, p.16)
+  electrification: 4.94, // 4.94 c/kWh in 2025/26 (Table 3, p.16)
+  affordability: 4.69, // c/kWh (Table 3, p.16)
 
-  // Active energy c/kWh
+  // Active energy c/kWh (Table 3, p.16)
   energy: {
     high: { peak: 666.92, standard: 166.73, offPeak: 111.15 }, // Jun-Aug
     low: { peak: 276.78, standard: 155.62, offPeak: 111.15 }, // Sep-May
   },
-  // Eskom 2026/27 rates effective 1 April 2026. April bills are day/interval weighted.
+  // Eskom 2026/27 rates effective 1 April 2026. April bills are day/interval weighted (13d vs 16d).
   next: {
     effectiveFrom: "2026-04-01",
     networkCapacity: 39.13,
@@ -34,7 +34,7 @@ export const TARIFF = {
     transmissionNetwork: 11.15,
     legacy: 24.14,
     ancillary: 0.42,
-    electrification: 5.37,
+    electrification: 5.37, // 5.37 c/kWh in 2026/27
     affordability: 5.1,
     administrationDaily: 21.07,
     serviceDaily: 1216.44,
@@ -45,7 +45,7 @@ export const TARIFF = {
   },
   administrationDaily: 19.37,
   serviceDaily: 1118.46,
-  connectionMonthly: 351887.21,
+  connectionMonthly: 351887.21, // Total connection charges ex VAT (R 174 681 + R 130 684 + R 34 861.21 + R 11 661)
 } as const;
 
 export type TouPeriod = "peak" | "standard" | "offPeak";
@@ -56,57 +56,56 @@ export function getSeason(d: Date): Season {
   return m >= 6 && m <= 8 ? "high" : "low";
 }
 
-// SA public holidays 2025-2026 (fixed + observed)
-const HOLIDAYS = new Set<string>([
-  "2025-01-01",
-  "2025-03-21",
-  "2025-04-18",
-  "2025-04-21",
-  "2025-04-28",
-  "2025-05-01",
-  "2025-06-16",
-  "2025-08-09",
-  "2025-09-24",
-  "2025-12-16",
-  "2025-12-25",
-  "2025-12-26",
-  "2026-01-01",
-  "2026-03-21",
-  "2026-04-03",
-  "2026-04-06",
-  "2026-04-27",
-  "2026-05-01",
-  "2026-06-16",
-  "2026-08-10",
-  "2026-09-24",
-  "2026-12-16",
-  "2026-12-25",
-  "2026-12-26",
+// Eskom Public Holidays Specification (§10, p.11 of Schedule)
+// Only 5 public holidays are treated as a Sunday: New Year's Day, Good Friday, Family Day, Christmas Day, Day of Goodwill.
+// All other public holidays are treated as a Saturday.
+const SUNDAY_HOLIDAYS = new Set<string>([
+  "2025-01-01", "2025-04-18", "2025-04-21", "2025-12-25", "2025-12-26",
+  "2026-01-01", "2026-04-03", "2026-04-06", "2026-12-25", "2026-12-26",
 ]);
 
+const SATURDAY_HOLIDAYS = new Set<string>([
+  "2025-03-21", "2025-04-28", "2025-05-01", "2025-06-16", "2025-08-09", "2025-09-24", "2025-12-16",
+  "2026-03-21", "2026-04-27", "2026-05-01", "2026-06-16", "2026-08-10", "2026-09-24", "2026-12-16",
+]);
 
-function isHoliday(d: Date) {
+function getEffectiveDayOfWeek(d: Date): number {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
-  return HOLIDAYS.has(`${y}-${m}-${day}`);
+  const dateStr = `${y}-${m}-${day}`;
+  const actualDow = d.getDay(); // 0 Sun .. 6 Sat
+
+  if (actualDow === 0) return 0; // Sundays remain Sunday
+  if (SUNDAY_HOLIDAYS.has(dateStr)) return 0; // Billed as Sunday
+  if (SATURDAY_HOLIDAYS.has(dateStr)) return 6; // Billed as Saturday
+  return actualDow;
 }
 
-// Megaflex TOU (Eskom Appendix A) — half-hour block index 0..47 (block ending)
-// Returns period for the 30-min interval ending at (hour, minute).
+/**
+ * Classifies a 30-minute interval into Peak, Standard, or Off-Peak according to the
+ * NERSA-published Eskom 2025/26 Time-Of-Use Clock (Schedule §3.2, p.8).
+ *
+ * Low Season Published Clock:
+ * - Weekday Peak: 06:00–08:00 & 17:00–20:00
+ * - Weekday Standard: 08:00–17:00 & 20:00–22:00
+ * - Weekday Off-Peak: 22:00–06:00
+ * - Saturday Standard: 07:00–12:00 & 18:00–20:00
+ * - Sunday Standard: 18:00–20:00 (new 2025/26 Sunday standard window)
+ */
 export function classifyTou(d: Date): TouPeriod {
-  // Meter timestamps mark the end of each 30-minute block. Classify the block itself,
-  // so an interval ending exactly at 07:00 remains in the preceding 06:30 block.
+  // Meter timestamps mark the end of each 30-minute block.
   const block = new Date(d.getTime() - 1);
   const season = getSeason(block);
-  // Public holidays are billed on the Saturday profile (validated against the
-  // Feb–May 2026 Eskom invoices: holiday-as-Sunday overstated off-peak by ~6%).
-  const dow = isHoliday(block) ? 6 : block.getDay(); // 0 Sun .. 6 Sat
+  const dow = getEffectiveDayOfWeek(block);
   const h = block.getHours();
   const inRange = (start: number, end: number) => h >= start && h < end;
 
-  // Sundays: all off-peak
-  if (dow === 0) return "offPeak";
+  // Sundays: 18:00–20:00 is Standard in 2025/26 clock; off-peak otherwise
+  if (dow === 0) {
+    if (inRange(18, 20)) return "standard";
+    return "offPeak";
+  }
 
   if (season === "high") {
     if (dow >= 1 && dow <= 5) {
@@ -114,21 +113,22 @@ export function classifyTou(d: Date): TouPeriod {
       if (inRange(9, 17) || inRange(19, 22)) return "standard";
       return "offPeak";
     }
-    // Saturday
+    // Saturday High Season
     if (inRange(7, 12) || inRange(18, 20)) return "standard";
     return "offPeak";
   }
-  // Low season
+
+  // Low Season (Published 2025/26 Eskom Clock - Schedule §3.2, p.8)
   if (dow >= 1 && dow <= 5) {
-    if (inRange(7, 10) || inRange(18, 20)) return "peak";
-    if (inRange(6, 7) || inRange(10, 18) || inRange(20, 22)) return "standard";
+    if (inRange(6, 8) || inRange(17, 20)) return "peak";
+    if (inRange(8, 17) || inRange(20, 22)) return "standard";
     return "offPeak";
   }
-  // Saturday low
+
+  // Saturday Low Season
   if (inRange(7, 12) || inRange(18, 20)) return "standard";
   return "offPeak";
 }
-
 
 export const TOU_LABEL: Record<TouPeriod, string> = {
   peak: "Peak",
