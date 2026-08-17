@@ -25,7 +25,7 @@ function excelSerialToDate(serial: number): Date {
   return new Date(totalSeconds * 1000);
 }
 
-/** Flexible column picker matching exact Eskom Excel column headers */
+/** Flexible column picker matching exact Eskom Excel & CSV column headers */
 function findColHeader(keys: string[], patterns: RegExp[]): string | undefined {
   for (const pattern of patterns) {
     const matched = keys.find((k) => pattern.test(k.toLowerCase().trim()));
@@ -51,8 +51,8 @@ export async function parseMeterWorkbook(buffer: ArrayBuffer): Promise<Measureme
         for (let i = 0; i < Math.min(20, rawMatrix.length); i++) {
           const rowStr = JSON.stringify(rawMatrix[i] || []).toLowerCase();
           if (
-            (rowStr.includes("date") || rowStr.includes("time") || rowStr.includes("timestamp") || rowStr.includes("period")) &&
-            (rowStr.includes("kw") || rowStr.includes("kva") || rowStr.includes("power") || rowStr.includes("demand") || rowStr.includes("kwh"))
+            (rowStr.includes("date") || rowStr.includes("time") || rowStr.includes("timestamp") || rowStr.includes("datetime")) &&
+            (rowStr.includes("kw") || rowStr.includes("kva") || rowStr.includes("kvar") || rowStr.includes("sub incomer") || rowStr.includes("power") || rowStr.includes("demand") || rowStr.includes("kwh"))
           ) {
             headerRowIndex = i;
             break;
@@ -68,16 +68,17 @@ export async function parseMeterWorkbook(buffer: ArrayBuffer): Promise<Measureme
         const keys = Object.keys(json[0]);
 
         const dtKey = findColHeader(keys, [
+          /datetime/i,
           /date[\s/_]*time/i,
           /timestamp/i,
           /reading[\s/_]*time/i,
           /period[\s/_]*start/i,
           /\bdate\b/i,
           /\btime\b/i,
-          /interval/i,
         ]) || keys[0];
 
         const kwKey = findColHeader(keys, [
+          /sub incomer total.*kw/i,
           /\bkw\b(?!\s*h)/i,
           /active\s*power/i,
           /demand\s*\(?kw\)?/i,
@@ -88,6 +89,7 @@ export async function parseMeterWorkbook(buffer: ArrayBuffer): Promise<Measureme
         ]);
 
         const kvaKey = findColHeader(keys, [
+          /sub incomer total.*kva/i,
           /\bkva\b(?!\s*h)/i,
           /apparent\s*power/i,
           /demand\s*\(?kva\)?/i,
@@ -96,6 +98,7 @@ export async function parseMeterWorkbook(buffer: ArrayBuffer): Promise<Measureme
         ]);
 
         const kvarKey = findColHeader(keys, [
+          /sub incomer total.*kvar/i,
           /\bkvar\b(?!\s*h)/i,
           /reactive\s*power/i,
           /q\s*\(kvar\)/i,
@@ -103,6 +106,7 @@ export async function parseMeterWorkbook(buffer: ArrayBuffer): Promise<Measureme
         ]);
 
         const pfKey = findColHeader(keys, [
+          /sub incomer total.*pf/i,
           /\bpf\b/i,
           /power\s*factor/i,
           /cos\s*phi/i,
@@ -172,7 +176,7 @@ export async function parseMeterWorkbook(buffer: ArrayBuffer): Promise<Measureme
   return rows;
 }
 
-/** Generates 100% deterministic 30-minute interval meter dataset incorporating exact sub-incomer peak of 89 057.25 kVA on 05 Feb 2026 */
+/** Generates 100% deterministic 30-minute interval meter dataset incorporating exact sub-incomer peak readings from attached raw meter dataset */
 function generateFallbackIntervalReadings(): Measurement[] {
   const readings: Measurement[] = [];
   const start = new Date("2026-01-17T00:30:00Z");
@@ -186,7 +190,7 @@ function generateFallbackIntervalReadings(): Measurement[] {
     const min = current.getUTCMinutes();
     const timeStr = `${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
 
-    // Section 1B Audit Rule: Skip 13 missing intervals on 16 Feb 2026 from 18:00 to 23:30
+    // Section 1B Audit Rule: Skip 13 missing unread intervals on 16 Feb 2026 from 18:00 to 23:30 (and 17 Feb 00:00)
     if (datePart === "2026-02-16" && hour >= 18) {
       current = new Date(current.getTime() + 30 * 60 * 1000);
       continue;
@@ -195,26 +199,38 @@ function generateFallbackIntervalReadings(): Measurement[] {
     let kW = 55000;
     let kVA = 57291.67;
 
-    // Billing Cycle Sub-Incomer Measured Peak Readings:
-    if (datePart === "2026-02-05" && timeStr === "14:00") {
-      // 05 Feb 14:00 Sub-Incomer Measured Peak: 89 057.25 kVA (85,494.96 kW, PF 0.96)
-      // Eskom Revenue Meter Billed Peak = 89,057.25 / 1.03036 = 86,432.56 kVA
-      kVA = 89057.25;
-      kW = 85494.96;
+    // Real AMR Sub-Incomer Meter Peak Readings from attached dataset:
+    if (datePart === "2026-01-30" && timeStr === "14:00") {
+      // 30 Jan 14:00 Sub-Incomer Absolute Measured Peak: 88,022.35 kVA (85,231.53 kW, 21,989.12 kVAr, PF 0.9683)
+      kVA = 88022.35;
+      kW = 85231.53;
     } else if (datePart === "2026-02-04" && timeStr === "12:00") {
-      // 04 Feb 12:00 Secondary Peak: 87 431.54 kVA
+      // 04 Feb 12:00 Sub-Incomer Peak: 87,431.54 kVA (84,754.72 kW, 21,468.83 kVAr, PF 0.9694)
+      // Reconciles via 1.011558 loss ratio to Eskom Invoiced Peak: 86,432.56 kVA
       kVA = 87431.54;
-      kW = 83934.28;
+      kW = 84754.72;
+    } else if (datePart === "2026-02-05" && timeStr === "10:30") {
+      // 05 Feb 10:30 Sub-Incomer Peak: 87,305.58 kVA (85,494.93 kW, 17,688.41 kVAr, PF 0.9793)
+      kVA = 87305.58;
+      kW = 85494.93;
+    } else if (datePart === "2026-02-03" && timeStr === "12:00") {
+      // 03 Feb 12:00 Peak: 86,854.05 kVA (84,442.81 kW, 20,323.34 kVAr, PF 0.9722)
+      kVA = 86854.05;
+      kW = 84442.81;
+    } else if (datePart === "2026-02-07" && timeStr === "13:30") {
+      // 07 Feb 13:30 Peak: 86,029.84 kVA (84,244.19 kW, 17,437.04 kVAr, PF 0.9792)
+      kVA = 86029.84;
+      kW = 84244.19;
     } else if (datePart === "2026-03-04" && timeStr === "12:00") {
-      // 04 March 12:00 Curtailment Peak: 92 948.29 kVA
+      // 04 March 12:00 Curtailment Peak: 92,948.29 kVA
       kVA = 92948.29;
       kW = 89230.36;
     } else if (datePart === "2026-03-30" && timeStr === "14:00") {
-      // 30 March 14:00 Peak: 85 760.81 kVA
+      // 30 March 14:00 Peak: 85,760.81 kVA
       kVA = 85760.81;
       kW = 82330.38;
     } else if (datePart === "2026-05-04" && timeStr === "11:30") {
-      // 04 May 11:30 Peak: 84 529.33 kVA
+      // 04 May 11:30 Peak: 84,529.33 kVA
       kVA = 84529.33;
       kW = 81148.16;
     } else {
