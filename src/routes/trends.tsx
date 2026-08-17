@@ -33,7 +33,15 @@ import {
   Info,
   Database,
 } from "lucide-react";
-import { Panel, MetricCard, ZAR, NUM } from "@/components/dashboard/parts";
+import {
+  Panel,
+  MetricCard,
+  ZAR,
+  NUM,
+  NmdAlertCard,
+  useDataQuality,
+  useBootstrapMeter,
+} from "@/components/dashboard/parts";
 import { InvoiceSelector } from "@/components/InvoiceSelector";
 import { useApp } from "@/lib/store";
 import { exportCustomCsv } from "@/lib/exportReports";
@@ -110,8 +118,29 @@ const HISTORICAL_TRENDS_DATA = [
   },
 ];
 
+function IntervalSkeleton() {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <RefreshCw className="h-3.5 w-3.5 animate-spin text-primary" />
+        Loading 30-minute interval series and validating data quality…
+      </div>
+      <div className="h-24 animate-pulse rounded-lg border border-border bg-secondary/50" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="h-24 animate-pulse rounded-md border border-border bg-secondary/50" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function TrendsPage() {
   const invoice = useApp((s) => s.invoice);
+  useBootstrapMeter();
+  const rows = useApp((s) => s.rows);
+  const nmd = useApp((s) => s.customer.nmd);
+  const dq = useDataQuality(rows);
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [isDbConnected, setIsDbConnected] = useState<boolean>(false);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({
