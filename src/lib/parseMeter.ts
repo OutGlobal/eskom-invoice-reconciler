@@ -180,7 +180,7 @@ export function imputeAndFlag(rows: Measurement[]): Measurement[] {
 }
 
 /** Generates 100% deterministic 30-minute interval meter dataset incorporating exact sub-incomer peak readings from attached raw meter dataset */
-function generateFallbackIntervalReadings(): Measurement[] {
+export function generateFallbackIntervalReadings(): Measurement[] {
   const readings: Measurement[] = [];
   const start = new Date("2026-01-17T00:30:00Z");
   const end = new Date("2026-05-16T23:30:00Z");

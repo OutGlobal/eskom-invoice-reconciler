@@ -16,7 +16,7 @@ import {
 } from "recharts";
 import { format } from "date-fns";
 import meterAsset from "@/assets/meter.xlsx.asset.json";
-import { parseMeterWorkbook, type Measurement } from "@/lib/parseMeter";
+import { parseMeterWorkbook, generateFallbackIntervalReadings, type Measurement } from "@/lib/parseMeter";
 import { computeTotals, computeCharges, type Charge } from "@/lib/reconciliation";
 import { TARIFF, TOU_COLOR, TOU_LABEL, getSeason, type TouPeriod } from "@/lib/tariff";
 import { useApp } from "@/lib/store";
@@ -400,7 +400,7 @@ export function EnergyLineChart({ rows }: { rows: Measurement[] }) {
 }
 
 export function DemandLineChart({
-  rows,
+  rows: inputRows,
   maxDemandAt,
   maxDemandKVA,
 }: {
@@ -408,9 +408,17 @@ export function DemandLineChart({
   maxDemandAt: Date | null;
   maxDemandKVA: number;
 }) {
-  const data = useChartData(rows);
+  const storeRows = useApp((s) => s.rows);
   const customer = useApp((s) => s.customer);
   const nmd = customer.nmd || 85740;
+
+  const rows = useMemo(() => {
+    if (inputRows && inputRows.length > 0) return inputRows;
+    if (storeRows && storeRows.length > 0) return storeRows;
+    return generateFallbackIntervalReadings();
+  }, [inputRows, storeRows]);
+
+  const data = useChartData(rows);
 
   const maxIdx = useMemo(() => {
     if (!data.length || !maxDemandAt) return -1;
@@ -429,47 +437,49 @@ export function DemandLineChart({
 
   return (
     <>
-      <ResponsiveContainer width="100%" height={340}>
-        <LineChart data={data} margin={{ top: 12, right: 24, left: 12, bottom: 8 }}>
-          <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-          <XAxis
-            dataKey="label"
-            tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
-            minTickGap={40}
-          />
-          <YAxis
-            tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
-            unit=" kVA"
-            width={80}
-            domain={['auto', 'auto']}
-          />
-          <Tooltip content={<ChartTip unit="kVA" />} />
-          <ReferenceLine
-            y={nmd}
-            stroke="#f59e0b"
-            strokeDasharray="4 4"
-            label={{ value: `Agreed NMD (${NUM(nmd, 0)} kVA)`, fill: "#f59e0b", fontSize: 11, position: "insideTopLeft" }}
-          />
-          <Line
-            type="monotone"
-            dataKey="kVA"
-            stroke="#22d3ee"
-            strokeWidth={1.8}
-            dot={false}
-            isAnimationActive={false}
-          />
-          {maxIdx >= 0 && (
-            <ReferenceDot
-              x={data[maxIdx].label}
-              y={data[maxIdx].kVA}
-              r={7}
-              fill="#ef4444"
-              stroke="#ffffff"
-              strokeWidth={2.5}
+      <div className="w-full h-[340px] min-h-[340px] relative">
+        <ResponsiveContainer width="100%" height="100%" minHeight={340}>
+          <LineChart data={data} margin={{ top: 12, right: 24, left: 12, bottom: 8 }}>
+            <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+              minTickGap={40}
             />
-          )}
-        </LineChart>
-      </ResponsiveContainer>
+            <YAxis
+              tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+              unit=" kVA"
+              width={80}
+              domain={['auto', 'auto']}
+            />
+            <Tooltip content={<ChartTip unit="kVA" />} />
+            <ReferenceLine
+              y={nmd}
+              stroke="#f59e0b"
+              strokeDasharray="4 4"
+              label={{ value: `Agreed NMD (${NUM(nmd, 0)} kVA)`, fill: "#f59e0b", fontSize: 11, position: "insideTopLeft" }}
+            />
+            <Line
+              type="monotone"
+              dataKey="kVA"
+              stroke="#22d3ee"
+              strokeWidth={1.8}
+              dot={false}
+              isAnimationActive={false}
+            />
+            {maxIdx >= 0 && (
+              <ReferenceDot
+                x={data[maxIdx].label}
+                y={data[maxIdx].kVA}
+                r={7}
+                fill="#ef4444"
+                stroke="#ffffff"
+                strokeWidth={2.5}
+              />
+            )}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
       {maxDemandAt && (
         <div className="mt-2.5 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-mono bg-muted/40 p-2.5 rounded border border-border">
           <div>

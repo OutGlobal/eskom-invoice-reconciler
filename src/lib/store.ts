@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Measurement } from "./parseMeter";
+import { generateFallbackIntervalReadings, type Measurement } from "./parseMeter";
 import { TARIFF as DEFAULT_TARIFF } from "./tariff";
 import {
   SAMPLE_MARCH_2026_INVOICE,
@@ -315,7 +315,7 @@ function activateInvoice(
 }
 
 export const useApp = create<AppState>((set) => ({
-  rows: [],
+  rows: generateFallbackIntervalReadings(),
   setRows: (rows) => set({ rows }),
 
   // Pre-load March 2026 Impala Platinum Mine Invoice by default
