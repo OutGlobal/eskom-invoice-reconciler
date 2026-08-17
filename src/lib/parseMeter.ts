@@ -8,7 +8,12 @@ export interface Measurement {
   kVA: number;
   pf: number;
   tou: TouPeriod;
+  /** Value was missing (NaN/null) in the source file and was linearly interpolated. */
+  estimated?: boolean;
+  /** 0 kW / 0 kVA interval — unsupplied grid outage. */
+  outage?: boolean;
 }
+
 
 interface RawRow {
   [k: string]: unknown;
