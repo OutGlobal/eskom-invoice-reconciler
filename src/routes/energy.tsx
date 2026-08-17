@@ -107,10 +107,10 @@ function EnergyPage() {
           <TotalsRow
             unit="kWh"
             items={[
-              { label: "Peak", v: totals.peakKWh },
-              { label: "Standard", v: totals.standardKWh },
-              { label: "Off-Peak", v: totals.offPeakKWh },
-              { label: "Total", v: totals.totalKWh, strong: true },
+              { label: "Peak", v: displayTotals.peakKWh },
+              { label: "Standard", v: displayTotals.standardKWh },
+              { label: "Off-Peak", v: displayTotals.offPeakKWh },
+              { label: "Total", v: displayTotals.totalKWh, strong: true },
             ]}
           />
         </Panel>

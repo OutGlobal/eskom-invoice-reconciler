@@ -57,7 +57,7 @@ function ReconPage() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [filterTab, setFilterTab] = useState<"all" | "discrepancies" | "matches">("all");
 
-  // Build the 13 standard reconciliation table rows
+  // Build the 15 standard reconciliation table rows
   const reconRows = useMemo(
     () =>
       buildStandardReconciliationTable(
@@ -270,9 +270,9 @@ function ReconPage() {
         )}
       </div>
 
-      {/* 13-Row Automatic Reconciliation Table */}
+      {/* 15-Row Automatic Reconciliation Table */}
       <Panel
-        title="Automated 13-Point Eskom Reconciliation Table"
+        title="Automated 15-Point Eskom Reconciliation Table"
         subtitle="Every calculated charge auto-compared to invoice value. Green (Match 0%), Amber (Within ±1%), Red (Discrepancy >1%), Grey (Not Found)."
         action={
           <div className="flex items-center gap-2">

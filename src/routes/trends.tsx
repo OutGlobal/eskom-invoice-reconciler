@@ -71,18 +71,18 @@ const HISTORICAL_TRENDS_DATA = [
     offPeakEnergy: 26042409.43,
     networkCapacity: 3084925.2,
     demandCharge: 2089075.22,
-    subsidiesAndLegacy: 15680874.35,
+    subsidiesAndLegacy: 17832637.25,
     totalInvoice: 97009239.11,
     recoveryAmount: 878835.0,
   },
   {
     period: "March 2026",
-    peakEnergy: 19459345.54,
+    peakEnergy: 19460008.77,
     standardEnergy: 31433067.54,
-    offPeakEnergy: 24479482.75,
-    networkCapacity: 3344280.48,
-    demandCharge: 2246559.07,
-    subsidiesAndLegacy: 15814589.65,
+    offPeakEnergy: 24473673.9,
+    networkCapacity: 3084925.2,
+    demandCharge: 2102463.71,
+    subsidiesAndLegacy: 17826219.01,
     totalInvoice: 98380358.13,
     recoveryAmount: 601365.0,
   },
@@ -93,7 +93,7 @@ const HISTORICAL_TRENDS_DATA = [
     offPeakEnergy: 24846738.18,
     networkCapacity: 3233935.4,
     demandCharge: 2094064.8,
-    subsidiesAndLegacy: 14701554.13,
+    subsidiesAndLegacy: 17079997.0,
     totalInvoice: 91251855.72,
     recoveryAmount: 620450.4,
   },
@@ -104,7 +104,7 @@ const HISTORICAL_TRENDS_DATA = [
     offPeakEnergy: 27084272.58,
     networkCapacity: 3355006.2,
     demandCharge: 2132962.38,
-    subsidiesAndLegacy: 15839918.55,
+    subsidiesAndLegacy: 18429182.77,
     totalInvoice: 97169250.0,
     recoveryAmount: 318000.0,
   },
@@ -160,7 +160,7 @@ export function TrendsPage() {
         id: "march-2026",
         period: "March 2026",
         dates: "17/02/2026 - 18/03/2026",
-        invoiceNo: "7856504676",
+        invoiceNo: "785762166034",
         location: "Millennium 33kV - Farm Goedgedacht 114JQ",
         premiseId: "7856504226",
         chargeCategory: "Peak Demand Curtailment Reversal",
@@ -318,12 +318,12 @@ export function TrendsPage() {
         <MetricCard
           label="Approved Eskom Credits"
           value={ZAR(approvedRecoveries)}
-          sub="2 Claims Processed &amp; Credited"
+          sub="1 Claim Processed &amp; Credited"
         />
         <MetricCard
           label="Pending &amp; Filing Pipeline"
           value={ZAR(pendingRecoveries + readyRecoveries)}
-          sub="2 Active Dispute Claims"
+          sub="3 Active Dispute Claims"
         />
       </div>
 
@@ -365,7 +365,7 @@ export function TrendsPage() {
                 <strong className="text-foreground">Net Recoverable Overcharges:</strong> <span className="font-bold text-emerald-400 font-mono">R 2,418,650.40</span> (0.63% net billing accuracy error recovered).
               </li>
               <li>
-                <strong className="text-foreground">Financial Status:</strong> R 1,480,200.00 Approved &amp; Credited (61.2%), R 620,450.40 Pending Dispute (25.7%), R 318,000.00 Ready for Filing (13.1%).
+                <strong className="text-foreground">Financial Status:</strong> R 620,450.40 Approved &amp; Credited (25.7%), R 1,480,200.00 Pending Dispute (61.2%), R 318,000.00 Ready for Filing (13.1%).
               </li>
             </ul>
           </div>
@@ -505,7 +505,7 @@ export function TrendsPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Approved (2)
+              Approved (1)
             </button>
             <button
               onClick={() => setFilterCategory("pending")}
@@ -515,7 +515,7 @@ export function TrendsPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Under Review (1)
+              Under Review (2)
             </button>
             <button
               onClick={() => setFilterCategory("ready")}
