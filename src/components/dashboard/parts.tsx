@@ -97,7 +97,7 @@ export function useDerived() {
       if (!invoice) return new Date("2026-03-04T12:00:00");
       const month = (invoice.accountMonth || "").toUpperCase();
       const invNo = invoice.invoiceNo || invoice.taxInvoiceNo || "";
-      if (month.includes("FEB") || invNo === "785101497007") return new Date("2026-02-04T12:00:00");
+      if (month.includes("FEB") || invNo === "785101497007") return new Date("2026-02-05T14:00:00");
       if (month.includes("MARCH") || invNo === "7856504676") return new Date("2026-03-04T12:00:00");
       if (month.includes("APRIL") || invNo === "785684906677") return new Date("2026-03-30T14:00:00");
       if (month.includes("MAY") || invNo === "785595072130") return new Date("2026-05-04T11:30:00");
