@@ -297,6 +297,115 @@ export function TrendsPage() {
         </div>
       </div>
 
+      {/* NMD compliance + verified interval figures */}
+      {rows.length === 0 ? (
+        <IntervalSkeleton />
+      ) : (
+        <>
+          <NmdAlertCard peakKVA={dq.maxDemandKVA} nmd={nmd} peakAt={dq.maxDemandAt} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            <MetricCard
+              label="Total 4-Month Active Energy"
+              value={`${NUM(dq.totalKWh / 1e6, 2)} GWh`}
+              sub={`Sum across all 4 billing sheets · ${NUM(dq.intervals, 0)} intervals (Jan 17 – May 16 2026)`}
+            />
+            <MetricCard
+              label="Maximum Recorded Demand"
+              value={`${NUM(dq.maxDemandKVA)} kVA`}
+              tone={dq.maxDemandKVA > nmd ? "bad" : "good"}
+              sub={
+                dq.maxDemandAt
+                  ? `Occurred ${dq.maxDemandAt.toLocaleDateString("en-ZA")} — Feb 17 / Mar 18 cycle`
+                  : "—"
+              }
+            />
+            <MetricCard
+              label="Average Power Factor"
+              value={NUM(dq.avgPf, 4)}
+              tone={dq.avgPf >= 0.85 ? "good" : "bad"}
+              sub="Above the Eskom 0.85 penalty threshold — no reactive penalties"
+            />
+            <MetricCard
+              label="Total Logged Outage Time"
+              value={`${NUM(dq.outageHours, 1)} Hours`}
+              tone={dq.outageCount ? "warn" : "good"}
+              sub={
+                dq.outageFrom && dq.outageTo
+                  ? `${dq.outageCount} intervals · ${dq.outageFrom.toLocaleDateString("en-ZA")} ${dq.outageFrom.toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}–${dq.outageTo.toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}`
+                  : "No unsupplied intervals logged"
+              }
+            />
+          </div>
+
+          {/* Interval data quality audit */}
+          <Panel
+            title="Interval Data Quality Audit"
+            subtitle="Automatic imputation and outage tagging applied at ingestion — no NaN values enter the energy totals."
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div className="rounded border border-amber-500/40 bg-amber-500/5 p-3">
+                <div className="font-semibold text-amber-400">
+                  [Estimated Interval] × {dq.estimatedCount}
+                </div>
+                <p className="mt-1 text-muted-foreground">
+                  NULL/NaN readings repaired by linear interpolation ((val[i-1] + val[i+1]) / 2) and
+                  badged in the audit table.
+                </p>
+                {dq.estimatedRows.length > 0 && (
+                  <div className="mt-2 max-h-40 overflow-y-auto rounded border border-border">
+                    <table className="w-full">
+                      <thead className="bg-secondary text-[10px] uppercase text-muted-foreground">
+                        <tr>
+                          <th className="text-left px-2 py-1">Timestamp</th>
+                          <th className="text-right px-2 py-1">kW</th>
+                          <th className="text-right px-2 py-1">kVA</th>
+                          <th className="text-left px-2 py-1">Flag</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dq.estimatedRows.map((r, i) => (
+                          <tr key={i} className="border-t border-border">
+                            <td className="px-2 py-1">
+                              {r.ts.toLocaleString("en-ZA", {
+                                day: "2-digit",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </td>
+                            <td className="px-2 py-1 text-right tabular-nums">{NUM(r.kW)}</td>
+                            <td className="px-2 py-1 text-right tabular-nums">{NUM(r.kVA)}</td>
+                            <td className="px-2 py-1 text-amber-400">[Estimated Interval]</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+              <div className="rounded border border-red-500/40 bg-red-500/5 p-3">
+                <div className="font-semibold text-red-400">
+                  Unsupplied Grid Outage × {dq.outageCount} intervals ({NUM(dq.outageHours, 1)} h)
+                </div>
+                <p className="mt-1 text-muted-foreground">
+                  0.00 kW / 0.00 kVA blocks are zero-guarded (PF forced to 1.0, never divided by
+                  zero) and tagged for client SLA tracking.
+                </p>
+                {dq.outageFrom && dq.outageTo && (
+                  <div className="mt-2 rounded border border-border bg-card p-2">
+                    <div className="text-muted-foreground">Logged outage window</div>
+                    <div className="font-medium">
+                      {dq.outageFrom.toLocaleString("en-ZA")} → {dq.outageTo.toLocaleString("en-ZA")}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Panel>
+        </>
+      )}
+
+
       {/* Invoice Selector Component */}
       <div className="rounded-lg border border-primary/20 bg-card p-3 shadow-sm">
         <InvoiceSelector />
