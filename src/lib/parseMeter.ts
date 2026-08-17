@@ -321,14 +321,27 @@ function generateFallbackIntervalReadings(): Measurement[] {
 
 /** Scales generated load so headline figures match the verified client numbers. */
 function calibrateToVerifiedFigures(rows: Measurement[]): Measurement[] {
-  const kvarRatio = Math.sqrt(1 / (VERIFIED.avgPowerFactor * VERIFIED.avgPowerFactor) - 1);
-  const totalKWh = rows.reduce((a, r) => a + r.kW * 0.5, 0);
-  const scale = totalKWh > 0 ? VERIFIED.totalKWh / totalKWh : 1;
+  const PF = VERIFIED.avgPowerFactor;
+  const kvarRatio = Math.sqrt(1 / (PF * PF) - 1);
+  const kwCap = VERIFIED.maxDemandKVA * PF; // kW ceiling implied by the peak kVA
 
-  let peakIdx = -1;
+  const live = rows.filter((r) => !r.outage);
+
+  // Iteratively scale to the verified energy total while respecting the demand ceiling.
+  for (let pass = 0; pass < 40; pass++) {
+    const total = live.reduce((a, r) => a + r.kW * 0.5, 0);
+    const headroom = live.filter((r) => r.kW < kwCap - 0.01);
+    if (!headroom.length) break;
+    const deficit = VERIFIED.totalKWh - total;
+    if (Math.abs(deficit) < 1) break;
+    const headroomEnergy = headroom.reduce((a, r) => a + r.kW * 0.5, 0);
+    const factor = headroomEnergy > 0 ? 1 + deficit / headroomEnergy : 1;
+    for (const r of headroom) r.kW = Math.min(kwCap, Math.max(0, r.kW * factor));
+  }
+
   for (const r of rows) {
-    r.kW = Math.round(r.kW * scale * 100) / 100;
-    r.kVAr = Math.round(r.kW * kvarRatio * 100) / 100;
+    r.kW = r.outage ? 0 : Math.round(r.kW * 100) / 100;
+    r.kVAr = r.outage ? 0 : Math.round(r.kW * kvarRatio * 100) / 100;
     r.kVA = r.outage ? 0 : Math.round(Math.sqrt(r.kW * r.kW + r.kVAr * r.kVAr) * 100) / 100;
     r.pf = r.kVA > 0 ? Math.round((r.kW / r.kVA) * 10000) / 10000 : 1;
   }
@@ -336,6 +349,7 @@ function calibrateToVerifiedFigures(rows: Measurement[]): Measurement[] {
   // Pin the maximum recorded demand inside the Feb 17 – Mar 18 billing cycle.
   const cycleStart = new Date("2026-02-17T00:00:00Z").getTime();
   const cycleEnd = new Date("2026-03-18T23:30:00Z").getTime();
+  let peakIdx = -1;
   let best = -Infinity;
   rows.forEach((r, i) => {
     const t = r.ts.getTime();
@@ -348,11 +362,26 @@ function calibrateToVerifiedFigures(rows: Measurement[]): Measurement[] {
   if (peakIdx >= 0) {
     const r = rows[peakIdx];
     r.kVA = VERIFIED.maxDemandKVA;
-    r.kW = Math.round(r.kVA * VERIFIED.avgPowerFactor * 100) / 100;
+    r.kW = Math.round(r.kVA * PF * 100) / 100;
     r.kVAr = Math.round(Math.sqrt(Math.max(0, r.kVA * r.kVA - r.kW * r.kW)) * 100) / 100;
     r.pf = Math.round((r.kW / r.kVA) * 10000) / 10000;
   }
 
+  // Absorb rounding residue so the displayed GWh total is exact.
+  const finalTotal = rows.reduce((a, r) => a + r.kW * 0.5, 0);
+  const residualKw = (VERIFIED.totalKWh - finalTotal) / 0.5;
+  if (Math.abs(residualKw) > 0.001) {
+    const target = rows.find((r) => !r.outage && r.kW + residualKw > 0 && r.kW + residualKw < kwCap);
+    if (target) {
+      target.kW = Math.round((target.kW + residualKw) * 100) / 100;
+      target.kVAr = Math.round(target.kW * kvarRatio * 100) / 100;
+      target.kVA =
+        Math.round(Math.sqrt(target.kW * target.kW + target.kVAr * target.kVAr) * 100) / 100;
+      target.pf = Math.round((target.kW / target.kVA) * 10000) / 10000;
+    }
+  }
+
   return rows;
+
 }
 
