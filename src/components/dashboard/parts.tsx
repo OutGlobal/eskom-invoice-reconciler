@@ -20,6 +20,8 @@ import { computeTotals, computeCharges, type Charge } from "@/lib/reconciliation
 import { TARIFF, TOU_COLOR, TOU_LABEL, getSeason, type TouPeriod } from "@/lib/tariff";
 import { useApp } from "@/lib/store";
 import { validateMeterRows } from "@/lib/validation";
+import { lttb } from "@/lib/downsample";
+
 
 export const ZAR = (n: number) =>
   "R " + n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
