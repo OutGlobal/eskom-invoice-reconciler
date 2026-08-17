@@ -20,6 +20,8 @@ import { computeTotals, computeCharges, type Charge } from "@/lib/reconciliation
 import { TARIFF, TOU_COLOR, TOU_LABEL, getSeason, type TouPeriod } from "@/lib/tariff";
 import { useApp } from "@/lib/store";
 import { validateMeterRows } from "@/lib/validation";
+import { lttb } from "@/lib/downsample";
+
 
 export const ZAR = (n: number) =>
   "R " + n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -263,25 +265,105 @@ export function ChartTip({
   );
 }
 
-/** Downsampled chart data (kW + kVA) for line charts. */
-export function useChartData(rows: Measurement[]) {
+/** LTTB-downsampled chart data (kW + kVA) — max ~300 plotted points for 60fps. */
+export function useChartData(rows: Measurement[], maxPoints = 300) {
   return useMemo(() => {
     if (!rows.length) return [];
-    const step = Math.max(1, Math.floor(rows.length / 800));
-    const out: { t: number; label: string; kW: number; kVA: number; tou: TouPeriod }[] = [];
-    for (let i = 0; i < rows.length; i += step) {
-      const r = rows[i];
-      out.push({
-        t: r.ts.getTime(),
-        label: format(r.ts, "dd MMM HH:mm"),
-        kW: Math.round(r.kW),
-        kVA: Math.round(r.kVA),
-        tou: r.tou,
-      });
+    const points = rows.map((r) => ({
+      t: r.ts.getTime(),
+      label: format(r.ts, "dd MMM HH:mm"),
+      kW: Math.round(r.kW),
+      kVA: Math.round(r.kVA),
+      tou: r.tou,
+      estimated: !!r.estimated,
+      outage: !!r.outage,
+    }));
+    return lttb(points, maxPoints, (p) => p.t, (p) => p.kVA || p.kW);
+  }, [rows, maxPoints]);
+}
+
+/** Data-quality + headline metrics derived from the raw interval series. */
+export function useDataQuality(rows: Measurement[]) {
+  return useMemo(() => {
+    const estimated = rows.filter((r) => r.estimated);
+    const outages = rows.filter((r) => r.outage);
+    const supplied = rows.filter((r) => !r.outage && r.kVA > 0);
+    const avgPf = supplied.length
+      ? supplied.reduce((a, r) => a + r.pf, 0) / supplied.length
+      : 0;
+    const totalKWh = rows.reduce((a, r) => a + (isFinite(r.kW) ? r.kW * 0.5 : 0), 0);
+    let peak = 0;
+    let peakAt: Date | null = null;
+    for (const r of rows) {
+      if (r.kVA > peak) {
+        peak = r.kVA;
+        peakAt = r.ts;
+      }
     }
-    return out;
+    return {
+      intervals: rows.length,
+      estimatedCount: estimated.length,
+      estimatedRows: estimated,
+      outageCount: outages.length,
+      outageHours: outages.length * 0.5,
+      outageFrom: outages.length ? outages[0].ts : null,
+      outageTo: outages.length ? outages[outages.length - 1].ts : null,
+      avgPf,
+      totalKWh,
+      maxDemandKVA: peak,
+      maxDemandAt: peakAt,
+    };
   }, [rows]);
 }
+
+/** NMD vs measured peak demand alert card. */
+export function NmdAlertCard({
+  peakKVA,
+  nmd,
+  peakAt,
+}: {
+  peakKVA: number;
+  nmd: number;
+  peakAt?: Date | null;
+}) {
+  const util = nmd > 0 ? (peakKVA / nmd) * 100 : 0;
+  const excess = Math.max(0, peakKVA - nmd);
+  const breach = excess > 0;
+  return (
+    <div
+      className={`rounded-lg border p-4 ${
+        breach ? "border-red-500/50 bg-red-500/10" : "border-emerald-500/40 bg-emerald-500/5"
+      }`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Notified Maximum Demand (NMD) Compliance
+          </div>
+          <div className="mt-1 text-lg font-semibold">
+            {NUM(peakKVA)} kVA <span className="text-muted-foreground text-sm">measured peak</span>
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            Contracted capacity {NUM(nmd, 0)} kVA · utilisation {NUM(util, 1)}%
+            {peakAt ? ` · peak ${format(peakAt, "dd MMM yyyy HH:mm")}` : ""}
+          </div>
+        </div>
+        <div className={`text-sm font-semibold ${breach ? "text-red-500" : "text-emerald-500"}`}>
+          {breach
+            ? `🔴 NMD exceeded by ${NUM(excess)} kVA — excess network capacity surcharge risk`
+            : "🟢 Within notified capacity — no excess capacity surcharge"}
+        </div>
+      </div>
+      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary">
+        <div
+          className={`h-full ${breach ? "bg-red-500" : "bg-emerald-500"}`}
+          style={{ width: `${Math.min(100, util)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 
 export function EnergyLineChart({ rows }: { rows: Measurement[] }) {
   const data = useChartData(rows);
