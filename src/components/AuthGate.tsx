@@ -38,11 +38,32 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin" />
+      <div className="min-h-screen bg-background p-6">
+        <div className="mx-auto max-w-6xl space-y-6">
+          <div className="flex items-center gap-2 text-primary">
+            <ShieldCheck className="h-5 w-5" />
+            <span className="text-sm font-semibold">Eskom Meter Data Reconciliation</span>
+            <Loader2 className="ml-1 h-4 w-4 animate-spin text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Verifying your secure session…</span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+            <div className="h-full w-1/3 animate-pulse rounded-full bg-primary" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-24 animate-pulse rounded-md border border-border bg-secondary/50"
+              />
+            ))}
+          </div>
+          <div className="h-72 animate-pulse rounded-lg border border-border bg-secondary/40" />
+          <div className="h-56 animate-pulse rounded-lg border border-border bg-secondary/40" />
+        </div>
       </div>
     );
   }
+
 
   if (!session) return <SignInScreen />;
   return <>{children}</>;
