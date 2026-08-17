@@ -145,29 +145,36 @@ export async function parseMeterWorkbook(buffer: ArrayBuffer): Promise<Measureme
       if (!ts || isNaN(ts.getTime())) continue;
 
       let kW = Number(r[effectiveKwKey]);
-      if (!isFinite(kW)) continue;
+      const kwMissing = !isFinite(kW);
 
       // If interval energy in kWh is provided, multiply by 2 to convert 30-min kWh to kW demand
-      if (isKwhInterval) {
+      if (!kwMissing && isKwhInterval) {
         kW = kW * 2;
       }
 
       let kVAr = kvarKey ? Number(r[kvarKey]) : 0;
       if (!isFinite(kVAr)) kVAr = 0;
 
-      let kVA = kvaKey ? Number(r[kvaKey]) : 0;
+      let kVA = kvaKey ? Number(r[kvaKey]) : NaN;
       if (!isFinite(kVA) || kVA === 0) {
         // Electrical formula: kVA = sqrt(kW^2 + kVAr^2)
-        kVA = Math.sqrt(kW * kW + kVAr * kVAr);
+        kVA = kwMissing ? NaN : Math.sqrt(kW * kW + kVAr * kVAr);
       }
 
       let pf = pfKey ? Number(r[pfKey]) : 0;
       if (!isFinite(pf) || pf === 0) {
-        // Electrical formula: PF = kW / kVA
-        pf = kVA > 0 ? Math.min(1.0, Math.max(0.0, kW / kVA)) : 0.96;
+        // Zero-guard: never divide by a zero kVA (substation outage intervals)
+        pf = kVA > 0 ? Math.min(1.0, Math.max(0.0, kW / kVA)) : 1.0;
       }
 
-      rows.push({ ts, kW, kVAr, kVA, pf, tou: classifyTou(ts) });
+      rows.push({
+        ts,
+        kW: kwMissing ? NaN : kW,
+        kVAr,
+        kVA,
+        pf,
+        tou: classifyTou(ts),
+      });
     }
   }
 
@@ -176,11 +183,68 @@ export async function parseMeterWorkbook(buffer: ArrayBuffer): Promise<Measureme
   // 100% Reading Fallback Guarantee: If Excel contained no valid rows (e.g. metadata-only sheet),
   // generate the full 4-month 30-minute interval dataset (5,760 intervals across Jan 17 - May 16 2026)
   if (rows.length === 0) {
-    return generateFallbackIntervalReadings();
+    return imputeAndFlag(generateFallbackIntervalReadings());
+  }
+
+  return imputeAndFlag(rows);
+}
+
+/**
+ * Data-quality pass applied to every ingested dataset:
+ *  - NaN / null measurements are repaired by linear interpolation of the
+ *    neighbouring intervals ((val[i-1] + val[i+1]) / 2) and badged `estimated`.
+ *  - All-zero intervals (0 kW / 0 kVA) are tagged as an unsupplied grid outage
+ *    and given a safe power factor of 1.0 (no divide-by-zero).
+ */
+export function imputeAndFlag(rows: Measurement[]): Measurement[] {
+  const fields: Array<"kW" | "kVAr" | "kVA"> = ["kW", "kVAr", "kVA"];
+
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    let repaired = false;
+
+    for (const f of fields) {
+      if (isFinite(r[f])) continue;
+      // find previous finite value
+      let prev: number | undefined;
+      for (let j = i - 1; j >= 0; j--) {
+        if (isFinite(rows[j][f])) {
+          prev = rows[j][f];
+          break;
+        }
+      }
+      // find next finite value
+      let next: number | undefined;
+      for (let j = i + 1; j < rows.length; j++) {
+        if (isFinite(rows[j][f])) {
+          next = rows[j][f];
+          break;
+        }
+      }
+      if (prev !== undefined && next !== undefined) r[f] = (prev + next) / 2;
+      else if (prev !== undefined) r[f] = prev;
+      else if (next !== undefined) r[f] = next;
+      else r[f] = 0;
+      repaired = true;
+    }
+
+    if (repaired) {
+      r.estimated = true;
+      r.kVA = r.kVA > 0 ? r.kVA : Math.sqrt(r.kW * r.kW + r.kVAr * r.kVAr);
+    }
+
+    // Outage detection + zero-division guard
+    if (r.kW === 0 && r.kVA === 0) {
+      r.outage = true;
+      r.pf = 1.0;
+    } else {
+      r.pf = r.kVA > 0 ? Math.min(1, Math.max(0, r.kW / r.kVA)) : 1.0;
+    }
   }
 
   return rows;
 }
+
 
 /** Generates complete 30-minute interval meter dataset for 4 billing periods (Jan 17 - May 16 2026) */
 function generateFallbackIntervalReadings(): Measurement[] {
