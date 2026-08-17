@@ -1,6 +1,15 @@
 import { TARIFF, type TouPeriod, getSeason } from "./tariff";
 import type { Measurement } from "./parseMeter";
 
+export interface NmdExceedanceEvent {
+  ts: Date;
+  kVA: number;
+  nmd: number;
+  exceedanceKVA: number;
+  penaltyR: number;
+  tou: TouPeriod;
+}
+
 export interface Totals {
   peakKWh: number;
   standardKWh: number;
@@ -12,9 +21,10 @@ export interface Totals {
   totalKVAh: number;
   maxDemandKVA: number;
   maxDemandAt: Date | null;
+  nmdExceedances: NmdExceedanceEvent[];
 }
 
-export function computeTotals(rows: Measurement[]): Totals {
+export function computeTotals(rows: Measurement[], nmd = 85740): Totals {
   const t: Totals = {
     peakKWh: 0,
     standardKWh: 0,
@@ -26,7 +36,10 @@ export function computeTotals(rows: Measurement[]): Totals {
     totalKVAh: 0,
     maxDemandKVA: 0,
     maxDemandAt: null,
+    nmdExceedances: [],
   };
+  const RATE_PER_KVA_MONTH = 54.32; // Capacity ceiling rate: Network R35.98 + TX R10.25 + Gen R8.09
+
   for (const r of rows) {
     const kWh = r.kW * 0.5; // 30-minute integration
     const kVAh = r.kVA * 0.5;
@@ -47,7 +60,21 @@ export function computeTotals(rows: Measurement[]): Totals {
       t.maxDemandKVA = kVA_inst;
       t.maxDemandAt = r.ts;
     }
+    if (kVA_inst > nmd) {
+      const exceedanceKVA = kVA_inst - nmd;
+      t.nmdExceedances.push({
+        ts: r.ts,
+        kVA: kVA_inst,
+        nmd,
+        exceedanceKVA,
+        penaltyR: exceedanceKVA * RATE_PER_KVA_MONTH,
+        tou: r.tou,
+      });
+    }
   }
+
+  // Sort exceedance events descending by measured kVA peak
+  t.nmdExceedances.sort((a, b) => b.kVA - a.kVA);
   return t;
 }
 
@@ -77,11 +104,11 @@ export function computeCharges(totals: Totals, nmd: number, rows: Measurement[])
   const energyRate = (p: TouPeriod) =>
     seasonMix.high.totalKWh + seasonMix.low.totalKWh === 0
       ? 0
-       : (seasonMix.highOld[p] * TARIFF.energy.high[p] +
-           seasonMix.lowOld[p] * TARIFF.energy.low[p] +
-           seasonMix.highNew[p] * next.energy.high[p] +
-           seasonMix.lowNew[p] * next.energy.low[p]) /
-         Math.max(1e-9, seasonMix.high[p] + seasonMix.low[p]) / 100;
+      : (seasonMix.highOld[p] * TARIFF.energy.high[p] +
+          seasonMix.lowOld[p] * TARIFF.energy.low[p] +
+          seasonMix.highNew[p] * next.energy.high[p] +
+          seasonMix.lowNew[p] * next.energy.low[p]) /
+        Math.max(1e-9, seasonMix.high[p] + seasonMix.low[p]) / 100;
 
   const peakAmt =
     (seasonMix.highOld.peak * TARIFF.energy.high.peak + seasonMix.lowOld.peak * TARIFF.energy.low.peak +
@@ -98,144 +125,63 @@ export function computeCharges(totals: Totals, nmd: number, rows: Measurement[])
   const genRate = weightedMonthly(TARIFF.generationCapacity, next.generationCapacity);
   const demandRate = weightedMonthly(TARIFF.networkDemand, next.networkDemand);
   const txNetwork = nmd * txRate;
-  const distNetwork = nmd * distRate;
+  const networkCapacity = nmd * distRate;
   const genCapacity = nmd * genRate;
 
-  const ancillary = (oldKWh * TARIFF.ancillary + newKWh * next.ancillary) / 100;
-  const legacy = (oldKWh * TARIFF.legacy + newKWh * next.legacy) / 100;
-  const affordability = (oldKWh * TARIFF.affordability + newKWh * next.affordability) / 100;
-  const electrification = (oldKWh * TARIFF.electrification + newKWh * next.electrification) / 100;
-  const networkDemand = totals.maxDemandKVA * demandRate;
-  const billingDays = rows.length ? Math.round(rows.length / 48) : 0;
+  const billedDemandKVA = Math.max(totals.maxDemandKVA, nmd);
+  const networkDemand = billedDemandKVA * demandRate;
+
+  const legacyRate = weightedMonthly(TARIFF.legacy, next.legacy);
+  const legacyAmt = totals.totalKWh * (legacyRate / 100);
+  const ancillaryRate = weightedMonthly(TARIFF.ancillary, next.ancillary);
+  const ancillaryAmt = totals.totalKWh * (ancillaryRate / 100);
+  const electRate = weightedMonthly(TARIFF.electrification, next.electrification);
+  const electAmt = totals.totalKWh * (electRate / 100);
+  const affordRate = weightedMonthly(TARIFF.affordability, next.affordability);
+  const affordAmt = totals.totalKWh * (affordRate / 100);
+
+  const billingDays = Math.max(1, Math.round(totalIntervals / 48));
   const administration = billingDays * weightedMonthly(TARIFF.administrationDaily, next.administrationDaily);
   const service = billingDays * weightedMonthly(TARIFF.serviceDaily, next.serviceDaily);
   const connection = TARIFF.connectionMonthly;
 
-  const subTotal =
-    txNetwork +
-    distNetwork +
-    genCapacity +
+  const subTotalBeforeVat =
     peakAmt +
     stdAmt +
     offAmt +
-    ancillary +
-    legacy +
-    affordability +
-    electrification +
-    networkDemand;
-  const invoiceComparableTotal = subTotal + administration + service + connection;
+    legacyAmt +
+    ancillaryAmt +
+    electAmt +
+    affordAmt +
+    txNetwork +
+    networkCapacity +
+    genCapacity +
+    networkDemand +
+    administration +
+    service +
+    connection;
+
+  const vatAmount = subTotalBeforeVat * 0.15;
+  const invoiceComparableTotal = subTotalBeforeVat;
 
   return [
-    {
-      group: "fixed",
-      label: "Transmission Network Charge",
-      basis: "NMD × TX Rate",
-      rate: txRate,
-      rateUnit: "R/kVA/m",
-      quantity: nmd,
-      qtyUnit: "kVA",
-      amount: txNetwork,
-    },
-    {
-      group: "fixed",
-      label: "Distribution Network Capacity Charge",
-      basis: "NMD × Capacity Rate",
-      rate: distRate,
-      rateUnit: "R/kVA/m",
-      quantity: nmd,
-      qtyUnit: "kVA",
-      amount: distNetwork,
-    },
-    {
-      group: "fixed",
-      label: "Generation Capacity Charge",
-      basis: "NMD × Generation Rate",
-      rate: genRate,
-      rateUnit: "R/kVA/m",
-      quantity: nmd,
-      qtyUnit: "kVA",
-      amount: genCapacity,
-    },
-
-    {
-      group: "energy",
-      label: "Peak Energy",
-      basis: "Peak kWh × Peak Tariff",
-      rate: energyRate("peak"),
-      rateUnit: "R/kWh",
-      quantity: totals.peakKWh,
-      qtyUnit: "kWh",
-      amount: peakAmt,
-    },
-    {
-      group: "energy",
-      label: "Standard Energy",
-      basis: "Std kWh × Std Tariff",
-      rate: energyRate("standard"),
-      rateUnit: "R/kWh",
-      quantity: totals.standardKWh,
-      qtyUnit: "kWh",
-      amount: stdAmt,
-    },
-    {
-      group: "energy",
-      label: "Off-Peak Energy",
-      basis: "Off-Peak kWh × Off-Peak Tariff",
-      rate: energyRate("offPeak"),
-      rateUnit: "R/kWh",
-      quantity: totals.offPeakKWh,
-      qtyUnit: "kWh",
-      amount: offAmt,
-    },
-
-    {
-      group: "additional",
-      label: "Ancillary Service Charge",
-      basis: "Total kWh × Ancillary",
-      rate: TARIFF.ancillary / 100,
-      rateUnit: "R/kWh",
-      quantity: totals.totalKWh,
-      qtyUnit: "kWh",
-      amount: ancillary,
-    },
-    {
-      group: "additional",
-      label: "Legacy Charge",
-      basis: "Total kWh × Legacy",
-      rate: TARIFF.legacy / 100,
-      rateUnit: "R/kWh",
-      quantity: totals.totalKWh,
-      qtyUnit: "kWh",
-      amount: legacy,
-    },
-    {
-      group: "additional",
-      label: "Affordability Subsidy",
-      basis: "Total kWh × Affordability",
-      rate: TARIFF.affordability / 100,
-      rateUnit: "R/kWh",
-      quantity: totals.totalKWh,
-      qtyUnit: "kWh",
-      amount: affordability,
-    },
-    {
-      group: "additional",
-      label: "Electrification & Rural Subsidy",
-      basis: "Total kWh × Electrification",
-      rate: TARIFF.electrification / 100,
-      rateUnit: "R/kWh",
-      quantity: totals.totalKWh,
-      qtyUnit: "kWh",
-      amount: electrification,
-    },
-
+    { group: "energy", label: "Peak Energy", basis: "kWh × c/kWh", rate: energyRate("peak"), rateUnit: "R/kWh", quantity: totals.peakKWh, qtyUnit: "kWh", amount: peakAmt },
+    { group: "energy", label: "Standard Energy", basis: "kWh × c/kWh", rate: energyRate("standard"), rateUnit: "R/kWh", quantity: totals.standardKWh, qtyUnit: "kWh", amount: stdAmt },
+    { group: "energy", label: "Off-Peak Energy", basis: "kWh × c/kWh", rate: energyRate("offPeak"), rateUnit: "R/kWh", quantity: totals.offPeakKWh, qtyUnit: "kWh", amount: offAmt },
+    { group: "energy", label: "Legacy Charge", basis: "Total kWh × c/kWh", rate: legacyRate / 100, rateUnit: "R/kWh", quantity: totals.totalKWh, qtyUnit: "kWh", amount: legacyAmt },
+    { group: "energy", label: "Ancillary Service Charge", basis: "Total kWh × c/kWh", rate: ancillaryRate / 100, rateUnit: "R/kWh", quantity: totals.totalKWh, qtyUnit: "kWh", amount: ancillaryAmt },
+    { group: "additional", label: "Electrification & Rural Subsidy", basis: "Total kWh × c/kWh", rate: electRate / 100, rateUnit: "R/kWh", quantity: totals.totalKWh, qtyUnit: "kWh", amount: electAmt },
+    { group: "additional", label: "Affordability Subsidy", basis: "Total kWh × c/kWh", rate: affordRate / 100, rateUnit: "R/kWh", quantity: totals.totalKWh, qtyUnit: "kWh", amount: affordAmt },
+    { group: "fixed", label: "Transmission Network Charge", basis: "NMD × R/kVA/month", rate: txRate, rateUnit: "R/kVA", quantity: nmd, qtyUnit: "kVA", amount: txNetwork },
+    { group: "fixed", label: "Distribution Network Capacity Charge", basis: "NMD × R/kVA/month", rate: distRate, rateUnit: "R/kVA", quantity: nmd, qtyUnit: "kVA", amount: networkCapacity },
+    { group: "fixed", label: "Generation Capacity Charge", basis: "NMD × R/kVA/month", rate: genRate, rateUnit: "R/kVA", quantity: nmd, qtyUnit: "kVA", amount: genCapacity },
     {
       group: "demand",
       label: "Network Demand Charge",
-      basis: "Max Demand × Network Demand Rate",
+      basis: "Billed Peak kVA × R/kVA/month",
       rate: demandRate,
-      rateUnit: "R/kVA/m",
-      quantity: totals.maxDemandKVA,
+      rateUnit: "R/kVA",
+      quantity: billedDemandKVA,
       qtyUnit: "kVA",
       amount: networkDemand,
     },
