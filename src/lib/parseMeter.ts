@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import { classifyTou, type TouPeriod } from "./tariff";
+import { ATTACHED_TELEMETRY } from "./telemetryData";
 
 export interface Measurement {
   ts: Date;
@@ -197,12 +198,18 @@ export function generateFallbackIntervalReadings(): Measurement[] {
     const isMissing = datePart === "2026-02-16" && hour >= 18;
     const isOutage = datePart === "2026-03-08" && hour >= 8 && hour <= 15;
 
+    const key = `${datePart} ${timeStr}`;
+    const attached = ATTACHED_TELEMETRY[key];
+
     let kW = 55000;
     let kVA = 57291.67;
 
     if (isOutage) {
       kW = 0;
       kVA = 0;
+    } else if (attached) {
+      kW = attached.kW;
+      kVA = attached.kVA;
     } else {
       // Real AMR Sub-Incomer Meter Peak Readings from attached dataset:
       if (datePart === "2026-01-30" && timeStr === "14:00") {
