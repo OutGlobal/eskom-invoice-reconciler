@@ -94,7 +94,7 @@ function ReportsPage() {
             <div>
               <div className="font-semibold text-sm">Excel Package (.xlsx)</div>
               <div className="text-xs text-muted-foreground">
-                Metadata, 13-point recon table, and line items.
+                Metadata, 15-point recon table, and line items.
               </div>
             </div>
             <Download className="ml-auto h-4 w-4 opacity-60 group-hover:opacity-100" />
