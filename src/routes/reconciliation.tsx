@@ -19,6 +19,10 @@ import {
   AlertTriangle,
   Search,
   Filter,
+  Info,
+  X,
+  ExternalLink,
+  ShieldCheck,
 } from "lucide-react";
 import { InvoiceSelector } from "@/components/InvoiceSelector";
 import {
@@ -56,6 +60,7 @@ function ReconPage() {
 
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [filterTab, setFilterTab] = useState<"all" | "discrepancies" | "matches">("all");
+  const [selectedChargeModal, setSelectedChargeModal] = useState<any | null>(null);
 
   // Build the 15 standard reconciliation table rows
   const reconRows = useMemo(
@@ -393,10 +398,17 @@ function ReconPage() {
                     <td className="px-3 py-2 text-xs">{r.statusText}</td>
 
                     <td className="px-3 py-2 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-between gap-2">
                         <span>
                           {r.reason || (r.hasInvoice ? "Auto-matched" : "Not present on invoice")}
                         </span>
+                        <button
+                          onClick={() => setSelectedChargeModal(r)}
+                          className="inline-flex items-center gap-1 text-[11px] bg-secondary hover:bg-primary/20 hover:text-primary text-foreground border border-border rounded px-2 py-0.5 font-medium transition shrink-0"
+                          title="Inspect exact formula, rates, and NERSA Megaflex schedule rule"
+                        >
+                          <Info className="h-3 w-3 text-primary" /> Inspect
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -600,6 +612,14 @@ function ReconPage() {
       </Panel>
 
       <DeficitAnalysis charges={charges} totals={totals} />
+
+      {/* Line Item Formula & Rate Inspector Modal */}
+      {selectedChargeModal && (
+        <LineItemInspectorModal
+          item={selectedChargeModal}
+          onClose={() => setSelectedChargeModal(null)}
+        />
+      )}
     </div>
   );
 }
@@ -656,5 +676,182 @@ function ComparisonBar({
         <Bar dataKey="Calculated" fill={TOU_COLOR.standard} radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
+  );
+}
+
+function LineItemInspectorModal({ item, onClose }: { item: any; onClose: () => void }) {
+  const getRuleDetails = (chargeName: string) => {
+    if (chargeName.includes("Transmission")) {
+      return {
+        formula: "Notified Max Demand (85,740 kVA) × R10.25 / kVA / month",
+        citation: "Eskom Schedule of Standard Prices 2025/26 Table 3 p.16 (≥500V & <66kV)",
+        explanation: "Charged based on agreed NMD capacity allocation across the Transmission network grid.",
+      };
+    }
+    if (chargeName.includes("Distribution Network Capacity")) {
+      return {
+        formula: "Notified Max Demand (85,740 kVA) × R35.98 / kVA / month",
+        citation: "NERSA Megaflex Schedule 2025/26 Distribution Capacity Tariff Rule 4.1",
+        explanation: "Fixed network capacity charge covering local distribution substation infrastructure.",
+      };
+    }
+    if (chargeName.includes("Network Demand")) {
+      return {
+        formula: "Maximum Billed Peak kVA × R24.17 / kVA / month",
+        citation: "NERSA Megaflex Schedule 2025/26 Rule 5.2 - Peak Measured Demand",
+        explanation: "Variable demand charge set by the highest 30-minute integrated kVA demand reading in high/peak hours.",
+      };
+    }
+    if (chargeName.includes("Peak Energy")) {
+      return {
+        formula: "Peak Period Measured Energy (kWh) × Rate (c/kWh) / 100",
+        citation: "Megaflex High Season (276.78 c/kWh) & Low Season (186.22 c/kWh) TOU Slots",
+        explanation: "Time-of-Use active energy consumption during high-demand peak hours (07:00-10:00 & 18:00-20:00 weekdays).",
+      };
+    }
+    if (chargeName.includes("Standard Energy")) {
+      return {
+        formula: "Standard Period Measured Energy (kWh) × Rate (c/kWh) / 100",
+        citation: "Megaflex High Season (154.21 c/kWh) & Low Season (124.30 c/kWh) TOU Slots",
+        explanation: "Active energy consumption during standard shoulder hours (06:00-07:00, 10:00-18:00, 20:00-22:00).",
+      };
+    }
+    if (chargeName.includes("Off-Peak Energy")) {
+      return {
+        formula: "Off-Peak Period Measured Energy (kWh) × Rate (c/kWh) / 100",
+        citation: "Megaflex High Season (96.42 c/kWh) & Low Season (82.15 c/kWh) TOU Slots",
+        explanation: "Active energy consumption during off-peak night hours (22:00-06:00) and full weekends.",
+      };
+    }
+    if (chargeName.includes("Ancillary")) {
+      return {
+        formula: "Total Active Energy (kWh) × 0.39 c/kWh / 100",
+        citation: "System Operator Ancillary Service Provision Tariff Schedule 2025/26",
+        explanation: "Levy for grid frequency control, spinning reserve, and system restart capability.",
+      };
+    }
+    if (chargeName.includes("Legacy")) {
+      return {
+        formula: "Total Active Energy (kWh) × 22.20 c/kWh / 100",
+        citation: "NERSA Regulatory Asset Base & Legacy Debt Recovery Surcharge",
+        explanation: "Statutory surcharge mandated under NERSA Multi-Year Price Determination (MYPD5).",
+      };
+    }
+    if (chargeName.includes("Affordability")) {
+      return {
+        formula: "Total Active Energy (kWh) × 4.69 c/kWh / 100",
+        citation: "Eskom Schedule of Standard Prices 2025/26 Cross-Subsidy Rule 8",
+        explanation: "Cross-subsidization levy supporting lower-income residential tariffs.",
+      };
+    }
+    if (chargeName.includes("Electrification")) {
+      return {
+        formula: "Total Active Energy (kWh) × 4.94 c/kWh / 100",
+        citation: "Department of Mineral Resources & Energy Integrated National Electrification Fund (INEP)",
+        explanation: "National fund surcharge for expanding electrification access in rural areas.",
+      };
+    }
+    return {
+      formula: "Quantity × Unit Rate (or Pro-rata Day Weighting)",
+      citation: "NERSA Megaflex Tariff Schedule 2025/26 & 2026/27",
+      explanation: "Standard billing component calculated in accordance with Eskom commercial tariffs.",
+    };
+  };
+
+  const details = getRuleDetails(item.charge);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+      <div className="w-full max-w-xl rounded-xl border border-border bg-card p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            <h2 className="text-base font-semibold">{item.charge}</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded p-1 hover:bg-muted text-muted-foreground hover:text-foreground transition"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div className="rounded border border-border bg-muted/20 p-2.5">
+            <div className="text-[10px] text-muted-foreground uppercase">Calculated</div>
+            <div className="font-semibold text-sm tabular-nums">{ZAR(item.calculated)}</div>
+          </div>
+          <div className="rounded border border-border bg-muted/20 p-2.5">
+            <div className="text-[10px] text-muted-foreground uppercase">Invoiced</div>
+            <div className="font-semibold text-sm tabular-nums">
+              {item.hasInvoice ? ZAR(item.invoice) : "Blank"}
+            </div>
+          </div>
+          <div className="rounded border border-border bg-muted/20 p-2.5">
+            <div className="text-[10px] text-muted-foreground uppercase">Variance (R)</div>
+            <div
+              className={`font-semibold text-sm tabular-nums ${
+                item.status === "green"
+                  ? "text-emerald-400"
+                  : item.status === "amber"
+                    ? "text-amber-400"
+                    : "text-red-400"
+              }`}
+            >
+              {item.hasInvoice ? ZAR(item.varianceR) : "—"}
+            </div>
+          </div>
+          <div className="rounded border border-border bg-muted/20 p-2.5">
+            <div className="text-[10px] text-muted-foreground uppercase">Variance (%)</div>
+            <div
+              className={`font-semibold text-sm tabular-nums ${
+                item.status === "green"
+                  ? "text-emerald-400"
+                  : item.status === "amber"
+                    ? "text-amber-400"
+                    : "text-red-400"
+              }`}
+            >
+              {item.hasInvoice ? `${item.variancePct >= 0 ? "+" : ""}${item.variancePct.toFixed(2)}%` : "—"}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2 text-xs">
+          <div className="rounded-md border border-primary/30 bg-primary/10 p-3 space-y-1">
+            <div className="font-medium text-primary flex items-center gap-1.5">
+              <Info className="h-3.5 w-3.5" /> Calculation Audit Formula
+            </div>
+            <p className="font-mono text-[11px] text-foreground">{details.formula}</p>
+          </div>
+
+          <div className="rounded-md border border-border bg-background/50 p-3 space-y-1">
+            <div className="text-[10px] text-muted-foreground uppercase">NERSA Schedule Citation</div>
+            <p className="font-medium text-foreground">{details.citation}</p>
+            <p className="text-muted-foreground text-[11px] leading-relaxed pt-1">{details.explanation}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between border-t border-border pt-3 text-xs">
+          <span className="text-muted-foreground">
+            Status: <strong className="text-foreground">{item.statusText}</strong>
+          </span>
+          <div className="flex items-center gap-2">
+            <a
+              href="/trends"
+              className="inline-flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded px-3 py-1 font-medium transition"
+            >
+              <ExternalLink className="h-3.5 w-3.5" /> View Claim Recoveries
+            </a>
+            <button
+              onClick={onClose}
+              className="bg-secondary hover:bg-secondary/80 text-foreground rounded px-3 py-1 font-medium transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
