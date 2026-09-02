@@ -19,7 +19,7 @@ import {
   AlertTriangle,
   Search,
   Filter,
-  Info,
+  Info as InfoIcon,
   X,
   ExternalLink,
   ShieldCheck,
@@ -407,7 +407,7 @@ function ReconPage() {
                           className="inline-flex items-center gap-1 text-[11px] bg-secondary hover:bg-primary/20 hover:text-primary text-foreground border border-border rounded px-2 py-0.5 font-medium transition shrink-0"
                           title="Inspect exact formula, rates, and NERSA Megaflex schedule rule"
                         >
-                          <Info className="h-3 w-3 text-primary" /> Inspect
+                          <InfoIcon className="h-3 w-3 text-primary" /> Inspect
                         </button>
                       </div>
                     </td>
@@ -820,7 +820,7 @@ function LineItemInspectorModal({ item, onClose }: { item: any; onClose: () => v
         <div className="space-y-2 text-xs">
           <div className="rounded-md border border-primary/30 bg-primary/10 p-3 space-y-1">
             <div className="font-medium text-primary flex items-center gap-1.5">
-              <Info className="h-3.5 w-3.5" /> Calculation Audit Formula
+              <InfoIcon className="h-3.5 w-3.5" /> Calculation Audit Formula
             </div>
             <p className="font-mono text-[11px] text-foreground">{details.formula}</p>
           </div>
