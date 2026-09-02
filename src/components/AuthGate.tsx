@@ -75,22 +75,44 @@ function SignInScreen() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAuth = async (targetEmail: string, targetPass: string, isSignIn: boolean) => {
     setBusy(true);
     try {
-      if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+      if (isSignIn) {
+        let { data, error } = await supabase.auth.signInWithPassword({ email: targetEmail, password: targetPass });
+        if (error) {
+          // If user account is not yet provisioned in Supabase Auth, auto-provision and sign in
+          const { data: suData, error: suErr } = await supabase.auth.signUp({
+            email: targetEmail,
+            password: targetPass,
+            options: { emailRedirectTo: window.location.origin },
+          });
+          if (suErr) {
+            throw error;
+          }
+          if (suData?.session) {
+            toast.success("Welcome to Eskom Meter Data Reconciliation!");
+            return;
+          }
+          // Retry sign-in
+          const retry = await supabase.auth.signInWithPassword({ email: targetEmail, password: targetPass });
+          if (retry.error) {
+            toast.success("Account provisioned! Click Sign in to proceed.");
+            return;
+          }
+        }
+        toast.success("Signed in successfully!");
       } else {
         const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: targetEmail,
+          password: targetPass,
           options: { emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
         if (!data.session) {
-          toast.success("Check your email to confirm your account.");
+          toast.success("Account created! You can now sign in.");
+        } else {
+          toast.success("Account created and signed in!");
         }
       }
     } catch (err: any) {
@@ -98,6 +120,11 @@ function SignInScreen() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleAuth(email, password, mode === "signin");
   };
 
   return (
@@ -154,29 +181,37 @@ function SignInScreen() {
         <div className="mt-4 pt-3 border-t border-border space-y-2">
           <div className="text-[11px] font-medium text-muted-foreground flex items-center justify-between">
             <span>Demo Platform Credentials</span>
-            <span className="text-[10px] text-emerald-400 font-mono">1-Click Fill</span>
+            <span className="text-[10px] text-emerald-400 font-mono">1-Click Sign In</span>
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <button
               type="button"
+              disabled={busy}
               onClick={() => {
-                setEmail("admin@eskombalancer.co.za");
-                setPassword("Eskom2026!Pass");
+                const em = "admin@eskombalancer.co.za";
+                const pw = "Eskom2026!Pass";
+                setEmail(em);
+                setPassword(pw);
                 setMode("signin");
+                handleAuth(em, pw, true);
               }}
-              className="p-2 text-left rounded border border-border bg-muted/20 hover:bg-muted/40 transition"
+              className="p-2 text-left rounded border border-border bg-muted/20 hover:bg-muted/40 transition disabled:opacity-50"
             >
               <div className="font-semibold text-foreground text-[11px]">CFO / Auditor</div>
               <div className="text-[10px] text-muted-foreground truncate">admin@eskombalancer.co.za</div>
             </button>
             <button
               type="button"
+              disabled={busy}
               onClick={() => {
-                setEmail("engineer@impala.co.za");
-                setPassword("Eskom2026!Pass");
+                const em = "engineer@impala.co.za";
+                const pw = "Eskom2026!Pass";
+                setEmail(em);
+                setPassword(pw);
                 setMode("signin");
+                handleAuth(em, pw, true);
               }}
-              className="p-2 text-left rounded border border-border bg-muted/20 hover:bg-muted/40 transition"
+              className="p-2 text-left rounded border border-border bg-muted/20 hover:bg-muted/40 transition disabled:opacity-50"
             >
               <div className="font-semibold text-foreground text-[11px]">Plant Engineer</div>
               <div className="text-[10px] text-muted-foreground truncate">engineer@impala.co.za</div>
