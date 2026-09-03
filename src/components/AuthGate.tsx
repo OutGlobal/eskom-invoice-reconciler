@@ -77,6 +77,24 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function friendlyAuthError(err: any): string {
+  const code = err?.code || err?.error_code || "";
+  const msg: string = err?.message || "Authentication failed";
+  if (code === "invalid_credentials" || msg.toLowerCase().includes("invalid login credentials"))
+    return "Email or password is incorrect. Double-check your details or register below.";
+  if (code === "email_not_confirmed" || msg.toLowerCase().includes("email not confirmed"))
+    return "This account requires email confirmation. Please check your inbox or resend the confirmation link below.";
+  if (code === "email_address_invalid" || msg.toLowerCase().includes("invalid email"))
+    return "That email domain or format is invalid. Use a real, deliverable mailbox.";
+  if (code === "over_email_send_rate_limit" || msg.toLowerCase().includes("rate limit"))
+    return "Too many confirmation emails requested. Please wait a minute before trying again.";
+  if (code === "user_already_exists" || msg.toLowerCase().includes("user already registered"))
+    return "An account with this email already exists — switch to Sign in below.";
+  if (code === "weak_password" || msg.toLowerCase().includes("at least 6 characters"))
+    return "Password too weak. Please use at least 8 characters.";
+  return msg;
+}
+
 function SignInScreen({ onBypass }: { onBypass?: () => void }) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -85,14 +103,16 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
   const [resendBusy, setResendBusy] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setAuthError(null);
+    setNotice(null);
     setUnconfirmedEmail(null);
 
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
 
     try {
       if (mode === "signin") {
@@ -102,14 +122,10 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
         });
 
         if (error) {
-          const errMsg = error.message.toLowerCase();
-          if (errMsg.includes("email not confirmed")) {
+          const friendly = friendlyAuthError(error);
+          setAuthError(friendly);
+          if (error.message.toLowerCase().includes("email not confirmed")) {
             setUnconfirmedEmail(cleanEmail);
-            setAuthError("Your email has not been confirmed yet. Please check your inbox or resend the confirmation link below.");
-          } else if (errMsg.includes("invalid login credentials")) {
-            setAuthError("Invalid email or password. Please double-check your credentials.");
-          } else {
-            setAuthError(error.message);
           }
           return;
         }
@@ -125,7 +141,8 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
         });
 
         if (error) {
-          setAuthError(error.message);
+          const friendly = friendlyAuthError(error);
+          setAuthError(friendly);
           return;
         }
 
@@ -133,20 +150,21 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
           toast.success("Account created and signed in!");
         } else {
           setUnconfirmedEmail(cleanEmail);
-          toast.success("Account created! Check your email to confirm.");
+          setNotice(`Account created! We sent a confirmation link to ${cleanEmail}. Check your inbox, then sign in.`);
+          toast.success("Confirmation email sent.");
         }
       }
     } catch (err: any) {
-      setAuthError(err?.message || "An error occurred during authentication.");
+      setAuthError(friendlyAuthError(err));
     } finally {
       setBusy(false);
     }
   };
 
   const handleResendConfirmation = async () => {
-    const target = unconfirmedEmail || email.trim();
+    const target = (unconfirmedEmail || email).trim().toLowerCase();
     if (!target) {
-      toast.error("Please enter your email address first.");
+      setAuthError("Please enter your work email address first.");
       return;
     }
     setResendBusy(true);
@@ -157,9 +175,12 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
         options: { emailRedirectTo: window.location.origin },
       });
       if (error) throw error;
-      toast.success(`Confirmation link sent to ${target}! Check your inbox.`);
+      setNotice(`Confirmation link resent to ${target}. Please check your inbox.`);
+      toast.success(`Confirmation link sent to ${target}!`);
     } catch (err: any) {
-      toast.error(err?.message || "Failed to resend confirmation email.");
+      const msg = friendlyAuthError(err);
+      setAuthError(msg);
+      toast.error(msg);
     } finally {
       setResendBusy(false);
     }
@@ -194,10 +215,17 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
                 onClick={handleResendConfirmation}
                 className="inline-flex items-center gap-1.5 text-xs text-red-300 underline font-medium hover:text-white transition disabled:opacity-50"
               >
-                {resendBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+                {resendBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
                 Resend confirmation link to {unconfirmedEmail}
               </button>
             )}
+          </div>
+        )}
+
+        {notice && (
+          <div className="rounded-md border border-primary/30 bg-primary/10 p-3 text-xs text-primary leading-relaxed flex items-start gap-2">
+            <Mail className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div>{notice}</div>
           </div>
         )}
 
@@ -239,10 +267,16 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
           </button>
         </form>
 
-        {mode === "signup" && (
-          <p className="text-[11px] text-muted-foreground bg-muted/30 border border-border/50 rounded p-2 text-center leading-relaxed">
-            Note: Check your inbox after registration to confirm your email before signing in.
-          </p>
+        {mode === "signin" && !authError && (
+          <button
+            type="button"
+            disabled={resendBusy}
+            onClick={handleResendConfirmation}
+            className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition underline flex items-center justify-center gap-1.5"
+          >
+            {resendBusy && <Loader2 className="h-3 w-3 animate-spin" />}
+            Resend confirmation link
+          </button>
         )}
 
         {onBypass && (
@@ -261,6 +295,7 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
           onClick={() => {
             setMode(mode === "signin" ? "signup" : "signin");
             setAuthError(null);
+            setNotice(null);
           }}
           className="w-full text-center text-xs text-muted-foreground hover:text-foreground pt-1"
         >
