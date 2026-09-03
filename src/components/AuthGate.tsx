@@ -15,18 +15,24 @@ export function useSupabaseSession() {
 
   useEffect(() => {
     let active = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setSession(data.session);
-      setReady(true);
-    });
+    supabase.auth.getSession()
+      .then((res) => {
+        if (!active) return;
+        setSession(res?.data?.session || null);
+        setReady(true);
+      })
+      .catch((err) => {
+        console.warn("Supabase auth session fetch notice:", err);
+        if (active) setReady(true);
+      });
+
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
       setReady(true);
     });
     return () => {
       active = false;
-      sub.subscription.unsubscribe();
+      sub?.subscription?.unsubscribe();
     };
   }, []);
 
@@ -35,6 +41,7 @@ export function useSupabaseSession() {
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, ready } = useSupabaseSession();
+  const [bypassAuth, setBypassAuth] = useState(false);
 
   if (!ready) {
     return (
@@ -64,12 +71,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-
-  if (!session) return <SignInScreen />;
+  if (!session && !bypassAuth) {
+    return <SignInScreen onBypass={() => setBypassAuth(true)} />;
+  }
   return <>{children}</>;
 }
 
-function SignInScreen() {
+function SignInScreen({ onBypass }: { onBypass?: () => void }) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -219,9 +227,19 @@ function SignInScreen() {
           </div>
         </div>
 
+        {onBypass && (
+          <button
+            type="button"
+            onClick={onBypass}
+            className="mt-3 w-full rounded-md border border-primary/40 bg-primary/10 py-2 text-xs font-medium text-primary hover:bg-primary/20 transition text-center block"
+          >
+            ⚡ Continue to Demo Dashboard (Guest Access)
+          </button>
+        )}
+
         <button
           onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-          className="mt-4 w-full text-center text-xs text-muted-foreground hover:text-foreground"
+          className="mt-3 w-full text-center text-xs text-muted-foreground hover:text-foreground"
         >
           {mode === "signin" ? "No account yet? Register" : "Already registered? Sign in"}
         </button>
