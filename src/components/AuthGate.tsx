@@ -220,47 +220,21 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
           </button>
         </form>
 
-        {/* Demo Quick Access Credentials Helper */}
-        <div className="mt-4 pt-3 border-t border-border space-y-2">
-          <div className="text-[11px] font-medium text-muted-foreground flex items-center justify-between">
-            <span>Demo Platform Credentials</span>
-            <span className="text-[10px] text-emerald-400 font-mono">1-Click Sign In</span>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => {
-                const em = "admin@eskombalancer.co.za";
-                const pw = "Eskom2026!Pass";
-                setEmail(em);
-                setPassword(pw);
-                setMode("signin");
-                handleAuth(em, pw, true);
-              }}
-              className="p-2 text-left rounded border border-border bg-muted/20 hover:bg-muted/40 transition disabled:opacity-50"
-            >
-              <div className="font-semibold text-foreground text-[11px]">CFO / Auditor</div>
-              <div className="text-[10px] text-muted-foreground truncate">admin@eskombalancer.co.za</div>
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => {
-                const em = "engineer@impala.co.za";
-                const pw = "Eskom2026!Pass";
-                setEmail(em);
-                setPassword(pw);
-                setMode("signin");
-                handleAuth(em, pw, true);
-              }}
-              className="p-2 text-left rounded border border-border bg-muted/20 hover:bg-muted/40 transition disabled:opacity-50"
-            >
-              <div className="font-semibold text-foreground text-[11px]">Plant Engineer</div>
-              <div className="text-[10px] text-muted-foreground truncate">engineer@impala.co.za</div>
-            </button>
-          </div>
-        </div>
+        {notice && (
+          <p className="mt-3 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-[11px] leading-relaxed text-foreground">
+            {notice}
+          </p>
+        )}
+
+        <button
+          type="button"
+          disabled={busy}
+          onClick={resendConfirmation}
+          className="mt-3 w-full rounded-md border border-border py-2 text-xs text-muted-foreground hover:text-foreground transition disabled:opacity-50"
+        >
+          Resend confirmation link
+        </button>
+
 
         {onBypass && (
           <button
