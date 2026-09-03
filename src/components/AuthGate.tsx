@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { LogIn, ShieldCheck, Loader2 } from "lucide-react";
+import { LogIn, ShieldCheck, Loader2, Mail, AlertTriangle, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 
 /**
@@ -82,88 +82,141 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [resendBusy, setResendBusy] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
 
-  const handleAuth = async (targetEmail: string, targetPass: string, isSignIn: boolean) => {
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
     setBusy(true);
+    setAuthError(null);
+    setUnconfirmedEmail(null);
+
+    const cleanEmail = email.trim();
+
     try {
-      if (isSignIn) {
-        let { data, error } = await supabase.auth.signInWithPassword({ email: targetEmail, password: targetPass });
+      if (mode === "signin") {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+
         if (error) {
-          // If user account is not yet provisioned in Supabase Auth, auto-provision and sign in
-          const { data: suData, error: suErr } = await supabase.auth.signUp({
-            email: targetEmail,
-            password: targetPass,
-            options: { emailRedirectTo: window.location.origin },
-          });
-          if (suErr) {
-            throw error;
+          const errMsg = error.message.toLowerCase();
+          if (errMsg.includes("email not confirmed")) {
+            setUnconfirmedEmail(cleanEmail);
+            setAuthError("Your email has not been confirmed yet. Please check your inbox or resend the confirmation link below.");
+          } else if (errMsg.includes("invalid login credentials")) {
+            setAuthError("Invalid email or password. Please double-check your credentials.");
+          } else {
+            setAuthError(error.message);
           }
-          if (suData?.session) {
-            toast.success("Welcome to Eskom Meter Data Reconciliation!");
-            return;
-          }
-          // Retry sign-in
-          const retry = await supabase.auth.signInWithPassword({ email: targetEmail, password: targetPass });
-          if (retry.error) {
-            toast.success("Account provisioned! Click Sign in to proceed.");
-            return;
-          }
+          return;
         }
-        toast.success("Signed in successfully!");
+
+        if (data.session) {
+          toast.success("Signed in successfully!");
+        }
       } else {
         const { data, error } = await supabase.auth.signUp({
-          email: targetEmail,
-          password: targetPass,
+          email: cleanEmail,
+          password,
           options: { emailRedirectTo: window.location.origin },
         });
-        if (error) throw error;
-        if (!data.session) {
-          toast.success("Account created! You can now sign in.");
-        } else {
+
+        if (error) {
+          setAuthError(error.message);
+          return;
+        }
+
+        if (data.session) {
           toast.success("Account created and signed in!");
+        } else {
+          setUnconfirmedEmail(cleanEmail);
+          toast.success("Account created! Check your email to confirm.");
         }
       }
     } catch (err: any) {
-      toast.error(err?.message || "Authentication failed");
+      setAuthError(err?.message || "An error occurred during authentication.");
     } finally {
       setBusy(false);
     }
   };
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleAuth(email, password, mode === "signin");
+  const handleResendConfirmation = async () => {
+    const target = unconfirmedEmail || email.trim();
+    if (!target) {
+      toast.error("Please enter your email address first.");
+      return;
+    }
+    setResendBusy(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: target,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      toast.success(`Confirmation link sent to ${target}! Check your inbox.`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to resend confirmation email.");
+    } finally {
+      setResendBusy(false);
+    }
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg">
-        <div className="flex items-center gap-2 text-primary">
-          <ShieldCheck className="h-5 w-5" />
-          <span className="text-sm font-semibold">Secure Access</span>
+      <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg space-y-4">
+        <div>
+          <div className="flex items-center gap-2 text-primary">
+            <ShieldCheck className="h-5 w-5" />
+            <span className="text-sm font-semibold">Secure Access</span>
+          </div>
+          <h1 className="mt-2 text-lg font-semibold text-foreground">
+            Eskom Meter Data Reconciliation
+          </h1>
+          <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+            Commercial billing, reconciliation and recovery data is restricted. Sign in to your account or continue in demo mode.
+          </p>
         </div>
-        <h1 className="mt-3 text-lg font-semibold text-foreground">
-          Eskom Meter Data Reconciliation
-        </h1>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Commercial billing, reconciliation and recovery data is restricted. Sign in to continue.
-        </p>
 
-        <form onSubmit={submit} className="mt-5 space-y-3">
+        {authError && (
+          <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400 space-y-2">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-red-400 mt-0.5" />
+              <div className="leading-relaxed">{authError}</div>
+            </div>
+            {unconfirmedEmail && (
+              <button
+                type="button"
+                disabled={resendBusy}
+                onClick={handleResendConfirmation}
+                className="inline-flex items-center gap-1.5 text-xs text-red-300 underline font-medium hover:text-white transition disabled:opacity-50"
+              >
+                {resendBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+                Resend confirmation link to {unconfirmedEmail}
+              </button>
+            )}
+          </div>
+        )}
+
+        <form onSubmit={handleAuth} className="space-y-3">
           <div>
-            <label className="block text-[11px] text-muted-foreground mb-1">Work email</label>
+            <label className="block text-[11px] text-muted-foreground mb-1 font-medium">Work email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. admin@eskombalancer.co.za"
+              placeholder="e.g. name@company.co.za"
               autoComplete="email"
-              className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm"
+              className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
+
           <div>
-            <label className="block text-[11px] text-muted-foreground mb-1">Password</label>
+            <label className="block text-[11px] text-muted-foreground mb-1 font-medium">Password</label>
             <input
               type="password"
               required
@@ -172,9 +225,10 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               autoComplete={mode === "signin" ? "current-password" : "new-password"}
-              className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm"
+              className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
+
           <button
             type="submit"
             disabled={busy}
@@ -185,61 +239,30 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
           </button>
         </form>
 
-        {/* Demo Quick Access Credentials Helper */}
-        <div className="mt-4 pt-3 border-t border-border space-y-2">
-          <div className="text-[11px] font-medium text-muted-foreground flex items-center justify-between">
-            <span>Demo Platform Credentials</span>
-            <span className="text-[10px] text-emerald-400 font-mono">1-Click Sign In</span>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => {
-                const em = "admin@eskombalancer.co.za";
-                const pw = "Eskom2026!Pass";
-                setEmail(em);
-                setPassword(pw);
-                setMode("signin");
-                handleAuth(em, pw, true);
-              }}
-              className="p-2 text-left rounded border border-border bg-muted/20 hover:bg-muted/40 transition disabled:opacity-50"
-            >
-              <div className="font-semibold text-foreground text-[11px]">CFO / Auditor</div>
-              <div className="text-[10px] text-muted-foreground truncate">admin@eskombalancer.co.za</div>
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => {
-                const em = "engineer@impala.co.za";
-                const pw = "Eskom2026!Pass";
-                setEmail(em);
-                setPassword(pw);
-                setMode("signin");
-                handleAuth(em, pw, true);
-              }}
-              className="p-2 text-left rounded border border-border bg-muted/20 hover:bg-muted/40 transition disabled:opacity-50"
-            >
-              <div className="font-semibold text-foreground text-[11px]">Plant Engineer</div>
-              <div className="text-[10px] text-muted-foreground truncate">engineer@impala.co.za</div>
-            </button>
-          </div>
-        </div>
+        {mode === "signup" && (
+          <p className="text-[11px] text-muted-foreground bg-muted/30 border border-border/50 rounded p-2 text-center leading-relaxed">
+            Note: Check your inbox after registration to confirm your email before signing in.
+          </p>
+        )}
 
         {onBypass && (
-          <button
-            type="button"
-            onClick={onBypass}
-            className="mt-3 w-full rounded-md border border-primary/40 bg-primary/10 py-2 text-xs font-medium text-primary hover:bg-primary/20 transition text-center block"
-          >
-            ⚡ Continue to Demo Dashboard (Guest Access)
-          </button>
+          <div className="pt-2 border-t border-border">
+            <button
+              type="button"
+              onClick={onBypass}
+              className="w-full rounded-md border border-primary/40 bg-primary/10 py-2 text-xs font-medium text-primary hover:bg-primary/20 transition text-center block"
+            >
+              ⚡ Continue to Demo Dashboard (Guest Access)
+            </button>
+          </div>
         )}
 
         <button
-          onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-          className="mt-3 w-full text-center text-xs text-muted-foreground hover:text-foreground"
+          onClick={() => {
+            setMode(mode === "signin" ? "signup" : "signin");
+            setAuthError(null);
+          }}
+          className="w-full text-center text-xs text-muted-foreground hover:text-foreground pt-1"
         >
           {mode === "signin" ? "No account yet? Register" : "Already registered? Sign in"}
         </button>
