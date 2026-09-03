@@ -15,6 +15,8 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AuthGate, SignOutButton } from "@/components/AuthGate";
+import { AiCopilotModal } from "@/components/AiCopilotModal";
+import { Sparkles } from "lucide-react";
 
 
 function NotFoundComponent() {
@@ -139,6 +141,8 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGate>
@@ -148,10 +152,19 @@ function RootComponent() {
             <div className="flex-1 flex flex-col min-w-0">
               <header className="h-12 flex items-center gap-2 border-b border-border bg-card px-3 sticky top-0 z-10">
                 <SidebarTrigger />
-                <div className="text-sm font-medium">Eskom Meter Data Reconciliation</div>
-                <div className="ml-auto flex items-center gap-3">
-                  <div className="text-xs text-muted-foreground hidden sm:block">
-                    2025/2026 Tariff Book · 30-min interval analytics
+                <div className="text-sm font-medium flex items-center gap-2">
+                  <span>Eskom Meter Data Reconciliation</span>
+                </div>
+                <div className="ml-auto flex items-center gap-2 sm:gap-3">
+                  <button
+                    onClick={() => setAiModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 border border-primary/30 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition shadow-2xs"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 animate-pulse text-primary" />
+                    <span>AI Copilot</span>
+                  </button>
+                  <div className="text-xs text-muted-foreground hidden lg:block">
+                    2025/2026 Tariff Book · 30-min analytics
                   </div>
                   <SignOutButton />
                 </div>
@@ -161,6 +174,7 @@ function RootComponent() {
               </main>
             </div>
           </div>
+          <AiCopilotModal isOpen={aiModalOpen} onClose={() => setAiModalOpen(false)} />
         </SidebarProvider>
       </AuthGate>
       <Toaster

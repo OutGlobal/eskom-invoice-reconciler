@@ -23,6 +23,7 @@ import {
   X,
   ExternalLink,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import { InvoiceSelector } from "@/components/InvoiceSelector";
 import {
@@ -40,6 +41,7 @@ import { useApp } from "@/lib/store";
 import { TOU_COLOR } from "@/lib/tariff";
 import { buildStandardReconciliationTable } from "@/lib/reconciliation";
 import { exportToExcel, exportToCsv, exportToJson, exportToPdfPrint } from "@/lib/exportReports";
+import { AiCopilotModal } from "@/components/AiCopilotModal";
 
 export const Route = createFileRoute("/reconciliation")({
   head: () => ({ meta: [{ title: "Reconciliation — Eskom Bill Balancer" }] }),
@@ -61,6 +63,7 @@ function ReconPage() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [filterTab, setFilterTab] = useState<"all" | "discrepancies" | "matches">("all");
   const [selectedChargeModal, setSelectedChargeModal] = useState<any | null>(null);
+  const [aiCopilotOpen, setAiCopilotOpen] = useState<boolean>(false);
 
   // Build the 15 standard reconciliation table rows
   const reconRows = useMemo(
@@ -177,15 +180,15 @@ function ReconPage() {
             </button>
 
             <button
-              onClick={() => exportToJson(invoice)}
-              className="inline-flex items-center gap-1 text-xs bg-secondary hover:bg-secondary/80 border border-border rounded px-2.5 py-1 font-medium transition"
-              title="Export JSON Data (.json)"
+              onClick={() => setAiCopilotOpen(true)}
+              className="inline-flex items-center gap-1.5 text-xs bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded px-3 py-1 font-medium transition shadow-xs"
+              title="Run AI Commercial Tariff & Invoice Audit"
             >
-              <FileText className="h-3.5 w-3.5" /> JSON
+              <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" /> AI Audit Analysis
             </button>
 
             <button
-              onClick={exportToPdfPrint}
+              onClick={() => exportToPdfPrint()}
               className="inline-flex items-center gap-1 text-xs bg-secondary hover:bg-secondary/80 border border-border rounded px-2.5 py-1 font-medium transition"
               title="Print / Save PDF"
             >
@@ -620,6 +623,9 @@ function ReconPage() {
           onClose={() => setSelectedChargeModal(null)}
         />
       )}
+
+      {/* AI Commercial Copilot Modal */}
+      <AiCopilotModal isOpen={aiCopilotOpen} onClose={() => setAiCopilotOpen(false)} />
     </div>
   );
 }
