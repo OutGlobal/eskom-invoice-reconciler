@@ -77,54 +77,88 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function friendlyAuthError(err: any): string {
+  const code = err?.code || err?.error_code || "";
+  const msg: string = err?.message || "Authentication failed";
+  if (code === "invalid_credentials")
+    return "Email or password is incorrect. If you have not registered yet, use Register below.";
+  if (code === "email_not_confirmed")
+    return "This account still needs email confirmation. Open the confirmation link we emailed you, then sign in.";
+  if (code === "email_address_invalid")
+    return "That email domain is not accepted by the identity provider. Use a real, deliverable mailbox.";
+  if (code === "over_email_send_rate_limit")
+    return "Too many emails sent just now. Wait a minute and try again.";
+  if (code === "user_already_exists")
+    return "An account with this email already exists — switch to Sign in.";
+  if (code === "weak_password") return "Password too weak. Use at least 8 characters.";
+  return msg;
+}
+
 function SignInScreen({ onBypass }: { onBypass?: () => void }) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const handleAuth = async (targetEmail: string, targetPass: string, isSignIn: boolean) => {
+    const cleanEmail = targetEmail.trim().toLowerCase();
     setBusy(true);
+    setNotice(null);
     try {
       if (isSignIn) {
-        let { data, error } = await supabase.auth.signInWithPassword({ email: targetEmail, password: targetPass });
-        if (error) {
-          // If user account is not yet provisioned in Supabase Auth, auto-provision and sign in
-          const { data: suData, error: suErr } = await supabase.auth.signUp({
-            email: targetEmail,
-            password: targetPass,
-            options: { emailRedirectTo: window.location.origin },
-          });
-          if (suErr) {
-            throw error;
-          }
-          if (suData?.session) {
-            toast.success("Welcome to Eskom Meter Data Reconciliation!");
-            return;
-          }
-          // Retry sign-in
-          const retry = await supabase.auth.signInWithPassword({ email: targetEmail, password: targetPass });
-          if (retry.error) {
-            toast.success("Account provisioned! Click Sign in to proceed.");
-            return;
-          }
-        }
+        const { error } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: targetPass,
+        });
+        if (error) throw error;
         toast.success("Signed in successfully!");
       } else {
         const { data, error } = await supabase.auth.signUp({
-          email: targetEmail,
+          email: cleanEmail,
           password: targetPass,
           options: { emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
-        if (!data.session) {
-          toast.success("Account created! You can now sign in.");
-        } else {
+        if (data.session) {
           toast.success("Account created and signed in!");
+        } else {
+          setMode("signin");
+          setNotice(
+            `We sent a confirmation link to ${cleanEmail}. Confirm it, then sign in with the same password.`,
+          );
+          toast.success("Confirmation email sent.");
         }
       }
     } catch (err: any) {
-      toast.error(err?.message || "Authentication failed");
+      const message = friendlyAuthError(err);
+      setNotice(message);
+      toast.error(message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resendConfirmation = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      setNotice("Enter your work email first, then resend the confirmation link.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: cleanEmail,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      setNotice(`Confirmation link resent to ${cleanEmail}.`);
+      toast.success("Confirmation link resent.");
+    } catch (err: any) {
+      const message = friendlyAuthError(err);
+      setNotice(message);
+      toast.error(message);
     } finally {
       setBusy(false);
     }
@@ -134,6 +168,7 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
     e.preventDefault();
     handleAuth(email, password, mode === "signin");
   };
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
