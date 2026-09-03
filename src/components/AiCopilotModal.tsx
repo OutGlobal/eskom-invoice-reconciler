@@ -36,7 +36,7 @@ export function AiCopilotModal({ isOpen, onClose }: AiCopilotModalProps) {
     {
       sender: "ai",
       text: "Hello! I am your AI Commercial Energy Copilot. I have audited your active Eskom Megaflex invoice and 5,747 30-minute meter readings. How can I assist you today?",
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      time: "08:00",
     },
   ]);
   const [userQuery, setUserQuery] = useState("");
