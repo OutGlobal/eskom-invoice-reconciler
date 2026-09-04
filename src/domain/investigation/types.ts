@@ -3,10 +3,56 @@
  * Strictly grounded in verified deterministic reconciliation evidence
  */
 
-import { ReconciliationResult } from "../reconciliation/types";
-import { DiscrepancyDiagnosis } from "../discrepancy/types";
-import { DataQualityAssessmentResult } from "../quality/types";
-import { TariffVersionDefinition } from "../tariff/types";
+export interface InvestigationReconLineItem {
+  componentName: string;
+  billedAmountZar: number;
+  calculatedAmountZar: number;
+  varianceZar: number;
+  status?: string;
+}
+
+export interface InvestigationReconResult {
+  billedTotalZar: number;
+  calculatedTotalZar: number;
+  varianceZar: number;
+  variancePercentage: number;
+  reconciliationStatus?: string;
+  lineItems: InvestigationReconLineItem[];
+  discrepancies?: any[];
+  auditLedgerHash: string;
+  sourceFileHashes: string[];
+  calculationTrace?: any[];
+}
+
+export interface InvestigationDiagnosis {
+  reasonCode?: string;
+  severity?: string;
+  confidencePct?: number;
+  evidenceSummary?: string;
+  affectedRecordCount?: number;
+  affectedComponent?: string;
+  financialImpactZar: number;
+  evidence?: {
+    billedValue?: number;
+    calculatedValue?: number;
+    varianceZar?: number;
+    variancePct?: number;
+    affectedRecords?: number[];
+  };
+  rootCause?: string;
+}
+
+export interface InvestigationTariffDef {
+  tariff_name?: string;
+  effective_date?: string;
+}
+
+export interface InvestigationQualityAssessment {
+  overallScore: number;
+  classification?: string;
+  issues: Array<{ title?: string; description?: string; [k: string]: any }>;
+  [k: string]: any;
+}
 
 export interface AiInvestigationFinding {
   finding: string;
