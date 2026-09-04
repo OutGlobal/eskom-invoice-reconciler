@@ -114,10 +114,10 @@ export interface ManagementSummaryReport {
 }
 
 export interface InvestigationContext {
-  reconciliationResult?: ReconciliationResult;
-  diagnoses?: DiscrepancyDiagnosis[];
-  qualityAssessment?: DataQualityAssessmentResult;
-  tariffDef?: TariffVersionDefinition;
+  reconciliationResult?: InvestigationReconResult;
+  diagnoses?: InvestigationDiagnosis[];
+  qualityAssessment?: any;
+  tariffDef?: InvestigationTariffDef;
   customerName?: string;
   accountNumber?: string;
   invoiceNumber?: string;

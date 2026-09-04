@@ -45,6 +45,7 @@ export const DisputePackModal: React.FC<DisputePackModalProps> = ({
     setIsExporting(true);
     setTimeout(() => {
       exportToExcel(
+        null,
         [
           {
             "Claim ID": "CL-2026-0391",
@@ -79,6 +80,7 @@ export const DisputePackModal: React.FC<DisputePackModalProps> = ({
             "Evidence Reference": "Derived 15% VAT on disputed overcharges",
           },
         ],
+        [],
         `Eskom_Dispute_Pack_${accountNumber}_${invoiceNumber}`,
       );
       setIsExporting(false);

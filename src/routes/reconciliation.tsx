@@ -128,12 +128,12 @@ function ReconPage() {
   const investigationContext = useMemo(
     () => ({
       customerName: customer?.name,
-      accountNumber: customer?.account,
-      invoiceNumber: invoice?.invoiceNumber,
-      meterId: customer?.meterId,
+      accountNumber: customer?.accountNumber,
+      invoiceNumber: invoice?.invoiceNo,
+      meterId: customer?.meter,
       billingPeriodStr:
-        invoice?.periodStart && invoice?.periodEnd
-          ? `${invoice.periodStart} to ${invoice.periodEnd}`
+        invoice?.billingPeriodStart && invoice?.billingPeriodEnd
+          ? `${invoice.billingPeriodStart} to ${invoice.billingPeriodEnd}`
           : undefined,
       reconciliationResult: {
         billedTotalZar: invTotalVal,
@@ -370,7 +370,7 @@ function ReconPage() {
         isOpen={disputePackOpen}
         onClose={() => setDisputePackOpen(false)}
         customerName={customer.name}
-        accountNumber={customer.accountNo}
+        accountNumber={customer.accountNumber}
         invoiceNumber={invoice?.invoiceNo || "INV-2026-03-8891"}
         disputedAmount={dashboardMetrics.potentialOvercharge || 22500.0}
       />

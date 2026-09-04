@@ -5,7 +5,7 @@
 import { WORKFLOW_STEPS } from "../../components/workflow/EnterpriseWorkflowStepper";
 import { EnterpriseDashboardMetrics, DisputePackPayload } from "../../domain/workflow/types";
 
-function assert(condition: boolean, message: string) {
+function assert(condition: boolean | undefined, message: string) {
   if (!condition) {
     throw new Error(`TEST FAILED: ${message}`);
   }
