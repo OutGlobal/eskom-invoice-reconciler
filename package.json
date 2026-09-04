@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "npm run test && vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
+    "test": "npx tsx src/lib/__tests__/comprehensive_enterprise_test_suite.test.ts",
+    "test:all": "npx tsx src/lib/__tests__/run-tests.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
