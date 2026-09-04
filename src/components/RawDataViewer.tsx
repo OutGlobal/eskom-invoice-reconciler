@@ -49,6 +49,19 @@ export function RawDataViewer({ pipelineResult, onClose }: RawDataViewerProps) {
     toast.success("Raw parsed JSON file downloaded!");
   };
 
+  const handleDownloadOriginalText = () => {
+    const blob = new Blob([rawText || JSON.stringify(invoice, null, 2)], {
+      type: "text/plain",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${invoice.invoiceNumber || "eskom-invoice"}_extracted_raw_text.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Original raw text downloaded!");
+  };
+
   return (
     <div className="rounded-xl border border-border bg-card shadow-lg overflow-hidden my-4">
       {/* Top Header */}
@@ -75,6 +88,12 @@ export function RawDataViewer({ pipelineResult, onClose }: RawDataViewerProps) {
               <Copy className="h-3.5 w-3.5" />
             )}
             {copied ? "Copied" : "Copy JSON"}
+          </button>
+          <button
+            onClick={handleDownloadOriginalText}
+            className="inline-flex items-center gap-1 text-xs bg-secondary hover:bg-secondary/80 text-secondary-foreground px-2.5 py-1.5 rounded-md font-medium transition"
+          >
+            <Download className="h-3.5 w-3.5" /> Download Raw Text
           </button>
           <button
             onClick={handleDownloadJson}

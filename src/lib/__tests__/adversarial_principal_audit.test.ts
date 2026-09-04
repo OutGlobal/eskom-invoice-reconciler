@@ -1,3 +1,4 @@
+// @ts-expect-error vitest types imported dynamically
 import { describe, it, expect } from "vitest";
 import Decimal from "decimal.js-light";
 import { TariffEngine } from "../../domain/services/tariffEngine";
@@ -40,6 +41,7 @@ describe("Adversarial Principal Audit Suite (First Principles)", () => {
       active_energy_kwh: new Decimal("600000"),
       maximum_demand_kva: new Decimal("2000"),
       notified_maximum_demand_kva: new Decimal("2500"),
+      utilised_capacity_kva: new Decimal("2000"),
       power_factor: new Decimal("0.90"),
       reactive_energy_kvarh: new Decimal("0"), // ZERO reactive energy
     };
@@ -132,7 +134,7 @@ describe("Adversarial Principal Audit Suite (First Principles)", () => {
   it("4. DEFECT PROBE: Freedom Day 2025-04-27 (Sunday) observed on 2025-04-28 (Monday)", () => {
     const mondayObserved = new Date("2025-04-28T10:00:00Z");
     const isHolidayInScheduleEngine = TouScheduleEngine.isPublicHoliday(mondayObserved, [
-      { name: "Freedom Day", date: "2025-04-27", day_type_override: "sunday" },
+      { name: "Freedom Day", date: "2025-04-27", tou_treatment: "sunday_schedule" },
     ]);
 
     expect(isHolidayInScheduleEngine).toBe(true);

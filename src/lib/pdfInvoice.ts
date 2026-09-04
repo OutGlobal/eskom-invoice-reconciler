@@ -623,7 +623,7 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
       }
     };
   }
-  if (typeof Promise.try !== "function") {
+  if (typeof (Promise as any).try !== "function") {
     (Promise as any).try = function (fn: () => any) {
       return new Promise((resolve) => resolve(fn()));
     };
