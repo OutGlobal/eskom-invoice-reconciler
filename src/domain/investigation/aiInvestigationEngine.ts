@@ -146,7 +146,7 @@ export class AiInvestigationEngine {
     const recon = context.reconciliationResult;
     const diagnoses = context.diagnoses || [];
 
-    const topDiscrepancies = (diagnoses.length > 0 ? diagnoses : recon.discrepancies).slice(0, 5).map((d: any) => ({
+    const topDiscrepancies = ((diagnoses.length > 0 ? diagnoses : recon.discrepancies) || []).slice(0, 5).map((d: any) => ({
       component: d.affectedComponent || d.componentName || "Billing Component",
       varianceZar: d.financialImpactZar || d.varianceZar || 0,
       rootCause: d.rootCause || d.statusText || "Rate discrepancy",
@@ -155,7 +155,7 @@ export class AiInvestigationEngine {
     return {
       title: `Executive Billing Audit Summary - ${context.customerName || "Site"}`,
       generatedAt: new Date().toISOString(),
-      overallStatus: recon.reconciliationStatus,
+      overallStatus: recon.reconciliationStatus || "UNDER_REVIEW",
       totalBilledZar: recon.billedTotalZar,
       totalCalculatedZar: recon.calculatedTotalZar,
       totalVarianceZar: recon.varianceZar,
@@ -228,7 +228,7 @@ export class AiInvestigationEngine {
     }
 
     const calcDescription = primaryDiag
-      ? `Impact = Billed Component (R ${primaryDiag.evidence.billedValue}) - Calculated Component (R ${primaryDiag.evidence.calculatedValue}) = R ${impactR.toFixed(2)}`
+      ? `Impact = Billed Component (R ${primaryDiag.evidence?.billedValue}) - Calculated Component (R ${primaryDiag.evidence?.calculatedValue}) = R ${impactR.toFixed(2)}`
       : `Impact = Billed Line (R ${largestLine?.billedAmountZar ?? 0}) - Calculated Line (R ${largestLine?.calculatedAmountZar ?? 0}) = R ${impactR.toFixed(2)}`;
 
     return {

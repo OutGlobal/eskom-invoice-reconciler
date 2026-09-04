@@ -46,7 +46,7 @@ export const DisputePackModal: React.FC<DisputePackModalProps> = ({
     setTimeout(() => {
       exportToExcel(
         null,
-        [
+        ([
           {
             "Claim ID": "CL-2026-0391",
             "Discrepancy Category": "Peak Energy TOU Misclassification",
@@ -80,6 +80,7 @@ export const DisputePackModal: React.FC<DisputePackModalProps> = ({
             "Evidence Reference": "Derived 15% VAT on disputed overcharges",
           },
         ],
+        ] as any),
         [],
         `Eskom_Dispute_Pack_${accountNumber}_${invoiceNumber}`,
       );
