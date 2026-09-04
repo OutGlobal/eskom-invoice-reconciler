@@ -6,7 +6,7 @@ import { evaluateDataQuality } from "../../domain/quality/dataQualityEngine";
 import { updateQualityIssueReviewStatus } from "../../domain/quality/qualityReviewService";
 import { CanonicalTelemetryRecord } from "../../domain/telemetry/types";
 
-function assert(condition: boolean, message: string) {
+function assert(condition: boolean | undefined, message: string) {
   if (!condition) {
     throw new Error(`QUALITY ENGINE TEST FAILED: ${message}`);
   }

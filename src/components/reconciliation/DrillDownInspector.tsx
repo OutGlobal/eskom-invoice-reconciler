@@ -358,7 +358,7 @@ export const DrillDownInspector: React.FC = () => {
                     <td className="py-2 px-3">
                       <span
                         className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white"
-                        style={{ backgroundColor: TOU_COLOR[interval.touPeriod] }}
+                        style={{ backgroundColor: (TOU_COLOR as Record<string, string>)[interval.touPeriod] }}
                       >
                         {interval.touPeriod}
                       </span>

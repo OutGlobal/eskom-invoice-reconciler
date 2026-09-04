@@ -71,7 +71,7 @@ export function evaluateDataQuality(input: QualityAssessmentInput): DataQualityA
     }
 
     // Check Impossible Power Factor (out of -1 to 1 range)
-    if (r.power_factor < -1.0 || r.power_factor > 1.0) {
+    if (r.power_factor !== undefined && (r.power_factor < -1.0 || r.power_factor > 1.0)) {
       impossiblePfRows.push(rowNum);
     }
 

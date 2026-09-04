@@ -9,7 +9,8 @@ export type TelemetryQualityStatus =
   | "interpolated"
   | "suspect"
   | "duplicate"
-  | "rollover";
+  | "rollover"
+  | "validated";
 
 export interface ParsedRawInterval {
   rowNumber: number;
@@ -39,7 +40,9 @@ export interface CanonicalTelemetryRecord {
   source_file_id: string;
   source_row_number: number;
   parser_version: string;
-  raw_payload: Record<string, any>; // Original raw telemetry preserved untouched!
+  tou_period?: string;
+  power_factor?: number;
+  raw_payload?: Record<string, any>; // Original raw telemetry preserved untouched!
 }
 
 export interface TelemetryQualityMetrics {

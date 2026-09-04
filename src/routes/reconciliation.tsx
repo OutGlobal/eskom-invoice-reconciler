@@ -126,6 +126,38 @@ function ReconPage() {
     };
   }, [invTotalVal, calcTotalVal, diffVal, pctErrVal, invoice]);
 
+  const investigationContext = useMemo(
+    () => ({
+      customerName: customer?.name,
+      accountNumber: customer?.accountNumber,
+      invoiceNumber: invoice?.invoiceNo,
+      meterId: customer?.meter,
+      billingPeriodStr:
+        invoice?.billingPeriodStart && invoice?.billingPeriodEnd
+          ? `${invoice.billingPeriodStart} to ${invoice.billingPeriodEnd}`
+          : undefined,
+      reconciliationResult: {
+        billedTotalZar: invTotalVal,
+        calculatedTotalZar: calcTotalVal,
+        varianceZar: diffVal,
+        variancePercentage: pctErrVal,
+        reconciliationStatus: dashboardMetrics.reconciliationStatus,
+        lineItems: reconRows.map((r) => ({
+          componentName: r.charge,
+          billedAmountZar: r.invoice ?? 0,
+          calculatedAmountZar: r.calculated ?? 0,
+          varianceZar: r.varianceR ?? 0,
+          status: r.status,
+        })),
+        discrepancies: reconRows.filter((r) => r.status === "red" || r.status === "amber"),
+        auditLedgerHash: "",
+        sourceFileHashes: [],
+        calculationTrace: [],
+      } as any,
+    }),
+    [customer, invoice, invTotalVal, calcTotalVal, diffVal, pctErrVal, dashboardMetrics, reconRows],
+  );
+
   const exportRowsForReport = reconRows.map((r) => ({
     charge: r.charge,
     calculated: r.calculated,
@@ -342,7 +374,7 @@ function ReconPage() {
         isOpen={disputePackOpen}
         onClose={() => setDisputePackOpen(false)}
         customerName={customer.name}
-        accountNumber={customer.accountNo}
+        accountNumber={customer.accountNumber}
         invoiceNumber={invoice?.invoiceNo || "INV-2026-03-8891"}
         disputedAmount={dashboardMetrics.potentialOvercharge || 22500.0}
       />

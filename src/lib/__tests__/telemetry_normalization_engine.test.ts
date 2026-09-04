@@ -45,7 +45,7 @@ async function runTelemetryEngineTests() {
   assert(eskomRes.records[0].active_power_kw === 50000, "Active power kW matches input (50000 kW)");
   assert(eskomRes.records[0].active_energy_kwh === 25000, "Active energy kWh matches 30-min calculation (25000 kWh)");
   assert(eskomRes.records[0].quality_status === "measured", "Quality status is 'measured'");
-  assert(eskomRes.records[0].raw_payload.rawKw === "50000", "Original raw payload preserved untouched");
+  assert(eskomRes.records[0].raw_payload?.rawKw === "50000", "Original raw payload preserved untouched");
 
   // Test 3: Municipal 15-min Cumulative Dial Register & Counter Rollover
   console.log("\n--- Test 3: Cumulative Dial Deltas & Counter Rollover ---");
