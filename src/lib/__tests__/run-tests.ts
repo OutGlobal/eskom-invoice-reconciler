@@ -69,4 +69,8 @@ assert(sanitizeCsvCell("=1+1").includes("'=1+1"), "CSV sanitization neutralizes 
 assert(sanitizeCsvCell("+cmd|' /C calc'!A0").includes("'+cmd"), "CSV sanitization neutralizes + prefix");
 assert(sanitizeCsvCell("Normal Text").includes("Normal Text"), "CSV sanitization preserves normal text");
 
+import { runAiInvestigationTests } from "./ai_investigation_layer.test";
+
+runAiInvestigationTests();
+
 console.log("=== ALL AUTOMATED TESTS PASSED SUCCESSFULLY ===");

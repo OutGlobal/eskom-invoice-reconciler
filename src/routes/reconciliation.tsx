@@ -31,6 +31,7 @@ import { EnterpriseReconciliationCharts } from "@/components/reconciliation/Ente
 import { DrillDownInspector } from "@/components/reconciliation/DrillDownInspector";
 import { DisputePackModal } from "@/components/reconciliation/DisputePackModal";
 import { WorkflowStepId, EnterpriseDashboardMetrics } from "@/domain/workflow/types";
+import { AiInvestigationPanel } from "@/components/investigation/AiInvestigationPanel";
 
 export const Route = createFileRoute("/reconciliation")({
   head: () => ({ meta: [{ title: "Enterprise Reconciliation Workspace — Eskom Bill Balancer" }] }),
@@ -219,6 +220,9 @@ function ReconPage() {
 
       {/* 3. 8 Enterprise Charts Grid */}
       <EnterpriseReconciliationCharts />
+
+      {/* AI-Assisted Investigation Layer */}
+      <AiInvestigationPanel context={investigationContext} />
 
       {/* 4. 4-Level Drill-Down Audit Inspector */}
       <DrillDownInspector />
