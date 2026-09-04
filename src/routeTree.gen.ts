@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as DemandRouteImport } from './routes/demand'
 import { Route as EnergyRouteImport } from './routes/energy'
+import { Route as InvoicesRouteImport } from './routes/invoices'
 import { Route as MunicipalRouteImport } from './routes/municipal'
 import { Route as ReconciliationRouteImport } from './routes/reconciliation'
 import { Route as ReportsRouteImport } from './routes/reports'
@@ -39,6 +40,11 @@ const DemandRoute = DemandRouteImport.update({
 const EnergyRoute = EnergyRouteImport.update({
   id: '/energy',
   path: '/energy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvoicesRoute = InvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MunicipalRoute = MunicipalRouteImport.update({
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/customers': typeof CustomersRoute
   '/demand': typeof DemandRoute
   '/energy': typeof EnergyRoute
+  '/invoices': typeof InvoicesRoute
   '/municipal': typeof MunicipalRoute
   '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/customers': typeof CustomersRoute
   '/demand': typeof DemandRoute
   '/energy': typeof EnergyRoute
+  '/invoices': typeof InvoicesRoute
   '/municipal': typeof MunicipalRoute
   '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/customers': typeof CustomersRoute
   '/demand': typeof DemandRoute
   '/energy': typeof EnergyRoute
+  '/invoices': typeof InvoicesRoute
   '/municipal': typeof MunicipalRoute
   '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
@@ -124,6 +133,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/demand'
     | '/energy'
+    | '/invoices'
     | '/municipal'
     | '/reconciliation'
     | '/reports'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/demand'
     | '/energy'
+    | '/invoices'
     | '/municipal'
     | '/reconciliation'
     | '/reports'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/demand'
     | '/energy'
+    | '/invoices'
     | '/municipal'
     | '/reconciliation'
     | '/reports'
@@ -164,6 +176,7 @@ export interface RootRouteChildren {
   CustomersRoute: typeof CustomersRoute
   DemandRoute: typeof DemandRoute
   EnergyRoute: typeof EnergyRoute
+  InvoicesRoute: typeof InvoicesRoute
   MunicipalRoute: typeof MunicipalRoute
   ReconciliationRoute: typeof ReconciliationRoute
   ReportsRoute: typeof ReportsRoute
@@ -201,6 +214,13 @@ declare module '@tanstack/react-router' {
       path: '/energy'
       fullPath: '/energy'
       preLoaderRoute: typeof EnergyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invoices': {
+      id: '/invoices'
+      path: '/invoices'
+      fullPath: '/invoices'
+      preLoaderRoute: typeof InvoicesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/municipal': {
@@ -260,6 +280,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersRoute: CustomersRoute,
   DemandRoute: DemandRoute,
   EnergyRoute: EnergyRoute,
+  InvoicesRoute: InvoicesRoute,
   MunicipalRoute: MunicipalRoute,
   ReconciliationRoute: ReconciliationRoute,
   ReportsRoute: ReportsRoute,
