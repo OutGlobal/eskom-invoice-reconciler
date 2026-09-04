@@ -94,8 +94,12 @@ export class IngestionService {
           customerName: pdfRes.invoice.customerName || invoiceHeader.customerName,
           premiseId: pdfRes.invoice.premiseId || invoiceHeader.premiseId,
           tariffName: pdfRes.invoice.tariffName || invoiceHeader.tariffName,
-          billingStart: pdfRes.invoice.billingStart ? new Date(pdfRes.invoice.billingStart) : invoiceHeader.billingStart,
-          billingEnd: pdfRes.invoice.billingEnd ? new Date(pdfRes.invoice.billingEnd) : invoiceHeader.billingEnd,
+          billingStart: ((pdfRes.invoice as any).billingPeriodStart || (pdfRes.invoice as any).billingStart)
+            ? new Date((pdfRes.invoice as any).billingPeriodStart || (pdfRes.invoice as any).billingStart)
+            : invoiceHeader.billingStart,
+          billingEnd: ((pdfRes.invoice as any).billingPeriodEnd || (pdfRes.invoice as any).billingEnd)
+            ? new Date((pdfRes.invoice as any).billingPeriodEnd || (pdfRes.invoice as any).billingEnd)
+            : invoiceHeader.billingEnd,
           peakKWh: pdfRes.invoice.peakKWh || invoiceHeader.peakKWh,
           standardKWh: pdfRes.invoice.standardKWh || invoiceHeader.standardKWh,
           offPeakKWh: pdfRes.invoice.offPeakKWh || invoiceHeader.offPeakKWh,
