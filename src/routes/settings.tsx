@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
+import { GovernanceAdminWorkspace } from "@/components/governance/GovernanceAdminWorkspace";
+
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Commercial Platform Settings — Eskom Bill Balancer" }] }),
   component: SettingsPage,
@@ -94,6 +96,9 @@ function SettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* Enterprise Governance Administration Workspace */}
+      <GovernanceAdminWorkspace />
 
       {/* Supabase Database Connection Panel */}
       <Panel

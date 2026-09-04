@@ -168,5 +168,3 @@ export function runAiInvestigationTests() {
 
   console.log("\n=== ALL AI INVESTIGATION LAYER TESTS PASSED SUCCESSFULLY ===\n");
 }
-
-runAiInvestigationTests();

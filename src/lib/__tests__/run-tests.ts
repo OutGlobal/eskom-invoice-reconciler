@@ -70,7 +70,9 @@ assert(sanitizeCsvCell("+cmd|' /C calc'!A0").includes("'+cmd"), "CSV sanitizatio
 assert(sanitizeCsvCell("Normal Text").includes("Normal Text"), "CSV sanitization preserves normal text");
 
 import { runAiInvestigationTests } from "./ai_investigation_layer.test";
+import { runGovernanceWorkflowTests } from "./enterprise_governance_workflow.test";
 
 runAiInvestigationTests();
+runGovernanceWorkflowTests();
 
 console.log("=== ALL AUTOMATED TESTS PASSED SUCCESSFULLY ===");

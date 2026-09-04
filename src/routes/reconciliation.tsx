@@ -32,6 +32,7 @@ import { DrillDownInspector } from "@/components/reconciliation/DrillDownInspect
 import { DisputePackModal } from "@/components/reconciliation/DisputePackModal";
 import { WorkflowStepId, EnterpriseDashboardMetrics } from "@/domain/workflow/types";
 import { AiInvestigationPanel } from "@/components/investigation/AiInvestigationPanel";
+import { ApprovalWorkflowBar } from "@/components/governance/ApprovalWorkflowBar";
 
 export const Route = createFileRoute("/reconciliation")({
   head: () => ({ meta: [{ title: "Enterprise Reconciliation Workspace — Eskom Bill Balancer" }] }),
@@ -214,6 +215,9 @@ function ReconPage() {
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
         <InvoiceSelector />
       </div>
+
+      {/* Governance & Approval Workflow Bar */}
+      <ApprovalWorkflowBar />
 
       {/* 2. 15 Enterprise Dashboard Metric Cards */}
       <ReconciliationDashboard metrics={dashboardMetrics} />
