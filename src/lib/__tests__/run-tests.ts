@@ -71,8 +71,10 @@ assert(sanitizeCsvCell("Normal Text").includes("Normal Text"), "CSV sanitization
 
 import { runAiInvestigationTests } from "./ai_investigation_layer.test";
 import { runGovernanceWorkflowTests } from "./enterprise_governance_workflow.test";
+import { runProductionSmokeTests } from "./production_smoke_test.test";
 
 runAiInvestigationTests();
 runGovernanceWorkflowTests();
+await runProductionSmokeTests();
 
 console.log("=== ALL AUTOMATED TESTS PASSED SUCCESSFULLY ===");
