@@ -77,7 +77,8 @@ export function AiCopilotModal({ isOpen, onClose }: AiCopilotModalProps) {
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
-    let responseText = "I have analyzed your request against NERSA tariff schedules and meter readings.";
+    let responseText =
+      "I have analyzed your request against NERSA tariff schedules and meter readings.";
     const q = textToSubmit.toLowerCase();
 
     if (q.includes("audit") || q.includes("march") || q.includes("invoice")) {
@@ -198,7 +199,11 @@ export function AiCopilotModal({ isOpen, onClose }: AiCopilotModalProps) {
                   <Sparkles className="h-4 w-4" /> AI Tariff Audit Executive Summary
                 </h3>
                 <p className="text-xs text-foreground leading-relaxed">
-                  The AI Copilot evaluated <strong>{invoice?.accountMonth || "March 2026"}</strong> billing line items against 5,747 30-minute interval telemetry points. We identified <strong>{insights.length} key commercial audit items</strong> totaling over <strong>R 2,398,650.40</strong> in potential recovery and optimization opportunities.
+                  The AI Copilot evaluated <strong>{invoice?.accountMonth || "March 2026"}</strong>{" "}
+                  billing line items against 5,747 30-minute interval telemetry points. We
+                  identified <strong>{insights.length} key commercial audit items</strong> totaling
+                  over <strong>R 2,398,650.40</strong> in potential recovery and optimization
+                  opportunities.
                 </p>
               </div>
 
@@ -250,7 +255,9 @@ export function AiCopilotModal({ isOpen, onClose }: AiCopilotModalProps) {
                         <span className="text-[10px] text-muted-foreground uppercase block font-medium">
                           NERSA Citation
                         </span>
-                        <span className="font-mono text-[11px] text-foreground">{item.nersaCitation}</span>
+                        <span className="font-mono text-[11px] text-foreground">
+                          {item.nersaCitation}
+                        </span>
                       </div>
                       <div className="rounded bg-background/50 p-2">
                         <span className="text-[10px] text-muted-foreground uppercase block font-medium">
@@ -358,7 +365,9 @@ export function AiCopilotModal({ isOpen, onClose }: AiCopilotModalProps) {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                 <div>
-                  <label className="block text-muted-foreground mb-1 font-medium">Claim Category</label>
+                  <label className="block text-muted-foreground mb-1 font-medium">
+                    Claim Category
+                  </label>
                   <input
                     type="text"
                     value={disputeCategory}
@@ -367,7 +376,9 @@ export function AiCopilotModal({ isOpen, onClose }: AiCopilotModalProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-muted-foreground mb-1 font-medium">Disputed Amount (R)</label>
+                  <label className="block text-muted-foreground mb-1 font-medium">
+                    Disputed Amount (R)
+                  </label>
                   <input
                     type="number"
                     value={disputeAmount}
@@ -376,7 +387,9 @@ export function AiCopilotModal({ isOpen, onClose }: AiCopilotModalProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-muted-foreground mb-1 font-medium">Invoice Number</label>
+                  <label className="block text-muted-foreground mb-1 font-medium">
+                    Invoice Number
+                  </label>
                   <input
                     type="text"
                     readOnly
@@ -397,7 +410,11 @@ export function AiCopilotModal({ isOpen, onClose }: AiCopilotModalProps) {
                       onClick={copyToClipboard}
                       className="inline-flex items-center gap-1 rounded bg-secondary hover:bg-secondary/80 text-foreground border border-border px-2.5 py-1 text-xs font-medium transition"
                     >
-                      {copiedDispute ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                      {copiedDispute ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
                       {copiedDispute ? "Copied!" : "Copy"}
                     </button>
                     <button

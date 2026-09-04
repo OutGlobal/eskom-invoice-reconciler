@@ -22,7 +22,8 @@ export class StructuredLogger {
   private tenantId: string;
 
   constructor(correlationId?: string, jobId?: string, tenantId = "default-tenant") {
-    this.correlationId = correlationId || `corr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    this.correlationId =
+      correlationId || `corr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     this.jobId = jobId || `job-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     this.tenantId = tenantId;
   }
@@ -39,7 +40,12 @@ export class StructuredLogger {
     return this.tenantId;
   }
 
-  public createJobContext(filename: string, fileSizeBytes: number, mimeType: string, uploadedBy = "system"): JobContext {
+  public createJobContext(
+    filename: string,
+    fileSizeBytes: number,
+    mimeType: string,
+    uploadedBy = "system",
+  ): JobContext {
     return {
       jobId: this.jobId,
       correlationId: this.correlationId,
@@ -56,7 +62,13 @@ export class StructuredLogger {
     };
   }
 
-  public log(jobCtx: JobContext | undefined, stage: string, level: "info" | "warn" | "error", message: string, data?: Record<string, any>): LogEntry {
+  public log(
+    jobCtx: JobContext | undefined,
+    stage: string,
+    level: "info" | "warn" | "error",
+    message: string,
+    data?: Record<string, any>,
+  ): LogEntry {
     const entry: LogEntry = {
       correlationId: this.correlationId,
       jobId: this.jobId,

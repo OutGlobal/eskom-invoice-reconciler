@@ -41,10 +41,10 @@ export const ReconciliationDashboard: React.FC<ReconciliationDashboardProps> = (
     metrics.reconciliationStatus === "CLEAN_MATCH"
       ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
       : metrics.reconciliationStatus === "MATERIAL_DISCREPANCY"
-      ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-      : metrics.reconciliationStatus === "APPROVED"
-      ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
-      : "bg-red-500/10 text-red-400 border-red-500/30";
+        ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+        : metrics.reconciliationStatus === "APPROVED"
+          ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
+          : "bg-red-500/10 text-red-400 border-red-500/30";
 
   return (
     <div className="space-y-4 mb-6">
@@ -96,14 +96,16 @@ export const ReconciliationDashboard: React.FC<ReconciliationDashboardProps> = (
                 metrics.variance > 0
                   ? "text-amber-400"
                   : metrics.variance < 0
-                  ? "text-emerald-400"
-                  : "text-slate-100"
+                    ? "text-emerald-400"
+                    : "text-slate-100"
               }`}
             >
               {formatZAR(metrics.variance)}
             </span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-              {metrics.variancePct >= 0 ? `+${metrics.variancePct.toFixed(2)}%` : `${metrics.variancePct.toFixed(2)}%`}
+              {metrics.variancePct >= 0
+                ? `+${metrics.variancePct.toFixed(2)}%`
+                : `${metrics.variancePct.toFixed(2)}%`}
             </span>
           </div>
           <p className="text-[11px] text-slate-400 mt-1">Billed vs Calculated difference</p>
@@ -117,13 +119,17 @@ export const ReconciliationDashboard: React.FC<ReconciliationDashboardProps> = (
           </div>
           <div className="grid grid-cols-2 gap-2 mt-1">
             <div>
-              <span className="text-[10px] text-slate-400 block uppercase">Potential Overcharge</span>
+              <span className="text-[10px] text-slate-400 block uppercase">
+                Potential Overcharge
+              </span>
               <span className="text-sm font-bold text-amber-400 font-mono">
                 {formatZAR(metrics.potentialOvercharge)}
               </span>
             </div>
             <div>
-              <span className="text-[10px] text-slate-400 block uppercase">Potential Undercharge</span>
+              <span className="text-[10px] text-slate-400 block uppercase">
+                Potential Undercharge
+              </span>
               <span className="text-sm font-bold text-emerald-400 font-mono">
                 {formatZAR(metrics.potentialUndercharge)}
               </span>
@@ -204,7 +210,9 @@ export const ReconciliationDashboard: React.FC<ReconciliationDashboardProps> = (
           <div className="flex items-center space-x-2">
             <Activity className="h-4 w-4 text-blue-400" />
             <div>
-              <span className="text-[10px] text-slate-400 block uppercase">Telemetry Completeness</span>
+              <span className="text-[10px] text-slate-400 block uppercase">
+                Telemetry Completeness
+              </span>
               <span className="text-xs font-bold text-slate-200 font-mono">
                 {metrics.telemetryCompletenessPct.toFixed(1)}%
               </span>

@@ -4,18 +4,21 @@ import { CanonicalTelemetryRecord } from "../telemetry/types";
 export function computeServerSideDailyAggregates(
   records: CanonicalTelemetryRecord[],
 ): DailyAggregateSummary[] {
-  const map = new Map<string, {
-    meterId: string;
-    dateStr: string;
-    totalKwh: number;
-    peakKwh: number;
-    stdKwh: number;
-    offKwh: number;
-    maxKw: number;
-    maxKva: number;
-    pfSum: number;
-    count: number;
-  }>();
+  const map = new Map<
+    string,
+    {
+      meterId: string;
+      dateStr: string;
+      totalKwh: number;
+      peakKwh: number;
+      stdKwh: number;
+      offKwh: number;
+      maxKw: number;
+      maxKva: number;
+      pfSum: number;
+      count: number;
+    }
+  >();
 
   for (let i = 0; i < records.length; i++) {
     const r = records[i];

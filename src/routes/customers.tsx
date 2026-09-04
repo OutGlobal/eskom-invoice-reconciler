@@ -151,7 +151,8 @@ function CustomersPage() {
             Enterprise Customer &amp; Site Directory
           </h1>
           <p className="text-xs text-muted-foreground">
-            Manage multi-site industrial customer accounts, supply points, meter numbers, and NMD caps.
+            Manage multi-site industrial customer accounts, supply points, meter numbers, and NMD
+            caps.
           </p>
         </div>
 
@@ -164,14 +165,21 @@ function CustomersPage() {
       </div>
 
       {/* Active Customer Edit Form */}
-      <Panel title="Active Customer Profile" subtitle="Edit metadata for the currently active billing session.">
+      <Panel
+        title="Active Customer Profile"
+        subtitle="Edit metadata for the currently active billing session."
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Field
             label="Customer Name"
             value={customer.name}
             onChange={(v) => setCustomer({ name: v })}
           />
-          <Field label="Meter Number" value={customer.meter} onChange={(v) => setCustomer({ meter: v })} />
+          <Field
+            label="Meter Number"
+            value={customer.meter}
+            onChange={(v) => setCustomer({ meter: v })}
+          />
           <Field
             label="Eskom Account Number"
             value={customer.accountNumber}
@@ -302,7 +310,9 @@ function CustomersPage() {
                 />
               </div>
               <div>
-                <label className="block text-muted-foreground mb-1">Notified Max Demand (kVA)</label>
+                <label className="block text-muted-foreground mb-1">
+                  Notified Max Demand (kVA)
+                </label>
                 <input
                   type="number"
                   value={newNmd}

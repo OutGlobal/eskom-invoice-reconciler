@@ -293,10 +293,7 @@ function invoiceLinesFromItems(invoice: InvoiceData, items: InvoiceLineItemStore
   return lines;
 }
 
-function activateInvoice(
-  invoice: InvoiceData,
-  items: InvoiceLineItemStored[],
-): Partial<AppState> {
+function activateInvoice(invoice: InvoiceData, items: InvoiceLineItemStored[]): Partial<AppState> {
   return {
     invoice,
     invoiceLines: invoiceLinesFromItems(invoice, items),

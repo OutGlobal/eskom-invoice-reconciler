@@ -3,20 +3,18 @@
  * Selects applicable tariff versions based on effective dates and splits cross-boundary billing periods
  */
 
-import type { TariffVersionDefinition } from './types';
-import { ESKOM_MEGAFLEX_2025_2026 } from './tariffFixtures';
+import type { TariffVersionDefinition } from "./types";
+import { ESKOM_MEGAFLEX_2025_2026 } from "./tariffFixtures";
 
 export interface BillingSubPeriod {
   sub_period_start: string; // YYYY-MM-DD
-  sub_period_end: string;   // YYYY-MM-DD
+  sub_period_end: string; // YYYY-MM-DD
   days_count: number;
   tariff_version: TariffVersionDefinition;
 }
 
 export class TariffVersionSelector {
-  private static registeredVersions: TariffVersionDefinition[] = [
-    ESKOM_MEGAFLEX_2025_2026,
-  ];
+  private static registeredVersions: TariffVersionDefinition[] = [ESKOM_MEGAFLEX_2025_2026];
 
   /**
    * Register a new tariff version definition in the repository
@@ -30,7 +28,7 @@ export class TariffVersionSelector {
    */
   public static selectVersionForDate(
     tariffCodeOrFamily: string,
-    dateStr: string
+    dateStr: string,
   ): TariffVersionDefinition {
     const targetDate = new Date(dateStr);
 
@@ -42,7 +40,7 @@ export class TariffVersionSelector {
       if (!isCodeMatch) return false;
 
       const effFrom = new Date(v.header.effective_date);
-      const effTo = v.header.expiry_date ? new Date(v.header.expiry_date) : new Date('2099-12-31');
+      const effTo = v.header.expiry_date ? new Date(v.header.expiry_date) : new Date("2099-12-31");
 
       return targetDate >= effFrom && targetDate <= effTo;
     });
@@ -56,7 +54,7 @@ export class TariffVersionSelector {
   public static splitBillingPeriod(
     tariffCodeOrFamily: string,
     billingStartStr: string,
-    billingEndStr: string
+    billingEndStr: string,
   ): BillingSubPeriod[] {
     const start = new Date(billingStartStr);
     const end = new Date(billingEndStr);

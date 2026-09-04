@@ -15,7 +15,8 @@ export function useSupabaseSession() {
 
   useEffect(() => {
     let active = true;
-    supabase.auth.getSession()
+    supabase.auth
+      .getSession()
       .then((res) => {
         if (!active) return;
         setSession(res?.data?.session || null);
@@ -150,7 +151,9 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
           toast.success("Account created and signed in!");
         } else {
           setUnconfirmedEmail(cleanEmail);
-          setNotice(`Account created! We sent a confirmation link to ${cleanEmail}. Check your inbox, then sign in.`);
+          setNotice(
+            `Account created! We sent a confirmation link to ${cleanEmail}. Check your inbox, then sign in.`,
+          );
           toast.success("Confirmation email sent.");
         }
       }
@@ -198,7 +201,8 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
             Eskom Meter Data Reconciliation
           </h1>
           <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-            Commercial billing, reconciliation and recovery data is restricted. Sign in to your account or continue in demo mode.
+            Commercial billing, reconciliation and recovery data is restricted. Sign in to your
+            account or continue in demo mode.
           </p>
         </div>
 
@@ -215,7 +219,11 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
                 onClick={handleResendConfirmation}
                 className="inline-flex items-center gap-1.5 text-xs text-red-300 underline font-medium hover:text-white transition disabled:opacity-50"
               >
-                {resendBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                {resendBusy ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
                 Resend confirmation link to {unconfirmedEmail}
               </button>
             )}
@@ -231,7 +239,9 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
 
         <form onSubmit={handleAuth} className="space-y-3">
           <div>
-            <label className="block text-[11px] text-muted-foreground mb-1 font-medium">Work email</label>
+            <label className="block text-[11px] text-muted-foreground mb-1 font-medium">
+              Work email
+            </label>
             <input
               type="email"
               required
@@ -244,7 +254,9 @@ function SignInScreen({ onBypass }: { onBypass?: () => void }) {
           </div>
 
           <div>
-            <label className="block text-[11px] text-muted-foreground mb-1 font-medium">Password</label>
+            <label className="block text-[11px] text-muted-foreground mb-1 font-medium">
+              Password
+            </label>
             <input
               type="password"
               required

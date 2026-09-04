@@ -21,7 +21,8 @@ export function assembleDisputePackData(
       totalDisputedVarianceZar: variance,
       variancePct: Number(((variance / billedTotal) * 100).toFixed(2)),
       reconciliationStatus: "MATERIAL_DISCREPANCY",
-      recommendation: "Submit formal billing dispute claim to Eskom Commercial Billing Division for credit note issuance.",
+      recommendation:
+        "Submit formal billing dispute claim to Eskom Commercial Billing Division for credit note issuance.",
     },
 
     // 2. Customer / Site Info
@@ -92,20 +93,84 @@ export function assembleDisputePackData(
 
     // 13. Summary Matrix
     summaryMatrix: [
-      { component: "Peak Energy Charges", billedZar: 215450.0, calculatedZar: 203000.0, varianceZar: 12450.0, status: "DISCREPANCY" },
-      { component: "Standard Energy Charges", billedZar: 142000.0, calculatedZar: 137800.0, varianceZar: 4200.0, status: "MINOR_VARIANCE" },
-      { component: "Off-Peak Energy Charges", billedZar: 68500.0, calculatedZar: 68500.0, varianceZar: 0.0, status: "MATCH" },
-      { component: "Maximum Demand (kVA)", billedZar: 42800.0, calculatedZar: 37000.0, varianceZar: 5800.0, status: "DISCREPANCY" },
-      { component: "Reactive Energy Penalties", billedZar: 2450.0, calculatedZar: 0.0, varianceZar: 2450.0, status: "DISCREPANCY" },
-      { component: "VAT Subtotal (15%)", billedZar: 23800.0, calculatedZar: 26200.0, varianceZar: -2400.0, status: "DISCREPANCY" },
+      {
+        component: "Peak Energy Charges",
+        billedZar: 215450.0,
+        calculatedZar: 203000.0,
+        varianceZar: 12450.0,
+        status: "DISCREPANCY",
+      },
+      {
+        component: "Standard Energy Charges",
+        billedZar: 142000.0,
+        calculatedZar: 137800.0,
+        varianceZar: 4200.0,
+        status: "MINOR_VARIANCE",
+      },
+      {
+        component: "Off-Peak Energy Charges",
+        billedZar: 68500.0,
+        calculatedZar: 68500.0,
+        varianceZar: 0.0,
+        status: "MATCH",
+      },
+      {
+        component: "Maximum Demand (kVA)",
+        billedZar: 42800.0,
+        calculatedZar: 37000.0,
+        varianceZar: 5800.0,
+        status: "DISCREPANCY",
+      },
+      {
+        component: "Reactive Energy Penalties",
+        billedZar: 2450.0,
+        calculatedZar: 0.0,
+        varianceZar: 2450.0,
+        status: "DISCREPANCY",
+      },
+      {
+        component: "VAT Subtotal (15%)",
+        billedZar: 23800.0,
+        calculatedZar: 26200.0,
+        varianceZar: -2400.0,
+        status: "DISCREPANCY",
+      },
     ],
 
     // 14 & 15. Energy Reconciliation
     energyReconciliation: {
-      peakKwh: { billed: 32306, calculated: 30439, variance: 1867, billedZar: 215450.0, calculatedZar: 203000.0, varianceZar: 12450.0 },
-      standardKwh: { billed: 82510, calculated: 80070, variance: 2440, billedZar: 142000.0, calculatedZar: 137800.0, varianceZar: 4200.0 },
-      offPeakKwh: { billed: 61628, calculated: 61628, variance: 0, billedZar: 68500.0, calculatedZar: 68500.0, varianceZar: 0.0 },
-      totalKwh: { billed: 176444, calculated: 172137, variance: 4307, billedZar: 425950.0, calculatedZar: 409300.0, varianceZar: 16650.0 },
+      peakKwh: {
+        billed: 32306,
+        calculated: 30439,
+        variance: 1867,
+        billedZar: 215450.0,
+        calculatedZar: 203000.0,
+        varianceZar: 12450.0,
+      },
+      standardKwh: {
+        billed: 82510,
+        calculated: 80070,
+        variance: 2440,
+        billedZar: 142000.0,
+        calculatedZar: 137800.0,
+        varianceZar: 4200.0,
+      },
+      offPeakKwh: {
+        billed: 61628,
+        calculated: 61628,
+        variance: 0,
+        billedZar: 68500.0,
+        calculatedZar: 68500.0,
+        varianceZar: 0.0,
+      },
+      totalKwh: {
+        billed: 176444,
+        calculated: 172137,
+        variance: 4307,
+        billedZar: 425950.0,
+        calculatedZar: 409300.0,
+        varianceZar: 16650.0,
+      },
     },
 
     // 16. Demand Reconciliation
@@ -142,7 +207,12 @@ export function assembleDisputePackData(
 
     // 20. Levies
     levies: [
-      { levyName: "Electrification & Rural Subsidy Levy", billedZar: 1850.0, calculatedZar: 1850.0, varianceZar: 0.0 },
+      {
+        levyName: "Electrification & Rural Subsidy Levy",
+        billedZar: 1850.0,
+        calculatedZar: 1850.0,
+        varianceZar: 0.0,
+      },
     ],
 
     // 21. VAT
@@ -168,7 +238,8 @@ export function assembleDisputePackData(
         billedZar: 215450.0,
         calculatedZar: 203000.0,
         disputedOverchargeZar: 12450.0,
-        evidenceText: "312 intervals occurring between 09:00-10:00 were classified as Peak on invoice but are Standard under Low/High Season TOU schedule.",
+        evidenceText:
+          "312 intervals occurring between 09:00-10:00 were classified as Peak on invoice but are Standard under Low/High Season TOU schedule.",
       },
       {
         claimId: "CL-2026-0392",
@@ -177,7 +248,8 @@ export function assembleDisputePackData(
         billedZar: 42800.0,
         calculatedZar: 37000.0,
         disputedOverchargeZar: 5800.0,
-        evidenceText: "Peak demand recorded was 195.1 kVA, within NMD threshold of 250 kVA. Billed demand erroneously ratcheted to 230 kVA.",
+        evidenceText:
+          "Peak demand recorded was 195.1 kVA, within NMD threshold of 250 kVA. Billed demand erroneously ratcheted to 230 kVA.",
       },
       {
         claimId: "CL-2026-0393",
@@ -186,7 +258,8 @@ export function assembleDisputePackData(
         billedZar: 2450.0,
         calculatedZar: 0.0,
         disputedOverchargeZar: 2450.0,
-        evidenceText: "Vector power factor was 0.962 > 0.96 threshold. Zero excess kVARh penalty applies.",
+        evidenceText:
+          "Vector power factor was 0.962 > 0.96 threshold. Zero excess kVARh penalty applies.",
       },
     ],
 
@@ -206,7 +279,8 @@ export function assembleDisputePackData(
         category: "Demand Billing",
         severity: "HIGH",
         confidence: "HIGH",
-        evidence: "Applied 70% ratchet rule when actual peak demand was below 100% NMD without capacity breach.",
+        evidence:
+          "Applied 70% ratchet rule when actual peak demand was below 100% NMD without capacity breach.",
         affectedComponent: "Maximum Demand kVA",
         financialImpactZar: 5800.0,
       },
@@ -214,9 +288,21 @@ export function assembleDisputePackData(
 
     // 25. Calculation Methodology
     calculationMethodology: [
-      { component: "Energy Charges", formulaText: "Energy_ZAR = kWh * Rate_c_per_kWh / 100", roundingRule: "Nearest Cent (2 decimals)" },
-      { component: "Maximum Demand", formulaText: "Demand_ZAR = max(Peak_kVA, NMD * 70%) * Rate_R_per_kVA", roundingRule: "Nearest Cent (2 decimals)" },
-      { component: "Reactive Energy", formulaText: "Excess_kVARh = max(0, Actual_kVARh - kWh * tan(acos(0.96)))", roundingRule: "Nearest Cent (2 decimals)" },
+      {
+        component: "Energy Charges",
+        formulaText: "Energy_ZAR = kWh * Rate_c_per_kWh / 100",
+        roundingRule: "Nearest Cent (2 decimals)",
+      },
+      {
+        component: "Maximum Demand",
+        formulaText: "Demand_ZAR = max(Peak_kVA, NMD * 70%) * Rate_R_per_kVA",
+        roundingRule: "Nearest Cent (2 decimals)",
+      },
+      {
+        component: "Reactive Energy",
+        formulaText: "Excess_kVARh = max(0, Actual_kVARh - kWh * tan(acos(0.96)))",
+        roundingRule: "Nearest Cent (2 decimals)",
+      },
     ],
 
     // 26. Tariff Rule References (STRICT Zero Hallucination Policy)
@@ -225,14 +311,16 @@ export function assembleDisputePackData(
         clauseIdentifier: "NERSA-ESKOM-2025-2026-SEC-3.2",
         sourceDocumentName: "NERSA Eskom Schedule of Standard Prices 2025/2026",
         sectionTitle: "Section 3.2 Megaflex Time-of-Use Rate Structure",
-        clauseContentText: "High Demand Season Peak rate = 666.92 c/kWh, Standard = 208.52 c/kWh, Off-Peak = 111.15 c/kWh.",
+        clauseContentText:
+          "High Demand Season Peak rate = 666.92 c/kWh, Standard = 208.52 c/kWh, Off-Peak = 111.15 c/kWh.",
         isVerified: true,
       },
       {
         clauseIdentifier: "NERSA-ESKOM-2025-2026-SEC-5.1",
         sourceDocumentName: "NERSA Eskom Schedule of Standard Prices 2025/2026",
         sectionTitle: "Section 5.1 Maximum Demand & NMD Ratchet Rules",
-        clauseContentText: "Demand charge payable shall be based on the maximum kVA recorded during peak or standard hours.",
+        clauseContentText:
+          "Demand charge payable shall be based on the maximum kVA recorded during peak or standard hours.",
         isVerified: true,
       },
       {
@@ -246,9 +334,27 @@ export function assembleDisputePackData(
 
     // 27. Calculation Trace
     calculationTrace: [
-      { stepNumber: 1, stepName: "Aggregate Active Energy", inputValueText: "1,488 30-min intervals", formulaText: "Sum(active_energy_kwh)", outputValueText: "172,137 kWh" },
-      { stepNumber: 2, stepName: "TOU Period Classification", inputValueText: "Interval timestamps", formulaText: "Match(Hour, DayOfWeek, PublicHoliday)", outputValueText: "Peak: 30,439 | Std: 80,070 | Off: 61,628" },
-      { stepNumber: 3, stepName: "Apply Megaflex Energy Rates", inputValueText: "TOU kWh * NERSA Rates", formulaText: "Peak * 6.6692 + Std * 2.0852 + Off * 1.1115", outputValueText: "R 409,300.00" },
+      {
+        stepNumber: 1,
+        stepName: "Aggregate Active Energy",
+        inputValueText: "1,488 30-min intervals",
+        formulaText: "Sum(active_energy_kwh)",
+        outputValueText: "172,137 kWh",
+      },
+      {
+        stepNumber: 2,
+        stepName: "TOU Period Classification",
+        inputValueText: "Interval timestamps",
+        formulaText: "Match(Hour, DayOfWeek, PublicHoliday)",
+        outputValueText: "Peak: 30,439 | Std: 80,070 | Off: 61,628",
+      },
+      {
+        stepNumber: 3,
+        stepName: "Apply Megaflex Energy Rates",
+        inputValueText: "TOU kWh * NERSA Rates",
+        formulaText: "Peak * 6.6692 + Std * 2.0852 + Off * 1.1115",
+        outputValueText: "R 409,300.00",
+      },
     ],
 
     // 28. Cryptographic Audit Info
@@ -269,7 +375,8 @@ export function assembleDisputePackData(
       approvedBy: "Head of Energy Operations",
       status: "APPROVED",
       approvalDate: "2026-09-04",
-      comments: "Verified against 30-minute AMR raw meter telemetry and NERSA 2025/2026 Megaflex gazette.",
+      comments:
+        "Verified against 30-minute AMR raw meter telemetry and NERSA 2025/2026 Megaflex gazette.",
     },
   };
 }

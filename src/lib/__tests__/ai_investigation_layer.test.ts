@@ -27,11 +27,16 @@ export function runAiInvestigationTests() {
     context: {},
   });
   assert(emptyRes.isInsufficientEvidence === true, "isInsufficientEvidence flag is set");
-  assert(emptyRes.finding === "Insufficient evidence.", "Returns exact string 'Insufficient evidence.'");
+  assert(
+    emptyRes.finding === "Insufficient evidence.",
+    "Returns exact string 'Insufficient evidence.'",
+  );
   assert(emptyRes.confidenceScorePct === 0, "Confidence is 0 for insufficient evidence");
 
   // Test 2: Natural Language Query "Why is this invoice R84,000 higher than calculated?"
-  console.log("\n--- Test 2: Grounded Discrepancy Query ('Why is this invoice R84,000 higher?') ---");
+  console.log(
+    "\n--- Test 2: Grounded Discrepancy Query ('Why is this invoice R84,000 higher?') ---",
+  );
   const validContext: InvestigationContext = {
     customerName: "Anglo Gold Ashanti",
     accountNumber: "ACC-88910",
@@ -82,7 +87,8 @@ export function runAiInvestigationTests() {
         reasonCode: "TOU_CLASSIFICATION",
         severity: "CRITICAL",
         confidencePct: 96.5,
-        evidenceSummary: "Source invoice applied High Season Peak rate to 120 Off-Peak Sunday intervals",
+        evidenceSummary:
+          "Source invoice applied High Season Peak rate to 120 Off-Peak Sunday intervals",
         affectedRecordCount: 120,
         affectedComponent: "Peak Energy Charges",
         financialImpactZar: 84000.0,
@@ -105,11 +111,20 @@ export function runAiInvestigationTests() {
 
   // Verify all 8 required output fields
   assert(diagRes.isInsufficientEvidence === false, "Valid context produces grounded finding");
-  assert(diagRes.finding.includes("Peak Energy Charges") || diagRes.finding.includes("R 84,000.00"), "Finding explains R84,000 discrepancy");
+  assert(
+    diagRes.finding.includes("Peak Energy Charges") || diagRes.finding.includes("R 84,000.00"),
+    "Finding explains R84,000 discrepancy",
+  );
   assert(diagRes.evidence.length >= 3, "Contains verified evidence lines");
   assert(diagRes.calculation.length > 0, "Contains calculation step-by-step trace");
-  assert(diagRes.affectedPeriods === "2026-03-01 to 2026-03-31", "Identifies exact affected periods");
-  assert(diagRes.affectedTariffComponent === "Peak Energy Charges", "Identifies affected tariff component");
+  assert(
+    diagRes.affectedPeriods === "2026-03-01 to 2026-03-31",
+    "Identifies exact affected periods",
+  );
+  assert(
+    diagRes.affectedTariffComponent === "Peak Energy Charges",
+    "Identifies affected tariff component",
+  );
   assert(diagRes.financialImpactZar === 84000.0, "Financial impact matches exact Rand variance");
   assert(diagRes.confidenceScorePct === 96.5, "Confidence matches diagnostic evidence score");
   assert(diagRes.sourceRecords.length >= 1, "References underlying source records");
@@ -123,7 +138,9 @@ export function runAiInvestigationTests() {
       classification: "ACCEPTABLE",
       totalIssuesCount: 2,
       evaluatedIntervalsCount: 1440,
-      scoreDeductions: [{ code: "DUPLICATE_INTERVALS", deduction: 15, reason: "15 duplicate intervals" }],
+      scoreDeductions: [
+        { code: "DUPLICATE_INTERVALS", deduction: 15, reason: "15 duplicate intervals" },
+      ],
       issues: [
         {
           id: "q-1",
@@ -149,12 +166,18 @@ export function runAiInvestigationTests() {
   });
 
   assert(qualRes.finding.includes("85/100"), "Data quality finding states exact 85/100 score");
-  assert(qualRes.evidence.some((e) => e.includes("Duplicate Intervals")), "Lists specific quality issue in evidence");
+  assert(
+    qualRes.evidence.some((e) => e.includes("Duplicate Intervals")),
+    "Lists specific quality issue in evidence",
+  );
 
   // Test 4: Dispute Narrative Generation
   console.log("\n--- Test 4: Draft Dispute Narrative Generation ---");
   const disputeDraft = AiInvestigationEngine.generateDisputeNarrative(validContext);
-  assert(disputeDraft.title.includes("INV-2026-03-8891"), "Dispute draft title contains invoice number");
+  assert(
+    disputeDraft.title.includes("INV-2026-03-8891"),
+    "Dispute draft title contains invoice number",
+  );
   assert(disputeDraft.claimedOverchargeZar === 84000.0, "Claimed overcharge is R84,000");
   assert(disputeDraft.discrepancySchedule.length >= 1, "Discrepancy schedule contains line items");
   assert(disputeDraft.demands.length >= 2, "Includes specific legal/financial demands");
@@ -162,8 +185,14 @@ export function runAiInvestigationTests() {
   // Test 5: Executive Management Summary Report
   console.log("\n--- Test 5: Executive Management Summary Report ---");
   const mgmtSummary = AiInvestigationEngine.generateManagementSummary(validContext);
-  assert(mgmtSummary.totalBilledZar === 556500.0, "Billed total strictly matches deterministic output");
-  assert(mgmtSummary.totalCalculatedZar === 472500.0, "Calculated total strictly matches deterministic output");
+  assert(
+    mgmtSummary.totalBilledZar === 556500.0,
+    "Billed total strictly matches deterministic output",
+  );
+  assert(
+    mgmtSummary.totalCalculatedZar === 472500.0,
+    "Calculated total strictly matches deterministic output",
+  );
   assert(mgmtSummary.totalVarianceZar === 84000.0, "Total variance matches R84,000");
 
   console.log("\n=== ALL AI INVESTIGATION LAYER TESTS PASSED SUCCESSFULLY ===\n");

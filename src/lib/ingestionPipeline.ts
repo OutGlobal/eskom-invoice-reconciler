@@ -44,7 +44,10 @@ export async function runIngestionPipeline(
 
   // Stage 1: Upload Record Creation
   onProgress?.("Creating Upload Record", 10, "Registering file in database storage");
-  addLog("Upload", `Initializing upload for file ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+  addLog(
+    "Upload",
+    `Initializing upload for file ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
+  );
 
   let uploadId = `upload-${Date.now()}`;
   try {
@@ -77,7 +80,8 @@ export async function runIngestionPipeline(
 
   try {
     pdfResult = await extractInvoiceFromPdf(file);
-    rawText = pdfResult.invoice.source || `Extracted Invoice No: ${pdfResult.invoice.invoiceNumber}`;
+    rawText =
+      pdfResult.invoice.source || `Extracted Invoice No: ${pdfResult.invoice.invoiceNumber}`;
   } catch (pdfErr) {
     addLog("PDF Extraction Error", "Standard PDF text layer missing or damaged. Switching to OCR.");
     parserType = "tesseract_ocr";
@@ -93,13 +97,19 @@ export async function runIngestionPipeline(
   };
 
   if (!pdfResult) {
-    throw new Error("Invoice extraction failed: no verified fields were recovered from the document.");
+    throw new Error(
+      "Invoice extraction failed: no verified fields were recovered from the document.",
+    );
   }
 
   // Stage 3: AI Fallback Check (If confidence < 90% or fields missing)
   let aiResult: AiParserResult | undefined;
   if (!invoice.invoiceTotal || confidenceScore < 90) {
-    onProgress?.("Executing AI Fallback Parser", 60, "Resolving unstructured billing tables with AI");
+    onProgress?.(
+      "Executing AI Fallback Parser",
+      60,
+      "Resolving unstructured billing tables with AI",
+    );
     addLog("AI Fallback", "Invoking Gemini AI parser to resolve missing billing fields");
     aiResult = await processWithAiFallback(rawText);
     if (aiResult.invoice.invoiceTotal) {
@@ -115,7 +125,11 @@ export async function runIngestionPipeline(
   const validationReport = validateInvoiceData(invoice);
 
   // Stage 5: Raw Storage & Non-Lossy Document Ingestion
-  onProgress?.("Persisting Raw Audit Document", 85, "Saving raw text, OCR JSON, and detected tables");
+  onProgress?.(
+    "Persisting Raw Audit Document",
+    85,
+    "Saving raw text, OCR JSON, and detected tables",
+  );
   addLog("Raw Persistence", "Storing raw text and metadata to public.raw_documents");
 
   await saveRawDocumentData({
@@ -130,7 +144,10 @@ export async function runIngestionPipeline(
   });
 
   // Stage 6: Validation Results Sync
-  addLog("Validation Persistence", `Saving ${validationReport.results.length} validation rule results`);
+  addLog(
+    "Validation Persistence",
+    `Saving ${validationReport.results.length} validation rule results`,
+  );
   const valPayloads = validationReport.results.map((r) => ({
     upload_id: uploadId,
     invoice_number: invoice.invoiceNumber || invoice.invoiceNo,

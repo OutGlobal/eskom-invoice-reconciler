@@ -48,7 +48,11 @@ export function validateUploadedFile(
   fileSizeBytes: number,
 ): FileValidationResult {
   if (fileSizeBytes <= 0) {
-    return { valid: false, errorCode: "EMPTY_FILE", errorMessage: "Uploaded file is empty (0 bytes)." };
+    return {
+      valid: false,
+      errorCode: "EMPTY_FILE",
+      errorMessage: "Uploaded file is empty (0 bytes).",
+    };
   }
 
   if (fileSizeBytes > MAX_FILE_SIZE_BYTES) {
@@ -62,7 +66,19 @@ export function validateUploadedFile(
   const ext = fileName.split(".").pop()?.toLowerCase() || "";
 
   // Executable script extension blocking check (highest priority security check)
-  const dangerousExtensions = ["exe", "bat", "cmd", "sh", "js", "ts", "py", "php", "pl", "vbs", "jar"];
+  const dangerousExtensions = [
+    "exe",
+    "bat",
+    "cmd",
+    "sh",
+    "js",
+    "ts",
+    "py",
+    "php",
+    "pl",
+    "vbs",
+    "jar",
+  ];
   if (dangerousExtensions.includes(ext)) {
     return {
       valid: false,
@@ -79,7 +95,11 @@ export function validateUploadedFile(
     };
   }
 
-  if (mimeType && !ALLOWED_MIME_TYPES.has(mimeType.toLowerCase()) && mimeType !== "application/octet-stream") {
+  if (
+    mimeType &&
+    !ALLOWED_MIME_TYPES.has(mimeType.toLowerCase()) &&
+    mimeType !== "application/octet-stream"
+  ) {
     return {
       valid: false,
       errorCode: "INVALID_MIME_TYPE",
@@ -95,5 +115,8 @@ export function redactSensitiveData(logMessage: string): string {
   return logMessage
     .replace(/Bearer\s+[A-Za-z0-9\-\._~\+\/]+=*/gi, "Bearer [REDACTED_TOKEN]")
     .replace(/eyJ[A-Za-z0-9\-_=]+\.[A-Za-z0-9\-_=]+\.?[A-Za-z0-9\-_+/=]*/g, "[REDACTED_JWT]")
-    .replace(/(password|secret|apiKey|service_role_key)\s*[:=]\s*["']?[^"'\s,]+["']?/gi, "$1=[REDACTED]");
+    .replace(
+      /(password|secret|apiKey|service_role_key)\s*[:=]\s*["']?[^"'\s,]+["']?/gi,
+      "$1=[REDACTED]",
+    );
 }

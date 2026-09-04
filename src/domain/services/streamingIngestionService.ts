@@ -1,9 +1,9 @@
 /**
  * Enterprise Streaming Ingestion Service
  * Eskom Management Platform — Chunked Memory-Efficient Telemetry & Invoice Ingestor
- * 
+ *
  * Target Flow:
- * USER -> UPLOAD INITIALIZATION -> SIGNED STORAGE UPLOAD -> OBJECT STORAGE -> 
+ * USER -> UPLOAD INITIALIZATION -> SIGNED STORAGE UPLOAD -> OBJECT STORAGE ->
  * INGESTION JOB -> ASYNC PROCESSOR -> STREAMING PARSER -> VALIDATION -> NORMALIZATION -> DATABASE
  */
 
@@ -77,7 +77,8 @@ export class StreamingIngestionService {
     } catch {
       // Deterministic fallback hash
       const view = new Uint8Array(buffer);
-      let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+      let h1 = 0xdeadbeef,
+        h2 = 0x41c6ce57;
       for (let i = 0; i < view.length; i++) {
         const ch = view[i];
         h1 = Math.imul(h1 ^ ch, 2654435761);
@@ -94,9 +95,14 @@ export class StreamingIngestionService {
   /**
    * Checks database & memory cache for duplicate file uploads using SHA-256 idempotency fingerprint
    */
-  public static async checkIdempotency(fileHash: string): Promise<{ isDuplicate: boolean; existingFile?: any }> {
+  public static async checkIdempotency(
+    fileHash: string,
+  ): Promise<{ isDuplicate: boolean; existingFile?: any }> {
     if (this.processedHashesSet.has(fileHash)) {
-      return { isDuplicate: true, existingFile: { id: `file-${fileHash.substring(0, 8)}`, file_hash_sha256: fileHash } };
+      return {
+        isDuplicate: true,
+        existingFile: { id: `file-${fileHash.substring(0, 8)}`, file_hash_sha256: fileHash },
+      };
     }
     try {
       const { data, error } = await supabase
@@ -121,7 +127,7 @@ export class StreamingIngestionService {
   public static async processStreamingIngestion(
     file: File | { name: string; size: number; content: string },
     onProgress?: ProgressCallback,
-    tenantId = "impala-plats-rustenburg"
+    tenantId = "impala-plats-rustenburg",
   ): Promise<IngestionSummary> {
     const startTime = Date.now();
     const startedAt = new Date().toISOString();
@@ -151,7 +157,11 @@ export class StreamingIngestionService {
     const jobId = jobCtx.jobId;
 
     if (isDuplicate) {
-      AuditLedgerService.recordEvent(jobCtx, "DUPLICATE_FILE_DETECTED", { filename, fileHash, existingFileId: existingFile?.id });
+      AuditLedgerService.recordEvent(jobCtx, "DUPLICATE_FILE_DETECTED", {
+        filename,
+        fileHash,
+        existingFileId: existingFile?.id,
+      });
       onProgress?.(100, 0, "Duplicate file detected — Skipping duplicate telemetry insertion.");
 
       return {
@@ -173,7 +183,9 @@ export class StreamingIngestionService {
         status: "completed",
         processingDurationMs: Date.now() - startTime,
         errors: [],
-        warnings: [`File '${filename}' (SHA256: ${fileHash.substring(0, 12)}...) was already uploaded and ingested. Telemetry insertion skipped.`],
+        warnings: [
+          `File '${filename}' (SHA256: ${fileHash.substring(0, 12)}...) was already uploaded and ingested. Telemetry insertion skipped.`,
+        ],
         isDuplicateFile: true,
       };
     }
@@ -187,7 +199,11 @@ export class StreamingIngestionService {
         id: fileId,
         filename,
         file_size_bytes: fileSize,
-        mime_type: filename.endsWith(".csv") ? "text/csv" : filename.endsWith(".json") ? "application/json" : "application/octet-stream",
+        mime_type: filename.endsWith(".csv")
+          ? "text/csv"
+          : filename.endsWith(".json")
+            ? "application/json"
+            : "application/octet-stream",
         storage_path: `ingestion/${fileId}/${filename}`,
         file_hash_sha256: fileHash,
         status: "processing",
@@ -224,7 +240,12 @@ export class StreamingIngestionService {
     // Detect header line
     for (let i = 0; i < Math.min(10, lines.length); i++) {
       const lower = lines[i].toLowerCase();
-      if (lower.includes("time") || lower.includes("date") || lower.includes("kw") || lower.includes("kwh")) {
+      if (
+        lower.includes("time") ||
+        lower.includes("date") ||
+        lower.includes("kw") ||
+        lower.includes("kwh")
+      ) {
         headerLine = lines[i];
         headerIndex = i;
         break;
@@ -237,9 +258,20 @@ export class StreamingIngestionService {
     }
 
     // Validate Required Header Columns
-    const headerCols = headerLine ? headerLine.split(",").map((c) => c.trim().toLowerCase().replace(/^["']|["']$/g, "")) : [];
-    const hasTimestampCol = headerCols.some((c) => c.includes("time") || c.includes("date") || c === "ts");
-    const hasKwCol = headerCols.some((c) => c.includes("kw") || c.includes("kva") || c.includes("power") || c.includes("active"));
+    const headerCols = headerLine
+      ? headerLine.split(",").map((c) =>
+          c
+            .trim()
+            .toLowerCase()
+            .replace(/^["']|["']$/g, ""),
+        )
+      : [];
+    const hasTimestampCol = headerCols.some(
+      (c) => c.includes("time") || c.includes("date") || c === "ts",
+    );
+    const hasKwCol = headerCols.some(
+      (c) => c.includes("kw") || c.includes("kva") || c.includes("power") || c.includes("active"),
+    );
 
     if (!hasTimestampCol) {
       errors.push({
@@ -247,7 +279,8 @@ export class StreamingIngestionService {
         columnName: "HEADER",
         rawValue: headerLine,
         errorCode: "MISSING_REQUIRED_COLUMN",
-        errorDescription: "Header is missing required timestamp/date column ('Timestamp' or 'Date')",
+        errorDescription:
+          "Header is missing required timestamp/date column ('Timestamp' or 'Date')",
         severity: "critical",
       });
     }
@@ -264,11 +297,28 @@ export class StreamingIngestionService {
     }
 
     // Detect Unexpected Extra Columns
-    const expectedCols = ["timestamp", "date", "kw", "kvar", "kvarh", "kva", "power_factor", "pf", "tou", "status"];
-    const unexpectedCols = headerCols.filter((col) => !expectedCols.some((exp) => col.includes(exp)));
+    const expectedCols = [
+      "timestamp",
+      "date",
+      "kw",
+      "kvar",
+      "kvarh",
+      "kva",
+      "power_factor",
+      "pf",
+      "tou",
+      "status",
+    ];
+    const unexpectedCols = headerCols.filter(
+      (col) => !expectedCols.some((exp) => col.includes(exp)),
+    );
     if (unexpectedCols.length > 0) {
-      warnings.push(`Recorded ${unexpectedCols.length} unexpected column(s): [${unexpectedCols.join(", ")}]. Transformation recorded in processing log.`);
-      AuditLedgerService.recordEvent(jobCtx, "UNEXPECTED_COLUMNS_DETECTED", { columns: unexpectedCols });
+      warnings.push(
+        `Recorded ${unexpectedCols.length} unexpected column(s): [${unexpectedCols.join(", ")}]. Transformation recorded in processing log.`,
+      );
+      AuditLedgerService.recordEvent(jobCtx, "UNEXPECTED_COLUMNS_DETECTED", {
+        columns: unexpectedCols,
+      });
     }
 
     // Process Rows in Chunks
@@ -298,15 +348,19 @@ export class StreamingIngestionService {
       }
 
       // Map values
-      let rawTs = parts[0] || "";
-      let rawKw = parts[1] || "";
-      let rawKva = parts[3] || parts[1] || "";
-      let rawKvarh = parts[2] || "0";
-      let rawPf = parts[4] || "0.96";
+      const rawTs = parts[0] || "";
+      const rawKw = parts[1] || "";
+      const rawKva = parts[3] || parts[1] || "";
+      const rawKvarh = parts[2] || "0";
+      const rawPf = parts[4] || "0.96";
 
       // 1. Timestamp Validation
       const parsedDate = new Date(rawTs.replace(/\//g, "-"));
-      if (isNaN(parsedDate.getTime()) || parsedDate.getFullYear() < 2000 || parsedDate.getFullYear() > 2050) {
+      if (
+        isNaN(parsedDate.getTime()) ||
+        parsedDate.getFullYear() < 2000 ||
+        parsedDate.getFullYear() > 2050
+      ) {
         rowsRejected++;
         rowsInvalid++;
         errors.push({
@@ -405,7 +459,11 @@ export class StreamingIngestionService {
       // Progress reporting per chunk
       if (idx % chunkSize === 0 || idx === totalDataRows - 1) {
         const pct = 20 + Math.round((idx / totalDataRows) * 70);
-        onProgress?.(pct, rowsImported, `Streaming chunk ${Math.floor(idx / chunkSize) + 1} (${rowsImported} rows parsed)...`);
+        onProgress?.(
+          pct,
+          rowsImported,
+          `Streaming chunk ${Math.floor(idx / chunkSize) + 1} (${rowsImported} rows parsed)...`,
+        );
       }
     }
 
@@ -464,7 +522,11 @@ export class StreamingIngestionService {
       // Offline fallback
     }
 
-    onProgress?.(100, rowsImported, `Ingestion ${status.replace(/_/g, " ")} (${rowsImported} rows imported, ${errors.length} issues logged).`);
+    onProgress?.(
+      100,
+      rowsImported,
+      `Ingestion ${status.replace(/_/g, " ")} (${rowsImported} rows imported, ${errors.length} issues logged).`,
+    );
 
     AuditLedgerService.recordEvent(jobCtx, "STREAMING_INGESTION_COMPLETED", {
       status,

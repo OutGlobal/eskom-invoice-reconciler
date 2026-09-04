@@ -4,13 +4,7 @@
  */
 
 export type TelemetryQualityStatus =
-  | "measured"
-  | "estimated"
-  | "interpolated"
-  | "suspect"
-  | "duplicate"
-  | "rollover"
-  | "validated";
+  "measured" | "estimated" | "interpolated" | "suspect" | "duplicate" | "rollover" | "validated";
 
 export interface ParsedRawInterval {
   rowNumber: number;

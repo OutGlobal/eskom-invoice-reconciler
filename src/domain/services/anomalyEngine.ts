@@ -11,7 +11,11 @@ import type {
 
 export interface AnomalyInsight {
   id: string;
-  category: "CURTAILMENT_PEAK_SPIKE" | "NMD_EXCEEDANCE" | "TRANSMISSION_ALIGNMENT" | "SOLAR_WHEELING_NETTING";
+  category:
+    | "CURTAILMENT_PEAK_SPIKE"
+    | "NMD_EXCEEDANCE"
+    | "TRANSMISSION_ALIGNMENT"
+    | "SOLAR_WHEELING_NETTING";
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "INFO";
   title: string;
   description: string;
@@ -26,13 +30,16 @@ export class AnomalyEngine {
    */
   public static scanForAnomalies(
     recon: ReconciliationResult,
-    intervals: CanonicalTelemetryInterval[]
+    intervals: CanonicalTelemetryInterval[],
   ): AnomalyInsight[] {
     const insights: AnomalyInsight[] = [];
 
     // 1. Mandatory Load Curtailment Peak Spike Detection
     const curtailmentPeak = intervals.find(
-      (r) => r.timestamp >= new Date("2026-03-04T00:00:00Z") && r.timestamp <= new Date("2026-03-04T23:59:59Z") && r.kVA > 90000
+      (r) =>
+        r.timestamp >= new Date("2026-03-04T00:00:00Z") &&
+        r.timestamp <= new Date("2026-03-04T23:59:59Z") &&
+        r.kVA > 90000,
     );
 
     if (curtailmentPeak || recon.totals.maxDemandKVA > 90000) {

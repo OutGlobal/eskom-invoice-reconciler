@@ -3,7 +3,12 @@
  * Keeps the visual shape (peaks/troughs) of a large series while reducing the
  * number of SVG points rendered into the DOM — 5,760 intervals -> ~300 points.
  */
-export function lttb<T>(data: T[], threshold: number, x: (d: T) => number, y: (d: T) => number): T[] {
+export function lttb<T>(
+  data: T[],
+  threshold: number,
+  x: (d: T) => number,
+  y: (d: T) => number,
+): T[] {
   const n = data.length;
   if (threshold >= n || threshold < 3) return data;
 

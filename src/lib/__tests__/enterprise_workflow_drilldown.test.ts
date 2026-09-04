@@ -74,15 +74,29 @@ assert(drill.level === 1, "Initial level is Level 1 (Total Variance)");
 
 // Level 1 -> Level 2
 drill = { level: 2, component: "peak_energy" };
-assert(drill.level === 2 && drill.component === "peak_energy", "Navigated to Level 2 (Billing Component: Peak Energy)");
+assert(
+  drill.level === 2 && drill.component === "peak_energy",
+  "Navigated to Level 2 (Billing Component: Peak Energy)",
+);
 
 // Level 2 -> Level 3
 drill = { level: 3, component: "peak_energy", date: "2026-03-15" };
-assert(drill.level === 3 && drill.date === "2026-03-15", "Navigated to Level 3 (Day View: 2026-03-15)");
+assert(
+  drill.level === 3 && drill.date === "2026-03-15",
+  "Navigated to Level 3 (Day View: 2026-03-15)",
+);
 
 // Level 3 -> Level 4
-drill = { level: 4, component: "peak_energy", date: "2026-03-15", interval: "2026-03-15 08:30:00+02:00" };
-assert(drill.level === 4 && drill.interval?.includes("08:30:00"), "Navigated to Level 4 (Raw Source Record Inspector)");
+drill = {
+  level: 4,
+  component: "peak_energy",
+  date: "2026-03-15",
+  interval: "2026-03-15 08:30:00+02:00",
+};
+assert(
+  drill.level === 4 && drill.interval?.includes("08:30:00"),
+  "Navigated to Level 4 (Raw Source Record Inspector)",
+);
 console.log("✅ DRILL-DOWN TEST PASSED: 4-level drill-down state transitions verified");
 
 // 4. Test Dispute Pack Payload Generation

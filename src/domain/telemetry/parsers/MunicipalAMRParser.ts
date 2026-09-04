@@ -8,8 +8,14 @@ export class MunicipalAMRParser implements ITelemetryParser {
     const lower = headerOrContent.toLowerCase();
     const fnLower = filename.toLowerCase();
     return (
-      (fnLower.includes("muni") || fnLower.includes("city") || fnLower.includes("bulk") || fnLower.includes("elm")) ||
-      (lower.includes("cumulative") || lower.includes("register") || lower.includes("dial") || lower.includes("reading"))
+      fnLower.includes("muni") ||
+      fnLower.includes("city") ||
+      fnLower.includes("bulk") ||
+      fnLower.includes("elm") ||
+      lower.includes("cumulative") ||
+      lower.includes("register") ||
+      lower.includes("dial") ||
+      lower.includes("reading")
     );
   }
 
@@ -20,7 +26,12 @@ export class MunicipalAMRParser implements ITelemetryParser {
     let headerIndex = -1;
     for (let i = 0; i < Math.min(15, lines.length); i++) {
       const lower = lines[i].toLowerCase();
-      if (lower.includes("reading") || lower.includes("cumulative") || lower.includes("register") || lower.includes("time")) {
+      if (
+        lower.includes("reading") ||
+        lower.includes("cumulative") ||
+        lower.includes("register") ||
+        lower.includes("time")
+      ) {
         headerIndex = i;
         break;
       }

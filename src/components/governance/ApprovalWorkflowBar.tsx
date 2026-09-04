@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import {
-  ApprovalWorkflowEngine,
-} from "../../domain/governance/approvalWorkflowEngine";
+import { ApprovalWorkflowEngine } from "../../domain/governance/approvalWorkflowEngine";
 import {
   ReconciliationWorkflowRun,
   ReconciliationLifecycleState,
@@ -50,7 +48,7 @@ export const ApprovalWorkflowBar: React.FC<ApprovalWorkflowBarProps> = ({
         varianceZar: 22500.0,
         reconciliationStatus: "MATERIAL_DISCREPANCY",
         auditLedgerHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      })
+      }),
   );
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -116,7 +114,8 @@ export const ApprovalWorkflowBar: React.FC<ApprovalWorkflowBarProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              Meter: <span className="font-mono text-slate-300">{run.meterId}</span> | Period: {run.billingPeriodStr}
+              Meter: <span className="font-mono text-slate-300">{run.meterId}</span> | Period:{" "}
+              {run.billingPeriodStr}
             </p>
           </div>
         </div>
@@ -125,7 +124,7 @@ export const ApprovalWorkflowBar: React.FC<ApprovalWorkflowBarProps> = ({
         <div className="flex items-center space-x-2">
           <span
             className={`text-xs px-3 py-1 rounded-lg border font-mono tracking-wide flex items-center gap-1.5 ${getStateColorClass(
-              run.state
+              run.state,
             )}`}
           >
             {run.isImmutable && <Lock className="w-3.5 h-3.5 text-purple-400" />}
@@ -156,13 +155,17 @@ export const ApprovalWorkflowBar: React.FC<ApprovalWorkflowBarProps> = ({
               {run.state === "REVIEW" && (
                 <>
                   <button
-                    onClick={() => handleTransition("APPROVED", "Reconciliation verified & approved")}
+                    onClick={() =>
+                      handleTransition("APPROVED", "Reconciliation verified & approved")
+                    }
                     className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-medium transition"
                   >
                     Approve
                   </button>
                   <button
-                    onClick={() => handleTransition("REJECTED", "Rejected due to line item discrepancy")}
+                    onClick={() =>
+                      handleTransition("REJECTED", "Rejected due to line item discrepancy")
+                    }
                     className="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded text-xs font-medium transition"
                   >
                     Reject
@@ -214,25 +217,39 @@ export const ApprovalWorkflowBar: React.FC<ApprovalWorkflowBarProps> = ({
         <div className="bg-slate-950 p-2 rounded border border-slate-800/80">
           <span className="text-[10px] text-slate-400 block uppercase">Created By</span>
           <span className="font-semibold text-slate-200">{run.createdBy.userName}</span>
-          <span className="text-[10px] text-slate-400 block">{run.createdBy.timestamp.substring(0, 10)}</span>
+          <span className="text-[10px] text-slate-400 block">
+            {run.createdBy.timestamp.substring(0, 10)}
+          </span>
         </div>
 
         <div className="bg-slate-950 p-2 rounded border border-slate-800/80">
           <span className="text-[10px] text-slate-400 block uppercase">Reviewed By</span>
-          <span className="font-semibold text-amber-300">{run.reviewedBy?.userName || "Pending"}</span>
-          <span className="text-[10px] text-slate-400 block">{run.reviewedBy?.timestamp ? run.reviewedBy.timestamp.substring(0, 10) : "—"}</span>
+          <span className="font-semibold text-amber-300">
+            {run.reviewedBy?.userName || "Pending"}
+          </span>
+          <span className="text-[10px] text-slate-400 block">
+            {run.reviewedBy?.timestamp ? run.reviewedBy.timestamp.substring(0, 10) : "—"}
+          </span>
         </div>
 
         <div className="bg-slate-950 p-2 rounded border border-slate-800/80">
           <span className="text-[10px] text-slate-400 block uppercase">Approved By</span>
-          <span className="font-semibold text-emerald-300">{run.approvedBy?.userName || "Pending"}</span>
-          <span className="text-[10px] text-slate-400 block">{run.approvedBy?.timestamp ? run.approvedBy.timestamp.substring(0, 10) : "—"}</span>
+          <span className="font-semibold text-emerald-300">
+            {run.approvedBy?.userName || "Pending"}
+          </span>
+          <span className="text-[10px] text-slate-400 block">
+            {run.approvedBy?.timestamp ? run.approvedBy.timestamp.substring(0, 10) : "—"}
+          </span>
         </div>
 
         <div className="bg-slate-950 p-2 rounded border border-slate-800/80">
           <span className="text-[10px] text-slate-400 block uppercase">Finalized By</span>
-          <span className="font-semibold text-purple-300">{run.finalizedBy?.userName || "Not Finalized"}</span>
-          <span className="text-[10px] text-slate-400 block">{run.finalizedBy?.timestamp ? run.finalizedBy.timestamp.substring(0, 10) : "—"}</span>
+          <span className="font-semibold text-purple-300">
+            {run.finalizedBy?.userName || "Not Finalized"}
+          </span>
+          <span className="text-[10px] text-slate-400 block">
+            {run.finalizedBy?.timestamp ? run.finalizedBy.timestamp.substring(0, 10) : "—"}
+          </span>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 /**
  * AI-Assisted Investigation Engine
- * 
+ *
  * STRICT ARCHITECTURAL RULE:
  * The AI layer NEVER calculates official financial totals or tariff rates.
  * The deterministic engine is the sole source of truth.
@@ -24,8 +24,13 @@ export class AiInvestigationEngine {
     const { query, context } = request;
 
     // Check evidence sufficiency
-    if (!context || (!context.reconciliationResult && !context.diagnoses?.length && !context.qualityAssessment)) {
-      return this.buildInsufficientEvidenceFinding("Insufficient evidence: No reconciliation, telemetry, or invoice data was provided to the engine.");
+    if (
+      !context ||
+      (!context.reconciliationResult && !context.diagnoses?.length && !context.qualityAssessment)
+    ) {
+      return this.buildInsufficientEvidenceFinding(
+        "Insufficient evidence: No reconciliation, telemetry, or invoice data was provided to the engine.",
+      );
     }
 
     const queryLower = (query || "").toLowerCase();
@@ -43,7 +48,12 @@ export class AiInvestigationEngine {
     }
 
     // Query 2: Data Quality questions
-    if (queryLower.includes("quality") || queryLower.includes("missing") || queryLower.includes("duplicate") || queryLower.includes("gap")) {
+    if (
+      queryLower.includes("quality") ||
+      queryLower.includes("missing") ||
+      queryLower.includes("duplicate") ||
+      queryLower.includes("gap")
+    ) {
       return this.investigateDataQualityQuery(context);
     }
 
@@ -64,7 +74,8 @@ export class AiInvestigationEngine {
         invoiceNumber: context?.invoiceNumber || "N/A",
         billingPeriod: context?.billingPeriodStr || "Unspecified",
         claimedOverchargeZar: 0,
-        executiveSummary: "Insufficient evidence. No verified reconciliation results available to generate formal dispute claims.",
+        executiveSummary:
+          "Insufficient evidence. No verified reconciliation results available to generate formal dispute claims.",
         groundedFacts: ["No deterministic calculation trace available."],
         discrepancySchedule: [],
         demands: ["Provide valid AMR telemetry and Eskom tax invoice for reconciliation."],
@@ -84,7 +95,9 @@ export class AiInvestigationEngine {
         billedZar: l.billedAmountZar,
         calculatedZar: l.calculatedAmountZar,
         varianceZar: l.varianceZar,
-        cause: diagnoses.find((d) => d.affectedComponent === l.componentName)?.rootCause || "Rate or billing determinant mismatch",
+        cause:
+          diagnoses.find((d) => d.affectedComponent === l.componentName)?.rootCause ||
+          "Rate or billing determinant mismatch",
       }));
 
     const groundedFacts = [
@@ -119,7 +132,8 @@ export class AiInvestigationEngine {
         `Confirm application of verified NERSA gazetted tariff rates for upcoming billing cycles.`,
       ],
       legalClauseReferences: legalClauses,
-      signOffTemplate: "Prepared by Authorized Energy Manager / Auditor.\nSignature: __________________________  Date: ______________",
+      signOffTemplate:
+        "Prepared by Authorized Energy Manager / Auditor.\nSignature: __________________________  Date: ______________",
     };
   }
 
@@ -139,18 +153,21 @@ export class AiInvestigationEngine {
         topDiscrepancies: [],
         dataQualityGrade: "UNKNOWN",
         dataQualityScore: 0,
-        recommendedAction: "Insufficient evidence. Upload complete invoice and AMR data to run reconciliation.",
+        recommendedAction:
+          "Insufficient evidence. Upload complete invoice and AMR data to run reconciliation.",
       };
     }
 
     const recon = context.reconciliationResult;
     const diagnoses = context.diagnoses || [];
 
-    const topDiscrepancies = ((diagnoses.length > 0 ? diagnoses : recon.discrepancies) || []).slice(0, 5).map((d: any) => ({
-      component: d.affectedComponent || d.componentName || "Billing Component",
-      varianceZar: d.financialImpactZar || d.varianceZar || 0,
-      rootCause: d.rootCause || d.statusText || "Rate discrepancy",
-    }));
+    const topDiscrepancies = ((diagnoses.length > 0 ? diagnoses : recon.discrepancies) || [])
+      .slice(0, 5)
+      .map((d: any) => ({
+        component: d.affectedComponent || d.componentName || "Billing Component",
+        varianceZar: d.financialImpactZar || d.varianceZar || 0,
+        rootCause: d.rootCause || d.statusText || "Rate discrepancy",
+      }));
 
     return {
       title: `Executive Billing Audit Summary - ${context.customerName || "Site"}`,
@@ -172,27 +189,41 @@ export class AiInvestigationEngine {
 
   // --- PRIVATE HELPERS ---
 
-  private static investigateVarianceQuery(query: string, context: InvestigationContext): AiInvestigationFinding {
+  private static investigateVarianceQuery(
+    query: string,
+    context: InvestigationContext,
+  ): AiInvestigationFinding {
     const recon = context.reconciliationResult;
     const diagnoses = context.diagnoses || [];
 
     if (!recon) {
-      return this.buildInsufficientEvidenceFinding("Insufficient evidence: Billing reconciliation results are not loaded.");
+      return this.buildInsufficientEvidenceFinding(
+        "Insufficient evidence: Billing reconciliation results are not loaded.",
+      );
     }
 
     // Find primary discrepancy
-    const primaryDiag = diagnoses.find((d) => Math.abs(d.financialImpactZar) > 10.0) || diagnoses[0];
-    const largestLine = [...recon.lineItems].sort((a, b) => Math.abs(b.varianceZar) - Math.abs(a.varianceZar))[0];
+    const primaryDiag =
+      diagnoses.find((d) => Math.abs(d.financialImpactZar) > 10.0) || diagnoses[0];
+    const largestLine = [...recon.lineItems].sort(
+      (a, b) => Math.abs(b.varianceZar) - Math.abs(a.varianceZar),
+    )[0];
 
     if (!primaryDiag && (!largestLine || Math.abs(largestLine.varianceZar) < 1.0)) {
       return {
-        finding: "Invoice matches calculated baseline cleanly. Zero material billing variance detected.",
+        finding:
+          "Invoice matches calculated baseline cleanly. Zero material billing variance detected.",
         evidence: [
           `Billed Total: R ${recon.billedTotalZar.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`,
           `Calculated Total: R ${recon.calculatedTotalZar.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`,
           `Variance: R ${recon.varianceZar.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`,
         ],
-        calculation: "Billed Total (R " + recon.billedTotalZar + ") - Calculated Total (R " + recon.calculatedTotalZar + ") = R 0.00",
+        calculation:
+          "Billed Total (R " +
+          recon.billedTotalZar +
+          ") - Calculated Total (R " +
+          recon.calculatedTotalZar +
+          ") = R 0.00",
         affectedPeriods: context.billingPeriodStr || "Billing Period",
         affectedTariffComponent: "All Tariff Charges",
         financialImpactZar: 0,
@@ -210,9 +241,14 @@ export class AiInvestigationEngine {
       };
     }
 
-    const componentName = primaryDiag?.affectedComponent || largestLine?.componentName || "Peak Energy Charges";
-    const impactR = primaryDiag?.financialImpactZar ?? largestLine?.varianceZar ?? recon.varianceZar;
-    const causeText = primaryDiag?.evidenceSummary || primaryDiag?.rootCause || "Discrepancy between billed line item and interval calculations.";
+    const componentName =
+      primaryDiag?.affectedComponent || largestLine?.componentName || "Peak Energy Charges";
+    const impactR =
+      primaryDiag?.financialImpactZar ?? largestLine?.varianceZar ?? recon.varianceZar;
+    const causeText =
+      primaryDiag?.evidenceSummary ||
+      primaryDiag?.rootCause ||
+      "Discrepancy between billed line item and interval calculations.";
 
     const evidenceList = [
       `Billed Total: R ${recon.billedTotalZar.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`,
@@ -244,7 +280,9 @@ export class AiInvestigationEngine {
         {
           sourceFileId: recon.sourceFileHashes[0] || "src-001",
           meterId: context.meterId || "meter-001",
-          rowNumbers: primaryDiag?.affectedRecordCount ? [1, primaryDiag.affectedRecordCount] : undefined,
+          rowNumbers: primaryDiag?.affectedRecordCount
+            ? [1, primaryDiag.affectedRecordCount]
+            : undefined,
           description: `Telemetry intervals & invoice line item for ${componentName}`,
         },
       ],
@@ -253,14 +291,21 @@ export class AiInvestigationEngine {
     };
   }
 
-  private static investigateDataQualityQuery(context: InvestigationContext): AiInvestigationFinding {
+  private static investigateDataQualityQuery(
+    context: InvestigationContext,
+  ): AiInvestigationFinding {
     const qual = context.qualityAssessment;
 
     if (!qual) {
-      return this.buildInsufficientEvidenceFinding("Insufficient evidence: No telemetry data quality evaluation results available.");
+      return this.buildInsufficientEvidenceFinding(
+        "Insufficient evidence: No telemetry data quality evaluation results available.",
+      );
     }
 
-    const issueList = qual.issues.map((i: any) => `[${i.severity}] ${i.title}: ${i.description} (${i.affectedRecordsCount} records impacted)`);
+    const issueList = qual.issues.map(
+      (i: any) =>
+        `[${i.severity}] ${i.title}: ${i.description} (${i.affectedRecordsCount} records impacted)`,
+    );
 
     return {
       finding: `Telemetry Data Quality Score is ${qual.overallScore}/100 (${qual.classification} grade) with ${qual.totalIssuesCount} quality issues detected.`,
@@ -273,7 +318,10 @@ export class AiInvestigationEngine {
       calculation: `Score = 100 - Sum of Issue Deductions (${qual.scoreDeductions.reduce((sum: number, d: any) => sum + d.deduction, 0)} pts) = ${qual.overallScore}`,
       affectedPeriods: context.billingPeriodStr || "Telemetry Recording Window",
       affectedTariffComponent: "Telemetry Intervals Data Stream",
-      financialImpactZar: qual.issues.reduce((sum: number, i: any) => sum + i.estimatedFinancialImpactZar, 0),
+      financialImpactZar: qual.issues.reduce(
+        (sum: number, i: any) => sum + i.estimatedFinancialImpactZar,
+        0,
+      ),
       financialImpactFormatted: `R ${qual.issues.reduce((sum: number, i: any) => sum + i.estimatedFinancialImpactZar, 0).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`,
       confidenceScorePct: 98.0,
       sourceRecords: [
@@ -288,11 +336,16 @@ export class AiInvestigationEngine {
     };
   }
 
-  private static investigateGeneralSummary(query: string, context: InvestigationContext): AiInvestigationFinding {
+  private static investigateGeneralSummary(
+    query: string,
+    context: InvestigationContext,
+  ): AiInvestigationFinding {
     const recon = context.reconciliationResult;
 
     if (!recon) {
-      return this.buildInsufficientEvidenceFinding("Insufficient evidence: Context does not contain reconciliation results.");
+      return this.buildInsufficientEvidenceFinding(
+        "Insufficient evidence: Context does not contain reconciliation results.",
+      );
     }
 
     return {
@@ -334,7 +387,8 @@ export class AiInvestigationEngine {
       confidenceScorePct: 0,
       sourceRecords: [],
       isInsufficientEvidence: true,
-      disclaimer: "Grounded AI layer: Insufficient evidence available to produce verified diagnosis.",
+      disclaimer:
+        "Grounded AI layer: Insufficient evidence available to produce verified diagnosis.",
     };
   }
 }

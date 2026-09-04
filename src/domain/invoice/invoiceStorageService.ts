@@ -3,8 +3,8 @@
  * Handles cryptographic hashing, database persistence, and lifecycle updates
  */
 
-import { supabase } from '../../lib/supabase';
-import type { ExtractedInvoiceDocument } from './types';
+import { supabase } from "../../lib/supabase";
+import type { ExtractedInvoiceDocument } from "./types";
 
 export class InvoiceStorageService {
   /**
@@ -12,10 +12,11 @@ export class InvoiceStorageService {
    */
   public static async computeSha256(content: Uint8Array | string): Promise<string> {
     const encoder = new TextEncoder();
-    const data: BufferSource = typeof content === 'string' ? encoder.encode(content) : (content as BufferSource);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const data: BufferSource =
+      typeof content === "string" ? encoder.encode(content) : (content as BufferSource);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
   }
 
   /**
@@ -29,8 +30,9 @@ export class InvoiceStorageService {
     try {
       // 1. Insert into invoice_records
       const invoiceNumber = doc.invoice_number.value || `INV-DRAFT-${Date.now()}`;
-      const accountNumber = doc.account_number.value || 'ACC-UNKNOWN';
-      const billingStart = doc.billing_period_start.value || new Date().toISOString().substring(0, 10);
+      const accountNumber = doc.account_number.value || "ACC-UNKNOWN";
+      const billingStart =
+        doc.billing_period_start.value || new Date().toISOString().substring(0, 10);
       const billingEnd = doc.billing_period_end.value || new Date().toISOString().substring(0, 10);
 
       const recordPayload = {
@@ -45,31 +47,31 @@ export class InvoiceStorageService {
         off_peak_kwh: Number(doc.off_peak_kwh.value) || 0,
         max_demand_kva: Number(doc.maximum_demand.value) || 0,
         invoiced_total: Number(doc.total_invoice_amount.value) || 0,
-        status: doc.metadata.needs_human_review ? 'draft' : 'validated',
+        status: doc.metadata.needs_human_review ? "draft" : "validated",
         raw_data: doc as any,
       };
 
       const { data: record, error: recordError } = await supabase
-        .from('invoice_records')
-        .upsert(recordPayload, { onConflict: 'invoice_number' })
-        .select('id')
+        .from("invoice_records")
+        .upsert(recordPayload, { onConflict: "invoice_number" })
+        .select("id")
         .single();
 
-      if (recordError && !recordError.message.includes('FetchError')) {
-        console.warn('Supabase invoice_records upsert warning:', recordError.message);
+      if (recordError && !recordError.message.includes("FetchError")) {
+        console.warn("Supabase invoice_records upsert warning:", recordError.message);
       }
 
       const invoiceId = record?.id || `local-${Date.now()}`;
 
       // 2. Insert into parser_results
       const parserPayload = {
-        ingestion_job_id: '00000000-0000-0000-0000-000000000000',
+        ingestion_job_id: "00000000-0000-0000-0000-000000000000",
         parser_name: doc.metadata.parser_version,
         extracted_data: doc as any,
         confidence_score: doc.metadata.overall_confidence,
       };
 
-      await supabase.from('parser_results').insert(parserPayload).select().single();
+      await supabase.from("parser_results").insert(parserPayload).select().single();
 
       // 3. Insert Line Items
       if (doc.line_items.length > 0 && record?.id) {
@@ -83,7 +85,7 @@ export class InvoiceStorageService {
           invoiced_amount: Number(item.invoiced_amount.value) || 0,
         }));
 
-        await supabase.from('invoice_line_items').insert(lineItemPayloads);
+        await supabase.from("invoice_line_items").insert(lineItemPayloads);
       }
 
       return {
@@ -93,7 +95,7 @@ export class InvoiceStorageService {
     } catch (err: any) {
       return {
         success: false,
-        error: err.message || 'Failed to save extracted invoice',
+        error: err.message || "Failed to save extracted invoice",
       };
     }
   }

@@ -65,7 +65,9 @@ function EnergyPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
         <div>
           <h1 className="text-xl font-semibold">Time-Of-Use (TOU) Energy Analysis</h1>
-          <p className="text-xs text-muted-foreground">30-minute interval active power (kW) &amp; kWh energy breakdown</p>
+          <p className="text-xs text-muted-foreground">
+            30-minute interval active power (kW) &amp; kWh energy breakdown
+          </p>
         </div>
         <InvoiceSelector />
       </div>

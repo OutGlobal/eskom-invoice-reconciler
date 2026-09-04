@@ -17,18 +17,90 @@ import {
 import { WorkflowStepId, WorkflowStepMeta } from "@/domain/workflow/types";
 
 export const WORKFLOW_STEPS: WorkflowStepMeta[] = [
-  { id: 1, title: "Select Customer / Site", shortTitle: "1. Customer", description: "Choose active customer profile & premise", status: "completed" },
-  { id: 2, title: "Select Meter", shortTitle: "2. Meter", description: "Select NMD meter & CT ratio", status: "completed" },
-  { id: 3, title: "Upload / Import Invoice", shortTitle: "3. Invoice", description: "Extract Megaflex / Municipal bill", status: "completed" },
-  { id: 4, title: "Upload / Import AMR Data", shortTitle: "4. Telemetry", description: "Ingest 15m/30m interval telemetry", status: "completed" },
-  { id: 5, title: "Validate Data", shortTitle: "5. Validation", description: "Verify schema, dates & energy totals", status: "completed" },
-  { id: 6, title: "Select / Confirm Tariff", shortTitle: "6. Tariff", description: "Confirm NERSA 2025/2026 tariff schedule", status: "completed" },
-  { id: 7, title: "Run Reconciliation", shortTitle: "7. Reconcile", description: "Execute 15-component calculation engine", status: "active" },
-  { id: 8, title: "Review Results", shortTitle: "8. Results", description: "Review ZAR variance & accuracy score", status: "active" },
-  { id: 9, title: "Investigate Discrepancies", shortTitle: "9. Investigate", description: "Run 22-rule diagnostic scanner", status: "warning" },
-  { id: 10, title: "Approve / Reject Findings", shortTitle: "10. Sign-off", description: "Auditor review & sign-off", status: "pending" },
-  { id: 11, title: "Generate Report", shortTitle: "11. Report", description: "Export PDF executive reconciliation summary", status: "pending" },
-  { id: 12, title: "Generate Dispute Pack", shortTitle: "12. Dispute Pack", description: "Compile official utility claim dossier", status: "pending" },
+  {
+    id: 1,
+    title: "Select Customer / Site",
+    shortTitle: "1. Customer",
+    description: "Choose active customer profile & premise",
+    status: "completed",
+  },
+  {
+    id: 2,
+    title: "Select Meter",
+    shortTitle: "2. Meter",
+    description: "Select NMD meter & CT ratio",
+    status: "completed",
+  },
+  {
+    id: 3,
+    title: "Upload / Import Invoice",
+    shortTitle: "3. Invoice",
+    description: "Extract Megaflex / Municipal bill",
+    status: "completed",
+  },
+  {
+    id: 4,
+    title: "Upload / Import AMR Data",
+    shortTitle: "4. Telemetry",
+    description: "Ingest 15m/30m interval telemetry",
+    status: "completed",
+  },
+  {
+    id: 5,
+    title: "Validate Data",
+    shortTitle: "5. Validation",
+    description: "Verify schema, dates & energy totals",
+    status: "completed",
+  },
+  {
+    id: 6,
+    title: "Select / Confirm Tariff",
+    shortTitle: "6. Tariff",
+    description: "Confirm NERSA 2025/2026 tariff schedule",
+    status: "completed",
+  },
+  {
+    id: 7,
+    title: "Run Reconciliation",
+    shortTitle: "7. Reconcile",
+    description: "Execute 15-component calculation engine",
+    status: "active",
+  },
+  {
+    id: 8,
+    title: "Review Results",
+    shortTitle: "8. Results",
+    description: "Review ZAR variance & accuracy score",
+    status: "active",
+  },
+  {
+    id: 9,
+    title: "Investigate Discrepancies",
+    shortTitle: "9. Investigate",
+    description: "Run 22-rule diagnostic scanner",
+    status: "warning",
+  },
+  {
+    id: 10,
+    title: "Approve / Reject Findings",
+    shortTitle: "10. Sign-off",
+    description: "Auditor review & sign-off",
+    status: "pending",
+  },
+  {
+    id: 11,
+    title: "Generate Report",
+    shortTitle: "11. Report",
+    description: "Export PDF executive reconciliation summary",
+    status: "pending",
+  },
+  {
+    id: 12,
+    title: "Generate Dispute Pack",
+    shortTitle: "12. Dispute Pack",
+    description: "Compile official utility claim dossier",
+    status: "pending",
+  },
 ];
 
 const STEP_ICONS: Record<WorkflowStepId, React.ComponentType<{ className?: string }>> = {
@@ -79,13 +151,17 @@ export const EnterpriseWorkflowStepper: React.FC<EnterpriseWorkflowStepperProps>
           const isCompleted = completedSteps.has(step.id);
           const isWarning = step.status === "warning";
 
-          let statusBadgeClass = "border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600";
+          let statusBadgeClass =
+            "border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600";
           if (isCurrent) {
-            statusBadgeClass = "border-blue-500 bg-blue-950/60 text-blue-300 ring-1 ring-blue-500/50 shadow-lg shadow-blue-900/30";
+            statusBadgeClass =
+              "border-blue-500 bg-blue-950/60 text-blue-300 ring-1 ring-blue-500/50 shadow-lg shadow-blue-900/30";
           } else if (isCompleted) {
-            statusBadgeClass = "border-emerald-700/60 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-950/50";
+            statusBadgeClass =
+              "border-emerald-700/60 bg-emerald-950/30 text-emerald-300 hover:bg-emerald-950/50";
           } else if (isWarning) {
-            statusBadgeClass = "border-amber-700/60 bg-amber-950/30 text-amber-300 hover:bg-amber-950/50";
+            statusBadgeClass =
+              "border-amber-700/60 bg-amber-950/30 text-amber-300 hover:bg-amber-950/50";
           }
 
           return (
@@ -100,10 +176,10 @@ export const EnterpriseWorkflowStepper: React.FC<EnterpriseWorkflowStepperProps>
                     isCurrent
                       ? "text-blue-400"
                       : isCompleted
-                      ? "text-emerald-400"
-                      : isWarning
-                      ? "text-amber-400"
-                      : "text-slate-500"
+                        ? "text-emerald-400"
+                        : isWarning
+                          ? "text-amber-400"
+                          : "text-slate-500"
                   }`}
                 />
                 <span
@@ -111,15 +187,17 @@ export const EnterpriseWorkflowStepper: React.FC<EnterpriseWorkflowStepperProps>
                     isCurrent
                       ? "bg-blue-500/20 text-blue-300"
                       : isCompleted
-                      ? "bg-emerald-500/20 text-emerald-300"
-                      : "bg-slate-700 text-slate-400"
+                        ? "bg-emerald-500/20 text-emerald-300"
+                        : "bg-slate-700 text-slate-400"
                   }`}
                 >
                   #{step.id}
                 </span>
               </div>
               <span className="text-xs font-semibold truncate w-full">{step.shortTitle}</span>
-              <span className="text-[10px] text-slate-400 truncate w-full mt-0.5">{step.description}</span>
+              <span className="text-[10px] text-slate-400 truncate w-full mt-0.5">
+                {step.description}
+              </span>
             </button>
           );
         })}

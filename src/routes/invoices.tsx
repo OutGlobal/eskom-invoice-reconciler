@@ -58,7 +58,9 @@ TOTAL INVOICE AMOUNT: R 920000.00
 function InvoicesPage() {
   const [activeDoc, setActiveDoc] = useState<ExtractedInvoiceDocument | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [invoicesList, setInvoicesList] = useState<Array<{ id: string; number: string; total: number; status: string }>>([]);
+  const [invoicesList, setInvoicesList] = useState<
+    Array<{ id: string; number: string; total: number; status: string }>
+  >([]);
 
   // Load sample on mount if no doc selected
   useEffect(() => {
@@ -104,7 +106,9 @@ function InvoicesPage() {
       });
 
       setActiveDoc(extracted);
-      toast.success("Invoice extracted successfully with confidence scoring!", { id: "inv-extract" });
+      toast.success("Invoice extracted successfully with confidence scoring!", {
+        id: "inv-extract",
+      });
     } catch (err: any) {
       toast.error("Extraction error: " + err.message, { id: "inv-extract" });
     } finally {
@@ -139,7 +143,8 @@ function InvoicesPage() {
             <FileText className="w-7 h-7 text-blue-600" /> Electricity Invoice Processing & Review
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Layered extraction pipeline for Eskom & Municipal PDF invoices with confidence scoring & human review.
+            Layered extraction pipeline for Eskom & Municipal PDF invoices with confidence scoring &
+            human review.
           </p>
         </div>
 

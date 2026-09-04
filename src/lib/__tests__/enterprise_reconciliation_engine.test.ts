@@ -4,13 +4,13 @@
  * configurable tolerances, root-cause inference, and independent run persistence.
  */
 
-import Decimal from 'decimal.js-light';
-import { LayeredExtractor } from '../../domain/invoice/layeredExtractor';
-import { ESKOM_MEGAFLEX_2025_2026 } from '../../domain/tariff/tariffFixtures';
-import { ReconciliationEngine } from '../../domain/reconciliation/reconciliationEngine';
-import { ReconciliationStorageService } from '../../domain/reconciliation/reconciliationStorageService';
-import { ToleranceEngine } from '../../domain/reconciliation/toleranceEngine';
-import type { ExtractedInvoiceDocument } from '../../domain/invoice/types';
+import Decimal from "decimal.js-light";
+import { LayeredExtractor } from "../../domain/invoice/layeredExtractor";
+import { ESKOM_MEGAFLEX_2025_2026 } from "../../domain/tariff/tariffFixtures";
+import { ReconciliationEngine } from "../../domain/reconciliation/reconciliationEngine";
+import { ReconciliationStorageService } from "../../domain/reconciliation/reconciliationStorageService";
+import { ToleranceEngine } from "../../domain/reconciliation/toleranceEngine";
+import type { ExtractedInvoiceDocument } from "../../domain/invoice/types";
 
 // Sample Eskom Megaflex PDF Text Payload
 const SAMPLE_MEGAFLEX_TEXT = `
@@ -65,130 +65,160 @@ function assert(condition: boolean, message: string) {
 }
 
 async function runEnterpriseReconciliationTests() {
-  console.log('\n=== RUNNING ENTERPRISE RECONCILIATION ENGINE TEST SUITE ===\n');
+  console.log("\n=== RUNNING ENTERPRISE RECONCILIATION ENGINE TEST SUITE ===\n");
 
   // Extract baseline invoice
   const baseInvoice = await LayeredExtractor.extractDocument({
-    filename: 'Megaflex_July2025.pdf',
+    filename: "Megaflex_July2025.pdf",
     pageTexts: [SAMPLE_MEGAFLEX_TEXT],
-    sha256Hash: 'sha-reconciliation-001',
+    sha256Hash: "sha-reconciliation-001",
     isScanned: false,
   });
 
   // Test 1: Clean Match Run (All 15 components match)
-  console.log('--- Test 1: Clean Match Reconciliation Run ---');
+  console.log("--- Test 1: Clean Match Reconciliation Run ---");
   const run1 = ReconciliationEngine.reconcileInvoice({
     invoice: baseInvoice,
-    billing_start: '2025-07-01',
-    billing_end: '2025-07-31',
-    peak_kwh: new Decimal('250000'),
-    standard_kwh: new Decimal('600000'),
-    off_peak_kwh: new Decimal('400000'),
-    total_kwh: new Decimal('1250000'),
-    peak_interval_kva: new Decimal('4850'),
-    notified_maximum_demand_kva: new Decimal('5000'),
-    reactive_energy_kvarh: new Decimal('180000'),
+    billing_start: "2025-07-01",
+    billing_end: "2025-07-31",
+    peak_kwh: new Decimal("250000"),
+    standard_kwh: new Decimal("600000"),
+    off_peak_kwh: new Decimal("400000"),
+    total_kwh: new Decimal("1250000"),
+    peak_interval_kva: new Decimal("4850"),
+    notified_maximum_demand_kva: new Decimal("5000"),
+    reactive_energy_kvarh: new Decimal("180000"),
     tariff_version: ESKOM_MEGAFLEX_2025_2026,
     telemetry_quality_score: 100,
   });
 
-  assert(run1.comparisons.length === 13, `Evaluated ${run1.comparisons.length} core billing component comparisons`);
-  assert(run1.calculation_trace.length > 0, `Generated ${run1.calculation_trace.length} audit steps`);
-  assert(run1.telemetry_data_quality_score === 100, 'Telemetry data quality score retained as 100%');
+  assert(
+    run1.comparisons.length === 13,
+    `Evaluated ${run1.comparisons.length} core billing component comparisons`,
+  );
+  assert(
+    run1.calculation_trace.length > 0,
+    `Generated ${run1.calculation_trace.length} audit steps`,
+  );
+  assert(
+    run1.telemetry_data_quality_score === 100,
+    "Telemetry data quality score retained as 100%",
+  );
 
   // Test 2: Rounding Variance Run (Minor R0.05 rounding variance)
-  console.log('\n--- Test 2: Minor Rounding Variance Run ---');
+  console.log("\n--- Test 2: Minor Rounding Variance Run ---");
   const invRounding = JSON.parse(JSON.stringify(baseInvoice)) as ExtractedInvoiceDocument;
   invRounding.total_invoice_amount.value = Number(invRounding.total_invoice_amount.value) + 0.05;
 
   const run2 = ReconciliationEngine.reconcileInvoice({
     invoice: invRounding,
-    billing_start: '2025-07-01',
-    billing_end: '2025-07-31',
+    billing_start: "2025-07-01",
+    billing_end: "2025-07-31",
     tariff_version: ESKOM_MEGAFLEX_2025_2026,
   });
 
-  const roundingComp = run2.comparisons.find((c) => c.component_code === 'TOTAL_BILL');
-  assert(roundingComp !== undefined, 'Total bill comparison exists');
-  assert(roundingComp!.status === 'ROUNDING_VARIANCE' || roundingComp!.status === 'MATCH', `Minor R0.05 variance status is ${roundingComp!.status}`);
+  const roundingComp = run2.comparisons.find((c) => c.component_code === "TOTAL_BILL");
+  assert(roundingComp !== undefined, "Total bill comparison exists");
+  assert(
+    roundingComp!.status === "ROUNDING_VARIANCE" || roundingComp!.status === "MATCH",
+    `Minor R0.05 variance status is ${roundingComp!.status}`,
+  );
 
   // Test 3: TOU Classification Overcharge (Material Peak kWh Discrepancy)
-  console.log('\n--- Test 3: TOU Classification Overcharge ---');
+  console.log("\n--- Test 3: TOU Classification Overcharge ---");
   const invTouOvercharge = JSON.parse(JSON.stringify(baseInvoice)) as ExtractedInvoiceDocument;
   invTouOvercharge.peak_kwh.value = 350000; // Supplier billed 350,000 kWh Peak instead of 250,000 kWh
 
   const run3 = ReconciliationEngine.reconcileInvoice({
     invoice: invTouOvercharge,
-    billing_start: '2025-07-01',
-    billing_end: '2025-07-31',
-    peak_kwh: new Decimal('250000'),
+    billing_start: "2025-07-01",
+    billing_end: "2025-07-31",
+    peak_kwh: new Decimal("250000"),
     tariff_version: ESKOM_MEGAFLEX_2025_2026,
   });
 
-  assert(run3.status === 'MATERIAL_DISCREPANCY', `Run status set to MATERIAL_DISCREPANCY (actual: ${run3.status})`);
-  const peakDisc = run3.discrepancies.find((d) => d.component_code === 'PEAK_KWH');
-  assert(peakDisc !== undefined, 'Flagged Peak kWh discrepancy item');
-  assert(peakDisc!.reason_code === 'TOU_CLASSIFICATION', `Discrepancy reason code set to TOU_CLASSIFICATION (${peakDisc!.reason_code})`);
+  assert(
+    run3.status === "MATERIAL_DISCREPANCY",
+    `Run status set to MATERIAL_DISCREPANCY (actual: ${run3.status})`,
+  );
+  const peakDisc = run3.discrepancies.find((d) => d.component_code === "PEAK_KWH");
+  assert(peakDisc !== undefined, "Flagged Peak kWh discrepancy item");
+  assert(
+    peakDisc!.reason_code === "TOU_CLASSIFICATION",
+    `Discrepancy reason code set to TOU_CLASSIFICATION (${peakDisc!.reason_code})`,
+  );
 
   // Test 4: NMD Demand Overcharge (Demand Ratchet Discrepancy)
-  console.log('\n--- Test 4: NMD Demand Overcharge ---');
+  console.log("\n--- Test 4: NMD Demand Overcharge ---");
   const invDemandOvercharge = JSON.parse(JSON.stringify(baseInvoice)) as ExtractedInvoiceDocument;
   invDemandOvercharge.maximum_demand.value = 6000; // Supplier billed 6,000 kVA instead of 4,850 kVA
 
   const run4 = ReconciliationEngine.reconcileInvoice({
     invoice: invDemandOvercharge,
-    billing_start: '2025-07-01',
-    billing_end: '2025-07-31',
-    peak_interval_kva: new Decimal('4850'),
-    notified_maximum_demand_kva: new Decimal('5000'),
+    billing_start: "2025-07-01",
+    billing_end: "2025-07-31",
+    peak_interval_kva: new Decimal("4850"),
+    notified_maximum_demand_kva: new Decimal("5000"),
     tariff_version: ESKOM_MEGAFLEX_2025_2026,
   });
 
-  const demandDisc = run4.discrepancies.find((d) => d.component_code === 'DEMAND_KVA');
-  assert(demandDisc !== undefined, 'Flagged Demand kVA discrepancy item');
-  assert(demandDisc!.reason_code === 'DEMAND_VARIANCE', `Discrepancy reason code set to DEMAND_VARIANCE (${demandDisc!.reason_code})`);
+  const demandDisc = run4.discrepancies.find((d) => d.component_code === "DEMAND_KVA");
+  assert(demandDisc !== undefined, "Flagged Demand kVA discrepancy item");
+  assert(
+    demandDisc!.reason_code === "DEMAND_VARIANCE",
+    `Discrepancy reason code set to DEMAND_VARIANCE (${demandDisc!.reason_code})`,
+  );
 
   // Test 5: Root Cause Inference Engine
-  console.log('\n--- Test 5: Root Cause Inference Engine ---');
-  assert(run3.root_causes.length > 0, `Inferred ${run3.root_causes.length} human-readable root causes`);
-  assert(run3.root_causes[0].includes('TOU Clock Misclassification'), 'Root cause correctly identified TOU Clock Misclassification');
+  console.log("\n--- Test 5: Root Cause Inference Engine ---");
+  assert(
+    run3.root_causes.length > 0,
+    `Inferred ${run3.root_causes.length} human-readable root causes`,
+  );
+  assert(
+    run3.root_causes[0].includes("TOU Clock Misclassification"),
+    "Root cause correctly identified TOU Clock Misclassification",
+  );
 
   // Test 6: Custom Multi-Layer Tolerances
-  console.log('\n--- Test 6: Custom Multi-Layer Tolerances ---');
+  console.log("\n--- Test 6: Custom Multi-Layer Tolerances ---");
   const strictConfig = JSON.parse(JSON.stringify(ToleranceEngine.DEFAULT_CONFIG));
   strictConfig.tolerances.TOTAL_BILL = {
-    component_code: 'TOTAL_BILL',
-    component_name: 'Total Invoice Amount',
-    absolute_tolerance_zar: new Decimal('1.00'), // Strict R1.00 tolerance
-    percentage_tolerance: new Decimal('0.0001'),
-    unit: 'ZAR',
+    component_code: "TOTAL_BILL",
+    component_name: "Total Invoice Amount",
+    absolute_tolerance_zar: new Decimal("1.00"), // Strict R1.00 tolerance
+    percentage_tolerance: new Decimal("0.0001"),
+    unit: "ZAR",
   };
 
   const runStrict = ReconciliationEngine.reconcileInvoice(
     {
       invoice: invRounding,
-      billing_start: '2025-07-01',
-      billing_end: '2025-07-31',
+      billing_start: "2025-07-01",
+      billing_end: "2025-07-31",
       tariff_version: ESKOM_MEGAFLEX_2025_2026,
     },
-    strictConfig
+    strictConfig,
   );
 
-  assert(runStrict.comparisons.length > 0, 'Evaluated comparisons under strict custom tolerance configuration');
+  assert(
+    runStrict.comparisons.length > 0,
+    "Evaluated comparisons under strict custom tolerance configuration",
+  );
 
   // Test 7: Independent Run Persistence (Never Overwrites History)
-  console.log('\n--- Test 7: Independent Run Persistence ---');
+  console.log("\n--- Test 7: Independent Run Persistence ---");
   const save1 = await ReconciliationStorageService.saveRun(run1);
   const save2 = await ReconciliationStorageService.saveRun(run1); // Rerun same invoice
 
-  assert(save1.success === true, 'First reconciliation run persisted successfully');
-  assert(save2.success === true, 'Second reconciliation run persisted successfully');
-  assert(run1.run_id !== undefined, 'Run assigned unique correlation ID');
+  assert(save1.success === true, "First reconciliation run persisted successfully");
+  assert(save2.success === true, "Second reconciliation run persisted successfully");
+  assert(run1.run_id !== undefined, "Run assigned unique correlation ID");
 
-  console.log('\n=== ALL ENTERPRISE RECONCILIATION ENGINE TESTS PASSED SUCCESSFULLY ===\n');
+  console.log("\n=== ALL ENTERPRISE RECONCILIATION ENGINE TESTS PASSED SUCCESSFULLY ===\n");
 }
 
 runEnterpriseReconciliationTests().catch((err) => {
-  console.error('Test execution failed:', err);
+  console.error("Test execution failed:", err);
   process.exit(1);
 });

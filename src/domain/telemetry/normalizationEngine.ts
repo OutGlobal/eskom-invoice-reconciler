@@ -30,7 +30,7 @@ export class TelemetryNormalizationEngine {
   public static normalizeTelemetry(
     filename: string,
     content: string,
-    options?: ParserOptions
+    options?: ParserOptions,
   ): NormalizationResult {
     const meterId = options?.meterId || "7856504226";
     const sourceFileId = options?.sourceFileId || `src-file-${Date.now()}`;
@@ -112,7 +112,8 @@ export class TelemetryNormalizationEngine {
       } else {
         // Direct interval kW / kWh
         activePowerKw = raw.kw || 0;
-        activeEnergyKwh = raw.kwh !== undefined ? raw.kwh : activePowerKw * (detectedIntervalMinutes / 60);
+        activeEnergyKwh =
+          raw.kwh !== undefined ? raw.kwh : activePowerKw * (detectedIntervalMinutes / 60);
       }
 
       // Check Negative Energy Anomaly
@@ -131,7 +132,7 @@ export class TelemetryNormalizationEngine {
         interval_minutes: detectedIntervalMinutes,
         active_energy_kwh: Number(activeEnergyKwh.toFixed(6)),
         reactive_energy_kvarh: Number((raw.kvarh || 0).toFixed(6)),
-        apparent_power_kva: Number((raw.kva || (activePowerKw * 1.04)).toFixed(6)),
+        apparent_power_kva: Number((raw.kva || activePowerKw * 1.04).toFixed(6)),
         active_power_kw: Number(activePowerKw.toFixed(6)),
         quality_status: qualityStatus,
         source_file_id: sourceFileId,
@@ -152,7 +153,9 @@ export class TelemetryNormalizationEngine {
     }
 
     // Step 2: Gap Detection & Explicit Flagged Estimation
-    records.sort((a, b) => new Date(a.timestamp_utc).getTime() - new Date(b.timestamp_utc).getTime());
+    records.sort(
+      (a, b) => new Date(a.timestamp_utc).getTime() - new Date(b.timestamp_utc).getTime(),
+    );
 
     const normalizedRecords: CanonicalTelemetryRecord[] = [];
     const intervalMs = detectedIntervalMinutes * 60 * 1000;
@@ -204,7 +207,7 @@ export class TelemetryNormalizationEngine {
                 timezone: options?.defaultTimezone || "Africa/Johannesburg",
                 interval_minutes: detectedIntervalMinutes,
                 active_energy_kwh: Number(estKwh.toFixed(6)),
-                reactive_energy_kvarh: Number((records[i].reactive_energy_kvarh).toFixed(6)),
+                reactive_energy_kvarh: Number(records[i].reactive_energy_kvarh.toFixed(6)),
                 apparent_power_kva: Number((estKw * 1.04).toFixed(6)),
                 active_power_kw: Number(estKw.toFixed(6)),
                 quality_status: "estimated", // EXPLICITLY FLAGGED ESTIMATED RECORD
@@ -220,7 +223,9 @@ export class TelemetryNormalizationEngine {
     }
 
     // Re-sort normalized records
-    normalizedRecords.sort((a, b) => new Date(a.timestamp_utc).getTime() - new Date(b.timestamp_utc).getTime());
+    normalizedRecords.sort(
+      (a, b) => new Date(a.timestamp_utc).getTime() - new Date(b.timestamp_utc).getTime(),
+    );
 
     return {
       records: normalizedRecords,

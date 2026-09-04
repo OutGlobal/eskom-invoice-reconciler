@@ -1,7 +1,7 @@
 /**
  * Automated Production Smoke-Test Suite
  * Eskom Bill Balancer Platform
- * 
+ *
  * Verifies production environment configuration, database connectivity schemas,
  * deterministic tariff calculations, stream ingestion memory safety,
  * data quality evaluation, AI layer grounding, governance immutability,
@@ -36,7 +36,10 @@ export async function runProductionSmokeTests() {
   console.log("--- Smoke 1: Environment & Version Configuration Check ---");
   const settings = GovernanceAdminService.getGovernanceSettings();
   assertSmoke(settings.parserVersion.startsWith("v"), "Parser semver version is valid");
-  assertSmoke(settings.calculationEngineVersion.includes("nersa"), "Calculation engine version references NERSA schedule");
+  assertSmoke(
+    settings.calculationEngineVersion.includes("nersa"),
+    "Calculation engine version references NERSA schedule",
+  );
 
   // 2. Deterministic Tariff Calculation Verification
   console.log("--- Smoke 2: Deterministic Tariff Engine NERSA Rate Precision ---");
@@ -54,10 +57,13 @@ export async function runProductionSmokeTests() {
       reactive_energy_kvarh: new Decimal("45200"),
       power_factor: new Decimal("0.96"),
     },
-    ESKOM_MEGAFLEX_2025_2026
+    ESKOM_MEGAFLEX_2025_2026,
   );
   assertSmoke(calcResult.total_inc_vat.gt(0), "Deterministic engine produces non-zero total bill");
-  assertSmoke(calcResult.items.length >= 8, "Line items contain all gazetted Eskom Megaflex charges");
+  assertSmoke(
+    calcResult.items.length >= 8,
+    "Line items contain all gazetted Eskom Megaflex charges",
+  );
 
   // 3. Telemetry Streaming Ingestion & Idempotency Fingerprint
   console.log("--- Smoke 3: Streaming Ingestion & SHA-256 Idempotency ---");
@@ -128,19 +134,47 @@ export async function runProductionSmokeTests() {
     meterId: "m1",
     organisationId: "org-001",
     billingPeriodStr: "March 2026",
-    actor: { userId: "u1", userName: "Auditor", userRole: "AUDITOR", timestamp: new Date().toISOString() },
+    actor: {
+      userId: "u1",
+      userName: "Auditor",
+      userRole: "AUDITOR",
+      timestamp: new Date().toISOString(),
+    },
   });
-  run = ApprovalWorkflowEngine.transitionState(run, "PROCESSING", { userId: "u1", userName: "Auditor", userRole: "AUDITOR", timestamp: new Date().toISOString() });
-  run = ApprovalWorkflowEngine.transitionState(run, "REVIEW", { userId: "u1", userName: "Auditor", userRole: "AUDITOR", timestamp: new Date().toISOString() });
-  run = ApprovalWorkflowEngine.transitionState(run, "APPROVED", { userId: "u1", userName: "Auditor", userRole: "AUDITOR", timestamp: new Date().toISOString() });
-  run = ApprovalWorkflowEngine.transitionState(run, "FINALIZED", { userId: "u1", userName: "Auditor", userRole: "AUDITOR", timestamp: new Date().toISOString() });
+  run = ApprovalWorkflowEngine.transitionState(run, "PROCESSING", {
+    userId: "u1",
+    userName: "Auditor",
+    userRole: "AUDITOR",
+    timestamp: new Date().toISOString(),
+  });
+  run = ApprovalWorkflowEngine.transitionState(run, "REVIEW", {
+    userId: "u1",
+    userName: "Auditor",
+    userRole: "AUDITOR",
+    timestamp: new Date().toISOString(),
+  });
+  run = ApprovalWorkflowEngine.transitionState(run, "APPROVED", {
+    userId: "u1",
+    userName: "Auditor",
+    userRole: "AUDITOR",
+    timestamp: new Date().toISOString(),
+  });
+  run = ApprovalWorkflowEngine.transitionState(run, "FINALIZED", {
+    userId: "u1",
+    userName: "Auditor",
+    userRole: "AUDITOR",
+    timestamp: new Date().toISOString(),
+  });
   assertSmoke(run.isImmutable === true, "FINALIZED state locks run immutably");
 
   // 7. Cryptographic Hash Chain Audit Ledger
   console.log("--- Smoke 7: Cryptographic Hash Chain Audit Ledger ---");
   const event1 = { seq: 1, payload: "Run #101", prevHash: "000" };
   const hash1 = await HashChainEngine.calculateSHA256(JSON.stringify(event1));
-  assertSmoke(typeof hash1 === "string" && hash1.length === 64, "Generated valid 64-character SHA-256 hash");
+  assertSmoke(
+    typeof hash1 === "string" && hash1.length === 64,
+    "Generated valid 64-character SHA-256 hash",
+  );
 
   console.log("\n=========================================================");
   console.log("  ALL PRODUCTION SMOKE-TEST SCENARIOS PASSED 100%");

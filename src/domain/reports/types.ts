@@ -101,10 +101,38 @@ export interface DisputePackDocumentData {
 
   // 14 & 15. Energy Reconciliation (Peak / Standard / Off-Peak)
   energyReconciliation: {
-    peakKwh: { billed: number; calculated: number; variance: number; billedZar: number; calculatedZar: number; varianceZar: number };
-    standardKwh: { billed: number; calculated: number; variance: number; billedZar: number; calculatedZar: number; varianceZar: number };
-    offPeakKwh: { billed: number; calculated: number; variance: number; billedZar: number; calculatedZar: number; varianceZar: number };
-    totalKwh: { billed: number; calculated: number; variance: number; billedZar: number; calculatedZar: number; varianceZar: number };
+    peakKwh: {
+      billed: number;
+      calculated: number;
+      variance: number;
+      billedZar: number;
+      calculatedZar: number;
+      varianceZar: number;
+    };
+    standardKwh: {
+      billed: number;
+      calculated: number;
+      variance: number;
+      billedZar: number;
+      calculatedZar: number;
+      varianceZar: number;
+    };
+    offPeakKwh: {
+      billed: number;
+      calculated: number;
+      variance: number;
+      billedZar: number;
+      calculatedZar: number;
+      varianceZar: number;
+    };
+    totalKwh: {
+      billed: number;
+      calculated: number;
+      variance: number;
+      billedZar: number;
+      calculatedZar: number;
+      varianceZar: number;
+    };
   };
 
   // 16. Demand Reconciliation

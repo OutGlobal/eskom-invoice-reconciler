@@ -3,8 +3,8 @@
  * Persists every reconciliation execution independently to PostgreSQL/Supabase
  */
 
-import { supabase } from '../../lib/supabase';
-import type { ReconciliationRunPayload } from './types';
+import { supabase } from "../../lib/supabase";
+import type { ReconciliationRunPayload } from "./types";
 
 export class ReconciliationStorageService {
   /**
@@ -18,20 +18,23 @@ export class ReconciliationStorageService {
     try {
       // 1. Insert into reconciliation_runs (Unique execution record)
       const runRecord = {
-        status: payload.status === 'PASS' || payload.status === 'PASS_WITH_WARNINGS' ? 'completed' : 'failed',
+        status:
+          payload.status === "PASS" || payload.status === "PASS_WITH_WARNINGS"
+            ? "completed"
+            : "failed",
         correlation_id: payload.run_id,
-        invoice_record_id: '00000000-0000-0000-0000-000000000000', // Reference or fallback
+        invoice_record_id: "00000000-0000-0000-0000-000000000000", // Reference or fallback
         run_at: payload.run_at,
       };
 
       const { data: insertedRun, error: runError } = await supabase
-        .from('reconciliation_runs')
+        .from("reconciliation_runs")
         .insert(runRecord)
-        .select('id')
+        .select("id")
         .single();
 
-      if (runError && !runError.message.includes('FetchError')) {
-        console.warn('Supabase reconciliation_runs insert warning:', runError.message);
+      if (runError && !runError.message.includes("FetchError")) {
+        console.warn("Supabase reconciliation_runs insert warning:", runError.message);
       }
 
       const dbRunId = insertedRun?.id || payload.run_id;
@@ -45,23 +48,23 @@ export class ReconciliationStorageService {
         summary_json: payload as any,
       };
 
-      await supabase.from('reconciliation_results').insert(resultRecord);
+      await supabase.from("reconciliation_results").insert(resultRecord);
 
       // 3. Insert Discrepancy Events for flagged overcharges
       if (payload.discrepancies.length > 0 && insertedRun?.id) {
         const discrepancyRecords = payload.discrepancies.map((d) => ({
           reconciliation_run_id: insertedRun.id,
-          invoice_record_id: '00000000-0000-0000-0000-000000000000',
+          invoice_record_id: "00000000-0000-0000-0000-000000000000",
           rule_id: d.component_code,
-          severity: d.status === 'MATERIAL_DISCREPANCY' ? 'critical' : 'minor',
+          severity: d.status === "MATERIAL_DISCREPANCY" ? "critical" : "minor",
           invoiced_amount: d.billed_value.toNumber(),
           reconciled_amount: d.calculated_value.toNumber(),
           variance_amount: d.absolute_variance.toNumber(),
           root_cause: d.root_cause_description || `Discrepancy in ${d.component_name}`,
-          status: 'open',
+          status: "open",
         }));
 
-        await supabase.from('discrepancy_events').insert(discrepancyRecords);
+        await supabase.from("discrepancy_events").insert(discrepancyRecords);
       }
 
       return {
@@ -71,7 +74,7 @@ export class ReconciliationStorageService {
     } catch (err: any) {
       return {
         success: false,
-        error: err.message || 'Failed to persist reconciliation run',
+        error: err.message || "Failed to persist reconciliation run",
       };
     }
   }

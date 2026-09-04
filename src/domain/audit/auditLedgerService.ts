@@ -3,14 +3,14 @@
  * High-Level Service for Immutably Appending Events & Reproducible Snapshots
  */
 
-import { supabase } from '../../lib/supabase';
-import { HashChainEngine } from './hashChainEngine';
+import { supabase } from "../../lib/supabase";
+import { HashChainEngine } from "./hashChainEngine";
 import type {
   AuditEventRecord,
   AuditEventType,
   ReproducibleRunSnapshot,
   HashChainVerificationResult,
-} from './types';
+} from "./types";
 
 export class AuditLedgerService {
   private static inMemoryLedger: AuditEventRecord[] = [];
@@ -24,9 +24,9 @@ export class AuditLedgerService {
     objectType: string,
     objectId: string,
     payload: Record<string, any>,
-    actorEmail = 'admin@eskombalancer.co.za',
+    actorEmail = "admin@eskombalancer.co.za",
     stateBeforeHash?: string,
-    stateAfterHash?: string
+    stateAfterHash?: string,
   ): Promise<AuditEventRecord> {
     const timestamp = new Date().toISOString();
 
@@ -43,11 +43,14 @@ export class AuditLedgerService {
       timestamp,
       actorEmail,
       objectId,
-      payloadHash
+      payloadHash,
     );
 
     const record: AuditEventRecord = {
-      event_id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : '00000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0'),
+      event_id:
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : "00000000-0000-4000-8000-" + Date.now().toString(16).padStart(12, "0"),
       sequence_number: nextSeq,
       event_type: eventType,
       actor_email: actorEmail,
@@ -68,7 +71,7 @@ export class AuditLedgerService {
 
     // Persist to Supabase if connected
     try {
-      const { error } = await supabase.from('audit_events_ledger').insert({
+      const { error } = await supabase.from("audit_events_ledger").insert({
         event_id: record.event_id,
         event_type: record.event_type,
         actor_email: record.actor_email,
@@ -84,10 +87,10 @@ export class AuditLedgerService {
       });
 
       if (error) {
-        console.warn('Supabase audit_events_ledger insert warning:', error.message);
+        console.warn("Supabase audit_events_ledger insert warning:", error.message);
       }
     } catch (err: any) {
-      console.warn('Audit ledger persistence exception:', err?.message || err);
+      console.warn("Audit ledger persistence exception:", err?.message || err);
     }
 
     return record;
@@ -100,7 +103,7 @@ export class AuditLedgerService {
     this.inMemorySnapshots.push(snapshot);
 
     try {
-      const { error } = await supabase.from('reconciliation_run_snapshots').insert({
+      const { error } = await supabase.from("reconciliation_run_snapshots").insert({
         run_id: snapshot.run_id,
         user_id: snapshot.user_id || null,
         organisation_id: snapshot.organisation_id || null,
@@ -122,7 +125,7 @@ export class AuditLedgerService {
       });
 
       if (error) {
-        console.warn('Supabase reconciliation_run_snapshots insert warning:', error.message);
+        console.warn("Supabase reconciliation_run_snapshots insert warning:", error.message);
       }
       return true;
     } catch {
@@ -136,9 +139,9 @@ export class AuditLedgerService {
   public static async getLedgerEvents(): Promise<AuditEventRecord[]> {
     try {
       const { data, error } = await supabase
-        .from('audit_events_ledger')
-        .select('*')
-        .order('sequence_number', { ascending: true });
+        .from("audit_events_ledger")
+        .select("*")
+        .order("sequence_number", { ascending: true });
 
       if (error || !data || data.length === 0) {
         return this.inMemoryLedger;
@@ -149,7 +152,7 @@ export class AuditLedgerService {
         sequence_number: Number(r.sequence_number),
         event_type: r.event_type as AuditEventType,
         actor_id: r.actor_id,
-        actor_email: r.actor_email || 'system@eskombalancer.co.za',
+        actor_email: r.actor_email || "system@eskombalancer.co.za",
         timestamp: r.timestamp,
         object_type: r.object_type,
         object_id: r.object_id,
@@ -191,15 +194,17 @@ export class AuditLedgerService {
   public static async getRunSnapshot(runId: string): Promise<ReproducibleRunSnapshot | undefined> {
     try {
       const { data } = await supabase
-        .from('reconciliation_run_snapshots')
-        .select('*')
-        .eq('run_id', runId)
+        .from("reconciliation_run_snapshots")
+        .select("*")
+        .eq("run_id", runId)
         .single();
 
       if (data) {
         return data as ReproducibleRunSnapshot;
       }
-    } catch {}
+    } catch (err) {
+      // Fallback to in-memory snapshots if Supabase fails or record missing
+    }
 
     return this.inMemorySnapshots.find((s) => s.run_id === runId);
   }

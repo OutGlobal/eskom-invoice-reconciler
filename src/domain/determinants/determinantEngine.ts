@@ -3,16 +3,16 @@
  * Orchestrates active energy, demand ratchet rules, utilised capacity, and vector power factor calculations
  */
 
-import Decimal from 'decimal.js-light';
+import Decimal from "decimal.js-light";
 import type {
   ComprehensiveDeterminantSummary,
   DemandCalculationRuleConfig,
   ReactivePenaltyConfig,
   DeterminantCalculationStatus,
-} from './types';
-import { DemandCalculator } from './demandCalculator';
-import { ReactivePowerCalculator } from './reactivePowerCalculator';
-import type { CalculationAuditStep } from '../tariff/types';
+} from "./types";
+import { DemandCalculator } from "./demandCalculator";
+import { ReactivePowerCalculator } from "./reactivePowerCalculator";
+import type { CalculationAuditStep } from "../tariff/types";
 
 export interface DeterminantEngineInput {
   billing_start: string;
@@ -24,7 +24,7 @@ export interface DeterminantEngineInput {
   peak_interval_kva?: Decimal;
   notified_maximum_demand_kva?: Decimal;
   reactive_energy_kvarh?: Decimal;
-  season?: 'high' | 'low';
+  season?: "high" | "low";
   tariff_code?: string;
   tariff_version?: string;
 }
@@ -36,11 +36,11 @@ export class DeterminantEngine {
   public static calculateDeterminants(
     input: DeterminantEngineInput,
     demandConfig: DemandCalculationRuleConfig = DemandCalculator.DEFAULT_RATCHET_CONFIG,
-    reactiveConfig: ReactivePenaltyConfig = ReactivePowerCalculator.DEFAULT_ESKOM_CONFIG
+    reactiveConfig: ReactivePenaltyConfig = ReactivePowerCalculator.DEFAULT_ESKOM_CONFIG,
   ): ComprehensiveDeterminantSummary {
-    const tariffCode = input.tariff_code || 'ESKOM_MEGAFLEX_HV_2025_2026';
-    const tariffVersion = input.tariff_version || '2025.1';
-    const season = input.season || 'high';
+    const tariffCode = input.tariff_code || "ESKOM_MEGAFLEX_HV_2025_2026";
+    const tariffVersion = input.tariff_version || "2025.1";
+    const season = input.season || "high";
 
     const auditTrace: CalculationAuditStep[] = [];
 
@@ -62,7 +62,7 @@ export class DeterminantEngine {
         tariff_code: tariffCode,
         tariff_version: tariffVersion,
       },
-      demandConfig
+      demandConfig,
     );
 
     auditTrace.push(demandRes.audit_step);
@@ -82,23 +82,23 @@ export class DeterminantEngine {
         active_energy_kwh: totalActiveKwh,
         reactive_energy_kvarh: input.reactive_energy_kvarh,
         season,
-        tou_period: 'peak',
+        tou_period: "peak",
         tariff_code: tariffCode,
         tariff_version: tariffVersion,
       },
-      reactiveConfig
+      reactiveConfig,
     );
 
     auditTrace.push(reactiveRes.audit_step);
 
     // Determine overall execution status
-    let status: DeterminantCalculationStatus = 'SUCCESS';
-    if (demandRes.status === 'MISSING_DEMAND_DATA') {
-      status = 'MISSING_DEMAND_DATA';
-    } else if (reactiveRes.status === 'MISSING_REACTIVE_DATA') {
-      status = 'MISSING_REACTIVE_DATA';
-    } else if (reactiveRes.status === 'ZERO_ENERGY_NO_PENALTY') {
-      status = 'ZERO_ENERGY_NO_PENALTY';
+    let status: DeterminantCalculationStatus = "SUCCESS";
+    if (demandRes.status === "MISSING_DEMAND_DATA") {
+      status = "MISSING_DEMAND_DATA";
+    } else if (reactiveRes.status === "MISSING_REACTIVE_DATA") {
+      status = "MISSING_REACTIVE_DATA";
+    } else if (reactiveRes.status === "ZERO_ENERGY_NO_PENALTY") {
+      status = "ZERO_ENERGY_NO_PENALTY";
     }
 
     return {
@@ -113,7 +113,7 @@ export class DeterminantEngine {
       utilised_capacity_percent: utilisedPercent,
       billing_demand_kva: demandRes.billing_demand_kva || maxDemandKva,
       reactive_energy_kvarh: input.reactive_energy_kvarh || new Decimal(0),
-      calculated_power_factor: reactiveRes.pf_calculated || new Decimal('1.00'),
+      calculated_power_factor: reactiveRes.pf_calculated || new Decimal("1.00"),
       allowed_kvarh: reactiveRes.allowed_kvarh || new Decimal(0),
       excess_kvarh: reactiveRes.excess_kvarh || new Decimal(0),
       determinant_results: [demandRes, reactiveRes],

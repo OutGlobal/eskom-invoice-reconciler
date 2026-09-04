@@ -81,7 +81,15 @@ export function generateExcelDisputePackWorkbook(data: DisputePackDocumentData):
     d.evidenceText,
   ]);
   const wsDisc = XLSX.utils.aoa_to_sheet([discHeaders, ...discDataRows]);
-  wsDisc["!cols"] = [{ wch: 14 }, { wch: 32 }, { wch: 12 }, { wch: 20 }, { wch: 20 }, { wch: 24 }, { wch: 65 }];
+  wsDisc["!cols"] = [
+    { wch: 14 },
+    { wch: 32 },
+    { wch: 12 },
+    { wch: 20 },
+    { wch: 20 },
+    { wch: 24 },
+    { wch: 65 },
+  ];
   XLSX.utils.book_append_sheet(wb, wsDisc, "Discrepancy Schedule");
 
   // SHEET 4: Tariff Clause References & Trace

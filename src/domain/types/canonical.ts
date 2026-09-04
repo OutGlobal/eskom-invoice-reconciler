@@ -7,7 +7,8 @@ export type TouPeriod = "peak" | "standard" | "offPeak";
 export type Season = "high" | "low";
 export type TariffFamily = "megaflex" | "miniflex" | "nightsave" | "municipal";
 export type VoltageCategory = "<500V" | ">=500V & <66kV" | ">=66kV & <=132kV" | ">132kV";
-export type JobStatus = "queued" | "validating" | "parsing" | "normalizing" | "calculating" | "completed" | "failed";
+export type JobStatus =
+  "queued" | "validating" | "parsing" | "normalizing" | "calculating" | "completed" | "failed";
 
 export interface JobContext {
   jobId: string;
@@ -123,7 +124,12 @@ export interface ReconciliationResult {
 export interface DiscrepancyEvent {
   id: string;
   chargeLabel: string;
-  category: "OVERCHARGE" | "UNDERCHARGE" | "RATCHET_VIOLATION" | "CURTAILMENT_SPIKE" | "TARIFF_MISALIGNMENT";
+  category:
+    | "OVERCHARGE"
+    | "UNDERCHARGE"
+    | "RATCHET_VIOLATION"
+    | "CURTAILMENT_SPIKE"
+    | "TARIFF_MISALIGNMENT";
   invoicedAmount: number;
   calculatedAmount: number;
   discrepancyAmount: number;

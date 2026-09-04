@@ -3,32 +3,28 @@
  * Core domain types for automated utility bill reconciliation
  */
 
-import Decimal from 'decimal.js-light';
-import type { CalculationAuditStep } from '../tariff/types';
+import Decimal from "decimal.js-light";
+import type { CalculationAuditStep } from "../tariff/types";
 
 export type DiscrepancyClassification =
-  | 'MATCH'
-  | 'ROUNDING_VARIANCE'
-  | 'DATA_QUALITY'
-  | 'METER_DATA_GAP'
-  | 'TOU_CLASSIFICATION'
-  | 'TARIFF_VERSION'
-  | 'DEMAND_VARIANCE'
-  | 'REACTIVE_ENERGY_VARIANCE'
-  | 'POWER_FACTOR_VARIANCE'
-  | 'NETWORK_CHARGE_VARIANCE'
-  | 'CAPACITY_VARIANCE'
-  | 'LEVY_VARIANCE'
-  | 'VAT_VARIANCE'
-  | 'MATERIAL_DISCREPANCY'
-  | 'UNRESOLVED';
+  | "MATCH"
+  | "ROUNDING_VARIANCE"
+  | "DATA_QUALITY"
+  | "METER_DATA_GAP"
+  | "TOU_CLASSIFICATION"
+  | "TARIFF_VERSION"
+  | "DEMAND_VARIANCE"
+  | "REACTIVE_ENERGY_VARIANCE"
+  | "POWER_FACTOR_VARIANCE"
+  | "NETWORK_CHARGE_VARIANCE"
+  | "CAPACITY_VARIANCE"
+  | "LEVY_VARIANCE"
+  | "VAT_VARIANCE"
+  | "MATERIAL_DISCREPANCY"
+  | "UNRESOLVED";
 
 export type ReconciliationRunStatus =
-  | 'PASS'
-  | 'PASS_WITH_WARNINGS'
-  | 'REVIEW_REQUIRED'
-  | 'MATERIAL_DISCREPANCY'
-  | 'FAILED';
+  "PASS" | "PASS_WITH_WARNINGS" | "REVIEW_REQUIRED" | "MATERIAL_DISCREPANCY" | "FAILED";
 
 export interface ComponentTolerance {
   component_code: string;
@@ -54,7 +50,7 @@ export interface LineItemComparisonResult {
   percentage_variance: Decimal;
   unit: string;
   tolerance: ComponentTolerance;
-  status: 'MATCH' | 'ROUNDING_VARIANCE' | 'MATERIAL_DISCREPANCY' | 'UNRESOLVED';
+  status: "MATCH" | "ROUNDING_VARIANCE" | "MATERIAL_DISCREPANCY" | "UNRESOLVED";
   reason_code: DiscrepancyClassification;
   root_cause_description?: string;
 }

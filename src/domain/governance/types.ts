@@ -4,12 +4,7 @@
  */
 
 export type ReconciliationLifecycleState =
-  | "DRAFT"
-  | "PROCESSING"
-  | "REVIEW"
-  | "APPROVED"
-  | "REJECTED"
-  | "FINALIZED";
+  "DRAFT" | "PROCESSING" | "REVIEW" | "APPROVED" | "REJECTED" | "FINALIZED";
 
 export interface TransitionActorSignature {
   userId: string;
@@ -29,7 +24,7 @@ export interface ReconciliationWorkflowRun {
   billingPeriodStr: string;
   state: ReconciliationLifecycleState;
   isImmutable: boolean;
-  
+
   // Transition Signatures
   createdBy: TransitionActorSignature;
   processingStartedAt?: string;
@@ -37,11 +32,11 @@ export interface ReconciliationWorkflowRun {
   approvedBy?: TransitionActorSignature;
   rejectedBy?: TransitionActorSignature;
   finalizedBy?: TransitionActorSignature;
-  
+
   // Hash & Audit
   auditLedgerHash: string;
   previousRunId?: string;
-  
+
   // Totals Snapshot
   billedTotalZar: number;
   calculatedTotalZar: number;
@@ -91,7 +86,14 @@ export interface UserAccountRecord {
   organisationId: string;
   email: string;
   fullName: string;
-  role: "SUPER_ADMIN" | "ORG_ADMIN" | "ENERGY_MANAGER" | "ANALYST" | "AUDITOR" | "REVIEWER" | "READ_ONLY";
+  role:
+    | "SUPER_ADMIN"
+    | "ORG_ADMIN"
+    | "ENERGY_MANAGER"
+    | "ANALYST"
+    | "AUDITOR"
+    | "REVIEWER"
+    | "READ_ONLY";
   status: "ACTIVE" | "INACTIVE";
   lastLoginAt?: string;
 }

@@ -51,4 +51,3 @@ export function validateMeterRows(rows: Measurement[]): ValidationIssue[] {
   if (!issues.length) issues.push({ severity: "warning", message: "All checks passed" });
   return issues;
 }
-

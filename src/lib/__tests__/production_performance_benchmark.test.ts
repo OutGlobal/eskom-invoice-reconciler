@@ -4,7 +4,10 @@
  * Benchmarks 1.44 Million+ Interval Records (1,000 Meters x 1 Month @ 30m Intervals)
  */
 
-import { computeServerSideDailyAggregates, executeBatchProcessing } from "../../domain/performance/aggregationEngine";
+import {
+  computeServerSideDailyAggregates,
+  executeBatchProcessing,
+} from "../../domain/performance/aggregationEngine";
 import { CanonicalTelemetryRecord } from "../../domain/telemetry/types";
 import { PerformanceBenchmarkResult } from "../../domain/performance/types";
 
@@ -16,7 +19,9 @@ function assert(condition: boolean, message: string) {
 
 async function runPerformanceBenchmarkSuite() {
   console.log("=== RUNNING PRODUCTION PERFORMANCE BENCHMARK SUITE ===");
-  console.log("Simulating 1,440,000 Interval Records (1,000 Meters x 1 Month @ 30m Intervals)...\n");
+  console.log(
+    "Simulating 1,440,000 Interval Records (1,000 Meters x 1 Month @ 30m Intervals)...\n",
+  );
 
   const startMemoryMb = process.memoryUsage().heapUsed / 1024 / 1024;
 
@@ -52,7 +57,8 @@ async function runPerformanceBenchmarkSuite() {
           apparent_power_kva: 95.0,
           active_power_kw: 90.4,
           power_factor: 0.95,
-          tou_period: hour >= 7 && hour <= 10 ? "PEAK" : hour >= 11 && hour <= 16 ? "STANDARD" : "OFF_PEAK",
+          tou_period:
+            hour >= 7 && hour <= 10 ? "PEAK" : hour >= 11 && hour <= 16 ? "STANDARD" : "OFF_PEAK",
           quality_status: "validated",
           source_file_id: "src-perf-001",
           source_row_number: idx,
@@ -64,7 +70,9 @@ async function runPerformanceBenchmarkSuite() {
 
   const parseEnd = performance.now();
   const parsingTimeMs = parseEnd - parseStart;
-  console.log(`✅ PARSING BENCHMARK: Generated & stream-parsed 1,440,000 records in ${parsingTimeMs.toFixed(2)} ms`);
+  console.log(
+    `✅ PARSING BENCHMARK: Generated & stream-parsed 1,440,000 records in ${parsingTimeMs.toFixed(2)} ms`,
+  );
 
   // 2. Telemetry Normalization Benchmark
   const normStart = performance.now();
@@ -72,7 +80,9 @@ async function runPerformanceBenchmarkSuite() {
   assert(syntheticRecords.length === 1_440_000, "Synthetic records count matches 1,440,000");
   const normEnd = performance.now();
   const normalizationTimeMs = normEnd - normStart;
-  console.log(`✅ NORMALIZATION BENCHMARK: Normalized 1.44M intervals in ${normalizationTimeMs.toFixed(2)} ms`);
+  console.log(
+    `✅ NORMALIZATION BENCHMARK: Normalized 1.44M intervals in ${normalizationTimeMs.toFixed(2)} ms`,
+  );
 
   // 3. Batching & Bulk Insertion Benchmark (5,000 rows/batch)
   const batchStart = performance.now();
@@ -83,15 +93,22 @@ async function runPerformanceBenchmarkSuite() {
   const batchEnd = performance.now();
   const databaseInsertionTimeMs = batchEnd - batchStart;
   assert(processedBatches.length === 288, "Processed 288 batches of 5,000 rows");
-  console.log(`✅ BULK BATCH BENCHMARK: Processed 288 batches (5,000 rows/batch) in ${databaseInsertionTimeMs.toFixed(2)} ms`);
+  console.log(
+    `✅ BULK BATCH BENCHMARK: Processed 288 batches (5,000 rows/batch) in ${databaseInsertionTimeMs.toFixed(2)} ms`,
+  );
 
   // 4. Server-Side Daily Aggregation Benchmark
   const aggStart = performance.now();
   const dailyAggregates = computeServerSideDailyAggregates(syntheticRecords);
   const aggEnd = performance.now();
   const dashboardQueryTimeMs = aggEnd - aggStart;
-  assert(dailyAggregates.length === 30_000, "Computed 30,000 daily aggregates (1,000 meters x 30 days)");
-  console.log(`✅ SERVER AGGREGATION BENCHMARK: Aggregated 1.44M intervals down to 30,000 daily rows in ${dashboardQueryTimeMs.toFixed(2)} ms`);
+  assert(
+    dailyAggregates.length === 30_000,
+    "Computed 30,000 daily aggregates (1,000 meters x 30 days)",
+  );
+  console.log(
+    `✅ SERVER AGGREGATION BENCHMARK: Aggregated 1.44M intervals down to 30,000 daily rows in ${dashboardQueryTimeMs.toFixed(2)} ms`,
+  );
 
   // 5. Tariff Calculation & Reconciliation Engine Benchmark
   const reconStart = performance.now();
@@ -106,12 +123,20 @@ async function runPerformanceBenchmarkSuite() {
   }
   const reconEnd = performance.now();
   const reconciliationTimeMs = reconEnd - reconStart;
-  console.log(`✅ RECONCILIATION BENCHMARK: Executed NERSA tariff engine over 1.44M interval equivalents in ${reconciliationTimeMs.toFixed(2)} ms`);
+  console.log(
+    `✅ RECONCILIATION BENCHMARK: Executed NERSA tariff engine over 1.44M interval equivalents in ${reconciliationTimeMs.toFixed(2)} ms`,
+  );
 
   const endMemoryMb = process.memoryUsage().heapUsed / 1024 / 1024;
   const memoryUsedMb = endMemoryMb - startMemoryMb;
 
-  const totalTimeSec = (parsingTimeMs + normalizationTimeMs + databaseInsertionTimeMs + dashboardQueryTimeMs + reconciliationTimeMs) / 1000;
+  const totalTimeSec =
+    (parsingTimeMs +
+      normalizationTimeMs +
+      databaseInsertionTimeMs +
+      dashboardQueryTimeMs +
+      reconciliationTimeMs) /
+    1000;
   const throughput = recordsCount / totalTimeSec;
 
   const result: PerformanceBenchmarkResult = {
@@ -137,11 +162,16 @@ async function runPerformanceBenchmarkSuite() {
   console.log(`Bulk Batch Insertion Time (5,000/batch): ${result.databaseInsertionTimeMs} ms`);
   console.log(`Server-Side Daily Aggregation Query Time: ${result.dashboardQueryTimeMs} ms`);
   console.log(`Tariff & Reconciliation Engine Time: ${result.reconciliationTimeMs} ms`);
-  console.log(`Total Processing Throughput: ${result.throughputRowsPerSec.toLocaleString()} rows/sec`);
+  console.log(
+    `Total Processing Throughput: ${result.throughputRowsPerSec.toLocaleString()} rows/sec`,
+  );
   console.log(`Memory Footprint: ${result.peakMemoryMb} MB`);
 
   assert(result.throughputRowsPerSec > 100_000, "Throughput exceeds 100,000 rows/sec target");
-  assert(result.dashboardQueryTimeMs < 1000, "Server-side daily aggregation completes in under 1 second");
+  assert(
+    result.dashboardQueryTimeMs < 1000,
+    "Server-side daily aggregation completes in under 1 second",
+  );
 
   console.log("\n=== ALL PERFORMANCE BENCHMARK TESTS PASSED SUCCESSFULLY ===");
 }

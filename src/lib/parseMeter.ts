@@ -46,7 +46,9 @@ export async function parseMeterWorkbook(buffer: ArrayBuffer): Promise<Measureme
         const keys = Object.keys(firstRow);
 
         const findKey = (candidates: string[]) =>
-          keys.find((k) => candidates.some((c) => k.toLowerCase().trim().includes(c.toLowerCase())));
+          keys.find((k) =>
+            candidates.some((c) => k.toLowerCase().trim().includes(c.toLowerCase())),
+          );
 
         const kwKey = findKey(["kw imp", "active power", "demand (kw)", "active kw", "kw"]);
         const kvarKey = findKey(["kvar imp", "reactive power", "kvarh", "kvar"]);
@@ -299,10 +301,10 @@ export function generateFallbackIntervalReadings(): Measurement[] {
           kVA = 70833.33;
         } else if (tou === "standard") {
           kW = 54000;
-          kVA = 56250.00;
+          kVA = 56250.0;
         } else {
           kW = 42000;
-          kVA = 43750.00;
+          kVA = 43750.0;
         }
       }
     }

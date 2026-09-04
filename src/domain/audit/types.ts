@@ -7,18 +7,18 @@
  * 12 Major Lifecycle Audit Event Types
  */
 export type AuditEventType =
-  | 'FILE_UPLOADED'
-  | 'FILE_PARSED'
-  | 'FILE_VALIDATED'
-  | 'INVOICE_CREATED'
-  | 'TARIFF_SELECTED'
-  | 'RECONCILIATION_STARTED'
-  | 'RECONCILIATION_COMPLETED'
-  | 'DISCREPANCY_CREATED'
-  | 'REPORT_GENERATED'
-  | 'EXPORT_GENERATED'
-  | 'USER_REVIEWED'
-  | 'USER_APPROVED';
+  | "FILE_UPLOADED"
+  | "FILE_PARSED"
+  | "FILE_VALIDATED"
+  | "INVOICE_CREATED"
+  | "TARIFF_SELECTED"
+  | "RECONCILIATION_STARTED"
+  | "RECONCILIATION_COMPLETED"
+  | "DISCREPANCY_CREATED"
+  | "REPORT_GENERATED"
+  | "EXPORT_GENERATED"
+  | "USER_REVIEWED"
+  | "USER_APPROVED";
 
 /**
  * Immutably Append-Only Cryptographic Hash Chain Audit Event Record
@@ -33,10 +33,10 @@ export interface AuditEventRecord {
   object_type: string; // e.g. 'source_file', 'invoice', 'reconciliation_run', 'discrepancy'
   object_id: string;
   previous_event_hash: string; // H_{n-1}
-  current_event_hash: string;  // H_n
-  payload_hash: string;        // SHA-256(payload)
-  state_before_hash?: string;  // Optional pre-event state hash
-  state_after_hash?: string;   // Optional post-event state hash
+  current_event_hash: string; // H_n
+  payload_hash: string; // SHA-256(payload)
+  state_before_hash?: string; // Optional pre-event state hash
+  state_after_hash?: string; // Optional post-event state hash
   metadata: Record<string, any>;
   created_at: string;
 }
@@ -62,7 +62,7 @@ export interface ReproducibleRunSnapshot {
   started_at: string;
   completed_at?: string;
   execution_environment: string;
-  status: 'STARTED' | 'COMPLETED' | 'FAILED';
+  status: "STARTED" | "COMPLETED" | "FAILED";
   created_at: string;
 }
 

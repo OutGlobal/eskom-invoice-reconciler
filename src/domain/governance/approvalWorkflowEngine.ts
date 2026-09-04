@@ -1,6 +1,6 @@
 /**
  * Enterprise Reconciliation Approval Workflow Engine
- * 
+ *
  * STRICT GOVERNANCE RULES:
  * 1. Lifecycle: DRAFT -> PROCESSING -> REVIEW -> APPROVED / REJECTED -> FINALIZED
  * 2. Immutability: Once FINALIZED, a run is 100% immutable.
@@ -68,7 +68,7 @@ export class ApprovalWorkflowEngine {
    */
   public static isValidTransition(
     currentState: ReconciliationLifecycleState,
-    targetState: ReconciliationLifecycleState
+    targetState: ReconciliationLifecycleState,
   ): boolean {
     const allowed = this.VALID_TRANSITIONS[currentState] || [];
     return allowed.includes(targetState);
@@ -81,12 +81,12 @@ export class ApprovalWorkflowEngine {
     run: ReconciliationWorkflowRun,
     targetState: ReconciliationLifecycleState,
     actor: TransitionActorSignature,
-    notes?: string
+    notes?: string,
   ): ReconciliationWorkflowRun {
     // 1. Immutability Guard
     if (run.isImmutable || run.state === "FINALIZED") {
       throw new Error(
-        `IMMUTABILITY VIOLATION: Reconciliation run ${run.runId} is FINALIZED and cannot be modified. Re-calculations must spawn a new run_id.`
+        `IMMUTABILITY VIOLATION: Reconciliation run ${run.runId} is FINALIZED and cannot be modified. Re-calculations must spawn a new run_id.`,
       );
     }
 
@@ -95,7 +95,7 @@ export class ApprovalWorkflowEngine {
       throw new Error(
         `INVALID TRANSITION: Cannot transition reconciliation run from state '${run.state}' to '${targetState}'. Allowed transitions: [${(
           this.VALID_TRANSITIONS[run.state] || []
-        ).join(", ")}]`
+        ).join(", ")}]`,
       );
     }
 
@@ -139,7 +139,7 @@ export class ApprovalWorkflowEngine {
   public static spawnNewRun(
     previousRun: ReconciliationWorkflowRun,
     actor: TransitionActorSignature,
-    newAuditHash?: string
+    newAuditHash?: string,
   ): ReconciliationWorkflowRun {
     const newRunId = `recon-run-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     return {
@@ -172,7 +172,7 @@ export class ApprovalWorkflowEngine {
   public static assertMutable(run: ReconciliationWorkflowRun): void {
     if (run.isImmutable || run.state === "FINALIZED") {
       throw new Error(
-        `IMMUTABILITY VIOLATION: Run ${run.runId} is locked in state FINALIZED. Historical results cannot be overwritten.`
+        `IMMUTABILITY VIOLATION: Run ${run.runId} is locked in state FINALIZED. Historical results cannot be overwritten.`,
       );
     }
   }

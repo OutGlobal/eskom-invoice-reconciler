@@ -34,13 +34,76 @@ function formatZAR(val: number): string {
 }
 
 const SAMPLE_COMPONENTS: ComponentDrillDownSummary[] = [
-  { key: "peak_energy", label: "Peak Energy (kWh)", billedZar: 215450.0, calculatedZar: 203000.0, varianceZar: 12450.0, variancePct: 6.13, status: "discrepancy", itemCount: 31 },
-  { key: "standard_energy", label: "Standard Energy (kWh)", billedZar: 142000.0, calculatedZar: 137800.0, varianceZar: 4200.0, variancePct: 3.05, status: "minor_variance", itemCount: 31 },
-  { key: "off_peak_energy", label: "Off-Peak Energy (kWh)", billedZar: 68500.0, calculatedZar: 68500.0, varianceZar: 0.0, variancePct: 0.0, status: "match", itemCount: 31 },
-  { key: "demand_charges", label: "Maximum Demand (kVA)", billedZar: 42800.0, calculatedZar: 37000.0, varianceZar: 5800.0, variancePct: 15.68, status: "discrepancy", itemCount: 1 },
-  { key: "network_charges", label: "Network Capacity Charges", billedZar: 18500.0, calculatedZar: 18500.0, varianceZar: 0.0, variancePct: 0.0, status: "match", itemCount: 1 },
-  { key: "reactive_charges", label: "Reactive Energy Penalties", billedZar: 2450.0, calculatedZar: 0.0, varianceZar: 2450.0, variancePct: 100.0, status: "discrepancy", itemCount: 4 },
-  { key: "vat", label: "VAT Subtotal (15%)", billedZar: 73455.0, calculatedZar: 69720.0, varianceZar: 3735.0, variancePct: 5.36, status: "discrepancy", itemCount: 1 },
+  {
+    key: "peak_energy",
+    label: "Peak Energy (kWh)",
+    billedZar: 215450.0,
+    calculatedZar: 203000.0,
+    varianceZar: 12450.0,
+    variancePct: 6.13,
+    status: "discrepancy",
+    itemCount: 31,
+  },
+  {
+    key: "standard_energy",
+    label: "Standard Energy (kWh)",
+    billedZar: 142000.0,
+    calculatedZar: 137800.0,
+    varianceZar: 4200.0,
+    variancePct: 3.05,
+    status: "minor_variance",
+    itemCount: 31,
+  },
+  {
+    key: "off_peak_energy",
+    label: "Off-Peak Energy (kWh)",
+    billedZar: 68500.0,
+    calculatedZar: 68500.0,
+    varianceZar: 0.0,
+    variancePct: 0.0,
+    status: "match",
+    itemCount: 31,
+  },
+  {
+    key: "demand_charges",
+    label: "Maximum Demand (kVA)",
+    billedZar: 42800.0,
+    calculatedZar: 37000.0,
+    varianceZar: 5800.0,
+    variancePct: 15.68,
+    status: "discrepancy",
+    itemCount: 1,
+  },
+  {
+    key: "network_charges",
+    label: "Network Capacity Charges",
+    billedZar: 18500.0,
+    calculatedZar: 18500.0,
+    varianceZar: 0.0,
+    variancePct: 0.0,
+    status: "match",
+    itemCount: 1,
+  },
+  {
+    key: "reactive_charges",
+    label: "Reactive Energy Penalties",
+    billedZar: 2450.0,
+    calculatedZar: 0.0,
+    varianceZar: 2450.0,
+    variancePct: 100.0,
+    status: "discrepancy",
+    itemCount: 4,
+  },
+  {
+    key: "vat",
+    label: "VAT Subtotal (15%)",
+    billedZar: 73455.0,
+    calculatedZar: 69720.0,
+    varianceZar: 3735.0,
+    variancePct: 5.36,
+    status: "discrepancy",
+    itemCount: 1,
+  },
 ];
 
 export const DrillDownInspector: React.FC = () => {
@@ -51,7 +114,8 @@ export const DrillDownInspector: React.FC = () => {
     selectedIntervalTimestamp: undefined,
   });
 
-  const [selectedIntervalDetail, setSelectedIntervalDetail] = useState<IntervalDrillDownDetail | null>(null);
+  const [selectedIntervalDetail, setSelectedIntervalDetail] =
+    useState<IntervalDrillDownDetail | null>(null);
 
   // Level 1: Click Component -> Go to Level 2
   const handleSelectComponent = (key: BillingComponentKey) => {
@@ -202,7 +266,8 @@ export const DrillDownInspector: React.FC = () => {
       {drillState.level === 1 && (
         <div className="space-y-3">
           <p className="text-xs text-slate-400">
-            Click on any billing component below to drill down into daily consumption records and raw interval data.
+            Click on any billing component below to drill down into daily consumption records and
+            raw interval data.
           </p>
           <div className="overflow-x-auto rounded-lg border border-slate-800">
             <table className="w-full text-xs text-left text-slate-300">
@@ -226,7 +291,9 @@ export const DrillDownInspector: React.FC = () => {
                   >
                     <td className="py-2.5 px-3 font-medium text-slate-200">{comp.label}</td>
                     <td className="py-2.5 px-3 text-right">{formatZAR(comp.billedZar)}</td>
-                    <td className="py-2.5 px-3 text-right text-emerald-400">{formatZAR(comp.calculatedZar)}</td>
+                    <td className="py-2.5 px-3 text-right text-emerald-400">
+                      {formatZAR(comp.calculatedZar)}
+                    </td>
                     <td
                       className={`py-2.5 px-3 text-right font-bold ${
                         comp.varianceZar > 0 ? "text-amber-400" : "text-slate-300"
@@ -243,8 +310,8 @@ export const DrillDownInspector: React.FC = () => {
                           comp.status === "discrepancy"
                             ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
                             : comp.status === "minor_variance"
-                            ? "bg-blue-500/20 text-blue-300 border border-blue-500/40"
-                            : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                              ? "bg-blue-500/20 text-blue-300 border border-blue-500/40"
+                              : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
                         }`}
                       >
                         {comp.status.toUpperCase()}
@@ -270,7 +337,9 @@ export const DrillDownInspector: React.FC = () => {
             <h4 className="text-xs font-semibold text-slate-300">
               Daily Breakdown for {drillState.selectedComponentKey?.replace("_", " ").toUpperCase()}
             </h4>
-            <span className="text-[11px] text-slate-400">Select a date to view 15m/30m interval resolution</span>
+            <span className="text-[11px] text-slate-400">
+              Select a date to view 15m/30m interval resolution
+            </span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-slate-800">
             <table className="w-full text-xs text-left text-slate-300">
@@ -301,12 +370,18 @@ export const DrillDownInspector: React.FC = () => {
                     </td>
                     <td className="py-2 px-3 text-slate-400">{day.season}</td>
                     <td className="py-2 px-3 text-right">{day.totalKwh.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right text-red-400">{day.peakKwh.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right text-red-400">
+                      {day.peakKwh.toLocaleString()}
+                    </td>
                     <td className="py-2 px-3 text-right">{day.peakKw} kW</td>
                     <td className="py-2 px-3 text-right text-emerald-400">{day.pf}</td>
                     <td className="py-2 px-3 text-right">{formatZAR(day.billedZar)}</td>
-                    <td className="py-2 px-3 text-right text-emerald-400">{formatZAR(day.calculatedZar)}</td>
-                    <td className="py-2 px-3 text-right font-bold text-amber-400">{formatZAR(day.varianceZar)}</td>
+                    <td className="py-2 px-3 text-right text-emerald-400">
+                      {formatZAR(day.calculatedZar)}
+                    </td>
+                    <td className="py-2 px-3 text-right font-bold text-amber-400">
+                      {formatZAR(day.varianceZar)}
+                    </td>
                     <td className="py-2 px-3 text-center">
                       <span className="bg-slate-800 text-slate-300 text-[10px] px-1.5 py-0.5 rounded">
                         {day.intervalCount} rows
@@ -327,7 +402,9 @@ export const DrillDownInspector: React.FC = () => {
             <h4 className="text-xs font-semibold text-slate-300">
               Interval Telemetry Grid — {drillState.selectedDateStr}
             </h4>
-            <span className="text-[11px] text-slate-400">Click any row to inspect raw file record & source hash</span>
+            <span className="text-[11px] text-slate-400">
+              Click any row to inspect raw file record & source hash
+            </span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-slate-800">
             <table className="w-full text-xs text-left text-slate-300">
@@ -358,7 +435,11 @@ export const DrillDownInspector: React.FC = () => {
                     <td className="py-2 px-3">
                       <span
                         className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white"
-                        style={{ backgroundColor: (TOU_COLOR as Record<string, string>)[interval.touPeriod] }}
+                        style={{
+                          backgroundColor: (TOU_COLOR as Record<string, string>)[
+                            interval.touPeriod
+                          ],
+                        }}
                       >
                         {interval.touPeriod}
                       </span>
@@ -366,7 +447,9 @@ export const DrillDownInspector: React.FC = () => {
                     <td className="py-2 px-3 text-right">{interval.activePowerKw} kW</td>
                     <td className="py-2 px-3 text-right">{interval.reactivePowerKvar} kVAR</td>
                     <td className="py-2 px-3 text-right">{interval.apparentPowerKva} kVA</td>
-                    <td className="py-2 px-3 text-right text-emerald-400">{interval.activeEnergyKwh} kWh</td>
+                    <td className="py-2 px-3 text-right text-emerald-400">
+                      {interval.activeEnergyKwh} kWh
+                    </td>
                     <td className="py-2 px-3 text-right">{interval.powerFactor}</td>
                     <td className="py-2 px-3 text-center">
                       <span className="bg-emerald-500/20 text-emerald-300 text-[10px] px-1.5 py-0.5 rounded">
@@ -407,10 +490,15 @@ export const DrillDownInspector: React.FC = () => {
 
             <div className="space-y-3 text-xs font-mono">
               <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-1">
-                <span className="text-[10px] text-slate-400 uppercase block font-semibold">Raw File Identifier</span>
-                <span className="text-blue-400 font-bold block">{selectedIntervalDetail.sourceFileName}</span>
+                <span className="text-[10px] text-slate-400 uppercase block font-semibold">
+                  Raw File Identifier
+                </span>
+                <span className="text-blue-400 font-bold block">
+                  {selectedIntervalDetail.sourceFileName}
+                </span>
                 <span className="text-slate-400 block text-[10px]">
-                  File ID: {selectedIntervalDetail.sourceFileId} | Row #{selectedIntervalDetail.sourceRowNumber}
+                  File ID: {selectedIntervalDetail.sourceFileId} | Row #
+                  {selectedIntervalDetail.sourceRowNumber}
                 </span>
               </div>
 
@@ -418,11 +506,15 @@ export const DrillDownInspector: React.FC = () => {
                 <span className="text-[10px] text-slate-400 uppercase block font-semibold">
                   Cryptographic SHA-256 File Fingerprint
                 </span>
-                <span className="text-purple-300 font-bold block break-all">{selectedIntervalDetail.sourceFileHash}</span>
+                <span className="text-purple-300 font-bold block break-all">
+                  {selectedIntervalDetail.sourceFileHash}
+                </span>
               </div>
 
               <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-1">
-                <span className="text-[10px] text-slate-400 uppercase block font-semibold">Unparsed Raw Text Payload</span>
+                <span className="text-[10px] text-slate-400 uppercase block font-semibold">
+                  Unparsed Raw Text Payload
+                </span>
                 <pre className="text-emerald-400 bg-slate-900 p-2 rounded border border-slate-800 text-[11px] overflow-x-auto">
                   {selectedIntervalDetail.sourceRawText}
                 </pre>
@@ -430,11 +522,17 @@ export const DrillDownInspector: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                  <span className="text-[10px] text-slate-400 uppercase block font-semibold">TOU Classification</span>
-                  <span className="text-slate-200 font-bold text-sm">{selectedIntervalDetail.touPeriod}</span>
+                  <span className="text-[10px] text-slate-400 uppercase block font-semibold">
+                    TOU Classification
+                  </span>
+                  <span className="text-slate-200 font-bold text-sm">
+                    {selectedIntervalDetail.touPeriod}
+                  </span>
                 </div>
                 <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                  <span className="text-[10px] text-slate-400 uppercase block font-semibold">Parser Adapter</span>
+                  <span className="text-[10px] text-slate-400 uppercase block font-semibold">
+                    Parser Adapter
+                  </span>
                   <span className="text-slate-200 font-bold text-sm">EskomAMRParser (v1.0.0)</span>
                 </div>
               </div>

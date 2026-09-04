@@ -1,10 +1,10 @@
 /**
  * Enterprise Orchestration Ingestion Service
  * Eskom Management Platform — Workflow Pipeline Orchestration Engine
- * 
+ *
  * Pipeline Flow:
- * RAW FILE -> OBJECT STORAGE -> INGESTION JOB -> FILE VALIDATION -> PARSER -> NORMALIZATION -> 
- * VALIDATION -> CANONICAL DATA MODEL -> TARIFF ENGINE -> RECONCILIATION ENGINE -> 
+ * RAW FILE -> OBJECT STORAGE -> INGESTION JOB -> FILE VALIDATION -> PARSER -> NORMALIZATION ->
+ * VALIDATION -> CANONICAL DATA MODEL -> TARIFF ENGINE -> RECONCILIATION ENGINE ->
  * DISCREPANCY ENGINE -> AUDIT LEDGER -> REPORTING
  */
 
@@ -32,7 +32,7 @@ export class IngestionService {
   public static async processFile(
     file: File,
     onProgress?: PipelineProgressCallback,
-    tenantId = "impala-plats-rustenburg"
+    tenantId = "impala-plats-rustenburg",
   ): Promise<{
     jobContext: JobContext;
     reconResult: ReconciliationResult;
@@ -49,21 +49,40 @@ export class IngestionService {
     };
 
     // Step 1: RAW FILE -> OBJECT STORAGE
-    updateStage("OBJECT STORAGE", 10, "Uploading raw binary payload to secure S3/Supabase storage bucket...");
-    AuditLedgerService.recordEvent(jobCtx, "FILE_UPLOAD_INITIATED", { filename: file.name, size: file.size });
+    updateStage(
+      "OBJECT STORAGE",
+      10,
+      "Uploading raw binary payload to secure S3/Supabase storage bucket...",
+    );
+    AuditLedgerService.recordEvent(jobCtx, "FILE_UPLOAD_INITIATED", {
+      filename: file.name,
+      size: file.size,
+    });
 
     // Step 2: INGESTION JOB CREATION
-    updateStage("INGESTION JOB", 20, `Created Ingestion Job ID ${jobCtx.jobId} [Correlation: ${jobCtx.correlationId}]`);
+    updateStage(
+      "INGESTION JOB",
+      20,
+      `Created Ingestion Job ID ${jobCtx.jobId} [Correlation: ${jobCtx.correlationId}]`,
+    );
 
     // Step 3: FILE VALIDATION
-    updateStage("FILE VALIDATION", 30, "Validating file magic bytes, MIME signature, and schema format compliance...");
+    updateStage(
+      "FILE VALIDATION",
+      30,
+      "Validating file magic bytes, MIME signature, and schema format compliance...",
+    );
     if (file.size === 0) {
       throw new Error(`Invalid zero-byte file payload: ${file.name}`);
     }
 
     // Step 4: PARSER & Step 5: NORMALIZATION
-    updateStage("PARSER & NORMALIZATION", 45, "Executing layout parser & normalizing raw telemetry/invoice text...");
-    
+    updateStage(
+      "PARSER & NORMALIZATION",
+      45,
+      "Executing layout parser & normalizing raw telemetry/invoice text...",
+    );
+
     let intervals: CanonicalTelemetryInterval[] = [];
     let invoiceHeader: CanonicalInvoiceHeader = {
       invoiceNumber: `INV-${Date.now()}`,
@@ -89,17 +108,25 @@ export class IngestionService {
       const pdfRes = await extractInvoiceFromPdf(file);
       if (pdfRes.invoice) {
         invoiceHeader = {
-          invoiceNumber: pdfRes.invoice.invoiceNo || pdfRes.invoice.invoiceNumber || invoiceHeader.invoiceNumber,
+          invoiceNumber:
+            pdfRes.invoice.invoiceNo || pdfRes.invoice.invoiceNumber || invoiceHeader.invoiceNumber,
           accountNumber: pdfRes.invoice.accountNumber || invoiceHeader.accountNumber,
           customerName: pdfRes.invoice.customerName || invoiceHeader.customerName,
           premiseId: pdfRes.invoice.premiseId || invoiceHeader.premiseId,
           tariffName: pdfRes.invoice.tariffName || invoiceHeader.tariffName,
-          billingStart: ((pdfRes.invoice as any).billingPeriodStart || (pdfRes.invoice as any).billingStart)
-            ? new Date((pdfRes.invoice as any).billingPeriodStart || (pdfRes.invoice as any).billingStart)
-            : invoiceHeader.billingStart,
-          billingEnd: ((pdfRes.invoice as any).billingPeriodEnd || (pdfRes.invoice as any).billingEnd)
-            ? new Date((pdfRes.invoice as any).billingPeriodEnd || (pdfRes.invoice as any).billingEnd)
-            : invoiceHeader.billingEnd,
+          billingStart:
+            (pdfRes.invoice as any).billingPeriodStart || (pdfRes.invoice as any).billingStart
+              ? new Date(
+                  (pdfRes.invoice as any).billingPeriodStart ||
+                    (pdfRes.invoice as any).billingStart,
+                )
+              : invoiceHeader.billingStart,
+          billingEnd:
+            (pdfRes.invoice as any).billingPeriodEnd || (pdfRes.invoice as any).billingEnd
+              ? new Date(
+                  (pdfRes.invoice as any).billingPeriodEnd || (pdfRes.invoice as any).billingEnd,
+                )
+              : invoiceHeader.billingEnd,
           peakKWh: pdfRes.invoice.peakKWh || invoiceHeader.peakKWh,
           standardKWh: pdfRes.invoice.standardKWh || invoiceHeader.standardKWh,
           offPeakKWh: pdfRes.invoice.offPeakKWh || invoiceHeader.offPeakKWh,
@@ -110,7 +137,10 @@ export class IngestionService {
         };
       }
       if (pdfRes.lineItems) {
-        lineItemsInvoiced = pdfRes.lineItems.map((item) => ({ label: item.label, amount: item.amount }));
+        lineItemsInvoiced = pdfRes.lineItems.map((item) => ({
+          label: item.label,
+          amount: item.amount,
+        }));
       }
     } else {
       const buf = await file.arrayBuffer();
@@ -129,19 +159,43 @@ export class IngestionService {
     }
 
     // Step 6: CANONICAL DATA MODEL
-    updateStage("CANONICAL MODEL", 60, "Transforming extracted telemetry into Canonical Data Model...");
-    AuditLedgerService.recordEvent(jobCtx, "CANONICAL_MODEL_TRANSFORM", { intervalCount: intervals.length, invoiceNo: invoiceHeader.invoiceNumber });
+    updateStage(
+      "CANONICAL MODEL",
+      60,
+      "Transforming extracted telemetry into Canonical Data Model...",
+    );
+    AuditLedgerService.recordEvent(jobCtx, "CANONICAL_MODEL_TRANSFORM", {
+      intervalCount: intervals.length,
+      invoiceNo: invoiceHeader.invoiceNumber,
+    });
 
     // Step 7: TARIFF ENGINE & Step 8: RECONCILIATION ENGINE & Step 9: DISCREPANCY ENGINE
-    updateStage("RECONCILIATION ENGINE", 80, "Executing 15-Point Baseline Tariff Engine & 12-Month NMD Ratchet Evaluator...");
-    const reconResult = ReconciliationEngine.reconcileInvoice(jobCtx, invoiceHeader, lineItemsInvoiced, intervals);
+    updateStage(
+      "RECONCILIATION ENGINE",
+      80,
+      "Executing 15-Point Baseline Tariff Engine & 12-Month NMD Ratchet Evaluator...",
+    );
+    const reconResult = ReconciliationEngine.reconcileInvoice(
+      jobCtx,
+      invoiceHeader,
+      lineItemsInvoiced,
+      intervals,
+    );
 
     // Step 10: ANOMALY DETECTION ENGINE
-    updateStage("ANOMALY DETECTION", 90, "Scanning reconciliation outputs for curtailment peak spikes and tariff anomalies...");
+    updateStage(
+      "ANOMALY DETECTION",
+      90,
+      "Scanning reconciliation outputs for curtailment peak spikes and tariff anomalies...",
+    );
     const anomalies = AnomalyEngine.scanForAnomalies(reconResult, intervals);
 
     // Step 11: AUDIT LEDGER
-    updateStage("AUDIT LEDGER", 95, "Committing immutable audit lineage record to PostgreSQL execution ledger...");
+    updateStage(
+      "AUDIT LEDGER",
+      95,
+      "Committing immutable audit lineage record to PostgreSQL execution ledger...",
+    );
     AuditLedgerService.recordEvent(jobCtx, "RECONCILIATION_COMPLETED", {
       calculatedTotal: reconResult.totals.calculatedTotal,
       invoicedTotal: reconResult.totals.invoicedTotal,

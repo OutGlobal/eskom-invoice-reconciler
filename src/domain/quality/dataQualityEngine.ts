@@ -49,7 +49,12 @@ export function evaluateDataQuality(input: QualityAssessmentInput): DataQualityA
     }
 
     // Check Timezone Mismatch (Must be SAST UTC+2 or +02:00)
-    if (r.timezone && !r.timezone.includes("Johannesburg") && !r.timezone.includes("UTC+2") && !r.timezone.includes("+02")) {
+    if (
+      r.timezone &&
+      !r.timezone.includes("Johannesburg") &&
+      !r.timezone.includes("UTC+2") &&
+      !r.timezone.includes("+02")
+    ) {
       timezoneMismatches.push(rowNum);
     }
 
@@ -115,14 +120,72 @@ export function evaluateDataQuality(input: QualityAssessmentInput): DataQualityA
   };
 
   // Add Detected Issues
-  addIssue("INVALID_TIMESTAMPS", "Invalid or Unparseable Timestamps", "CRITICAL", 15, `${invalidTimestamps.length} intervals have unparseable timestamps`, invalidTimestamps);
-  addIssue("TIMEZONE_MISMATCH", "Timezone Mismatch", "HIGH", 10, `${timezoneMismatches.length} intervals have non-SAST timezone strings`, timezoneMismatches);
-  addIssue("DUPLICATE_INTERVALS", "Duplicate Interval Timestamps", "HIGH", 10, `${duplicates.length} duplicate interval records detected`, duplicates);
-  addIssue("NEGATIVE_VALUES", "Negative Energy or Power", "CRITICAL", 15, `${negativeValues.length} interval records have impossible negative active energy/power`, negativeValues);
-  addIssue("IMPOSSIBLE_DEMAND", "Impossible Maximum Demand (>250% NMD)", "CRITICAL", 15, `${impossibleDemandRows.length} intervals exceed 250% of site NMD capacity`, impossibleDemandRows, 5800.0);
-  addIssue("IMPOSSIBLE_POWER_FACTOR", "Impossible Power Factor Range", "HIGH", 10, `${impossiblePfRows.length} intervals have power factor outside [-1.0, 1.0] bounds`, impossiblePfRows, 2450.0);
-  addIssue("UNEXPECTED_INTERVAL_DURATION", "Unexpected Interval Duration", "MEDIUM", 5, `${unexpectedDurationRows.length} intervals have non-standard duration (not 15m/30m)`, unexpectedDurationRows);
-  addIssue("UNEXPECTED_CONSUMPTION_SPIKES", "Unexpected Consumption Spike (>500%)", "MEDIUM", 5, `${spikeRows.length} intervals exhibit >500% consumption spikes`, spikeRows);
+  addIssue(
+    "INVALID_TIMESTAMPS",
+    "Invalid or Unparseable Timestamps",
+    "CRITICAL",
+    15,
+    `${invalidTimestamps.length} intervals have unparseable timestamps`,
+    invalidTimestamps,
+  );
+  addIssue(
+    "TIMEZONE_MISMATCH",
+    "Timezone Mismatch",
+    "HIGH",
+    10,
+    `${timezoneMismatches.length} intervals have non-SAST timezone strings`,
+    timezoneMismatches,
+  );
+  addIssue(
+    "DUPLICATE_INTERVALS",
+    "Duplicate Interval Timestamps",
+    "HIGH",
+    10,
+    `${duplicates.length} duplicate interval records detected`,
+    duplicates,
+  );
+  addIssue(
+    "NEGATIVE_VALUES",
+    "Negative Energy or Power",
+    "CRITICAL",
+    15,
+    `${negativeValues.length} interval records have impossible negative active energy/power`,
+    negativeValues,
+  );
+  addIssue(
+    "IMPOSSIBLE_DEMAND",
+    "Impossible Maximum Demand (>250% NMD)",
+    "CRITICAL",
+    15,
+    `${impossibleDemandRows.length} intervals exceed 250% of site NMD capacity`,
+    impossibleDemandRows,
+    5800.0,
+  );
+  addIssue(
+    "IMPOSSIBLE_POWER_FACTOR",
+    "Impossible Power Factor Range",
+    "HIGH",
+    10,
+    `${impossiblePfRows.length} intervals have power factor outside [-1.0, 1.0] bounds`,
+    impossiblePfRows,
+    2450.0,
+  );
+  addIssue(
+    "UNEXPECTED_INTERVAL_DURATION",
+    "Unexpected Interval Duration",
+    "MEDIUM",
+    5,
+    `${unexpectedDurationRows.length} intervals have non-standard duration (not 15m/30m)`,
+    unexpectedDurationRows,
+  );
+  addIssue(
+    "UNEXPECTED_CONSUMPTION_SPIKES",
+    "Unexpected Consumption Spike (>500%)",
+    "MEDIUM",
+    5,
+    `${spikeRows.length} intervals exhibit >500% consumption spikes`,
+    spikeRows,
+  );
 
   // 13. INVOICE_PERIOD_MISMATCH Check
   if (input.invoiceRecord && records.length > 0) {
@@ -132,17 +195,45 @@ export function evaluateDataQuality(input: QualityAssessmentInput): DataQualityA
     const lastTelemetry = Date.parse(records[records.length - 1].timestamp_utc);
 
     if (firstTelemetry > invStart || lastTelemetry < invEnd) {
-      addIssue("INVOICE_PERIOD_MISMATCH", "Invoice Period Mismatch", "HIGH", 10, "Telemetry interval date range does not cover full invoice billing period", [1], 1200.0);
+      addIssue(
+        "INVOICE_PERIOD_MISMATCH",
+        "Invoice Period Mismatch",
+        "HIGH",
+        10,
+        "Telemetry interval date range does not cover full invoice billing period",
+        [1],
+        1200.0,
+      );
     }
 
     // 14. METER_INVOICE_MISMATCH Check
-    if (input.invoiceRecord.meterNumber && records[0].meter_id && !records[0].meter_id.includes(input.invoiceRecord.meterNumber)) {
-      addIssue("METER_INVOICE_MISMATCH", "Meter / Invoice ID Mismatch", "CRITICAL", 15, `Invoice meter number '${input.invoiceRecord.meterNumber}' does not match telemetry meter ID '${records[0].meter_id}'`, [1], 4500.0);
+    if (
+      input.invoiceRecord.meterNumber &&
+      records[0].meter_id &&
+      !records[0].meter_id.includes(input.invoiceRecord.meterNumber)
+    ) {
+      addIssue(
+        "METER_INVOICE_MISMATCH",
+        "Meter / Invoice ID Mismatch",
+        "CRITICAL",
+        15,
+        `Invoice meter number '${input.invoiceRecord.meterNumber}' does not match telemetry meter ID '${records[0].meter_id}'`,
+        [1],
+        4500.0,
+      );
     }
 
     // 15. TARIFF_MISMATCH Check
     if (input.siteTariffCode && input.invoiceRecord.tariffCode !== input.siteTariffCode) {
-      addIssue("TARIFF_MISMATCH", "Tariff Schedule Mismatch", "HIGH", 10, `Invoice tariff '${input.invoiceRecord.tariffCode}' differs from assigned site tariff '${input.siteTariffCode}'`, [1], 3200.0);
+      addIssue(
+        "TARIFF_MISMATCH",
+        "Tariff Schedule Mismatch",
+        "HIGH",
+        10,
+        `Invoice tariff '${input.invoiceRecord.tariffCode}' differs from assigned site tariff '${input.siteTariffCode}'`,
+        [1],
+        3200.0,
+      );
     }
   }
 

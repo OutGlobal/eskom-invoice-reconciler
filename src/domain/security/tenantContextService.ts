@@ -15,7 +15,10 @@ export function createSecurityContext(
   };
 }
 
-export function hasPermission(context: UserSecurityContext, permission: SecurityPermission): boolean {
+export function hasPermission(
+  context: UserSecurityContext,
+  permission: SecurityPermission,
+): boolean {
   if (context.role === "SUPER_ADMIN") return true;
   return context.permissions.includes(permission);
 }

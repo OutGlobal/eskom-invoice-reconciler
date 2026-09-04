@@ -3,7 +3,7 @@
  * Cryptographic Hash Chain & Reproducible Run Snapshot Auditor
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from "react";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -19,19 +19,26 @@ import {
   Key,
   Database,
   ExternalLink,
-} from 'lucide-react';
-import type { AuditEventRecord, HashChainVerificationResult, ReproducibleRunSnapshot, AuditEventType } from '../../domain/audit/types';
-import { AuditLedgerService } from '../../domain/audit/auditLedgerService';
-import { HashChainEngine } from '../../domain/audit/hashChainEngine';
-import { toast } from 'react-hot-toast';
+} from "lucide-react";
+import type {
+  AuditEventRecord,
+  HashChainVerificationResult,
+  ReproducibleRunSnapshot,
+  AuditEventType,
+} from "../../domain/audit/types";
+import { AuditLedgerService } from "../../domain/audit/auditLedgerService";
+import { HashChainEngine } from "../../domain/audit/hashChainEngine";
+import { toast } from "react-hot-toast";
 
 export const AuditViewer: React.FC = () => {
   const [events, setEvents] = useState<AuditEventRecord[]>([]);
-  const [verificationResult, setVerificationResult] = useState<HashChainVerificationResult | null>(null);
+  const [verificationResult, setVerificationResult] = useState<HashChainVerificationResult | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
-  const [selectedEventType, setSelectedEventType] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedEventType, setSelectedEventType] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedSnapshot, setSelectedSnapshot] = useState<ReproducibleRunSnapshot | null>(null);
 
   // Load audit ledger events on mount
@@ -62,40 +69,116 @@ export const AuditViewer: React.FC = () => {
   };
 
   const seedSampleLedgerEvents = async () => {
-    const actor = 'admin@eskombalancer.co.za';
-    await AuditLedgerService.logEvent('FILE_UPLOADED', 'source_file', 'src-file-2026-03-01.csv', { filename: 'amr_telemetry_2026_03.csv', bytes: 1048576, sha256: 'a3f8b921...' }, actor);
-    await AuditLedgerService.logEvent('FILE_PARSED', 'source_file', 'src-file-2026-03-01.csv', { parser_version: '1.0.0', rows_parsed: 1488, duration_ms: 120 }, actor);
-    await AuditLedgerService.logEvent('FILE_VALIDATED', 'source_file', 'src-file-2026-03-01.csv', { data_quality_score: 97.5, missing_intervals: 3 }, actor);
-    await AuditLedgerService.logEvent('INVOICE_CREATED', 'invoice', 'INV-2026-03-9988', { invoice_number: 'INV-2026-03-9988', billed_total_zar: 920000.0 }, actor);
-    await AuditLedgerService.logEvent('TARIFF_SELECTED', 'tariff_schedule', 'ESKOM_MEGAFLEX_HV_2025_2026', { tariff_code: 'ESKOM_MEGAFLEX_HV_2025_2026', version: '2025-2026-V1' }, actor);
-    await AuditLedgerService.logEvent('RECONCILIATION_STARTED', 'reconciliation_run', 'run-rec-2026-03-full', { site_id: 'site-001', meter_id: 'mtr-30m-99' }, actor);
-    await AuditLedgerService.logEvent('RECONCILIATION_COMPLETED', 'reconciliation_run', 'run-rec-2026-03-full', { status: 'MATERIAL_DISCREPANCY', variance_zar: 44587.5 }, actor);
-    await AuditLedgerService.logEvent('DISCREPANCY_CREATED', 'discrepancy', 'disc-001', { reason_code: 'TOU_CLASSIFICATION', impact_zar: 18421.32 }, actor);
-    await AuditLedgerService.logEvent('REPORT_GENERATED', 'generated_report', 'rep-dispute-pack-01', { report_type: 'DISPUTE_PACK_PDF' }, actor);
-    await AuditLedgerService.logEvent('EXPORT_GENERATED', 'export', 'exp-excel-01', { format: 'XLSX' }, actor);
-    await AuditLedgerService.logEvent('USER_REVIEWED', 'reconciliation_run', 'run-rec-2026-03-full', { reviewer: actor, comments: 'Verified TOU peak clock shift' }, actor);
-    await AuditLedgerService.logEvent('USER_APPROVED', 'reconciliation_run', 'run-rec-2026-03-full', { approver: actor, status: 'APPROVED_FOR_DISPUTE' }, actor);
+    const actor = "admin@eskombalancer.co.za";
+    await AuditLedgerService.logEvent(
+      "FILE_UPLOADED",
+      "source_file",
+      "src-file-2026-03-01.csv",
+      { filename: "amr_telemetry_2026_03.csv", bytes: 1048576, sha256: "a3f8b921..." },
+      actor,
+    );
+    await AuditLedgerService.logEvent(
+      "FILE_PARSED",
+      "source_file",
+      "src-file-2026-03-01.csv",
+      { parser_version: "1.0.0", rows_parsed: 1488, duration_ms: 120 },
+      actor,
+    );
+    await AuditLedgerService.logEvent(
+      "FILE_VALIDATED",
+      "source_file",
+      "src-file-2026-03-01.csv",
+      { data_quality_score: 97.5, missing_intervals: 3 },
+      actor,
+    );
+    await AuditLedgerService.logEvent(
+      "INVOICE_CREATED",
+      "invoice",
+      "INV-2026-03-9988",
+      { invoice_number: "INV-2026-03-9988", billed_total_zar: 920000.0 },
+      actor,
+    );
+    await AuditLedgerService.logEvent(
+      "TARIFF_SELECTED",
+      "tariff_schedule",
+      "ESKOM_MEGAFLEX_HV_2025_2026",
+      { tariff_code: "ESKOM_MEGAFLEX_HV_2025_2026", version: "2025-2026-V1" },
+      actor,
+    );
+    await AuditLedgerService.logEvent(
+      "RECONCILIATION_STARTED",
+      "reconciliation_run",
+      "run-rec-2026-03-full",
+      { site_id: "site-001", meter_id: "mtr-30m-99" },
+      actor,
+    );
+    await AuditLedgerService.logEvent(
+      "RECONCILIATION_COMPLETED",
+      "reconciliation_run",
+      "run-rec-2026-03-full",
+      { status: "MATERIAL_DISCREPANCY", variance_zar: 44587.5 },
+      actor,
+    );
+    await AuditLedgerService.logEvent(
+      "DISCREPANCY_CREATED",
+      "discrepancy",
+      "disc-001",
+      { reason_code: "TOU_CLASSIFICATION", impact_zar: 18421.32 },
+      actor,
+    );
+    await AuditLedgerService.logEvent(
+      "REPORT_GENERATED",
+      "generated_report",
+      "rep-dispute-pack-01",
+      { report_type: "DISPUTE_PACK_PDF" },
+      actor,
+    );
+    await AuditLedgerService.logEvent(
+      "EXPORT_GENERATED",
+      "export",
+      "exp-excel-01",
+      { format: "XLSX" },
+      actor,
+    );
+    await AuditLedgerService.logEvent(
+      "USER_REVIEWED",
+      "reconciliation_run",
+      "run-rec-2026-03-full",
+      { reviewer: actor, comments: "Verified TOU peak clock shift" },
+      actor,
+    );
+    await AuditLedgerService.logEvent(
+      "USER_APPROVED",
+      "reconciliation_run",
+      "run-rec-2026-03-full",
+      { approver: actor, status: "APPROVED_FOR_DISPUTE" },
+      actor,
+    );
 
     // Save reproducible run snapshot
     await AuditLedgerService.saveRunSnapshot({
-      run_id: 'run-rec-2026-03-full',
-      user_id: 'usr-001',
-      organisation_id: 'org-001',
-      source_file_ids: ['src-file-2026-03-01.csv'],
-      source_file_hashes: ['a3f8b921827419e48719284192841e9284192849182419284192849182419284'],
-      invoice_id: 'INV-2026-03-9988',
-      meter_id: 'mtr-30m-99',
-      tariff_version_id: '2025-2026-V1',
-      tariff_snapshot: { tariff_code: 'ESKOM_MEGAFLEX_HV_2025_2026', peak_rate_c_kwh: 666.92, offpeak_rate_c_kwh: 111.15 },
-      calendar_version: '2025/2026-V1',
-      parser_version: '1.0.0',
-      calculation_engine_version: '2.0.0',
-      application_version: '1.0.0',
+      run_id: "run-rec-2026-03-full",
+      user_id: "usr-001",
+      organisation_id: "org-001",
+      source_file_ids: ["src-file-2026-03-01.csv"],
+      source_file_hashes: ["a3f8b921827419e48719284192841e9284192849182419284192849182419284"],
+      invoice_id: "INV-2026-03-9988",
+      meter_id: "mtr-30m-99",
+      tariff_version_id: "2025-2026-V1",
+      tariff_snapshot: {
+        tariff_code: "ESKOM_MEGAFLEX_HV_2025_2026",
+        peak_rate_c_kwh: 666.92,
+        offpeak_rate_c_kwh: 111.15,
+      },
+      calendar_version: "2025/2026-V1",
+      parser_version: "1.0.0",
+      calculation_engine_version: "2.0.0",
+      application_version: "1.0.0",
       configuration_snapshot: { nmd_ratchet_pct: 0.7, pf_threshold: 0.96, voltage_tier_kv: 33 },
       started_at: new Date(Date.now() - 3600000).toISOString(),
       completed_at: new Date().toISOString(),
-      execution_environment: 'production-browser',
-      status: 'COMPLETED',
+      execution_environment: "production-browser",
+      status: "COMPLETED",
       created_at: new Date().toISOString(),
     });
   };
@@ -106,9 +189,13 @@ export const AuditViewer: React.FC = () => {
       const result = await HashChainEngine.verifyChainIntegrity(events);
       setVerificationResult(result);
       if (result.is_valid) {
-        toast.success(`Cryptographic Hash Chain Verified! All ${result.total_events_checked} events are 100% immutable & untampered.`);
+        toast.success(
+          `Cryptographic Hash Chain Verified! All ${result.total_events_checked} events are 100% immutable & untampered.`,
+        );
       } else {
-        toast.error(`CHAIN TAMPERING DETECTED! Sequence #${result.first_broken_sequence_number} failed verification.`);
+        toast.error(
+          `CHAIN TAMPERING DETECTED! Sequence #${result.first_broken_sequence_number} failed verification.`,
+        );
       }
     } finally {
       setIsVerifying(false);
@@ -126,7 +213,7 @@ export const AuditViewer: React.FC = () => {
 
   const filteredEvents = useMemo(() => {
     return events.filter((e) => {
-      if (selectedEventType !== 'ALL' && e.event_type !== selectedEventType) return false;
+      if (selectedEventType !== "ALL" && e.event_type !== selectedEventType) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         return (
@@ -149,11 +236,16 @@ export const AuditViewer: React.FC = () => {
             <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 font-semibold text-xs flex items-center gap-1.5">
               <Lock className="h-4 w-4" /> SHA-256 Cryptographic Hash Chain
             </span>
-            <span className="text-xs text-muted-foreground font-mono">Append-Only Database RLS</span>
+            <span className="text-xs text-muted-foreground font-mono">
+              Append-Only Database RLS
+            </span>
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Enterprise Audit & Cryptographic Lineage Ledger</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+            Enterprise Audit & Cryptographic Lineage Ledger
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Immutably records every file upload, invoice extraction, tariff evaluation, and reconciliation event in a tamper-detectable SHA-256 hash chain.
+            Immutably records every file upload, invoice extraction, tariff evaluation, and
+            reconciliation event in a tamper-detectable SHA-256 hash chain.
           </p>
         </div>
 
@@ -163,8 +255,8 @@ export const AuditViewer: React.FC = () => {
             disabled={isVerifying}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`h-4 w-4 ${isVerifying ? 'animate-spin' : ''}`} />
-            {isVerifying ? 'Verifying Chain...' : 'Verify Cryptographic Chain'}
+            <RefreshCw className={`h-4 w-4 ${isVerifying ? "animate-spin" : ""}`} />
+            {isVerifying ? "Verifying Chain..." : "Verify Cryptographic Chain"}
           </button>
         </div>
       </div>
@@ -174,8 +266,8 @@ export const AuditViewer: React.FC = () => {
         <div
           className={`border rounded-xl p-5 shadow-sm ${
             verificationResult.is_valid
-              ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-950 dark:text-emerald-200'
-              : 'bg-red-500/5 border-red-500/30 text-red-950 dark:text-red-200'
+              ? "bg-emerald-500/5 border-emerald-500/30 text-emerald-950 dark:text-emerald-200"
+              : "bg-red-500/5 border-red-500/30 text-red-950 dark:text-red-200"
           }`}
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -187,17 +279,22 @@ export const AuditViewer: React.FC = () => {
               )}
               <div>
                 <h3 className="text-lg font-bold flex items-center gap-2">
-                  {verificationResult.is_valid ? 'Cryptographic Hash Chain: Verified Immutable' : 'ALERT: Cryptographic Hash Chain Broken'}
+                  {verificationResult.is_valid
+                    ? "Cryptographic Hash Chain: Verified Immutable"
+                    : "ALERT: Cryptographic Hash Chain Broken"}
                 </h3>
                 <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                  Checked {verificationResult.total_events_checked} audit events · Genesis Hash: {verificationResult.genesis_hash.slice(0, 16)}...
+                  Checked {verificationResult.total_events_checked} audit events · Genesis Hash:{" "}
+                  {verificationResult.genesis_hash.slice(0, 16)}...
                 </p>
               </div>
             </div>
 
             <div className="text-right font-mono text-xs">
               <span className="text-muted-foreground">Latest Event Hash:</span>
-              <div className="font-semibold text-foreground truncate max-w-xs">{verificationResult.latest_hash.slice(0, 24)}...</div>
+              <div className="font-semibold text-foreground truncate max-w-xs">
+                {verificationResult.latest_hash.slice(0, 24)}...
+              </div>
             </div>
           </div>
         </div>
@@ -246,9 +343,12 @@ export const AuditViewer: React.FC = () => {
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="p-4 border-b border-border flex items-center justify-between">
           <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-            <Layers className="h-4 w-4 text-primary" /> Cryptographic Ledger Log ({filteredEvents.length} Events)
+            <Layers className="h-4 w-4 text-primary" /> Cryptographic Ledger Log (
+            {filteredEvents.length} Events)
           </h3>
-          <span className="text-xs text-muted-foreground font-mono">Append-Only Database RLS Enforced</span>
+          <span className="text-xs text-muted-foreground font-mono">
+            Append-Only Database RLS Enforced
+          </span>
         </div>
 
         <div className="overflow-x-auto">
@@ -268,28 +368,38 @@ export const AuditViewer: React.FC = () => {
             <tbody className="divide-y divide-border font-mono">
               {filteredEvents.map((evt) => (
                 <tr key={evt.event_id} className="hover:bg-muted/30 transition-colors">
-                  <td className="p-3 font-bold text-foreground">#{evt.sequence_number.toString().padStart(4, '0')}</td>
+                  <td className="p-3 font-bold text-foreground">
+                    #{evt.sequence_number.toString().padStart(4, "0")}
+                  </td>
                   <td className="p-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-accent text-accent-foreground font-sans">
                       {evt.event_type}
                     </span>
                   </td>
                   <td className="p-3 font-sans">
-                    <span className="text-muted-foreground font-mono">{evt.object_type}:</span>{' '}
+                    <span className="text-muted-foreground font-mono">{evt.object_type}:</span>{" "}
                     <strong className="text-foreground">{evt.object_id}</strong>
                   </td>
                   <td className="p-3 font-sans text-muted-foreground flex items-center gap-1">
                     <User className="h-3 w-3 text-primary" /> {evt.actor_email}
                   </td>
-                  <td className="p-3 text-muted-foreground font-sans">{evt.timestamp.replace('T', ' ').slice(0, 19)}</td>
-                  <td className="p-3 text-foreground font-bold text-[11px]" title={evt.current_event_hash}>
+                  <td className="p-3 text-muted-foreground font-sans">
+                    {evt.timestamp.replace("T", " ").slice(0, 19)}
+                  </td>
+                  <td
+                    className="p-3 text-foreground font-bold text-[11px]"
+                    title={evt.current_event_hash}
+                  >
                     {evt.current_event_hash.slice(0, 12)}...
                   </td>
-                  <td className="p-3 text-muted-foreground text-[11px]" title={evt.previous_event_hash}>
+                  <td
+                    className="p-3 text-muted-foreground text-[11px]"
+                    title={evt.previous_event_hash}
+                  >
                     {evt.previous_event_hash.slice(0, 12)}...
                   </td>
                   <td className="p-3 text-right font-sans">
-                    {evt.object_type === 'reconciliation_run' ? (
+                    {evt.object_type === "reconciliation_run" ? (
                       <button
                         onClick={() => handleViewSnapshot(evt.object_id)}
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-primary/10 text-primary text-[11px] font-medium hover:bg-primary/20"
@@ -321,7 +431,9 @@ export const AuditViewer: React.FC = () => {
                 <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
                   <Database className="h-5 w-5 text-primary" /> Reproducible Run Snapshot
                 </h3>
-                <p className="text-xs text-muted-foreground font-mono">Run ID: {selectedSnapshot.run_id}</p>
+                <p className="text-xs text-muted-foreground font-mono">
+                  Run ID: {selectedSnapshot.run_id}
+                </p>
               </div>
               <button
                 onClick={() => setSelectedSnapshot(null)}
@@ -334,40 +446,56 @@ export const AuditViewer: React.FC = () => {
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div>
                 <span className="text-muted-foreground">Parser Version:</span>
-                <div className="font-mono font-bold text-foreground">{selectedSnapshot.parser_version}</div>
+                <div className="font-mono font-bold text-foreground">
+                  {selectedSnapshot.parser_version}
+                </div>
               </div>
               <div>
                 <span className="text-muted-foreground">Engine Version:</span>
-                <div className="font-mono font-bold text-foreground">{selectedSnapshot.calculation_engine_version}</div>
+                <div className="font-mono font-bold text-foreground">
+                  {selectedSnapshot.calculation_engine_version}
+                </div>
               </div>
               <div>
                 <span className="text-muted-foreground">Calendar Version:</span>
-                <div className="font-mono font-bold text-foreground">{selectedSnapshot.calendar_version}</div>
+                <div className="font-mono font-bold text-foreground">
+                  {selectedSnapshot.calendar_version}
+                </div>
               </div>
               <div>
                 <span className="text-muted-foreground">Tariff Version ID:</span>
-                <div className="font-mono font-bold text-foreground">{selectedSnapshot.tariff_version_id}</div>
+                <div className="font-mono font-bold text-foreground">
+                  {selectedSnapshot.tariff_version_id}
+                </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs font-semibold text-foreground uppercase tracking-wider">Source File Cryptographic Hashes:</span>
+              <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
+                Source File Cryptographic Hashes:
+              </span>
               <div className="bg-muted p-3 rounded-lg font-mono text-[11px] space-y-1 text-muted-foreground overflow-x-auto">
                 {selectedSnapshot.source_file_hashes.map((h, idx) => (
-                  <div key={idx}>SHA256[{idx}]: {h}</div>
+                  <div key={idx}>
+                    SHA256[{idx}]: {h}
+                  </div>
                 ))}
               </div>
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs font-semibold text-foreground uppercase tracking-wider">Tariff Rate Snapshot:</span>
+              <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
+                Tariff Rate Snapshot:
+              </span>
               <pre className="bg-muted p-3 rounded-lg font-mono text-[11px] text-foreground overflow-x-auto">
                 {JSON.stringify(selectedSnapshot.tariff_snapshot, null, 2)}
               </pre>
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs font-semibold text-foreground uppercase tracking-wider">Configuration Snapshot:</span>
+              <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
+                Configuration Snapshot:
+              </span>
               <pre className="bg-muted p-3 rounded-lg font-mono text-[11px] text-foreground overflow-x-auto">
                 {JSON.stringify(selectedSnapshot.configuration_snapshot, null, 2)}
               </pre>

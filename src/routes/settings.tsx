@@ -51,7 +51,9 @@ function SettingsPage() {
     try {
       const invs = await fetchSupabaseInvoices();
       const recs = await fetchSupabaseRecoveries();
-      const { count } = await supabase.from("raw_documents").select("*", { count: "exact", head: true });
+      const { count } = await supabase
+        .from("raw_documents")
+        .select("*", { count: "exact", head: true });
 
       setInvoiceCount(invs.length || 4);
       setRecoveryCount(recs.length || 4);
@@ -65,7 +67,11 @@ function SettingsPage() {
   };
 
   const handleResetSession = () => {
-    if (confirm("Are you sure you want to reset session cache? Raw database records in Supabase will remain intact.")) {
+    if (
+      confirm(
+        "Are you sure you want to reset session cache? Raw database records in Supabase will remain intact.",
+      )
+    ) {
       setRows([]);
       setInvoiceLines({});
       setInvoiceTotal(0);
@@ -83,7 +89,8 @@ function SettingsPage() {
             Commercial Platform Settings &amp; Connectors
           </h1>
           <p className="text-xs text-muted-foreground">
-            Database connectors, API webhooks, NERSA tariff rules, and enterprise platform preferences.
+            Database connectors, API webhooks, NERSA tariff rules, and enterprise platform
+            preferences.
           </p>
         </div>
 
@@ -111,7 +118,8 @@ function SettingsPage() {
               <Database className="h-5 w-5 text-emerald-400" />
               <div>
                 <div className="font-semibold text-foreground">
-                  Supabase Project: <span className="font-mono text-primary">bramhseicmakyihvnvpo</span>
+                  Supabase Project:{" "}
+                  <span className="font-mono text-primary">bramhseicmakyihvnvpo</span>
                 </div>
                 <div className="text-muted-foreground text-[11px] font-mono">
                   Host: db.bramhseicmakyihvnvpo.supabase.co (Region: eu-west-1)
@@ -147,7 +155,9 @@ function SettingsPage() {
             <div className="p-3 rounded-lg border border-border bg-muted/20">
               <div className="text-muted-foreground text-[11px]">Recovery Register Table</div>
               <div className="text-lg font-bold text-foreground">{recoveryCount} Claims</div>
-              <div className="text-[10px] text-emerald-400 font-mono">public.overcharge_recoveries</div>
+              <div className="text-[10px] text-emerald-400 font-mono">
+                public.overcharge_recoveries
+              </div>
             </div>
             <div className="p-3 rounded-lg border border-border bg-muted/20">
               <div className="text-muted-foreground text-[11px]">Raw Audit Documents</div>
@@ -156,7 +166,9 @@ function SettingsPage() {
             </div>
             <div className="p-3 rounded-lg border border-border bg-muted/20">
               <div className="text-muted-foreground text-[11px]">Active Meter Intervals</div>
-              <div className="text-lg font-bold text-foreground">{rows.length.toLocaleString()} Rows</div>
+              <div className="text-lg font-bold text-foreground">
+                {rows.length.toLocaleString()} Rows
+              </div>
               <div className="text-[10px] text-emerald-400 font-mono">public.meter_readings</div>
             </div>
           </div>
@@ -179,11 +191,14 @@ function SettingsPage() {
               </span>
             </div>
             <p className="text-muted-foreground">
-              Configure your Eskom email server or utility ingestion pipeline to POST raw PDF bills directly:
+              Configure your Eskom email server or utility ingestion pipeline to POST raw PDF bills
+              directly:
             </p>
             <div className="p-2 bg-muted/60 rounded font-mono text-[11px] text-primary flex items-center justify-between overflow-x-auto">
               <code>POST https://eskom-reconciler.pages.dev/api/v1/ingest</code>
-              <span className="text-muted-foreground text-[10px]">Header: Authorization: Bearer &lt;key&gt;</span>
+              <span className="text-muted-foreground text-[10px]">
+                Header: Authorization: Bearer &lt;key&gt;
+              </span>
             </div>
           </div>
 
@@ -203,7 +218,8 @@ function SettingsPage() {
               </label>
             </div>
             <p className="text-muted-foreground">
-              Automatically trigger email &amp; Slack notifications whenever an overcharge claim exceeding R 50,000 is detected.
+              Automatically trigger email &amp; Slack notifications whenever an overcharge claim
+              exceeding R 50,000 is detected.
             </p>
           </div>
         </div>
@@ -249,7 +265,8 @@ function SettingsPage() {
       <Panel title="Data Management &amp; Cache Control">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="text-xs text-muted-foreground">
-            Clear frontend memory session cache and reload baseline Megaflex datasets. Supabase PostgreSQL records will not be deleted.
+            Clear frontend memory session cache and reload baseline Megaflex datasets. Supabase
+            PostgreSQL records will not be deleted.
           </div>
           <button
             onClick={handleResetSession}

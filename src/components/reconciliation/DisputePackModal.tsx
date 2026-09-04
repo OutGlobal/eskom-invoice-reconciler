@@ -46,7 +46,7 @@ export const DisputePackModal: React.FC<DisputePackModalProps> = ({
     setTimeout(() => {
       exportToExcel(
         null,
-        ([
+        [
           {
             "Claim ID": "CL-2026-0391",
             "Discrepancy Category": "Peak Energy TOU Misclassification",
@@ -79,7 +79,7 @@ export const DisputePackModal: React.FC<DisputePackModalProps> = ({
             "Disputed Overcharge (ZAR)": 1800.0,
             "Evidence Reference": "Derived 15% VAT on disputed overcharges",
           },
-        ] as any),
+        ] as any,
         [],
         `Eskom_Dispute_Pack_${accountNumber}_${invoiceNumber}`,
       );
@@ -129,7 +129,9 @@ export const DisputePackModal: React.FC<DisputePackModalProps> = ({
               <span className="text-slate-200 font-bold block">{invoiceNumber}</span>
             </div>
             <div>
-              <span className="text-[10px] text-slate-400 uppercase block">Disputed Claim Amount</span>
+              <span className="text-[10px] text-slate-400 uppercase block">
+                Disputed Claim Amount
+              </span>
               <span className="text-amber-400 font-bold text-sm block">
                 R {disputedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>

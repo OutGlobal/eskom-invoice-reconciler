@@ -52,7 +52,13 @@ export type TouPeriod = "peak" | "standard" | "offPeak";
 export type Season = "high" | "low";
 
 /** Helper to convert any Date object to South Africa Standard Time (UTC+2) components */
-export function getSastComponents(d: Date): { year: number; month: number; day: number; dow: number; hours: number } {
+export function getSastComponents(d: Date): {
+  year: number;
+  month: number;
+  day: number;
+  dow: number;
+  hours: number;
+} {
   const sastMs = d.getTime() + 2 * 60 * 60 * 1000;
   const sastDate = new Date(sastMs);
   return {
@@ -73,13 +79,33 @@ export function getSeason(d: Date): Season {
 // Only 5 public holidays are treated as a Sunday: New Year's Day, Good Friday, Family Day, Christmas Day, Day of Goodwill.
 // All other public holidays are treated as a Saturday.
 const SUNDAY_HOLIDAYS = new Set<string>([
-  "2025-01-01", "2025-04-18", "2025-04-21", "2025-12-25", "2025-12-26",
-  "2026-01-01", "2026-04-03", "2026-04-06", "2026-12-25", "2026-12-26",
+  "2025-01-01",
+  "2025-04-18",
+  "2025-04-21",
+  "2025-12-25",
+  "2025-12-26",
+  "2026-01-01",
+  "2026-04-03",
+  "2026-04-06",
+  "2026-12-25",
+  "2026-12-26",
 ]);
 
 const SATURDAY_HOLIDAYS = new Set<string>([
-  "2025-03-21", "2025-04-28", "2025-05-01", "2025-06-16", "2025-08-09", "2025-09-24", "2025-12-16",
-  "2026-03-21", "2026-04-27", "2026-05-01", "2026-06-16", "2026-08-10", "2026-09-24", "2026-12-16",
+  "2025-03-21",
+  "2025-04-28",
+  "2025-05-01",
+  "2025-06-16",
+  "2025-08-09",
+  "2025-09-24",
+  "2025-12-16",
+  "2026-03-21",
+  "2026-04-27",
+  "2026-05-01",
+  "2026-06-16",
+  "2026-08-10",
+  "2026-09-24",
+  "2026-12-16",
 ]);
 
 function getEffectiveDayOfWeek(d: Date): number {

@@ -16,11 +16,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { InvoiceSelector } from "@/components/InvoiceSelector";
-import {
-  useBootstrapMeter,
-  useDerived,
-  PeriodPicker,
-} from "@/components/dashboard/parts";
+import { useBootstrapMeter, useDerived, PeriodPicker } from "@/components/dashboard/parts";
 import { useApp } from "@/lib/store";
 import { buildStandardReconciliationTable } from "@/lib/reconciliation";
 import { exportToExcel, exportToCsv, exportToJson, exportToPdfPrint } from "@/lib/exportReports";
@@ -121,8 +117,8 @@ function ReconPage() {
         Math.abs(diffVal) < 100
           ? "CLEAN_MATCH"
           : Math.abs(diffVal) > 1000
-          ? "MATERIAL_DISCREPANCY"
-          : "UNDER_REVIEW",
+            ? "MATERIAL_DISCREPANCY"
+            : "UNDER_REVIEW",
     };
   }, [invTotalVal, calcTotalVal, diffVal, pctErrVal, invoice]);
 
@@ -180,9 +176,12 @@ function ReconPage() {
       {/* Action Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">Enterprise Reconciliation Workspace</h1>
+          <h1 className="text-xl font-semibold text-slate-100">
+            Enterprise Reconciliation Workspace
+          </h1>
           <p className="text-xs text-slate-400">
-            End-to-end 12-step utility invoice reconciliation, 4-level audit drill-down, and dispute pack generator.
+            End-to-end 12-step utility invoice reconciliation, 4-level audit drill-down, and dispute
+            pack generator.
           </p>
         </div>
 
@@ -241,7 +240,10 @@ function ReconPage() {
       </div>
 
       {/* 1. Interactive 12-Step Workflow Stepper */}
-      <EnterpriseWorkflowStepper currentStep={currentStep} onSelectStep={handleSelectWorkflowStep} />
+      <EnterpriseWorkflowStepper
+        currentStep={currentStep}
+        onSelectStep={handleSelectWorkflowStep}
+      />
 
       {/* Invoice Selector Banner */}
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
@@ -288,7 +290,9 @@ function ReconPage() {
               <button
                 onClick={() => setFilterTab("all")}
                 className={`px-2.5 py-1 rounded-md transition ${
-                  filterTab === "all" ? "bg-slate-800 text-slate-100" : "text-slate-400 hover:text-slate-200"
+                  filterTab === "all"
+                    ? "bg-slate-800 text-slate-100"
+                    : "text-slate-400 hover:text-slate-200"
                 }`}
               >
                 All ({reconRows.length})
@@ -296,7 +300,9 @@ function ReconPage() {
               <button
                 onClick={() => setFilterTab("discrepancies")}
                 className={`px-2.5 py-1 rounded-md transition ${
-                  filterTab === "discrepancies" ? "bg-amber-500/20 text-amber-300 font-bold" : "text-slate-400 hover:text-slate-200"
+                  filterTab === "discrepancies"
+                    ? "bg-amber-500/20 text-amber-300 font-bold"
+                    : "text-slate-400 hover:text-slate-200"
                 }`}
               >
                 Discrepancies
@@ -304,7 +310,9 @@ function ReconPage() {
               <button
                 onClick={() => setFilterTab("matches")}
                 className={`px-2.5 py-1 rounded-md transition ${
-                  filterTab === "matches" ? "bg-emerald-500/20 text-emerald-300 font-bold" : "text-slate-400 hover:text-slate-200"
+                  filterTab === "matches"
+                    ? "bg-emerald-500/20 text-emerald-300 font-bold"
+                    : "text-slate-400 hover:text-slate-200"
                 }`}
               >
                 Matches ({matchedCount})
@@ -340,7 +348,11 @@ function ReconPage() {
                   </td>
                   <td
                     className={`py-2.5 px-3 text-right font-bold ${
-                      row.varianceR > 0 ? "text-amber-400" : row.varianceR < 0 ? "text-emerald-400" : "text-slate-400"
+                      row.varianceR > 0
+                        ? "text-amber-400"
+                        : row.varianceR < 0
+                          ? "text-emerald-400"
+                          : "text-slate-400"
                     }`}
                   >
                     R {row.varianceR.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -354,14 +366,16 @@ function ReconPage() {
                         row.status === "green"
                           ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
                           : row.status === "amber"
-                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                          : "bg-slate-800 text-slate-400"
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                            : "bg-slate-800 text-slate-400"
                       }`}
                     >
                       {row.statusText}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3 text-slate-400 truncate max-w-xs">{row.reason || "Matched NERSA rate"}</td>
+                  <td className="py-2.5 px-3 text-slate-400 truncate max-w-xs">
+                    {row.reason || "Matched NERSA rate"}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -10,9 +10,12 @@ export async function saveGeneratedReportMetadata(
     memoryReportsStore.push(meta);
 
     // Ensure valid UUID format for DB insert or skip UUID string if custom text format
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(meta.reportId);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      meta.reportId,
+    );
     const dbPayload: Record<string, any> = {
-      report_type: meta.reportType === "DISPUTE_PACK_EXCEL" ? "RECONCILIATION_DETAIL" : "EXECUTIVE_SUMMARY",
+      report_type:
+        meta.reportType === "DISPUTE_PACK_EXCEL" ? "RECONCILIATION_DETAIL" : "EXECUTIVE_SUMMARY",
       title: meta.fileName,
       parameters: {
         run_id: meta.runId,
@@ -71,7 +74,8 @@ export async function getGeneratedReportsByRunId(runId: string): Promise<Dispute
       organisationId: r.organisation_id || "",
       customerId: r.parameters?.customer_id || "",
       invoiceId: r.parameters?.invoice_id || "",
-      reportType: r.report_type === "RECONCILIATION_DETAIL" ? "DISPUTE_PACK_EXCEL" : "DISPUTE_PACK_PDF",
+      reportType:
+        r.report_type === "RECONCILIATION_DETAIL" ? "DISPUTE_PACK_EXCEL" : "DISPUTE_PACK_PDF",
       fileName: r.title,
       fileSizeBytes: r.parameters?.file_size_bytes || 0,
       sha256Hash: r.parameters?.sha256_hash || "",

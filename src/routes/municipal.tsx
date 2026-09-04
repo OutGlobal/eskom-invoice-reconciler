@@ -77,7 +77,10 @@ function MunicipalPage() {
   const varianceData = useMemo(
     () =>
       active.lines.map((l) => ({
-        name: l.line.description.length > 26 ? l.line.description.slice(0, 24) + "…" : l.line.description,
+        name:
+          l.line.description.length > 26
+            ? l.line.description.slice(0, 24) + "…"
+            : l.line.description,
         variance: Number(l.variance.toFixed(2)),
         status: l.status,
       })),
@@ -180,7 +183,9 @@ function MunicipalPage() {
         </div>
         <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div className="rounded-md border border-border p-3">
-            <div className="text-[11px] uppercase text-muted-foreground">Balance Brought Forward</div>
+            <div className="text-[11px] uppercase text-muted-foreground">
+              Balance Brought Forward
+            </div>
             <div className="font-semibold tabular-nums">{ZAR(s.broughtForward)}</div>
           </div>
           {s.payments.map((p) => (
@@ -190,7 +195,9 @@ function MunicipalPage() {
             </div>
           ))}
           <div className="rounded-md border border-border p-3">
-            <div className="text-[11px] uppercase text-muted-foreground">Total Current Levy (incl VAT)</div>
+            <div className="text-[11px] uppercase text-muted-foreground">
+              Total Current Levy (incl VAT)
+            </div>
             <div className="font-semibold tabular-nums">{ZAR(s.totalIncl)}</div>
           </div>
         </div>
@@ -298,22 +305,36 @@ function MunicipalPage() {
               <BarChart data={categoryData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="category" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R${(v / 1000).toFixed(0)}k`} />
+                <YAxis
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(v) => `R${(v / 1000).toFixed(0)}k`}
+                />
                 <Tooltip formatter={(v: number) => ZAR(v)} />
                 <Legend />
-                <Bar dataKey="Calculated" fill="hsl(var(--chart-2, 200 80% 50%))" radius={[3, 3, 0, 0]} />
+                <Bar
+                  dataKey="Calculated"
+                  fill="hsl(var(--chart-2, 200 80% 50%))"
+                  radius={[3, 3, 0, 0]}
+                />
                 <Bar dataKey="Billed" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </Panel>
 
-        <Panel title="Variance by Charge Line" subtitle="Positive = over-billed, negative = under-billed.">
+        <Panel
+          title="Variance by Charge Line"
+          subtitle="Positive = over-billed, negative = under-billed."
+        >
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={varianceData} layout="vertical" margin={{ left: 40 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `R${(v / 1000).toFixed(0)}k`} />
+                <XAxis
+                  type="number"
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(v) => `R${(v / 1000).toFixed(0)}k`}
+                />
                 <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 10 }} />
                 <Tooltip formatter={(v: number) => ZAR(v)} />
                 <Bar dataKey="variance" radius={[0, 3, 3, 0]}>
@@ -345,18 +366,48 @@ function MunicipalPage() {
             <LineChart data={trend}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="period" tick={{ fontSize: 11 }} />
-              <YAxis yAxisId="l" tick={{ fontSize: 11 }} tickFormatter={(v) => `R${(v / 1000).toFixed(0)}k`} />
+              <YAxis
+                yAxisId="l"
+                tick={{ fontSize: 11 }}
+                tickFormatter={(v) => `R${(v / 1000).toFixed(0)}k`}
+              />
               <YAxis
                 yAxisId="r"
                 orientation="right"
                 tick={{ fontSize: 11 }}
                 tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
               />
-              <Tooltip formatter={(v: number, n: string) => (n === "kWh" ? `${v.toLocaleString("en-ZA")} kWh` : ZAR(v))} />
+              <Tooltip
+                formatter={(v: number, n: string) =>
+                  n === "kWh" ? `${v.toLocaleString("en-ZA")} kWh` : ZAR(v)
+                }
+              />
               <Legend />
-              <Line yAxisId="l" type="monotone" dataKey="Billed" stroke="hsl(var(--primary))" strokeWidth={2} dot />
-              <Line yAxisId="l" type="monotone" dataKey="Calculated" stroke="#10b981" strokeWidth={2} dot />
-              <Line yAxisId="r" type="monotone" dataKey="kWh" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4 3" dot />
+              <Line
+                yAxisId="l"
+                type="monotone"
+                dataKey="Billed"
+                stroke="hsl(var(--primary))"
+                strokeWidth={2}
+                dot
+              />
+              <Line
+                yAxisId="l"
+                type="monotone"
+                dataKey="Calculated"
+                stroke="#10b981"
+                strokeWidth={2}
+                dot
+              />
+              <Line
+                yAxisId="r"
+                type="monotone"
+                dataKey="kWh"
+                stroke="#f59e0b"
+                strokeWidth={2}
+                strokeDasharray="4 3"
+                dot
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -371,8 +422,8 @@ function MunicipalPage() {
                 <span className={`font-medium ${TONE[l.status]}`}>
                   {DOT[l.status]} {l.line.description}
                 </span>{" "}
-                — billed {ZAR(l.line.billedExcl)} against a tariff-calculated {ZAR(l.expectedExcl)} (
-                {l.variance >= 0 ? "over" : "under"}-billed by {ZAR(Math.abs(l.variance))},{" "}
+                — billed {ZAR(l.line.billedExcl)} against a tariff-calculated {ZAR(l.expectedExcl)}{" "}
+                ({l.variance >= 0 ? "over" : "under"}-billed by {ZAR(Math.abs(l.variance))},{" "}
                 {Math.abs(l.variancePct).toFixed(2)}%). Basis: {l.basis}.
                 {l.line.note ? ` ${l.line.note}` : ""}
               </li>

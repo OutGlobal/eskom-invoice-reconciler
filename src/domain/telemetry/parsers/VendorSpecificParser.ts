@@ -43,7 +43,13 @@ export class VendorSpecificParser implements ITelemetryParser {
 
       // Pulse count multiplier (e.g., 100 pulses = 1 kWh)
       const isPulse = line.toLowerCase().includes("pulse") || parts.length >= 3;
-      const kw = isPulse ? (!isNaN(val) ? (val * 4) / 100 : undefined) : (!isNaN(val) ? val : undefined); // 15-min pulse -> kW
+      const kw = isPulse
+        ? !isNaN(val)
+          ? (val * 4) / 100
+          : undefined
+        : !isNaN(val)
+          ? val
+          : undefined; // 15-min pulse -> kW
 
       results.push({
         rowNumber: i + 1,

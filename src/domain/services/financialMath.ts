@@ -22,7 +22,7 @@ export class FinancialMath {
    * Multiplies two numbers with exact 4-decimal precision
    */
   public static mul(a: number, b: number): number {
-    return Math.round((a * b) * 10000) / 10000;
+    return Math.round(a * b * 10000) / 10000;
   }
 
   /**
@@ -61,6 +61,6 @@ export class FinancialMath {
   public static percentageVariance(base: number, compare: number): number {
     if (base === 0) return 0;
     const diff = compare - base;
-    return Math.round(((diff / base) * 100) * 100) / 100;
+    return Math.round((diff / base) * 100 * 100) / 100;
   }
 }

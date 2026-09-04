@@ -3,29 +3,30 @@
  * Eskom Management Platform — Immutably Append-Only SHA-256 Ledger Verification
  */
 
-import type { AuditEventRecord, HashChainVerificationResult } from './types';
+import type { AuditEventRecord, HashChainVerificationResult } from "./types";
 
 export class HashChainEngine {
-  public static readonly GENESIS_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
+  public static readonly GENESIS_HASH =
+    "0000000000000000000000000000000000000000000000000000000000000000";
 
   /**
    * Synchronous / Asynchronous SHA-256 Hash calculation for text or object payload
    */
   public static async calculateSHA256(input: string | object): Promise<string> {
-    const text = typeof input === 'string' ? input : JSON.stringify(input);
+    const text = typeof input === "string" ? input : JSON.stringify(input);
 
-    if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
+    if (typeof window !== "undefined" && window.crypto && window.crypto.subtle) {
       const encoder = new TextEncoder();
       const data = encoder.encode(text);
-      const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+      const hashBuffer = await window.crypto.subtle.digest("SHA-256", data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+      return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
     }
 
     // Node.js fallback or sync string hash fallback
     try {
-      const crypto = require('crypto');
-      return crypto.createHash('sha256').update(text).digest('hex');
+      const crypto = require("crypto");
+      return crypto.createHash("sha256").update(text).digest("hex");
     } catch {
       // Pure JS fallback string hash
       return this.simpleHashFallback(text);
@@ -41,7 +42,7 @@ export class HashChainEngine {
     timestamp: string,
     actorEmail: string,
     objectId: string,
-    payloadHash: string
+    payloadHash: string,
   ): Promise<string> {
     const rawPayload = `${prevHash}|${eventType}|${timestamp}|${actorEmail}|${objectId}|${payloadHash}`;
     return this.calculateSHA256(rawPayload);
@@ -50,7 +51,9 @@ export class HashChainEngine {
   /**
    * Verifies full cryptographic hash chain integrity for an array of audit events
    */
-  public static async verifyChainIntegrity(events: AuditEventRecord[]): Promise<HashChainVerificationResult> {
+  public static async verifyChainIntegrity(
+    events: AuditEventRecord[],
+  ): Promise<HashChainVerificationResult> {
     const timestamp = new Date().toISOString();
     if (events.length === 0) {
       return {
@@ -95,7 +98,7 @@ export class HashChainEngine {
         current.timestamp,
         current.actor_email,
         current.object_id,
-        current.payload_hash
+        current.payload_hash,
       );
 
       if (expectedHash !== current.current_event_hash) {
@@ -131,7 +134,7 @@ export class HashChainEngine {
       hash = (hash << 5) - hash + char;
       hash |= 0;
     }
-    const hex = Math.abs(hash).toString(16).padStart(8, '0');
+    const hex = Math.abs(hash).toString(16).padStart(8, "0");
     return (hex + hex + hex + hex + hex + hex + hex + hex).slice(0, 64);
   }
 }

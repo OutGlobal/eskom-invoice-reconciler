@@ -39,7 +39,7 @@ export interface ExtractedInvoiceDeterminant {
 export interface InvoiceDiscrepancy {
   rule_id: string;
   rule_name: string;
-  severity: 'critical' | 'major' | 'warning';
+  severity: "critical" | "major" | "warning";
   expected_value: string | number;
   actual_value: string | number;
   variance_amount?: number;
@@ -47,18 +47,18 @@ export interface InvoiceDiscrepancy {
 }
 
 export interface InvoiceValidationSummary {
-  status: 'valid' | 'discrepancy' | 'failed';
+  status: "valid" | "discrepancy" | "failed";
   energy_reconciled: boolean;
   financial_reconciled: boolean;
   discrepancies: InvoiceDiscrepancy[];
 }
 
-export type PageClassificationType = 
-  | 'tax_invoice_header' 
-  | 'line_item_breakdown' 
-  | 'meter_reading_schedule' 
-  | 'annexure_notes' 
-  | 'unknown';
+export type PageClassificationType =
+  | "tax_invoice_header"
+  | "line_item_breakdown"
+  | "meter_reading_schedule"
+  | "annexure_notes"
+  | "unknown";
 
 export interface ClassifiedPage {
   page_number: number;
@@ -72,7 +72,7 @@ export interface InvoiceExtractionMetadata {
   source_filename: string;
   file_size_bytes: number;
   page_count: number;
-  document_type: 'embedded-text' | 'scanned-pdf' | 'image' | 'hybrid';
+  document_type: "embedded-text" | "scanned-pdf" | "image" | "hybrid";
   overall_confidence: number;
   needs_human_review: boolean;
   low_confidence_fields: string[];

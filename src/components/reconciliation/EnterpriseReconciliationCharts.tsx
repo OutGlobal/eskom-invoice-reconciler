@@ -146,12 +146,26 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
               <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
               <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `R${v / 1000}k`} />
               <Tooltip
-                contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155", color: "#f8fafc" }}
+                contentStyle={{
+                  backgroundColor: "#0f172a",
+                  borderColor: "#334155",
+                  color: "#f8fafc",
+                }}
                 formatter={(v: any) => [`R ${Number(v).toLocaleString()}`, ""]}
               />
               <Legend />
-              <Bar dataKey="Billed" fill="#3b82f6" name="Billed Amount (ZAR)" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Calculated" fill="#10b981" name="Calculated Tariff (ZAR)" radius={[4, 4, 0, 0]} />
+              <Bar
+                dataKey="Billed"
+                fill="#3b82f6"
+                name="Billed Amount (ZAR)"
+                radius={[4, 4, 0, 0]}
+              />
+              <Bar
+                dataKey="Calculated"
+                fill="#10b981"
+                name="Calculated Tariff (ZAR)"
+                radius={[4, 4, 0, 0]}
+              />
             </BarChart>
           ) : activeTab === "tou" ? (
             <BarChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
@@ -161,7 +175,12 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
               <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
               <Legend />
               <Bar dataKey="peakKwh" fill={TOU_COLOR.peak} name="Peak kWh" stackId="a" />
-              <Bar dataKey="standardKwh" fill={TOU_COLOR.standard} name="Standard kWh" stackId="a" />
+              <Bar
+                dataKey="standardKwh"
+                fill={TOU_COLOR.standard}
+                name="Standard kWh"
+                stackId="a"
+              />
               <Bar dataKey="offPeakKwh" fill={TOU_COLOR.offPeak} name="Off-Peak kWh" stackId="a" />
             </BarChart>
           ) : activeTab === "daily" ? (
@@ -171,7 +190,14 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
               <YAxis stroke="#94a3b8" fontSize={12} />
               <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
               <Legend />
-              <Area type="monotone" dataKey="totalKwh" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} name="Total Daily kWh" />
+              <Area
+                type="monotone"
+                dataKey="totalKwh"
+                stroke="#3b82f6"
+                fill="#3b82f6"
+                fillOpacity={0.2}
+                name="Total Daily kWh"
+              />
             </AreaChart>
           ) : activeTab === "demand" ? (
             <LineChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
@@ -180,9 +206,28 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
               <YAxis stroke="#94a3b8" fontSize={12} />
               <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
               <Legend />
-              <ReferenceLine y={250} label="NMD Limit (250 kVA)" stroke="#ef4444" strokeDasharray="3 3" />
-              <Line type="monotone" dataKey="peakKw" stroke="#3b82f6" name="Peak kW" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="peakKva" stroke="#8b5cf6" name="Apparent kVA" strokeWidth={2} dot={false} />
+              <ReferenceLine
+                y={250}
+                label="NMD Limit (250 kVA)"
+                stroke="#ef4444"
+                strokeDasharray="3 3"
+              />
+              <Line
+                type="monotone"
+                dataKey="peakKw"
+                stroke="#3b82f6"
+                name="Peak kW"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="peakKva"
+                stroke="#8b5cf6"
+                name="Apparent kVA"
+                strokeWidth={2}
+                dot={false}
+              />
             </LineChart>
           ) : activeTab === "powerfactor" ? (
             <LineChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
@@ -191,8 +236,20 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
               <YAxis domain={[0.85, 1.0]} stroke="#94a3b8" fontSize={12} />
               <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
               <Legend />
-              <ReferenceLine y={0.96} label="PF Threshold (0.96)" stroke="#f59e0b" strokeDasharray="4 4" />
-              <Line type="monotone" dataKey="pf" stroke="#10b981" name="Vector Power Factor" strokeWidth={2} dot={false} />
+              <ReferenceLine
+                y={0.96}
+                label="PF Threshold (0.96)"
+                stroke="#f59e0b"
+                strokeDasharray="4 4"
+              />
+              <Line
+                type="monotone"
+                dataKey="pf"
+                stroke="#10b981"
+                name="Vector Power Factor"
+                strokeWidth={2}
+                dot={false}
+              />
             </LineChart>
           ) : activeTab === "reactive" ? (
             <BarChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
@@ -202,7 +259,12 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
               <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
               <Legend />
               <Bar dataKey="actualKvarh" fill="#8b5cf6" name="Actual kVARh" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="allowedKvarh" fill="#64748b" name="Allowed kVARh" radius={[4, 4, 0, 0]} />
+              <Bar
+                dataKey="allowedKvarh"
+                fill="#64748b"
+                name="Allowed kVARh"
+                radius={[4, 4, 0, 0]}
+              />
             </BarChart>
           ) : activeTab === "variancetrend" ? (
             <LineChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
@@ -212,7 +274,13 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
               <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
               <Legend />
               <ReferenceLine y={0} stroke="#64748b" />
-              <Line type="monotone" dataKey="varianceZar" stroke="#f59e0b" name="Daily Variance (ZAR)" strokeWidth={2.5} />
+              <Line
+                type="monotone"
+                dataKey="varianceZar"
+                stroke="#f59e0b"
+                name="Daily Variance (ZAR)"
+                strokeWidth={2.5}
+              />
             </LineChart>
           ) : (
             <PieChart>

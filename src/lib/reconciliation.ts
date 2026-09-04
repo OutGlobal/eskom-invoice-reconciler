@@ -119,17 +119,27 @@ export function computeCharges(totals: Totals, nmd: number, rows: Measurement[])
           seasonMix.lowOld[p] * TARIFF.energy.low[p] +
           seasonMix.highNew[p] * next.energy.high[p] +
           seasonMix.lowNew[p] * next.energy.low[p]) /
-        Math.max(1e-9, seasonMix.high[p] + seasonMix.low[p]) / 100;
+        Math.max(1e-9, seasonMix.high[p] + seasonMix.low[p]) /
+        100;
 
   const peakAmt =
-    (seasonMix.highOld.peak * TARIFF.energy.high.peak + seasonMix.lowOld.peak * TARIFF.energy.low.peak +
-      seasonMix.highNew.peak * next.energy.high.peak + seasonMix.lowNew.peak * next.energy.low.peak) / 100;
+    (seasonMix.highOld.peak * TARIFF.energy.high.peak +
+      seasonMix.lowOld.peak * TARIFF.energy.low.peak +
+      seasonMix.highNew.peak * next.energy.high.peak +
+      seasonMix.lowNew.peak * next.energy.low.peak) /
+    100;
   const stdAmt =
-    (seasonMix.highOld.standard * TARIFF.energy.high.standard + seasonMix.lowOld.standard * TARIFF.energy.low.standard +
-      seasonMix.highNew.standard * next.energy.high.standard + seasonMix.lowNew.standard * next.energy.low.standard) / 100;
+    (seasonMix.highOld.standard * TARIFF.energy.high.standard +
+      seasonMix.lowOld.standard * TARIFF.energy.low.standard +
+      seasonMix.highNew.standard * next.energy.high.standard +
+      seasonMix.lowNew.standard * next.energy.low.standard) /
+    100;
   const offAmt =
-    (seasonMix.highOld.offPeak * TARIFF.energy.high.offPeak + seasonMix.lowOld.offPeak * TARIFF.energy.low.offPeak +
-      seasonMix.highNew.offPeak * next.energy.high.offPeak + seasonMix.lowNew.offPeak * next.energy.low.offPeak) / 100;
+    (seasonMix.highOld.offPeak * TARIFF.energy.high.offPeak +
+      seasonMix.lowOld.offPeak * TARIFF.energy.low.offPeak +
+      seasonMix.highNew.offPeak * next.energy.high.offPeak +
+      seasonMix.lowNew.offPeak * next.energy.low.offPeak) /
+    100;
 
   const txRate = weightedMonthly(TARIFF.transmissionNetwork, next.transmissionNetwork);
   const distRate = weightedMonthly(TARIFF.networkCapacity, next.networkCapacity);
@@ -152,7 +162,8 @@ export function computeCharges(totals: Totals, nmd: number, rows: Measurement[])
   const affordAmt = totals.totalKWh * (affordRate / 100);
 
   const billingDays = Math.max(1, Math.round(totalIntervals / 48));
-  const administration = billingDays * weightedMonthly(TARIFF.administrationDaily, next.administrationDaily);
+  const administration =
+    billingDays * weightedMonthly(TARIFF.administrationDaily, next.administrationDaily);
   const service = billingDays * weightedMonthly(TARIFF.serviceDaily, next.serviceDaily);
   const connection = TARIFF.connectionMonthly;
 
@@ -176,16 +187,106 @@ export function computeCharges(totals: Totals, nmd: number, rows: Measurement[])
   const invoiceComparableTotal = subTotalBeforeVat;
 
   return [
-    { group: "energy", label: "Peak Energy", basis: "kWh × c/kWh", rate: energyRate("peak"), rateUnit: "R/kWh", quantity: totals.peakKWh, qtyUnit: "kWh", amount: peakAmt },
-    { group: "energy", label: "Standard Energy", basis: "kWh × c/kWh", rate: energyRate("standard"), rateUnit: "R/kWh", quantity: totals.standardKWh, qtyUnit: "kWh", amount: stdAmt },
-    { group: "energy", label: "Off-Peak Energy", basis: "kWh × c/kWh", rate: energyRate("offPeak"), rateUnit: "R/kWh", quantity: totals.offPeakKWh, qtyUnit: "kWh", amount: offAmt },
-    { group: "energy", label: "Legacy Charge", basis: "Total kWh × c/kWh", rate: legacyRate / 100, rateUnit: "R/kWh", quantity: totals.totalKWh, qtyUnit: "kWh", amount: legacyAmt },
-    { group: "energy", label: "Ancillary Service Charge", basis: "Total kWh × c/kWh", rate: ancillaryRate / 100, rateUnit: "R/kWh", quantity: totals.totalKWh, qtyUnit: "kWh", amount: ancillaryAmt },
-    { group: "additional", label: "Electrification & Rural Subsidy", basis: "Total kWh × c/kWh", rate: electRate / 100, rateUnit: "R/kWh", quantity: totals.totalKWh, qtyUnit: "kWh", amount: electAmt },
-    { group: "additional", label: "Affordability Subsidy", basis: "Total kWh × c/kWh", rate: affordRate / 100, rateUnit: "R/kWh", quantity: totals.totalKWh, qtyUnit: "kWh", amount: affordAmt },
-    { group: "fixed", label: "Transmission Network Charge", basis: "NMD × R/kVA/month", rate: txRate, rateUnit: "R/kVA", quantity: nmd, qtyUnit: "kVA", amount: txNetwork },
-    { group: "fixed", label: "Distribution Network Capacity Charge", basis: "NMD × R/kVA/month", rate: distRate, rateUnit: "R/kVA", quantity: nmd, qtyUnit: "kVA", amount: networkCapacity },
-    { group: "fixed", label: "Generation Capacity Charge", basis: "NMD × R/kVA/month", rate: genRate, rateUnit: "R/kVA", quantity: nmd, qtyUnit: "kVA", amount: genCapacity },
+    {
+      group: "energy",
+      label: "Peak Energy",
+      basis: "kWh × c/kWh",
+      rate: energyRate("peak"),
+      rateUnit: "R/kWh",
+      quantity: totals.peakKWh,
+      qtyUnit: "kWh",
+      amount: peakAmt,
+    },
+    {
+      group: "energy",
+      label: "Standard Energy",
+      basis: "kWh × c/kWh",
+      rate: energyRate("standard"),
+      rateUnit: "R/kWh",
+      quantity: totals.standardKWh,
+      qtyUnit: "kWh",
+      amount: stdAmt,
+    },
+    {
+      group: "energy",
+      label: "Off-Peak Energy",
+      basis: "kWh × c/kWh",
+      rate: energyRate("offPeak"),
+      rateUnit: "R/kWh",
+      quantity: totals.offPeakKWh,
+      qtyUnit: "kWh",
+      amount: offAmt,
+    },
+    {
+      group: "energy",
+      label: "Legacy Charge",
+      basis: "Total kWh × c/kWh",
+      rate: legacyRate / 100,
+      rateUnit: "R/kWh",
+      quantity: totals.totalKWh,
+      qtyUnit: "kWh",
+      amount: legacyAmt,
+    },
+    {
+      group: "energy",
+      label: "Ancillary Service Charge",
+      basis: "Total kWh × c/kWh",
+      rate: ancillaryRate / 100,
+      rateUnit: "R/kWh",
+      quantity: totals.totalKWh,
+      qtyUnit: "kWh",
+      amount: ancillaryAmt,
+    },
+    {
+      group: "additional",
+      label: "Electrification & Rural Subsidy",
+      basis: "Total kWh × c/kWh",
+      rate: electRate / 100,
+      rateUnit: "R/kWh",
+      quantity: totals.totalKWh,
+      qtyUnit: "kWh",
+      amount: electAmt,
+    },
+    {
+      group: "additional",
+      label: "Affordability Subsidy",
+      basis: "Total kWh × c/kWh",
+      rate: affordRate / 100,
+      rateUnit: "R/kWh",
+      quantity: totals.totalKWh,
+      qtyUnit: "kWh",
+      amount: affordAmt,
+    },
+    {
+      group: "fixed",
+      label: "Transmission Network Charge",
+      basis: "NMD × R/kVA/month",
+      rate: txRate,
+      rateUnit: "R/kVA",
+      quantity: nmd,
+      qtyUnit: "kVA",
+      amount: txNetwork,
+    },
+    {
+      group: "fixed",
+      label: "Distribution Network Capacity Charge",
+      basis: "NMD × R/kVA/month",
+      rate: distRate,
+      rateUnit: "R/kVA",
+      quantity: nmd,
+      qtyUnit: "kVA",
+      amount: networkCapacity,
+    },
+    {
+      group: "fixed",
+      label: "Generation Capacity Charge",
+      basis: "NMD × R/kVA/month",
+      rate: genRate,
+      rateUnit: "R/kVA",
+      quantity: nmd,
+      qtyUnit: "kVA",
+      amount: genCapacity,
+    },
     {
       group: "demand",
       label: "Network Demand Charge",
@@ -196,9 +297,36 @@ export function computeCharges(totals: Totals, nmd: number, rows: Measurement[])
       qtyUnit: "kVA",
       amount: networkDemand,
     },
-    { group: "fixed", label: "Administration Charge", basis: "Billing days × daily rate", rate: administration / Math.max(1, billingDays), rateUnit: "R/day", quantity: billingDays, qtyUnit: "days", amount: administration },
-    { group: "fixed", label: "Service Charge", basis: "Billing days × daily rate", rate: service / Math.max(1, billingDays), rateUnit: "R/day", quantity: billingDays, qtyUnit: "days", amount: service },
-    { group: "fixed", label: "Connection Charge", basis: "Monthly connection charges", rate: connection, rateUnit: "R/month", quantity: 1, qtyUnit: "month", amount: connection },
+    {
+      group: "fixed",
+      label: "Administration Charge",
+      basis: "Billing days × daily rate",
+      rate: administration / Math.max(1, billingDays),
+      rateUnit: "R/day",
+      quantity: billingDays,
+      qtyUnit: "days",
+      amount: administration,
+    },
+    {
+      group: "fixed",
+      label: "Service Charge",
+      basis: "Billing days × daily rate",
+      rate: service / Math.max(1, billingDays),
+      rateUnit: "R/day",
+      quantity: billingDays,
+      qtyUnit: "days",
+      amount: service,
+    },
+    {
+      group: "fixed",
+      label: "Connection Charge",
+      basis: "Monthly connection charges",
+      rate: connection,
+      rateUnit: "R/month",
+      quantity: 1,
+      qtyUnit: "month",
+      amount: connection,
+    },
     {
       group: "tax",
       label: "Total Charges",

@@ -22,7 +22,9 @@ export function generateEskomDisputeLetter(req: DisputeLetterRequest): string {
   const taxInvoiceNo = inv?.taxInvoiceNo || inv?.invoiceNo || "785762166034";
   const premiseId = inv?.premiseId || "7856504226 (Millennium 33kV Substation)";
   const billingPeriod = inv?.billingPeriod || "17/02/2026 – 18/03/2026";
-  const invoicedTotal = inv?.invoiceTotal ? `R ${inv.invoiceTotal.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` : "R 98,380,358.13";
+  const invoicedTotal = inv?.invoiceTotal
+    ? `R ${inv.invoiceTotal.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`
+    : "R 98,380,358.13";
 
   return `ESKOM HOLDINGS SOC LIMITED
 COMMERCIAL BILLING & KEY ACCOUNTS DIVISION

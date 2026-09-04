@@ -13,13 +13,20 @@ export class DisputePackService {
   public static generateDisputeMemo(
     recon: ReconciliationResult,
     anomalies: AnomalyInsight[],
-    selectedCategory = "Disputed Peak Curtailment Spike Reversal"
+    selectedCategory = "Disputed Peak Curtailment Spike Reversal",
   ): string {
     const inv = recon.invoice;
     const totals = recon.totals;
-    const dateStr = new Date().toLocaleDateString("en-ZA", { year: "numeric", month: "long", day: "numeric" });
+    const dateStr = new Date().toLocaleDateString("en-ZA", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
     const claimableAnomalies = anomalies.filter((a) => a.isActionable);
-    const totalClaimR = claimableAnomalies.reduce((sum, a) => sum + a.financialImpactR, Math.abs(totals.netVarianceAmount));
+    const totalClaimR = claimableAnomalies.reduce(
+      (sum, a) => sum + a.financialImpactR,
+      Math.abs(totals.netVarianceAmount),
+    );
 
     return `FORMAL COMMERCIAL BILLING DISPUTE & NOTICE OF CLAIM
 --------------------------------------------------------------------------------
@@ -40,11 +47,15 @@ Impala Platinum Ltd hereby submits a formal commercial billing dispute under Cla
 
 2. DETAILED DISPUTED CLAIMS & ROOT CAUSE ANALYSIS
 
-${claimableAnomalies.map((a, idx) => `  2.${idx + 1} ${a.title}
+${claimableAnomalies
+  .map(
+    (a, idx) => `  2.${idx + 1} ${a.title}
   - Category:       ${a.category}
   - Financial Claim: R ${a.financialImpactR.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}
   - NERSA Citation:  ${a.nersaReference}
-  - Technical Basis: ${a.description}`).join("\n\n")}
+  - Technical Basis: ${a.description}`,
+  )
+  .join("\n\n")}
 
 3. RECONCILIATION SUMMARY AUDIT LEDGER
 - Total Invoiced Amount (Inc VAT):  R ${totals.invoicedTotal.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}

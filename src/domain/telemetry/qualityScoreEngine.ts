@@ -11,7 +11,7 @@ export class TelemetryQualityScoreEngine {
    */
   public static calculateQualityMetrics(
     records: CanonicalTelemetryRecord[],
-    expectedIntervalCount?: number
+    expectedIntervalCount?: number,
   ): TelemetryQualityMetrics {
     const totalRecords = records.length;
     if (totalRecords === 0) {
@@ -57,7 +57,7 @@ export class TelemetryQualityScoreEngine {
         const currTime = new Date(rec.timestamp_utc).getTime();
         const intervalMs = rec.interval_minutes * 60 * 1000;
 
-        if (currTime <= prevTime || (currTime - prevTime) !== intervalMs) {
+        if (currTime <= prevTime || currTime - prevTime !== intervalMs) {
           clockInconsistencyCount++;
         }
       }
@@ -65,19 +65,22 @@ export class TelemetryQualityScoreEngine {
 
     const totalExpected = expectedIntervalCount || totalRecords;
     const completenessPercent = Number(
-      (Math.min(100, ((validMeasuredCount + estimatedCount) / Math.max(1, totalExpected)) * 100)).toFixed(2)
+      Math.min(
+        100,
+        ((validMeasuredCount + estimatedCount) / Math.max(1, totalExpected)) * 100,
+      ).toFixed(2),
     );
     const validityPercent = Number(
-      (((totalRecords - suspectCount) / Math.max(1, totalRecords)) * 100).toFixed(2)
+      (((totalRecords - suspectCount) / Math.max(1, totalRecords)) * 100).toFixed(2),
     );
     const duplicatePercent = Number(
-      ((duplicateCount / Math.max(1, totalRecords)) * 100).toFixed(2)
+      ((duplicateCount / Math.max(1, totalRecords)) * 100).toFixed(2),
     );
     const estimatedPercent = Number(
-      ((estimatedCount / Math.max(1, totalRecords)) * 100).toFixed(2)
+      ((estimatedCount / Math.max(1, totalRecords)) * 100).toFixed(2),
     );
     const clockConsistencyPercent = Number(
-      (((totalRecords - clockInconsistencyCount) / Math.max(1, totalRecords)) * 100).toFixed(2)
+      (((totalRecords - clockInconsistencyCount) / Math.max(1, totalRecords)) * 100).toFixed(2),
     );
 
     // Weighted Overall Quality Score (0-100%)
@@ -85,7 +88,7 @@ export class TelemetryQualityScoreEngine {
     const rawScore =
       completenessPercent * 0.35 +
       validityPercent * 0.35 +
-      clockConsistencyPercent * 0.20 +
+      clockConsistencyPercent * 0.2 +
       Math.max(0, 100 - duplicatePercent * 2) * 0.05 +
       Math.max(0, 100 - estimatedPercent) * 0.05;
 

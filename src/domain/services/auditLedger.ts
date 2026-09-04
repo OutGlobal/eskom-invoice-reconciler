@@ -15,7 +15,7 @@ export class AuditLedgerService {
     jobCtx: JobContext,
     action: string,
     details: Record<string, any>,
-    actor = "system"
+    actor = "system",
   ): AuditLedgerEntry {
     const entry: AuditLedgerEntry = {
       id: `audit-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,

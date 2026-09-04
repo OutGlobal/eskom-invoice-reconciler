@@ -24,8 +24,11 @@ export async function processWithAiFallback(
   const conflictResolutions: AiParserResult["conflictResolutions"] = [];
 
   // 1. Structured HEURISTIC & AI Extraction Engine
-  const invNoMatch = rawText.match(/Tax Invoice No[:\s]+(\d{10,12})/i) || rawText.match(/Invoice No[:\s]+(\d{10,12})/i);
-  const accountNoMatch = rawText.match(/Account No[:\s]+(\d{10})/i) || rawText.match(/Account Number[:\s]+(\d{10})/i);
+  const invNoMatch =
+    rawText.match(/Tax Invoice No[:\s]+(\d{10,12})/i) ||
+    rawText.match(/Invoice No[:\s]+(\d{10,12})/i);
+  const accountNoMatch =
+    rawText.match(/Account No[:\s]+(\d{10})/i) || rawText.match(/Account Number[:\s]+(\d{10})/i);
   const totalMatch = rawText.match(/Total\s+(?:Due|Invoice|Amount)[:\s]+R?\s*([\d\s,]+\.\d{2})/i);
 
   const extractedInvNo = invNoMatch ? invNoMatch[1] : undefined;
@@ -33,7 +36,12 @@ export async function processWithAiFallback(
   const extractedTotal = totalMatch ? parseFloat(totalMatch[1].replace(/[\s,]/g, "")) : undefined;
 
   // Resolve conflict if OCR provided different value
-  if (ocrJson?.text && extractedTotal && ocrJson.total && Math.abs(ocrJson.total - extractedTotal) > 1.0) {
+  if (
+    ocrJson?.text &&
+    extractedTotal &&
+    ocrJson.total &&
+    Math.abs(ocrJson.total - extractedTotal) > 1.0
+  ) {
     conflictResolutions.push({
       field: "invoiceTotal",
       ocrValue: ocrJson.total,

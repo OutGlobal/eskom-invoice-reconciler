@@ -18,7 +18,6 @@ import { AuthGate, SignOutButton } from "@/components/AuthGate";
 import { AiCopilotModal } from "@/components/AiCopilotModal";
 import { Sparkles } from "lucide-react";
 
-
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -59,7 +58,11 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
-              try { router.invalidate(); } catch (e) {}
+              try {
+                router.invalidate();
+              } catch (e) {
+                // Ignore router invalidation error on hard refresh
+              }
               reset();
               if (typeof window !== "undefined") window.location.reload();
             }}
@@ -192,4 +195,3 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
-

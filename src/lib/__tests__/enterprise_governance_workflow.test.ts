@@ -65,20 +65,42 @@ export function runGovernanceWorkflowTests() {
   assert(run.sequenceNumber === 1, "Initial run sequence number is 1");
 
   // Test 2: Valid State Transitions (DRAFT -> PROCESSING -> REVIEW -> APPROVED -> FINALIZED)
-  console.log("\n--- Test 2: Valid State Transitions (DRAFT -> PROCESSING -> REVIEW -> APPROVED -> FINALIZED) ---");
-  run = ApprovalWorkflowEngine.transitionState(run, "PROCESSING", auditorActor, "Processing AMR telemetry");
+  console.log(
+    "\n--- Test 2: Valid State Transitions (DRAFT -> PROCESSING -> REVIEW -> APPROVED -> FINALIZED) ---",
+  );
+  run = ApprovalWorkflowEngine.transitionState(
+    run,
+    "PROCESSING",
+    auditorActor,
+    "Processing AMR telemetry",
+  );
   assert(run.state === "PROCESSING", "Transitioned DRAFT -> PROCESSING");
   assert(run.processingStartedAt !== undefined, "Recorded processingStartedAt timestamp");
 
-  run = ApprovalWorkflowEngine.transitionState(run, "REVIEW", managerActor, "Submitted for financial review");
+  run = ApprovalWorkflowEngine.transitionState(
+    run,
+    "REVIEW",
+    managerActor,
+    "Submitted for financial review",
+  );
   assert(run.state === "REVIEW", "Transitioned PROCESSING -> REVIEW");
   assert(run.reviewedBy?.userId === "usr-mgr-01", "Recorded reviewedBy actor signature");
 
-  run = ApprovalWorkflowEngine.transitionState(run, "APPROVED", approverActor, "Variance verified and approved");
+  run = ApprovalWorkflowEngine.transitionState(
+    run,
+    "APPROVED",
+    approverActor,
+    "Variance verified and approved",
+  );
   assert(run.state === "APPROVED", "Transitioned REVIEW -> APPROVED");
   assert(run.approvedBy?.userId === "usr-rev-01", "Recorded approvedBy actor signature");
 
-  run = ApprovalWorkflowEngine.transitionState(run, "FINALIZED", auditorActor, "Finalized & locked for audit compliance");
+  run = ApprovalWorkflowEngine.transitionState(
+    run,
+    "FINALIZED",
+    auditorActor,
+    "Finalized & locked for audit compliance",
+  );
   assert(run.state === "FINALIZED", "Transitioned APPROVED -> FINALIZED");
   assert(run.isImmutable === true, "Finalized state sets isImmutable = true");
   assert(run.finalizedBy?.userId === "usr-auditor-01", "Recorded finalizedBy actor signature");
@@ -118,7 +140,10 @@ export function runGovernanceWorkflowTests() {
     varianceToleranceZar: 1500.0,
     powerFactorThreshold: 0.95,
   });
-  assert(updatedSettings.tolerance.varianceToleranceZar === 1500.0, "Updated variance ZAR tolerance to R1,500");
+  assert(
+    updatedSettings.tolerance.varianceToleranceZar === 1500.0,
+    "Updated variance ZAR tolerance to R1,500",
+  );
   assert(updatedSettings.tolerance.powerFactorThreshold === 0.95, "Updated PF threshold to 0.95");
 
   console.log("\n=== ALL ENTERPRISE GOVERNANCE TESTS PASSED SUCCESSFULLY ===\n");

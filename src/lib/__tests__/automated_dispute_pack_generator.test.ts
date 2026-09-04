@@ -5,7 +5,10 @@
 import { assembleDisputePackData } from "../../domain/reports/disputePackGeneratorService";
 import { generateExcelDisputePackWorkbook } from "../../domain/reports/excelDisputePackBuilder";
 import { generatePdfDisputePackHtml } from "../../domain/reports/pdfDisputePackBuilder";
-import { saveGeneratedReportMetadata, getGeneratedReportsByRunId } from "../../domain/reports/reportStorageService";
+import {
+  saveGeneratedReportMetadata,
+  getGeneratedReportsByRunId,
+} from "../../domain/reports/reportStorageService";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -29,8 +32,14 @@ async function runDisputePackTests() {
   );
 
   assert(data.executiveSummary.totalBilledZar === 495000.0, "Executive summary billed total match");
-  assert(data.executiveSummary.totalCalculatedZar === 472500.0, "Executive summary calculated total match");
-  assert(data.executiveSummary.totalDisputedVarianceZar === 22500.0, "Executive summary disputed variance match");
+  assert(
+    data.executiveSummary.totalCalculatedZar === 472500.0,
+    "Executive summary calculated total match",
+  );
+  assert(
+    data.executiveSummary.totalDisputedVarianceZar === 22500.0,
+    "Executive summary disputed variance match",
+  );
   assert(data.customerInfo.accountNumber === "8905743120", "Account number match");
   assert(data.meterInfo.meterNumber === "ESK-MTR-88022", "Meter number match");
   assert(data.sourceFileInfo.length === 2, "Source file count match");
@@ -49,17 +58,28 @@ async function runDisputePackTests() {
     unverifiedClauses[0].clauseIdentifier === "MISSING_TARIFF_CLAUSE_REFERENCE",
     "Missing tariff reference tagged correctly",
   );
-  console.log("✅ TARIFF REFERENCE TEST PASSED: Zero-hallucination tariff clause enforcement verified");
+  console.log(
+    "✅ TARIFF REFERENCE TEST PASSED: Zero-hallucination tariff clause enforcement verified",
+  );
 
   // 3. Test Multi-Sheet Excel Workbook Builder
   console.log("\n--- Test 3: Multi-Sheet Excel Dispute Pack Generation ---");
   const wb = generateExcelDisputePackWorkbook(data);
   assert(wb.SheetNames.length === 5, "Excel workbook must contain 5 sheets");
   assert(wb.SheetNames.includes("Executive Summary"), "Executive summary sheet present");
-  assert(wb.SheetNames.includes("Billed vs Calculated"), "Billed vs Calculated matrix sheet present");
+  assert(
+    wb.SheetNames.includes("Billed vs Calculated"),
+    "Billed vs Calculated matrix sheet present",
+  );
   assert(wb.SheetNames.includes("Discrepancy Schedule"), "Discrepancy schedule sheet present");
-  assert(wb.SheetNames.includes("Tariff Clause References"), "Tariff clause references sheet present");
-  assert(wb.SheetNames.includes("Audit & SHA-256 Lineage"), "Audit & SHA-256 lineage sheet present");
+  assert(
+    wb.SheetNames.includes("Tariff Clause References"),
+    "Tariff clause references sheet present",
+  );
+  assert(
+    wb.SheetNames.includes("Audit & SHA-256 Lineage"),
+    "Audit & SHA-256 lineage sheet present",
+  );
   console.log("✅ EXCEL TEST PASSED: Multi-sheet Excel workbook generated successfully");
 
   // 4. Test Printable PDF HTML Generator
@@ -67,7 +87,10 @@ async function runDisputePackTests() {
   const html = generatePdfDisputePackHtml(data);
   assert(html.includes("OFFICIAL ELECTRICITY INVOICE RECONCILIATION"), "PDF title header present");
   assert(html.includes("INV-2026-03-8891"), "Invoice number present in HTML");
-  assert(html.includes("MISSING_TARIFF_CLAUSE_REFERENCE"), "Missing tariff reference rendered in PDF HTML");
+  assert(
+    html.includes("MISSING_TARIFF_CLAUSE_REFERENCE"),
+    "Missing tariff reference rendered in PDF HTML",
+  );
   console.log("✅ PDF TEST PASSED: Printable PDF HTML generated cleanly");
 
   // 5. Test Report Metadata Storage & Versioning

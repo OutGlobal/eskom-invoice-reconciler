@@ -24,17 +24,11 @@ import {
 
 export const GovernanceAdminWorkspace: React.FC = () => {
   const [settings, setSettings] = useState<GovernanceSettings>(
-    GovernanceAdminService.getGovernanceSettings()
+    GovernanceAdminService.getGovernanceSettings(),
   );
-  const [users, setUsers] = useState<UserAccountRecord[]>(
-    GovernanceAdminService.getUsers()
-  );
-  const [sites, setSites] = useState<SiteRecord[]>(
-    GovernanceAdminService.getSites()
-  );
-  const [meters, setMeters] = useState<MeterRecord[]>(
-    GovernanceAdminService.getMeters()
-  );
+  const [users, setUsers] = useState<UserAccountRecord[]>(GovernanceAdminService.getUsers());
+  const [sites, setSites] = useState<SiteRecord[]>(GovernanceAdminService.getSites());
+  const [meters, setMeters] = useState<MeterRecord[]>(GovernanceAdminService.getMeters());
 
   const [activeTab, setActiveTab] = useState<
     "tolerance" | "users" | "sites" | "tariffs" | "calendar" | "retention"
@@ -78,7 +72,8 @@ export const GovernanceAdminWorkspace: React.FC = () => {
               </span>
             </h2>
             <p className="text-xs text-slate-400">
-              Manage organisation profiles, RBAC roles, meters, tariff assignments, tolerance limits, calendars, and audit retention policies.
+              Manage organisation profiles, RBAC roles, meters, tariff assignments, tolerance
+              limits, calendars, and audit retention policies.
             </p>
           </div>
         </div>
@@ -234,7 +229,8 @@ export const GovernanceAdminWorkspace: React.FC = () => {
                 className="w-full bg-slate-900 border border-slate-700 rounded p-2 font-mono text-slate-100"
               />
               <p className="text-[10px] text-slate-500 mt-1">
-                Standard Eskom Megaflex reactive energy billing threshold (0.96 pf = ~0.2913 kvarh/kwh).
+                Standard Eskom Megaflex reactive energy billing threshold (0.96 pf = ~0.2913
+                kvarh/kwh).
               </p>
             </div>
 
@@ -287,7 +283,9 @@ export const GovernanceAdminWorkspace: React.FC = () => {
                         {u.status}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-slate-400">{u.lastLoginAt?.substring(0, 16)}</td>
+                    <td className="py-2.5 px-3 text-slate-400">
+                      {u.lastLoginAt?.substring(0, 16)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -300,7 +298,10 @@ export const GovernanceAdminWorkspace: React.FC = () => {
       {activeTab === "sites" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
           {sites.map((s) => (
-            <div key={s.id} className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+            <div
+              key={s.id}
+              className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2"
+            >
               <div className="flex justify-between items-start">
                 <h4 className="font-bold text-slate-200 text-sm">{s.name}</h4>
                 <span className="font-mono text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">
@@ -309,8 +310,12 @@ export const GovernanceAdminWorkspace: React.FC = () => {
               </div>
               <p className="text-slate-400 text-[11px]">{s.address}</p>
               <div className="flex space-x-4 pt-2 border-t border-slate-800 text-slate-300 font-mono text-[11px]">
-                <span>NMD: <strong>{s.nmdKva} kVA</strong></span>
-                <span>Voltage: <strong>{s.supplyVoltageKv} kV</strong></span>
+                <span>
+                  NMD: <strong>{s.nmdKva} kVA</strong>
+                </span>
+                <span>
+                  Voltage: <strong>{s.supplyVoltageKv} kV</strong>
+                </span>
               </div>
             </div>
           ))}
@@ -337,8 +342,12 @@ export const GovernanceAdminWorkspace: React.FC = () => {
               {meters.map((m) => (
                 <tr key={m.id} className="border-b border-slate-800/60">
                   <td className="py-2.5 font-bold text-slate-200">{m.meterSerialNumber}</td>
-                  <td className="py-2.5 text-slate-400">{m.ctRatio} / {m.vtRatio}</td>
-                  <td className="py-2.5 text-sky-400 uppercase font-bold">{m.assignedTariffCode}</td>
+                  <td className="py-2.5 text-slate-400">
+                    {m.ctRatio} / {m.vtRatio}
+                  </td>
+                  <td className="py-2.5 text-sky-400 uppercase font-bold">
+                    {m.assignedTariffCode}
+                  </td>
                   <td className="py-2.5 text-slate-400">{settings.calculationEngineVersion}</td>
                 </tr>
               ))}
@@ -353,7 +362,10 @@ export const GovernanceAdminWorkspace: React.FC = () => {
           <div className="flex justify-between items-center border-b border-slate-800 pb-3">
             <div>
               <h3 className="font-bold text-slate-200 text-sm">{settings.calendar.name}</h3>
-              <p className="text-slate-400 text-[11px]">Region: {settings.calendar.region} | Total Gazetted Holidays: {settings.calendar.holidays.length}</p>
+              <p className="text-slate-400 text-[11px]">
+                Region: {settings.calendar.region} | Total Gazetted Holidays:{" "}
+                {settings.calendar.holidays.length}
+              </p>
             </div>
             <span className="px-2.5 py-1 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold text-[10px]">
               Sunday-to-Monday Substitution Rule: ACTIVE
@@ -362,7 +374,10 @@ export const GovernanceAdminWorkspace: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
             {settings.calendar.holidays.map((h, i) => (
-              <div key={i} className="bg-slate-900 p-2.5 rounded border border-slate-800/80 flex items-center justify-between">
+              <div
+                key={i}
+                className="bg-slate-900 p-2.5 rounded border border-slate-800/80 flex items-center justify-between"
+              >
                 <div>
                   <span className="font-bold text-slate-200 block text-[11px]">{h.name}</span>
                   <span className="text-slate-400 text-[10px]">{h.date}</span>
@@ -388,9 +403,7 @@ export const GovernanceAdminWorkspace: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-slate-400 block mb-1">
-                Data Retention Period (Years):
-              </label>
+              <label className="text-slate-400 block mb-1">Data Retention Period (Years):</label>
               <input
                 type="number"
                 value={settings.dataRetention.retentionPeriodYears}
@@ -405,19 +418,24 @@ export const GovernanceAdminWorkspace: React.FC = () => {
             </div>
 
             <div>
-              <label className="text-slate-400 block mb-1">
-                Legal Hold Status:
-              </label>
+              <label className="text-slate-400 block mb-1">Legal Hold Status:</label>
               <div className="flex items-center space-x-3 pt-2">
                 <button
-                  onClick={() => handleUpdateRetention("legalHoldActive", !settings.dataRetention.legalHoldActive)}
+                  onClick={() =>
+                    handleUpdateRetention(
+                      "legalHoldActive",
+                      !settings.dataRetention.legalHoldActive,
+                    )
+                  }
                   className={`px-4 py-2 rounded-lg font-bold transition text-xs ${
                     settings.dataRetention.legalHoldActive
                       ? "bg-rose-600 text-white"
                       : "bg-slate-800 text-slate-400 hover:text-slate-200"
                   }`}
                 >
-                  {settings.dataRetention.legalHoldActive ? "🔒 LEGAL HOLD ACTIVE" : "OFF (Normal Retention)"}
+                  {settings.dataRetention.legalHoldActive
+                    ? "🔒 LEGAL HOLD ACTIVE"
+                    : "OFF (Normal Retention)"}
                 </button>
               </div>
               <p className="text-[10px] text-slate-500 mt-1">

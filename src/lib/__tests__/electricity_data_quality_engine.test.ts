@@ -31,7 +31,8 @@ const cleanRecords: CanonicalTelemetryRecord[] = Array.from({ length: 48 }, (_, 
     apparent_power_kva: 95.0,
     active_power_kw: 90.0,
     power_factor: 0.95,
-    tou_period: hour >= 7 && hour <= 10 ? "PEAK" : hour >= 11 && hour <= 16 ? "STANDARD" : "OFF_PEAK",
+    tou_period:
+      hour >= 7 && hour <= 10 ? "PEAK" : hour >= 11 && hour <= 16 ? "STANDARD" : "OFF_PEAK",
     quality_status: "validated",
     source_file_id: "src-file-001",
     source_row_number: i + 1,
@@ -75,8 +76,14 @@ const flawedResult = evaluateDataQuality({
 });
 
 assert(flawedResult.totalIssuesCount >= 5, "Detected 5+ distinct data quality issues");
-assert(flawedResult.overallScore < 70, `Overall score deducted correctly -> ${flawedResult.overallScore}%`);
-assert(flawedResult.classification === "POOR" || flawedResult.classification === "CRITICAL", `Dataset classified correctly as ${flawedResult.classification}`);
+assert(
+  flawedResult.overallScore < 70,
+  `Overall score deducted correctly -> ${flawedResult.overallScore}%`,
+);
+assert(
+  flawedResult.classification === "POOR" || flawedResult.classification === "CRITICAL",
+  `Dataset classified correctly as ${flawedResult.classification}`,
+);
 
 const issueCodes = flawedResult.issues.map((i) => i.code);
 assert(issueCodes.includes("DUPLICATE_INTERVALS"), "Detected DUPLICATE_INTERVALS");
@@ -111,6 +118,8 @@ assert(reviewRes.success, "Review update result success");
 assert(reviewRes.issue?.reviewStatus === "REVIEWED", "Status updated to REVIEWED");
 assert(reviewRes.issue?.reviewedBy === "auditor@eskomreconciler.co.za", "Reviewer email recorded");
 assert(reviewRes.issue?.reviewNote?.includes("CT ratio multiplier"), "Auditor note preserved");
-console.log("✅ HUMAN REVIEW TEST PASSED: Audit sign-off recorded without deleting historical data");
+console.log(
+  "✅ HUMAN REVIEW TEST PASSED: Audit sign-off recorded without deleting historical data",
+);
 
 console.log("\n=== ALL ELECTRICITY DATA-QUALITY ENGINE TESTS PASSED SUCCESSFULLY ===");

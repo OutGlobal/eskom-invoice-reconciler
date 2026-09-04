@@ -114,7 +114,8 @@ function matchKnownInvoice(fileName: string, rawText: string = "") {
       invoice: { ...SAMPLE_FEB_2026_INVOICE, source: fileName },
       chargeLines: SAMPLE_FEB_2026_CHARGE_LINES,
       lineItems: SAMPLE_FEB_2026_LINE_ITEMS,
-      rawText: rawText || "Impala Plats Rustenburg Mine FEBRUARY 2026 Eskom Tax Invoice 785101497007",
+      rawText:
+        rawText || "Impala Plats Rustenburg Mine FEBRUARY 2026 Eskom Tax Invoice 785101497007",
     };
   }
 
@@ -602,19 +603,27 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
     return { documentType: "image", ...ocr };
   }
 
-  if (typeof globalThis !== 'undefined' && typeof globalThis.DOMMatrix === 'undefined') {
+  if (typeof globalThis !== "undefined" && typeof globalThis.DOMMatrix === "undefined") {
     (globalThis as any).DOMMatrix = class DOMMatrix {
-      a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+      a = 1;
+      b = 0;
+      c = 0;
+      d = 1;
+      e = 0;
+      f = 0;
       constructor(init?: any) {
         if (Array.isArray(init)) {
-          this.a = init[0] ?? 1; this.b = init[1] ?? 0;
-          this.c = init[2] ?? 0; this.d = init[3] ?? 1;
-          this.e = init[4] ?? 0; this.f = init[5] ?? 0;
+          this.a = init[0] ?? 1;
+          this.b = init[1] ?? 0;
+          this.c = init[2] ?? 0;
+          this.d = init[3] ?? 1;
+          this.e = init[4] ?? 0;
+          this.f = init[5] ?? 0;
         }
       }
     };
   }
-  if (typeof Promise.try !== 'function') {
+  if (typeof Promise.try !== "function") {
     (Promise as any).try = function (fn: () => any) {
       return new Promise((resolve) => resolve(fn()));
     };

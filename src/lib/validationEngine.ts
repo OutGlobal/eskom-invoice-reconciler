@@ -163,7 +163,8 @@ export function validateInvoiceData(inv: Partial<InvoiceData>): ValidationReport
   const warningRules = results.filter((r) => r.status === "warning").length;
   const failedRules = results.filter((r) => r.status === "fail").length;
 
-  const score = totalRules > 0 ? Math.round(((passedRules + warningRules * 0.5) / totalRules) * 100) : 100;
+  const score =
+    totalRules > 0 ? Math.round(((passedRules + warningRules * 0.5) / totalRules) * 100) : 100;
   const overallStatus = failedRules > 0 ? "fail" : warningRules > 0 ? "warning" : "pass";
 
   return {

@@ -4,15 +4,15 @@
  */
 
 export type WorkflowStepId =
-  | 1  // Select customer/site
-  | 2  // Select meter
-  | 3  // Upload/import invoice
-  | 4  // Upload/import AMR data
-  | 5  // Validate data
-  | 6  // Select/confirm tariff
-  | 7  // Run reconciliation
-  | 8  // Review results
-  | 9  // Investigate discrepancies
+  | 1 // Select customer/site
+  | 2 // Select meter
+  | 3 // Upload/import invoice
+  | 4 // Upload/import AMR data
+  | 5 // Validate data
+  | 6 // Select/confirm tariff
+  | 7 // Run reconciliation
+  | 8 // Review results
+  | 9 // Investigate discrepancies
   | 10 // Approve/reject findings
   | 11 // Generate report
   | 12; // Generate dispute pack
@@ -22,7 +22,7 @@ export interface WorkflowStepMeta {
   title: string;
   shortTitle: string;
   description: string;
-  status: 'pending' | 'active' | 'completed' | 'warning' | 'error';
+  status: "pending" | "active" | "completed" | "warning" | "error";
 }
 
 export interface EnterpriseDashboardMetrics {
@@ -40,20 +40,21 @@ export interface EnterpriseDashboardMetrics {
   dataQualityPct: number;
   telemetryCompletenessPct: number;
   invoiceConfidencePct: number;
-  reconciliationStatus: 'CLEAN_MATCH' | 'MATERIAL_DISCREPANCY' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED';
+  reconciliationStatus:
+    "CLEAN_MATCH" | "MATERIAL_DISCREPANCY" | "UNDER_REVIEW" | "APPROVED" | "REJECTED";
 }
 
 export type BillingComponentKey =
-  | 'peak_energy'
-  | 'standard_energy'
-  | 'off_peak_energy'
-  | 'demand_charges'
-  | 'network_charges'
-  | 'capacity_charges'
-  | 'service_charges'
-  | 'reactive_charges'
-  | 'vat'
-  | 'other_levies';
+  | "peak_energy"
+  | "standard_energy"
+  | "off_peak_energy"
+  | "demand_charges"
+  | "network_charges"
+  | "capacity_charges"
+  | "service_charges"
+  | "reactive_charges"
+  | "vat"
+  | "other_levies";
 
 export interface ComponentDrillDownSummary {
   key: BillingComponentKey;
@@ -62,14 +63,14 @@ export interface ComponentDrillDownSummary {
   calculatedZar: number;
   varianceZar: number;
   variancePct: number;
-  status: 'match' | 'minor_variance' | 'discrepancy';
+  status: "match" | "minor_variance" | "discrepancy";
   itemCount: number;
 }
 
 export interface DayDrillDownSummary {
   dateStr: string; // YYYY-MM-DD
   dayOfWeek: string;
-  season: 'High' | 'Low';
+  season: "High" | "Low";
   totalKwh: number;
   peakKwh: number;
   standardKwh: number;
@@ -86,7 +87,7 @@ export interface DayDrillDownSummary {
 export interface IntervalDrillDownDetail {
   timestampUtc: string;
   localTimestamp: string;
-  touPeriod: 'PEAK' | 'STANDARD' | 'OFF_PEAK';
+  touPeriod: "PEAK" | "STANDARD" | "OFF_PEAK";
   activePowerKw: number;
   reactivePowerKvar: number;
   apparentPowerKva: number;
@@ -127,5 +128,5 @@ export interface DisputePackPayload {
     financialImpactZar: number;
   }>;
   sha256AuditHash: string;
-  status: 'DRAFT' | 'READY_FOR_SUBMISSION' | 'SUBMITTED' | 'RESOLVED';
+  status: "DRAFT" | "READY_FOR_SUBMISSION" | "SUBMITTED" | "RESOLVED";
 }

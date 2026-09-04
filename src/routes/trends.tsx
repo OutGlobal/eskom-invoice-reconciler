@@ -128,7 +128,10 @@ function IntervalSkeleton() {
       <div className="h-24 animate-pulse rounded-lg border border-border bg-secondary/50" />
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-24 animate-pulse rounded-md border border-border bg-secondary/50" />
+          <div
+            key={i}
+            className="h-24 animate-pulse rounded-md border border-border bg-secondary/50"
+          />
         ))}
       </div>
     </div>
@@ -202,7 +205,8 @@ export function TrendsPage() {
           "Maximum demand billed on peak spike reading of 92,948.29 kVA during a load curtailment event. To exclude the spike from setting the rolling 12-month demand ceiling (R54.32/kVA/month = R651,840/yr), Impala control room start/end timestamps must be submitted.",
         auditFormula:
           "Invoiced (92,948.29 kVA @ R24.17) R 2,246,559.07 - Reconciled (87,034.19 kVA @ R24.17) R 1,645,194.07 = Recovery Claim R 601,365.00",
-        tariffRef: "NERSA Megaflex Schedule 2025/26 - Emergency Load Curtailment Rule 7.1 & Control Room Logs",
+        tariffRef:
+          "NERSA Megaflex Schedule 2025/26 - Emergency Load Curtailment Rule 7.1 & Control Room Logs",
         status: "pending",
         actionLoad: () => useApp.getState().loadMarch2026SampleInvoice(),
       },
@@ -424,7 +428,8 @@ export function TrendsPage() {
                   <div className="mt-2 rounded border border-border bg-card p-2">
                     <div className="text-muted-foreground">Logged outage window</div>
                     <div className="font-medium">
-                      {dq.outageFrom.toLocaleString("en-ZA")} → {dq.outageTo.toLocaleString("en-ZA")}
+                      {dq.outageFrom.toLocaleString("en-ZA")} →{" "}
+                      {dq.outageTo.toLocaleString("en-ZA")}
                     </div>
                   </div>
                 )}
@@ -433,7 +438,6 @@ export function TrendsPage() {
           </Panel>
         </>
       )}
-
 
       {/* Invoice Selector Component */}
       <div className="rounded-lg border border-primary/20 bg-card p-3 shadow-sm">
@@ -473,17 +477,27 @@ export function TrendsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
           <div className="space-y-2 p-3.5 rounded-lg border border-border bg-card">
             <div className="font-semibold text-foreground flex items-center gap-1.5">
-              <ShieldCheck className="h-4 w-4 text-emerald-400" /> Data Source Provenance &amp; Lineage
+              <ShieldCheck className="h-4 w-4 text-emerald-400" /> Data Source Provenance &amp;
+              Lineage
             </div>
             <ul className="space-y-1.5 text-muted-foreground">
               <li>
-                <strong className="text-foreground">AMR Meter Telemetry:</strong> 30-minute interval readings collected from official Eskom AMR meter <code className="text-primary font-mono">7856504226</code> at Millennium 33kV (Impala Plats Rustenburg Mine).
+                <strong className="text-foreground">AMR Meter Telemetry:</strong> 30-minute interval
+                readings collected from official Eskom AMR meter{" "}
+                <code className="text-primary font-mono">7856504226</code> at Millennium 33kV
+                (Impala Plats Rustenburg Mine).
               </li>
               <li>
-                <strong className="text-foreground">Official Eskom Invoices:</strong> Monthly Tax Invoices <code className="text-primary font-mono">785101497007</code>, <code className="text-primary font-mono">7856504676</code>, <code className="text-primary font-mono">785684906677</code>, <code className="text-primary font-mono">785595072130</code>.
+                <strong className="text-foreground">Official Eskom Invoices:</strong> Monthly Tax
+                Invoices <code className="text-primary font-mono">785101497007</code>,{" "}
+                <code className="text-primary font-mono">7856504676</code>,{" "}
+                <code className="text-primary font-mono">785684906677</code>,{" "}
+                <code className="text-primary font-mono">785595072130</code>.
               </li>
               <li>
-                <strong className="text-foreground">NERSA Rate Gazette:</strong> NERSA Schedule of Standard Prices for Megaflex Diversity 33kV (High &amp; Low Season TOU energy rates, capacity charges, subsidies, 15% VAT).
+                <strong className="text-foreground">NERSA Rate Gazette:</strong> NERSA Schedule of
+                Standard Prices for Megaflex Diversity 33kV (High &amp; Low Season TOU energy rates,
+                capacity charges, subsidies, 15% VAT).
               </li>
             </ul>
           </div>
@@ -494,16 +508,22 @@ export function TrendsPage() {
             </div>
             <ul className="space-y-1.5 text-muted-foreground">
               <li>
-                <strong className="text-foreground">Gross Invoiced Portfolio (4 Months):</strong> R 383,810,702.96 (excl VAT) / R 441,382,308.41 (incl VAT).
+                <strong className="text-foreground">Gross Invoiced Portfolio (4 Months):</strong> R
+                383,810,702.96 (excl VAT) / R 441,382,308.41 (incl VAT).
               </li>
               <li>
-                <strong className="text-foreground">Reconciled NERSA Statutory Cost:</strong> R 381,392,052.56.
+                <strong className="text-foreground">Reconciled NERSA Statutory Cost:</strong> R
+                381,392,052.56.
               </li>
               <li>
-                <strong className="text-foreground">Net Recoverable Overcharges:</strong> <span className="font-bold text-emerald-400 font-mono">R 2,418,650.40</span> (0.63% net billing accuracy error recovered).
+                <strong className="text-foreground">Net Recoverable Overcharges:</strong>{" "}
+                <span className="font-bold text-emerald-400 font-mono">R 2,418,650.40</span> (0.63%
+                net billing accuracy error recovered).
               </li>
               <li>
-                <strong className="text-foreground">Financial Status:</strong> R 620,450.40 Approved &amp; Credited (25.7%), R 1,480,200.00 Pending Dispute (61.2%), R 318,000.00 Ready for Filing (13.1%).
+                <strong className="text-foreground">Financial Status:</strong> R 620,450.40 Approved
+                &amp; Credited (25.7%), R 1,480,200.00 Pending Dispute (61.2%), R 318,000.00 Ready
+                for Filing (13.1%).
               </li>
             </ul>
           </div>

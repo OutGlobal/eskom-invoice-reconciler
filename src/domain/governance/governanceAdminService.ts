@@ -193,7 +193,9 @@ export class GovernanceAdminService {
     return { ...this.defaultSettings };
   }
 
-  public static updateToleranceSettings(newTolerance: Partial<ToleranceSettings>): GovernanceSettings {
+  public static updateToleranceSettings(
+    newTolerance: Partial<ToleranceSettings>,
+  ): GovernanceSettings {
     this.defaultSettings.tolerance = {
       ...this.defaultSettings.tolerance,
       ...newTolerance,
@@ -201,7 +203,9 @@ export class GovernanceAdminService {
     return this.getGovernanceSettings();
   }
 
-  public static updateDataRetentionPolicy(newPolicy: Partial<DataRetentionPolicy>): GovernanceSettings {
+  public static updateDataRetentionPolicy(
+    newPolicy: Partial<DataRetentionPolicy>,
+  ): GovernanceSettings {
     this.defaultSettings.dataRetention = {
       ...this.defaultSettings.dataRetention,
       ...newPolicy,

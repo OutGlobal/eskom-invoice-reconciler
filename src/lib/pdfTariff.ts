@@ -7,7 +7,7 @@ export async function extractTariffFromPdf(
   file: File,
 ): Promise<{ tariff: TariffData; rawText: string }> {
   const pdfjs = await import("pdfjs-dist");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default as string;
   pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 

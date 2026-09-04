@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import {
-  AiInvestigationEngine,
-} from "../../domain/investigation/aiInvestigationEngine";
+import { AiInvestigationEngine } from "../../domain/investigation/aiInvestigationEngine";
 import {
   InvestigationContext,
   AiInvestigationFinding,
@@ -35,7 +33,7 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
   onSelectComponent,
 }) => {
   const [queryInput, setQueryInput] = useState<string>(
-    "Why is this invoice R84,000 higher than calculated?"
+    "Why is this invoice R84,000 higher than calculated?",
   );
   const [finding, setFinding] = useState<AiInvestigationFinding | null>(null);
   const [disputeDraft, setDisputeDraft] = useState<DisputeNarrativeDraft | null>(null);
@@ -85,7 +83,8 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
               </span>
             </h3>
             <p className="text-xs text-slate-400">
-              Grounded AI reasoning layer strictly bound to deterministic tariff & telemetry evidence. Zero hallucinations.
+              Grounded AI reasoning layer strictly bound to deterministic tariff & telemetry
+              evidence. Zero hallucinations.
             </p>
           </div>
         </div>
@@ -99,7 +98,10 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
       <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-xs text-amber-300/90 flex items-start space-x-2.5">
         <HelpCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
         <div>
-          <span className="font-semibold text-amber-300">Strict Architectural Principle:</span> The AI engine does <strong>NOT</strong> calculate financial totals or invent tariff rates. All values and line items are supplied by the deterministic calculation engine. If evidence is missing, the copilot reports <em>"Insufficient evidence."</em>
+          <span className="font-semibold text-amber-300">Strict Architectural Principle:</span> The
+          AI engine does <strong>NOT</strong> calculate financial totals or invent tariff rates. All
+          values and line items are supplied by the deterministic calculation engine. If evidence is
+          missing, the copilot reports <em>"Insufficient evidence."</em>
         </div>
       </div>
 
@@ -117,7 +119,9 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
             <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-sky-400 transition-colors" />
           </button>
           <button
-            onClick={() => handleRunQuery("Explain data quality problems and telemetry gap deductions")}
+            onClick={() =>
+              handleRunQuery("Explain data quality problems and telemetry gap deductions")
+            }
             className="text-left text-xs p-2.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-slate-200 transition-colors flex items-center justify-between group"
           >
             <span>📊 "Explain data quality deductions and gaps"</span>
@@ -167,7 +171,9 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
         <button
           onClick={() => setActiveTab("query")}
           className={`pb-2 border-b-2 transition-colors ${
-            activeTab === "query" ? "border-sky-500 text-sky-400" : "border-transparent text-slate-400 hover:text-slate-200"
+            activeTab === "query"
+              ? "border-sky-500 text-sky-400"
+              : "border-transparent text-slate-400 hover:text-slate-200"
           }`}
         >
           Investigation Panel
@@ -175,7 +181,9 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
         <button
           onClick={handleGenerateDisputeDraft}
           className={`pb-2 border-b-2 transition-colors ${
-            activeTab === "dispute" ? "border-sky-500 text-sky-400" : "border-transparent text-slate-400 hover:text-slate-200"
+            activeTab === "dispute"
+              ? "border-sky-500 text-sky-400"
+              : "border-transparent text-slate-400 hover:text-slate-200"
           }`}
         >
           Draft Dispute Pack
@@ -183,7 +191,9 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
         <button
           onClick={handleGenerateMgmtSummary}
           className={`pb-2 border-b-2 transition-colors ${
-            activeTab === "summary" ? "border-sky-500 text-sky-400" : "border-transparent text-slate-400 hover:text-slate-200"
+            activeTab === "summary"
+              ? "border-sky-500 text-sky-400"
+              : "border-transparent text-slate-400 hover:text-slate-200"
           }`}
         >
           Executive Summary
@@ -198,7 +208,9 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
               {/* Finding Title & Confidence Badge */}
               <div className="flex items-start justify-between border-b border-slate-800/80 pb-3">
                 <div className="space-y-1">
-                  <span className="text-[10px] uppercase tracking-wider text-slate-500 font-mono">1. Finding</span>
+                  <span className="text-[10px] uppercase tracking-wider text-slate-500 font-mono">
+                    1. Finding
+                  </span>
                   <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
                     {finding.isInsufficientEvidence ? (
                       <AlertTriangle className="w-4 h-4 text-amber-400" />
@@ -209,7 +221,9 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
                   </h4>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] uppercase text-slate-500 font-mono block">Confidence</span>
+                  <span className="text-[10px] uppercase text-slate-500 font-mono block">
+                    Confidence
+                  </span>
                   <span className="text-xs font-mono font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
                     {finding.confidenceScorePct.toFixed(1)}%
                   </span>
@@ -254,7 +268,9 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
                     <Layers className="w-3 h-3 text-sky-400" /> 5. Affected Tariff Component
                   </span>
                   <button
-                    onClick={() => onSelectComponent && onSelectComponent(finding.affectedTariffComponent)}
+                    onClick={() =>
+                      onSelectComponent && onSelectComponent(finding.affectedTariffComponent)
+                    }
                     className="text-sky-400 font-bold hover:underline"
                   >
                     {finding.affectedTariffComponent}
@@ -266,7 +282,9 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
                   <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
                     6. Financial Impact (ZAR)
                   </span>
-                  <p className={`font-mono text-sm font-bold ${finding.financialImpactZar > 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                  <p
+                    className={`font-mono text-sm font-bold ${finding.financialImpactZar > 0 ? "text-rose-400" : "text-emerald-400"}`}
+                  >
                     {finding.financialImpactFormatted}
                   </p>
                 </div>
@@ -278,7 +296,8 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
                   </span>
                   {finding.sourceRecords.map((sr, idx) => (
                     <div key={idx} className="text-[11px] font-mono text-slate-300">
-                      <span className="text-slate-400">File Hash:</span> {sr.sourceFileId.substring(0, 12)}...
+                      <span className="text-slate-400">File Hash:</span>{" "}
+                      {sr.sourceFileId.substring(0, 12)}...
                       <br />
                       <span className="text-slate-400">Meter ID:</span> {sr.meterId}
                     </div>
@@ -293,7 +312,8 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
             </div>
           ) : (
             <div className="text-center py-8 text-slate-500 text-xs">
-              Select a preset enquiry or type a custom question above to investigate reconciliation evidence.
+              Select a preset enquiry or type a custom question above to investigate reconciliation
+              evidence.
             </div>
           )}
         </div>
@@ -305,19 +325,25 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div>
               <h4 className="font-bold text-slate-100 text-sm">{disputeDraft.title}</h4>
-              <p className="text-slate-400 text-[11px]">Generated: {disputeDraft.dateGenerated} | Account: {disputeDraft.accountNumber}</p>
+              <p className="text-slate-400 text-[11px]">
+                Generated: {disputeDraft.dateGenerated} | Account: {disputeDraft.accountNumber}
+              </p>
             </div>
             <button
               onClick={() =>
                 copyToClipboard(
                   `${disputeDraft.title}\n\n${disputeDraft.executiveSummary}\n\nGrounding Facts:\n${disputeDraft.groundedFacts.join(
-                    "\n"
-                  )}\n\nDemands:\n${disputeDraft.demands.join("\n")}`
+                    "\n",
+                  )}\n\nDemands:\n${disputeDraft.demands.join("\n")}`,
                 )
               }
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs flex items-center space-x-1.5"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? (
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
               <span>{copied ? "Copied" : "Copy Narrative"}</span>
             </button>
           </div>
@@ -346,8 +372,12 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
                     <tr key={idx} className="border-b border-slate-800/50 text-slate-300">
                       <td className="py-1 font-semibold">{row.component}</td>
                       <td className="py-1 text-right">R {row.billedZar.toLocaleString("en-ZA")}</td>
-                      <td className="py-1 text-right">R {row.calculatedZar.toLocaleString("en-ZA")}</td>
-                      <td className="py-1 text-right text-rose-400">R {row.varianceZar.toLocaleString("en-ZA")}</td>
+                      <td className="py-1 text-right">
+                        R {row.calculatedZar.toLocaleString("en-ZA")}
+                      </td>
+                      <td className="py-1 text-right text-rose-400">
+                        R {row.varianceZar.toLocaleString("en-ZA")}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -355,7 +385,9 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
             </div>
 
             <div>
-              <span className="text-slate-400 uppercase text-[10px]">Demands & Remedies Sought</span>
+              <span className="text-slate-400 uppercase text-[10px]">
+                Demands & Remedies Sought
+              </span>
               <ul className="list-disc list-inside text-slate-300 mt-1 space-y-1">
                 {disputeDraft.demands.map((d, i) => (
                   <li key={i}>{d}</li>
@@ -372,7 +404,9 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div>
               <h4 className="font-bold text-slate-100 text-sm">{mgmtSummary.title}</h4>
-              <p className="text-slate-400 text-[11px]">Overall Status: {mgmtSummary.overallStatus}</p>
+              <p className="text-slate-400 text-[11px]">
+                Overall Status: {mgmtSummary.overallStatus}
+              </p>
             </div>
             <span className="px-2.5 py-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">
               Grade: {mgmtSummary.dataQualityGrade} ({mgmtSummary.dataQualityScore}/100)
@@ -382,20 +416,28 @@ export const AiInvestigationPanel: React.FC<AiInvestigationPanelProps> = ({
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="bg-slate-900 p-2.5 rounded border border-slate-800">
               <span className="text-[10px] text-slate-400 block">Total Billed</span>
-              <span className="font-bold text-slate-200 text-sm">R {mgmtSummary.totalBilledZar.toLocaleString("en-ZA")}</span>
+              <span className="font-bold text-slate-200 text-sm">
+                R {mgmtSummary.totalBilledZar.toLocaleString("en-ZA")}
+              </span>
             </div>
             <div className="bg-slate-900 p-2.5 rounded border border-slate-800">
               <span className="text-[10px] text-slate-400 block">Calculated Total</span>
-              <span className="font-bold text-emerald-400 text-sm">R {mgmtSummary.totalCalculatedZar.toLocaleString("en-ZA")}</span>
+              <span className="font-bold text-emerald-400 text-sm">
+                R {mgmtSummary.totalCalculatedZar.toLocaleString("en-ZA")}
+              </span>
             </div>
             <div className="bg-slate-900 p-2.5 rounded border border-slate-800">
               <span className="text-[10px] text-slate-400 block">Net Variance Risk</span>
-              <span className="font-bold text-rose-400 text-sm">R {mgmtSummary.netFinancialRiskZar.toLocaleString("en-ZA")}</span>
+              <span className="font-bold text-rose-400 text-sm">
+                R {mgmtSummary.netFinancialRiskZar.toLocaleString("en-ZA")}
+              </span>
             </div>
           </div>
 
           <div>
-            <span className="text-slate-400 uppercase text-[10px]">Recommended Executive Action</span>
+            <span className="text-slate-400 uppercase text-[10px]">
+              Recommended Executive Action
+            </span>
             <p className="text-slate-200 mt-1 bg-sky-950/40 p-3 rounded border border-sky-800/50">
               {mgmtSummary.recommendedAction}
             </p>

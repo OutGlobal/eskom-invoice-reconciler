@@ -9,7 +9,10 @@ import { TariffVersionSelector } from "../../domain/tariff/tariffVersionSelector
 import { ESKOM_MEGAFLEX_2025_2026 } from "../../domain/tariff/tariffFixtures";
 import { ReactivePowerCalculator } from "../../domain/determinants/reactivePowerCalculator";
 import { evaluateDataQuality } from "../../domain/quality/dataQualityEngine";
-import { validateTenantAccess, createSecurityContext } from "../../domain/security/tenantContextService";
+import {
+  validateTenantAccess,
+  createSecurityContext,
+} from "../../domain/security/tenantContextService";
 import { HashChainEngine } from "../../domain/audit/hashChainEngine";
 import Decimal from "decimal.js-light";
 
@@ -40,7 +43,12 @@ async function runMasterTestSuite() {
     "Off-Peak Energy": 68500.0,
   };
 
-  const reconRows = buildStandardReconciliationTable(sampleInvoiceLines, sampleCharges as any, 61630.43, 409300.0);
+  const reconRows = buildStandardReconciliationTable(
+    sampleInvoiceLines,
+    sampleCharges as any,
+    61630.43,
+    409300.0,
+  );
   const matchedCount = reconRows.filter((r) => r.status === "green").length;
   assert(matchedCount >= 3, "Clean invoice line items matched cleanly");
   console.log("✅ SCENARIO 1 PASSED: Correct invoice + AMR returns CLEAN_MATCH\n");
@@ -53,8 +61,15 @@ async function runMasterTestSuite() {
     "Standard Energy": 137800.0,
     "Off-Peak Energy": 68500.0,
   };
-  const peakReconRows = buildStandardReconciliationTable(peakMismatchLines, sampleCharges as any, 61630.43, 421750.0);
-  const peakDiscrepancy = peakReconRows.find((r) => r.charge === "Peak Energy" && (r.status === "amber" || r.status === "red"));
+  const peakReconRows = buildStandardReconciliationTable(
+    peakMismatchLines,
+    sampleCharges as any,
+    61630.43,
+    421750.0,
+  );
+  const peakDiscrepancy = peakReconRows.find(
+    (r) => r.charge === "Peak Energy" && (r.status === "amber" || r.status === "red"),
+  );
   assert(peakDiscrepancy !== undefined, "Peak mismatch flagged as discrepancy");
   console.log("✅ SCENARIO 2 PASSED: Peak energy mismatch returns MATERIAL_DISCREPANCY\n");
   passedScenarios++;
@@ -66,8 +81,15 @@ async function runMasterTestSuite() {
     "Standard Energy": 142000.0,
     "Off-Peak Energy": 68500.0,
   };
-  const stdReconRows = buildStandardReconciliationTable(stdMismatchLines, sampleCharges as any, 61630.43, 413500.0);
-  const stdDiscrepancy = stdReconRows.find((r) => r.charge === "Standard Energy" && (r.status === "amber" || r.status === "red"));
+  const stdReconRows = buildStandardReconciliationTable(
+    stdMismatchLines,
+    sampleCharges as any,
+    61630.43,
+    413500.0,
+  );
+  const stdDiscrepancy = stdReconRows.find(
+    (r) => r.charge === "Standard Energy" && (r.status === "amber" || r.status === "red"),
+  );
   assert(stdDiscrepancy !== undefined, "Standard mismatch flagged as discrepancy");
   console.log("✅ SCENARIO 3 PASSED: Standard energy mismatch returns MATERIAL_DISCREPANCY\n");
   passedScenarios++;
@@ -79,8 +101,15 @@ async function runMasterTestSuite() {
     "Standard Energy": 137800.0,
     "Off-Peak Energy": 75000.0,
   };
-  const offReconRows = buildStandardReconciliationTable(offMismatchLines, sampleCharges as any, 61630.43, 415800.0);
-  const offDiscrepancy = offReconRows.find((r) => r.charge === "Off-Peak Energy" && (r.status === "amber" || r.status === "red"));
+  const offReconRows = buildStandardReconciliationTable(
+    offMismatchLines,
+    sampleCharges as any,
+    61630.43,
+    415800.0,
+  );
+  const offDiscrepancy = offReconRows.find(
+    (r) => r.charge === "Off-Peak Energy" && (r.status === "amber" || r.status === "red"),
+  );
   assert(offDiscrepancy !== undefined, "Off-peak mismatch flagged as discrepancy");
   console.log("✅ SCENARIO 4 PASSED: Off-Peak energy mismatch returns MATERIAL_DISCREPANCY\n");
   passedScenarios++;
@@ -95,8 +124,15 @@ async function runMasterTestSuite() {
     ...sampleInvoiceLines,
     "Network Demand Charge": 42800.0,
   };
-  const demandReconRows = buildStandardReconciliationTable(demandMismatchLines, demandCharges as any, 61630.43, 451600.0);
-  const demandDiscrepancy = demandReconRows.find((r) => r.charge === "Network Demand Charge" && (r.status === "amber" || r.status === "red"));
+  const demandReconRows = buildStandardReconciliationTable(
+    demandMismatchLines,
+    demandCharges as any,
+    61630.43,
+    451600.0,
+  );
+  const demandDiscrepancy = demandReconRows.find(
+    (r) => r.charge === "Network Demand Charge" && (r.status === "amber" || r.status === "red"),
+  );
   assert(demandDiscrepancy !== undefined, "Maximum demand mismatch flagged as discrepancy");
   console.log("✅ SCENARIO 5 PASSED: Maximum demand mismatch returns MATERIAL_DISCREPANCY\n");
   passedScenarios++;
@@ -105,7 +141,9 @@ async function runMasterTestSuite() {
   console.log("--- Scenario 6: Reactive energy mismatch = discrepancy ---");
   const pf = ReactivePowerCalculator.calculatePowerFactor(new Decimal(100), new Decimal(45));
   assert(pf.gt(0) && pf.lt(1), "Vector Power Factor derived cleanly");
-  console.log("✅ SCENARIO 6 PASSED: Reactive energy threshold & vector power factor derived correctly\n");
+  console.log(
+    "✅ SCENARIO 6 PASSED: Reactive energy threshold & vector power factor derived correctly\n",
+  );
   passedScenarios++;
 
   // Scenario 7: Incorrect tariff version = discrepancy
@@ -115,8 +153,16 @@ async function runMasterTestSuite() {
     "Standard Energy": 137800.0,
     "Off-Peak Energy": 68500.0,
   };
-  const wrongTariffReconRows = buildStandardReconciliationTable(wrongTariffLines, sampleCharges as any, 61630.43, 356300.0);
-  assert(wrongTariffReconRows.some((r) => r.status === "red" || r.status === "amber"), "Incorrect tariff version flagged as discrepancy");
+  const wrongTariffReconRows = buildStandardReconciliationTable(
+    wrongTariffLines,
+    sampleCharges as any,
+    61630.43,
+    356300.0,
+  );
+  assert(
+    wrongTariffReconRows.some((r) => r.status === "red" || r.status === "amber"),
+    "Incorrect tariff version flagged as discrepancy",
+  );
   console.log("✅ SCENARIO 7 PASSED: Incorrect tariff version returns MATERIAL_DISCREPANCY\n");
   passedScenarios++;
 
@@ -124,7 +170,23 @@ async function runMasterTestSuite() {
   console.log("--- Scenario 8: Missing intervals = warning/review ---");
   const missingEval = evaluateDataQuality({
     telemetryRecords: [
-      { meter_id: "m1", timestamp_utc: "2026-03-15T00:00:00Z", local_timestamp: "2026-03-15 00:00:00", timezone: "Africa/Johannesburg", interval_minutes: 30, active_energy_kwh: 10, reactive_energy_kvarh: 2, apparent_power_kva: 20, active_power_kw: 20, power_factor: 0.95, tou_period: "OFF_PEAK", quality_status: "validated", source_file_id: "f1", source_row_number: 1, parser_version: "1.0.0" },
+      {
+        meter_id: "m1",
+        timestamp_utc: "2026-03-15T00:00:00Z",
+        local_timestamp: "2026-03-15 00:00:00",
+        timezone: "Africa/Johannesburg",
+        interval_minutes: 30,
+        active_energy_kwh: 10,
+        reactive_energy_kvarh: 2,
+        apparent_power_kva: 20,
+        active_power_kw: 20,
+        power_factor: 0.95,
+        tou_period: "OFF_PEAK",
+        quality_status: "validated",
+        source_file_id: "f1",
+        source_row_number: 1,
+        parser_version: "1.0.0",
+      },
     ],
     invoiceRecord: {
       invoiceNumber: "INV-100",
@@ -134,7 +196,10 @@ async function runMasterTestSuite() {
       endDate: "2026-03-31",
     },
   });
-  assert(missingEval.issues.some((i) => i.code === "INVOICE_PERIOD_MISMATCH"), "Missing telemetry for billing period flagged for review");
+  assert(
+    missingEval.issues.some((i) => i.code === "INVOICE_PERIOD_MISMATCH"),
+    "Missing telemetry for billing period flagged for review",
+  );
   console.log("✅ SCENARIO 8 PASSED: Missing intervals flagged for review\n");
   passedScenarios++;
 
@@ -142,11 +207,46 @@ async function runMasterTestSuite() {
   console.log("--- Scenario 9: Duplicate intervals = warning/review ---");
   const dupEval = evaluateDataQuality({
     telemetryRecords: [
-      { meter_id: "m1", timestamp_utc: "2026-03-15T00:00:00Z", local_timestamp: "2026-03-15 00:00:00", timezone: "Africa/Johannesburg", interval_minutes: 30, active_energy_kwh: 10, reactive_energy_kvarh: 2, apparent_power_kva: 20, active_power_kw: 20, power_factor: 0.95, tou_period: "OFF_PEAK", quality_status: "validated", source_file_id: "f1", source_row_number: 1, parser_version: "1.0.0" },
-      { meter_id: "m1", timestamp_utc: "2026-03-15T00:00:00Z", local_timestamp: "2026-03-15 00:00:00", timezone: "Africa/Johannesburg", interval_minutes: 30, active_energy_kwh: 10, reactive_energy_kvarh: 2, apparent_power_kva: 20, active_power_kw: 20, power_factor: 0.95, tou_period: "OFF_PEAK", quality_status: "validated", source_file_id: "f1", source_row_number: 2, parser_version: "1.0.0" },
+      {
+        meter_id: "m1",
+        timestamp_utc: "2026-03-15T00:00:00Z",
+        local_timestamp: "2026-03-15 00:00:00",
+        timezone: "Africa/Johannesburg",
+        interval_minutes: 30,
+        active_energy_kwh: 10,
+        reactive_energy_kvarh: 2,
+        apparent_power_kva: 20,
+        active_power_kw: 20,
+        power_factor: 0.95,
+        tou_period: "OFF_PEAK",
+        quality_status: "validated",
+        source_file_id: "f1",
+        source_row_number: 1,
+        parser_version: "1.0.0",
+      },
+      {
+        meter_id: "m1",
+        timestamp_utc: "2026-03-15T00:00:00Z",
+        local_timestamp: "2026-03-15 00:00:00",
+        timezone: "Africa/Johannesburg",
+        interval_minutes: 30,
+        active_energy_kwh: 10,
+        reactive_energy_kvarh: 2,
+        apparent_power_kva: 20,
+        active_power_kw: 20,
+        power_factor: 0.95,
+        tou_period: "OFF_PEAK",
+        quality_status: "validated",
+        source_file_id: "f1",
+        source_row_number: 2,
+        parser_version: "1.0.0",
+      },
     ],
   });
-  assert(dupEval.issues.some((i) => i.code === "DUPLICATE_INTERVALS"), "Duplicate intervals flagged for review");
+  assert(
+    dupEval.issues.some((i) => i.code === "DUPLICATE_INTERVALS"),
+    "Duplicate intervals flagged for review",
+  );
   console.log("✅ SCENARIO 9 PASSED: Duplicate intervals flagged for review\n");
   passedScenarios++;
 
@@ -159,15 +259,24 @@ async function runMasterTestSuite() {
 
   // Scenario 11: DST transition = correct (SAST UTC+2 constant)
   console.log("--- Scenario 11: DST transition = correct ---");
-  const sastTou = TouScheduleEngine.resolveTouPeriod(new Date("2025-07-02T08:00:00"), ESKOM_MEGAFLEX_2025_2026);
+  const sastTou = TouScheduleEngine.resolveTouPeriod(
+    new Date("2025-07-02T08:00:00"),
+    ESKOM_MEGAFLEX_2025_2026,
+  );
   assert(sastTou === "peak", "SAST timezone has zero DST shifts (08:00 is Peak in High Season)");
   console.log("✅ SCENARIO 11 PASSED: DST transition in SAST evaluated without offset drift\n");
   passedScenarios++;
 
   // Scenario 12: Public holiday = correct
   console.log("--- Scenario 12: Public holiday = correct ---");
-  const isFreedomDayObserved = TouScheduleEngine.isPublicHoliday(new Date("2025-04-28T10:00:00"), ESKOM_MEGAFLEX_2025_2026.public_holidays); // Monday after Freedom Day Sunday
-  assert(isFreedomDayObserved === true, "Sunday public holiday substitution observed on Monday April 28");
+  const isFreedomDayObserved = TouScheduleEngine.isPublicHoliday(
+    new Date("2025-04-28T10:00:00"),
+    ESKOM_MEGAFLEX_2025_2026.public_holidays,
+  ); // Monday after Freedom Day Sunday
+  assert(
+    isFreedomDayObserved === true,
+    "Sunday public holiday substitution observed on Monday April 28",
+  );
   console.log("✅ SCENARIO 12 PASSED: Public holiday substitution rule evaluated correctly\n");
   passedScenarios++;
 
@@ -175,7 +284,10 @@ async function runMasterTestSuite() {
   console.log("--- Scenario 13: Season transition = correct ---");
   const lowSeasonTou = TouScheduleEngine.getSeason(new Date("2025-05-31T23:59:59"));
   const highSeasonTou = TouScheduleEngine.getSeason(new Date("2025-06-01T00:00:00"));
-  assert(lowSeasonTou === "low" && highSeasonTou === "high", "May 31 Low Season vs Jun 1 High Season transition resolved");
+  assert(
+    lowSeasonTou === "low" && highSeasonTou === "high",
+    "May 31 Low Season vs Jun 1 High Season transition resolved",
+  );
   console.log("✅ SCENARIO 13 PASSED: High/Low season boundary transition evaluated correctly\n");
   passedScenarios++;
 
@@ -198,7 +310,10 @@ async function runMasterTestSuite() {
   console.log("--- Scenario 16: Duplicate source file = idempotent ---");
   const hash1 = await HashChainEngine.calculateSHA256("meter_data_csv_content");
   const hash2 = await HashChainEngine.calculateSHA256("meter_data_csv_content");
-  assert(hash1 === hash2, "SHA-256 hash is deterministic and idempotent for identical file payload");
+  assert(
+    hash1 === hash2,
+    "SHA-256 hash is deterministic and idempotent for identical file payload",
+  );
   console.log("✅ SCENARIO 16 PASSED: Duplicate source file upload is idempotent\n");
   passedScenarios++;
 
@@ -215,14 +330,27 @@ async function runMasterTestSuite() {
   const d1 = new Decimal("6.6692");
   const d2 = new Decimal("30439");
   const product = d1.mul(d2);
-  assert(product.toString() === "203003.7788", "Decimal precision retains exact cent fractions without float drift");
+  assert(
+    product.toString() === "203003.7788",
+    "Decimal precision retains exact cent fractions without float drift",
+  );
   console.log("✅ SCENARIO 18 PASSED: Financial calculations use decimal precision\n");
   passedScenarios++;
 
   // Scenario 19: Reconciliation is reproducible
   console.log("--- Scenario 19: Reconciliation is reproducible ---");
-  const recon1 = buildStandardReconciliationTable(sampleInvoiceLines, sampleCharges as any, 61630.43, 409300.0);
-  const recon2 = buildStandardReconciliationTable(sampleInvoiceLines, sampleCharges as any, 61630.43, 409300.0);
+  const recon1 = buildStandardReconciliationTable(
+    sampleInvoiceLines,
+    sampleCharges as any,
+    61630.43,
+    409300.0,
+  );
+  const recon2 = buildStandardReconciliationTable(
+    sampleInvoiceLines,
+    sampleCharges as any,
+    61630.43,
+    409300.0,
+  );
   assert(recon1.length === recon2.length, "Reconciliation runs are 100% reproducible");
   console.log("✅ SCENARIO 19 PASSED: Reconciliation execution is 100% reproducible\n");
   passedScenarios++;
@@ -230,11 +358,19 @@ async function runMasterTestSuite() {
   // Scenario 20: Historical reconciliation cannot be silently modified
   console.log("--- Scenario 20: Historical reconciliation cannot be silently modified ---");
   const event1 = { seq: 1, payload: "Run snapshot #101", prevHash: "000" };
-  const event2 = { seq: 2, payload: "Run snapshot #102", prevHash: await HashChainEngine.calculateSHA256(JSON.stringify(event1)) };
+  const event2 = {
+    seq: 2,
+    payload: "Run snapshot #102",
+    prevHash: await HashChainEngine.calculateSHA256(JSON.stringify(event1)),
+  };
   const tamperedChain = [{ ...event1, payload: "TAMPERED_SNAPSHOT" }, event2];
-  const isValid = (await HashChainEngine.calculateSHA256(JSON.stringify(tamperedChain[0]))) === tamperedChain[1].prevHash;
+  const isValid =
+    (await HashChainEngine.calculateSHA256(JSON.stringify(tamperedChain[0]))) ===
+    tamperedChain[1].prevHash;
   assert(!isValid, "Cryptographic hash chain catches historical tampering");
-  console.log("✅ SCENARIO 20 PASSED: Historical reconciliation modification detected by hash chain\n");
+  console.log(
+    "✅ SCENARIO 20 PASSED: Historical reconciliation modification detected by hash chain\n",
+  );
   passedScenarios++;
 
   console.log("=========================================================");

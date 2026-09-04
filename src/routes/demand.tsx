@@ -16,7 +16,16 @@ import {
 import { TOU_COLOR, TOU_LABEL } from "@/lib/tariff";
 import { useApp } from "@/lib/store";
 import { InvoiceSelector } from "@/components/InvoiceSelector";
-import { AlertTriangle, CheckCircle2, ShieldAlert, Zap, Edit3, Save, Layers, ArrowRight } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ShieldAlert,
+  Zap,
+  Edit3,
+  Save,
+  Layers,
+  ArrowRight,
+} from "lucide-react";
 
 export const Route = createFileRoute("/demand")({
   head: () => ({ meta: [{ title: "Demand Analysis & NMD Audit — Eskom Bill Balancer" }] }),
@@ -70,14 +79,15 @@ export function DemandPage() {
   const isMay = activeMonth.includes("MAY") || invoice?.invoiceNo === "785595072130";
 
   // Dynamic active peak data
-  let activeBilledPeakKVA = invoice?.simMaxDemand || invoice?.maxDemandKVA || totals.maxDemandKVA || 86432.56;
+  let activeBilledPeakKVA =
+    invoice?.simMaxDemand || invoice?.maxDemandKVA || totals.maxDemandKVA || 86432.56;
   let activeRawPeakKVA = 87431.54;
   let activePeakTimestampText = "04 Feb 2026 at 12:00:00";
   let activePeakDate = totals.maxDemandAt || new Date("2026-02-04T12:00:00");
   let activeDemandChargeR = invoice?.networkDemandCharge || 2089075.22;
 
   if (isMar) {
-    activeBilledPeakKVA = 86986.50;
+    activeBilledPeakKVA = 86986.5;
     activeRawPeakKVA = 92948.29;
     activePeakTimestampText = "04 Mar 2026 at 12:00:00 (Curtailment Spike)";
     activePeakDate = new Date("2026-03-04T12:00:00");
@@ -87,7 +97,7 @@ export function DemandPage() {
     activeRawPeakKVA = 85760.81;
     activePeakTimestampText = "30 Mar 2026 at 14:00:00";
     activePeakDate = new Date("2026-03-30T14:00:00");
-    activeDemandChargeR = 2094064.80;
+    activeDemandChargeR = 2094064.8;
   } else if (isMay) {
     activeBilledPeakKVA = 81132.08;
     activeRawPeakKVA = 84529.33;
@@ -130,12 +140,12 @@ export function DemandPage() {
       invoiceNo: "785762166034",
       period: "17/02/2026 – 18/03/2026",
       agreedNmd: nmd,
-      billedRevenuePeakKVA: 86986.50,
+      billedRevenuePeakKVA: 86986.5,
       subIncomerPeakKVA: 92948.29,
       subIncomerTimestamp: "04 Mar 12:00 (Curtailment Spike 89.23 MW)",
       lineLossRatio: 1.011558,
-      exceedanceKVA: Math.max(0, 86986.50 - nmd),
-      ratchetExposureMonthly: Math.max(0, 86986.50 - nmd) * 54.32,
+      exceedanceKVA: Math.max(0, 86986.5 - nmd),
+      ratchetExposureMonthly: Math.max(0, 86986.5 - nmd) * 54.32,
       networkDemandChargeExVat: 2102463.71,
       status: "disputed",
       statusText: `⚠️ Disputed Curtailment Window (#MAR-2026)`,
@@ -152,9 +162,12 @@ export function DemandPage() {
       lineLossRatio: 1.011558,
       exceedanceKVA: Math.max(0, 82639.83 - nmd),
       ratchetExposureMonthly: Math.max(0, 82639.83 - nmd) * 62.55,
-      networkDemandChargeExVat: 2094064.80,
+      networkDemandChargeExVat: 2094064.8,
       status: 82639.83 > nmd ? "exceeded" : "compliant",
-      statusText: 82639.83 > nmd ? `🔴 Exceeded (+${NUM(82639.83 - nmd)} kVA)` : `🟢 Compliant (-${NUM(nmd - 82639.83)} kVA)`,
+      statusText:
+        82639.83 > nmd
+          ? `🔴 Exceeded (+${NUM(82639.83 - nmd)} kVA)`
+          : `🟢 Compliant (-${NUM(nmd - 82639.83)} kVA)`,
       actionLoad: () => useApp.getState().loadApril2026SampleInvoice(),
     },
     {
@@ -170,7 +183,10 @@ export function DemandPage() {
       ratchetExposureMonthly: Math.max(0, 81132.08 - nmd) * 62.55,
       networkDemandChargeExVat: 2132962.38,
       status: 81132.08 > nmd ? "exceeded" : "compliant",
-      statusText: 81132.08 > nmd ? `🔴 Exceeded (+${NUM(81132.08 - nmd)} kVA)` : `🟢 Compliant (-${NUM(nmd - 81132.08)} kVA)`,
+      statusText:
+        81132.08 > nmd
+          ? `🔴 Exceeded (+${NUM(81132.08 - nmd)} kVA)`
+          : `🟢 Compliant (-${NUM(nmd - 81132.08)} kVA)`,
       actionLoad: () => useApp.getState().loadMay2026SampleInvoice(),
     },
   ];
@@ -229,14 +245,18 @@ export function DemandPage() {
           <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
           <div className="space-y-1 text-xs">
             <div className="font-semibold text-sm text-amber-300 flex items-center gap-2">
-              <span>NMD Exceedance Alert: Peak Demand Exceeded by +{NUM(activeExceedanceKVA)} kVA</span>
+              <span>
+                NMD Exceedance Alert: Peak Demand Exceeded by +{NUM(activeExceedanceKVA)} kVA
+              </span>
               <span className="rounded bg-amber-400/20 px-2 py-0.5 text-[10px] font-mono text-amber-300">
                 Ratchet Exposure: {ZAR(activeExceedanceKVA * 54.32)}/mo
               </span>
             </div>
             <p>
               The measured peak demand of <strong>{NUM(activeBilledPeakKVA)} kVA</strong> on{" "}
-              <strong>{activePeakTimestampText}</strong> exceeded the contracted Agreed NMD threshold ({NUM(nmd, 0)} kVA). Under NERSA Rule 7.1, demand peaks set the rolling 12-month capacity ceiling (R54.32/kVA/month).
+              <strong>{activePeakTimestampText}</strong> exceeded the contracted Agreed NMD
+              threshold ({NUM(nmd, 0)} kVA). Under NERSA Rule 7.1, demand peaks set the rolling
+              12-month capacity ceiling (R54.32/kVA/month).
             </p>
           </div>
         </div>
@@ -244,10 +264,13 @@ export function DemandPage() {
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-200 flex items-center gap-3 shadow-md">
           <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
           <div className="text-xs">
-            <span className="font-semibold text-emerald-300 text-sm">Demand Compliant: Within Agreed NMD Threshold</span>
+            <span className="font-semibold text-emerald-300 text-sm">
+              Demand Compliant: Within Agreed NMD Threshold
+            </span>
             <p className="text-muted-foreground mt-0.5">
               Simultaneous peak demand of <strong>{NUM(activeBilledPeakKVA)} kVA</strong> on{" "}
-              <strong>{activePeakTimestampText}</strong> remained within the contracted NMD capacity limit of {NUM(nmd, 0)} kVA.
+              <strong>{activePeakTimestampText}</strong> remained within the contracted NMD capacity
+              limit of {NUM(nmd, 0)} kVA.
             </p>
           </div>
         </div>
@@ -255,19 +278,13 @@ export function DemandPage() {
 
       {/* KPI Cards */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard
-          label="Agreed NMD Ceiling"
-          value={`${NUM(nmd, 0)} kVA`}
-        />
+        <MetricCard label="Agreed NMD Ceiling" value={`${NUM(nmd, 0)} kVA`} />
         <MetricCard
           label="Simultaneous Peak Demand"
           value={`${NUM(activeBilledPeakKVA)} kVA`}
           accent={isExceeded}
         />
-        <MetricCard
-          label="Peak Timestamp"
-          value={activePeakTimestampText}
-        />
+        <MetricCard label="Peak Timestamp" value={activePeakTimestampText} />
         <MetricCard
           label="Exceedance Variance"
           value={isExceeded ? `+${NUM(activeExceedanceKVA)} kVA` : "0.00 kVA"}
@@ -297,12 +314,19 @@ export function DemandPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {fourMonthDemandData.map((row, idx) => {
-                const isActive = (invoice?.invoiceNo === row.invoiceNo) || (invoice?.accountMonth || "").includes(row.month.split(" ")[0].toUpperCase());
+                const isActive =
+                  invoice?.invoiceNo === row.invoiceNo ||
+                  (invoice?.accountMonth || "").includes(row.month.split(" ")[0].toUpperCase());
                 return (
-                  <tr key={idx} className={`hover:bg-muted/30 transition ${isActive ? "bg-primary/5 font-medium" : ""}`}>
+                  <tr
+                    key={idx}
+                    className={`hover:bg-muted/30 transition ${isActive ? "bg-primary/5 font-medium" : ""}`}
+                  >
                     <td className="py-3 px-3">
                       <div className="font-semibold text-foreground text-xs">{row.month}</div>
-                      <div className="text-[11px] text-muted-foreground font-mono">Invoice #{row.invoiceNo}</div>
+                      <div className="text-[11px] text-muted-foreground font-mono">
+                        Invoice #{row.invoiceNo}
+                      </div>
                       <div className="text-[10px] text-muted-foreground">{row.period}</div>
                     </td>
                     <td className="py-3 px-3 text-right font-mono font-bold text-foreground">
@@ -323,11 +347,15 @@ export function DemandPage() {
                     <td className="py-3 px-3 text-center font-mono text-muted-foreground">
                       {row.lineLossRatio}
                     </td>
-                    <td className={`py-3 px-3 text-right font-mono font-bold ${row.exceedanceKVA > 0 ? "text-red-400" : "text-emerald-400"}`}>
+                    <td
+                      className={`py-3 px-3 text-right font-mono font-bold ${row.exceedanceKVA > 0 ? "text-red-400" : "text-emerald-400"}`}
+                    >
                       {row.exceedanceKVA > 0 ? `+${NUM(row.exceedanceKVA)} kVA` : "0.00 kVA"}
                     </td>
                     <td className="py-3 px-3 text-right font-mono font-semibold text-foreground">
-                      {row.ratchetExposureMonthly > 0 ? `${ZAR(row.ratchetExposureMonthly)}/mo` : "R 0.00"}
+                      {row.ratchetExposureMonthly > 0
+                        ? `${ZAR(row.ratchetExposureMonthly)}/mo`
+                        : "R 0.00"}
                     </td>
                     <td className="py-3 px-3 text-center">
                       <span
@@ -335,8 +363,8 @@ export function DemandPage() {
                           row.status === "exceeded"
                             ? "bg-red-500/10 text-red-400 border-red-500/30"
                             : row.status === "disputed"
-                            ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                            : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                              ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                              : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                         }`}
                       >
                         {row.statusText}
@@ -385,27 +413,41 @@ export function DemandPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
           <div className="rounded-lg border border-border bg-muted/20 p-3.5 space-y-1.5">
             <div className="font-semibold text-amber-400 text-sm">1. Sub-Incomer Measured Peak</div>
-            <div className="font-mono text-base font-bold text-foreground">{NUM(activeRawPeakKVA)} kVA</div>
+            <div className="font-mono text-base font-bold text-foreground">
+              {NUM(activeRawPeakKVA)} kVA
+            </div>
             <div className="text-muted-foreground text-[11px] space-y-0.5">
-              <div>• <strong>Peak Window:</strong> {activePeakTimestampText}</div>
-              <div>• <strong>Primary Busbar:</strong> Millennium 33kV Incomer Total</div>
+              <div>
+                • <strong>Peak Window:</strong> {activePeakTimestampText}
+              </div>
+              <div>
+                • <strong>Primary Busbar:</strong> Millennium 33kV Incomer Total
+              </div>
             </div>
           </div>
 
           <div className="rounded-lg border border-border bg-muted/20 p-3.5 space-y-1.5">
-            <div className="font-semibold text-emerald-400 text-sm">2. Substation Line Loss Ratio</div>
-            <div className="font-mono text-base font-bold text-foreground">1.011558 (+1.156% Line Loss)</div>
+            <div className="font-semibold text-emerald-400 text-sm">
+              2. Substation Line Loss Ratio
+            </div>
+            <div className="font-mono text-base font-bold text-foreground">
+              1.011558 (+1.156% Line Loss)
+            </div>
             <div className="text-muted-foreground text-[11px]">
-              Formula: Revenue kVA = Sub-Incomer kVA / 1.011558<br />
+              Formula: Revenue kVA = Sub-Incomer kVA / 1.011558
+              <br />
               Location: Millennium 33kV Incomer Primary Busbar
             </div>
           </div>
 
           <div className="rounded-lg border border-border bg-muted/20 p-3.5 space-y-1.5">
             <div className="font-semibold text-primary text-sm">3. Eskom Invoiced Revenue Peak</div>
-            <div className="font-mono text-base font-bold text-foreground">{NUM(activeBilledPeakKVA)} kVA</div>
+            <div className="font-mono text-base font-bold text-foreground">
+              {NUM(activeBilledPeakKVA)} kVA
+            </div>
             <div className="text-muted-foreground text-[11px]">
-              Network Demand Charge: {NUM(activeBilledPeakKVA)} kVA × R 24.17<br />
+              Network Demand Charge: {NUM(activeBilledPeakKVA)} kVA × R 24.17
+              <br />
               Invoiced Total = <strong>{ZAR(activeDemandChargeR)} ex VAT</strong>
             </div>
           </div>
@@ -416,9 +458,19 @@ export function DemandPage() {
             <span>NERSA Tariff Book Formula &amp; Platform Mathematical Proof:</span>
           </div>
           <div className="space-y-1">
-            <p>• <strong>Raw Apparent Power Formula:</strong> Raw kVA = √(kW² + kVAr²) = <strong>{NUM(activeRawPeakKVA)} kVA</strong> on {activePeakTimestampText}.</p>
-            <p>• <strong>Eskom Line Loss Netting Formula:</strong> Billed Revenue kVA = {NUM(activeRawPeakKVA)} / 1.011558 = <strong>{NUM(activeBilledPeakKVA)} kVA</strong> stamped on Tax Invoice #{invoice?.invoiceNo || "785101497007"}.</p>
-            <p>• <strong>Network Demand Charge:</strong> {NUM(activeBilledPeakKVA)} kVA × R 24.17/kVA = <strong>{ZAR(activeDemandChargeR)} ex VAT</strong> (Exact 100% match to the cent).</p>
+            <p>
+              • <strong>Raw Apparent Power Formula:</strong> Raw kVA = √(kW² + kVAr²) ={" "}
+              <strong>{NUM(activeRawPeakKVA)} kVA</strong> on {activePeakTimestampText}.
+            </p>
+            <p>
+              • <strong>Eskom Line Loss Netting Formula:</strong> Billed Revenue kVA ={" "}
+              {NUM(activeRawPeakKVA)} / 1.011558 = <strong>{NUM(activeBilledPeakKVA)} kVA</strong>{" "}
+              stamped on Tax Invoice #{invoice?.invoiceNo || "785101497007"}.
+            </p>
+            <p>
+              • <strong>Network Demand Charge:</strong> {NUM(activeBilledPeakKVA)} kVA × R 24.17/kVA
+              = <strong>{ZAR(activeDemandChargeR)} ex VAT</strong> (Exact 100% match to the cent).
+            </p>
           </div>
         </div>
       </Panel>
@@ -472,13 +524,16 @@ export function DemandPage() {
                       </span>
                     </td>
                     <td className="py-2.5 px-3 text-muted-foreground text-[11px]">
-                      {invoice?.accountMonth?.includes("MARCH") || format(evt.ts, "yyyy-MM") === "2026-03" ? (
+                      {invoice?.accountMonth?.includes("MARCH") ||
+                      format(evt.ts, "yyyy-MM") === "2026-03" ? (
                         <span className="text-amber-300 font-medium flex items-center gap-1">
                           <ShieldAlert className="h-3.5 w-3.5 inline text-amber-400" />
                           System Operator Curtailment Window (Dispute Claim #MAR-2026)
                         </span>
                       ) : format(evt.ts, "yyyy-MM") === "2026-02" ? (
-                        <span>Sub-Incomer Measured Peak · Reconciles to 86,432.56 kVA Revenue Peak</span>
+                        <span>
+                          Sub-Incomer Measured Peak · Reconciles to 86,432.56 kVA Revenue Peak
+                        </span>
                       ) : (
                         <span>Notified Capacity Threshold Exceeded</span>
                       )}
@@ -490,7 +545,8 @@ export function DemandPage() {
           </div>
         ) : (
           <div className="py-8 text-center text-xs text-muted-foreground">
-            🟢 No NMD exceedance events detected in this billing period. All readings remained within {NUM(nmd, 0)} kVA.
+            🟢 No NMD exceedance events detected in this billing period. All readings remained
+            within {NUM(nmd, 0)} kVA.
           </div>
         )}
       </Panel>
@@ -499,15 +555,13 @@ export function DemandPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel title="Peak Demand Audit Summary">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <MetricCard label="Simultaneous Billed Peak" value={`${NUM(activeBilledPeakKVA)} kVA`} accent={isExceeded} />
             <MetricCard
-              label="Peak Date"
-              value={format(activePeakDate, "EEE dd MMM yyyy")}
+              label="Simultaneous Billed Peak"
+              value={`${NUM(activeBilledPeakKVA)} kVA`}
+              accent={isExceeded}
             />
-            <MetricCard
-              label="Peak Exact Time"
-              value={format(activePeakDate, "HH:mm:ss")}
-            />
+            <MetricCard label="Peak Date" value={format(activePeakDate, "EEE dd MMM yyyy")} />
+            <MetricCard label="Peak Exact Time" value={format(activePeakDate, "HH:mm:ss")} />
             <MetricCard label="Demand Cadence" value="30-min integrating" />
           </div>
         </Panel>

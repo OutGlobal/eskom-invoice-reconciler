@@ -16,7 +16,11 @@ import {
 } from "recharts";
 import { format } from "date-fns";
 import meterAsset from "@/assets/meter.xlsx.asset.json";
-import { parseMeterWorkbook, generateFallbackIntervalReadings, type Measurement } from "@/lib/parseMeter";
+import {
+  parseMeterWorkbook,
+  generateFallbackIntervalReadings,
+  type Measurement,
+} from "@/lib/parseMeter";
 import { computeTotals, computeCharges, type Charge } from "@/lib/reconciliation";
 import { TARIFF, TOU_COLOR, TOU_LABEL, getSeason, type TouPeriod } from "@/lib/tariff";
 import { useApp } from "@/lib/store";
@@ -25,9 +29,16 @@ import { lttb } from "@/lib/downsample";
 import { FinancialMath } from "@/domain/services/financialMath";
 
 export const ZAR = (n: number) =>
-  "R " + FinancialMath.roundCurrency(n).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  "R " +
+  FinancialMath.roundCurrency(n).toLocaleString("en-ZA", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 export const NUM = (n: number, d = 2) =>
-  (isNaN(n) ? 0 : n).toLocaleString("en-ZA", { minimumFractionDigits: d, maximumFractionDigits: d });
+  (isNaN(n) ? 0 : n).toLocaleString("en-ZA", {
+    minimumFractionDigits: d,
+    maximumFractionDigits: d,
+  });
 
 /** Loads default complete 4-month telemetry meter dataset once on mount if store has partial rows. */
 export function useBootstrapMeter() {
@@ -84,10 +95,19 @@ export function useDerived() {
     }
     // Fallback to active Eskom Megaflex Invoice data if no raw meter rows uploaded yet
     const peakKWh = invoice?.peakKWh ?? invoice?.normalizedJson?.consumption?.peakKwh ?? 6401924.4;
-    const standardKWh = invoice?.standardKWh ?? invoice?.normalizedJson?.consumption?.standardKwh ?? 19432557.6;
-    const offPeakKWh = invoice?.offPeakKWh ?? invoice?.normalizedJson?.consumption?.offPeakKwh ?? 23429967.6;
-    const totalKWh = invoice?.totalKWh ?? invoice?.normalizedJson?.consumption?.totalKwh ?? (peakKWh + standardKWh + offPeakKWh);
-    const maxDemandKVA = invoice?.simMaxDemand ?? invoice?.maxDemandKVA ?? invoice?.normalizedJson?.consumption?.peakDemand ?? 85740;
+    const standardKWh =
+      invoice?.standardKWh ?? invoice?.normalizedJson?.consumption?.standardKwh ?? 19432557.6;
+    const offPeakKWh =
+      invoice?.offPeakKWh ?? invoice?.normalizedJson?.consumption?.offPeakKwh ?? 23429967.6;
+    const totalKWh =
+      invoice?.totalKWh ??
+      invoice?.normalizedJson?.consumption?.totalKwh ??
+      peakKWh + standardKWh + offPeakKWh;
+    const maxDemandKVA =
+      invoice?.simMaxDemand ??
+      invoice?.maxDemandKVA ??
+      invoice?.normalizedJson?.consumption?.peakDemand ??
+      85740;
     const PF = 0.96;
 
     // Resolve exact peak timestamp based on active billing period
@@ -96,8 +116,10 @@ export function useDerived() {
       const month = (invoice.accountMonth || "").toUpperCase();
       const invNo = invoice.invoiceNo || invoice.taxInvoiceNo || "";
       if (month.includes("FEB") || invNo === "785101497007") return new Date("2026-02-04T12:00:00");
-      if (month.includes("MARCH") || invNo === "785762166034") return new Date("2026-03-04T12:00:00");
-      if (month.includes("APRIL") || invNo === "785684906677") return new Date("2026-03-30T14:00:00");
+      if (month.includes("MARCH") || invNo === "785762166034")
+        return new Date("2026-03-04T12:00:00");
+      if (month.includes("APRIL") || invNo === "785684906677")
+        return new Date("2026-03-30T14:00:00");
       if (month.includes("MAY") || invNo === "785595072130") return new Date("2026-05-04T11:30:00");
       if (invoice.billingPeriodStart) return new Date(`${invoice.billingPeriodStart}T12:00:00`);
       return new Date("2026-03-04T12:00:00");
@@ -117,16 +139,19 @@ export function useDerived() {
       totalKVAh: totalKWh / PF,
       maxDemandKVA,
       maxDemandAt,
-      nmdExceedances: exceedanceKVA > 0 ? [
-        {
-          ts: maxDemandAt,
-          kVA: maxDemandKVA,
-          nmd,
-          exceedanceKVA,
-          penaltyR: exceedanceKVA * 54.32,
-          tou: "standard" as const,
-        }
-      ] : [],
+      nmdExceedances:
+        exceedanceKVA > 0
+          ? [
+              {
+                ts: maxDemandAt,
+                kVA: maxDemandKVA,
+                nmd,
+                exceedanceKVA,
+                penaltyR: exceedanceKVA * 54.32,
+                tou: "standard" as const,
+              },
+            ]
+          : [],
     };
   }, [filtered, invoice, nmd]);
 
@@ -256,7 +281,11 @@ export function ChartTip({
       <div className="tabular-nums font-semibold">
         {NUM(p.value)} {unit}
       </div>
-      {tou && <div style={{ color: TOU_COLOR[tou] }} className="font-semibold mt-0.5">{TOU_LABEL[tou]} TOU Window</div>}
+      {tou && (
+        <div style={{ color: TOU_COLOR[tou] }} className="font-semibold mt-0.5">
+          {TOU_LABEL[tou]} TOU Window
+        </div>
+      )}
     </div>
   );
 }
@@ -274,7 +303,12 @@ export function useChartData(rows: Measurement[], maxPoints = 300) {
       estimated: !!r.estimated,
       outage: !!r.outage,
     }));
-    const sampled = lttb(points, maxPoints, (p) => p.t, (p) => p.kVA || p.kW);
+    const sampled = lttb(
+      points,
+      maxPoints,
+      (p) => p.t,
+      (p) => p.kVA || p.kW,
+    );
     // Explicitly preserve the global peak point so downsampling never drops the exact peak marker
     let rawMax = points[0];
     for (const p of points) {
@@ -294,9 +328,7 @@ export function useDataQuality(rows: Measurement[]) {
     const estimated = rows.filter((r) => r.estimated);
     const outages = rows.filter((r) => r.outage);
     const supplied = rows.filter((r) => !r.outage && r.kVA > 0);
-    const avgPf = supplied.length
-      ? supplied.reduce((a, r) => a + r.pf, 0) / supplied.length
-      : 0;
+    const avgPf = supplied.length ? supplied.reduce((a, r) => a + r.pf, 0) / supplied.length : 0;
     const totalKWh = rows.reduce((a, r) => a + (isFinite(r.kW) ? r.kW * 0.5 : 0), 0);
     let peak = 0;
     let peakAt: Date | null = null;
@@ -451,14 +483,19 @@ export function DemandLineChart({
               tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
               unit=" kVA"
               width={80}
-              domain={['auto', 'auto']}
+              domain={["auto", "auto"]}
             />
             <Tooltip content={<ChartTip unit="kVA" />} />
             <ReferenceLine
               y={nmd}
               stroke="#f59e0b"
               strokeDasharray="4 4"
-              label={{ value: `Agreed NMD (${NUM(nmd, 0)} kVA)`, fill: "#f59e0b", fontSize: 11, position: "insideTopLeft" }}
+              label={{
+                value: `Agreed NMD (${NUM(nmd, 0)} kVA)`,
+                fill: "#f59e0b",
+                fontSize: 11,
+                position: "insideTopLeft",
+              }}
             />
             <Line
               type="monotone"
@@ -486,7 +523,10 @@ export function DemandLineChart({
           <div>
             <span className="text-muted-foreground">Simultaneous Maximum Demand: </span>
             <span className="font-bold text-red-400 text-sm">{NUM(maxDemandKVA)} kVA</span>
-            <span className="text-muted-foreground"> · {format(maxDemandAt, "EEE dd MMM yyyy 'at' HH:mm")}</span>
+            <span className="text-muted-foreground">
+              {" "}
+              · {format(maxDemandAt, "EEE dd MMM yyyy 'at' HH:mm")}
+            </span>
           </div>
           <div>
             <span className="text-muted-foreground">Agreed NMD Threshold: </span>
@@ -509,10 +549,7 @@ export function TouBarChart({
     <ResponsiveContainer width="100%" height={260}>
       <BarChart data={data} margin={{ top: 12, right: 12, left: 12, bottom: 8 }}>
         <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-        <XAxis
-          dataKey="period"
-          tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
-        />
+        <XAxis dataKey="period" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
         <YAxis
           tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
           width={70}
@@ -656,9 +693,7 @@ export function DeficitAnalysis({
                         <span className="text-muted-foreground">not extracted</span>
                       )}
                     </td>
-                    <td
-                      className={`px-3 py-2 text-right tabular-nums font-semibold ${tone}`}
-                    >
+                    <td className={`px-3 py-2 text-right tabular-nums font-semibold ${tone}`}>
                       {r.inv ? ZAR(r.variance) : "—"}
                     </td>
                     <td className={`px-3 py-2 text-right tabular-nums text-xs ${tone}`}>

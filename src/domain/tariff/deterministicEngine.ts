@@ -4,7 +4,7 @@
  * Generates a step-by-step audit trace for every calculated amount.
  */
 
-import Decimal from 'decimal.js-light';
+import Decimal from "decimal.js-light";
 import type {
   DeterministicCalculationInput,
   TariffCalculationResult,
@@ -12,18 +12,18 @@ import type {
   CalculationAuditStep,
   TariffVersionDefinition,
   SeasonType,
-} from './types';
-import { TouScheduleEngine } from './touScheduleEngine';
+} from "./types";
+import { TouScheduleEngine } from "./touScheduleEngine";
 
 export class DeterministicEngine {
-  private static readonly VAT_RATE = new Decimal('0.15');
+  private static readonly VAT_RATE = new Decimal("0.15");
 
   /**
    * Main calculation entry point using exact Decimal math
    */
   public static calculateTariff(
     input: DeterministicCalculationInput,
-    tariffVersion: TariffVersionDefinition
+    tariffVersion: TariffVersionDefinition,
   ): TariffCalculationResult {
     const startDate = new Date(input.billing_start);
     const endDate = new Date(input.billing_end);
@@ -51,12 +51,12 @@ export class DeterministicEngine {
       quantity: Decimal,
       ruleApplied: string,
       formulaUsed: string,
-      seasonType: SeasonType | 'all' = season,
-      touPeriod?: 'peak' | 'standard' | 'off_peak' | 'all'
+      seasonType: SeasonType | "all" = season,
+      touPeriod?: "peak" | "standard" | "off_peak" | "all",
     ) => {
       let amount: Decimal;
 
-      if (unit === 'c/kWh') {
+      if (unit === "c/kWh") {
         // (quantity * rate / 100) -> Rand
         amount = quantity.mul(rate).div(100).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
       } else {
@@ -73,11 +73,11 @@ export class DeterministicEngine {
         season: seasonType,
         tou_period: touPeriod,
         rate_applied: `${rate.toString()} ${unit}`,
-        input_value: `${quantity.toString()} ${unit.includes('kWh') ? 'kWh' : unit.includes('kVA') ? 'kVA' : 'units'}`,
+        input_value: `${quantity.toString()} ${unit.includes("kWh") ? "kWh" : unit.includes("kVA") ? "kVA" : "units"}`,
         unit,
         rule_applied: ruleApplied,
         formula_used: formulaUsed,
-        rounding_rule: 'Decimal.ROUND_HALF_UP (2 decimal places)',
+        rounding_rule: "Decimal.ROUND_HALF_UP (2 decimal places)",
         calculated_amount_zar: amount,
         formatted_amount_zar: formatZar(amount),
       };
@@ -97,14 +97,14 @@ export class DeterministicEngine {
 
     // 1. Energy Charges (Peak, Standard, Off-Peak)
     const activeComponents = (tariffVersion.components || []).filter(
-      (c) => c.component_type === 'ACTIVE_ENERGY' && (c.season === season || c.season === 'all')
+      (c) => c.component_type === "ACTIVE_ENERGY" && (c.season === season || c.season === "all"),
     );
 
     for (const comp of activeComponents) {
       let qty = new Decimal(0);
-      if (comp.tou_period === 'peak') qty = input.peak_kwh;
-      else if (comp.tou_period === 'standard') qty = input.standard_kwh;
-      else if (comp.tou_period === 'off_peak') qty = input.off_peak_kwh;
+      if (comp.tou_period === "peak") qty = input.peak_kwh;
+      else if (comp.tou_period === "standard") qty = input.standard_kwh;
+      else if (comp.tou_period === "off_peak") qty = input.off_peak_kwh;
 
       if (qty.gt(0)) {
         addItem(
@@ -116,22 +116,30 @@ export class DeterministicEngine {
           `Gazetted ${comp.season?.toUpperCase()} season ${comp.tou_period?.toUpperCase()} energy rate`,
           `amount = (qty_kwh * rate_cents) / 100`,
           season,
-          comp.tou_period
+          comp.tou_period,
         );
       }
     }
 
     // 2. Demand & Capacity Charges (R/kVA/month)
     const demandComponents = (tariffVersion.components || []).filter((c) =>
-      ['NETWORK_DEMAND', 'NETWORK_CAPACITY', 'GENERATION_CAPACITY', 'TRANSMISSION_NETWORK'].includes(
-        c.component_type
-      )
+      [
+        "NETWORK_DEMAND",
+        "NETWORK_CAPACITY",
+        "GENERATION_CAPACITY",
+        "TRANSMISSION_NETWORK",
+      ].includes(c.component_type),
     );
 
     for (const comp of demandComponents) {
       let qty = input.maximum_demand_kva;
-      if (comp.component_type === 'NETWORK_CAPACITY' || comp.component_type === 'GENERATION_CAPACITY') {
-        qty = input.notified_maximum_demand_kva.gt(0) ? input.notified_maximum_demand_kva : input.maximum_demand_kva;
+      if (
+        comp.component_type === "NETWORK_CAPACITY" ||
+        comp.component_type === "GENERATION_CAPACITY"
+      ) {
+        qty = input.notified_maximum_demand_kva.gt(0)
+          ? input.notified_maximum_demand_kva
+          : input.maximum_demand_kva;
       }
 
       if (qty.gt(0)) {
@@ -143,14 +151,14 @@ export class DeterministicEngine {
           qty,
           `Gazetted NERSA ${comp.component_name} per kVA of billing demand`,
           `amount = demand_kva * rate_zar`,
-          'all'
+          "all",
         );
       }
     }
 
     // 3. Fixed Daily Charges (Service & Administration R/day)
     const fixedComponents = tariffVersion.components.filter((c) =>
-      ['SERVICE_CHARGE', 'ADMINISTRATION_CHARGE'].includes(c.component_type)
+      ["SERVICE_CHARGE", "ADMINISTRATION_CHARGE"].includes(c.component_type),
     );
 
     for (const comp of fixedComponents) {
@@ -163,15 +171,15 @@ export class DeterministicEngine {
         days,
         `Fixed daily ${comp.component_name} multiplied by ${billingDays} billing days`,
         `amount = billing_days * rate_per_day`,
-        'all'
+        "all",
       );
     }
 
     // 4. Subsidies & Ancillary (c/kWh on Total Energy)
     const subsidyComponents = tariffVersion.components.filter((c) =>
-      ['ANCILLARY_SERVICE', 'ELECTRIFICATION_SUBSIDY', 'AFFORDABILITY_SUBSIDY'].includes(
-        c.component_type
-      )
+      ["ANCILLARY_SERVICE", "ELECTRIFICATION_SUBSIDY", "AFFORDABILITY_SUBSIDY"].includes(
+        c.component_type,
+      ),
     );
 
     for (const comp of subsidyComponents) {
@@ -184,17 +192,20 @@ export class DeterministicEngine {
           input.active_energy_kwh,
           `Gazetted NERSA ${comp.component_name} on total active energy`,
           `amount = (total_kwh * rate_cents) / 100`,
-          'all'
+          "all",
         );
       }
     }
 
     // 5. Reactive Energy & Power Factor Penalty
-    const reactiveComp = (tariffVersion.components || []).find((c) => c.component_type === 'REACTIVE_ENERGY');
-    if (reactiveComp && input.power_factor.gt(0) && input.power_factor.lt(new Decimal('0.96'))) {
-      const reactiveQty = input.reactive_energy_kvarh && input.reactive_energy_kvarh.gt(0)
-        ? input.reactive_energy_kvarh
-        : new Decimal(0);
+    const reactiveComp = (tariffVersion.components || []).find(
+      (c) => c.component_type === "REACTIVE_ENERGY",
+    );
+    if (reactiveComp && input.power_factor.gt(0) && input.power_factor.lt(new Decimal("0.96"))) {
+      const reactiveQty =
+        input.reactive_energy_kvarh && input.reactive_energy_kvarh.gt(0)
+          ? input.reactive_energy_kvarh
+          : new Decimal(0);
 
       if (reactiveQty.gt(0)) {
         addItem(
@@ -205,7 +216,7 @@ export class DeterministicEngine {
           reactiveQty,
           `Power factor penalty applied (PF ${input.power_factor.toString()} < 0.96 threshold)`,
           `amount = reactive_kvarh * penalty_rate`,
-          'all'
+          "all",
         );
       }
     }

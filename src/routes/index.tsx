@@ -30,11 +30,28 @@ function DashboardPage() {
   const be = useApp((s) => s.billingEnd);
 
   // Source active kWh totals from current invoice or derived meter totals
-  const peakKWh = invoice?.peakKWh ?? invoice?.normalizedJson?.consumption?.peakKwh ?? totals.peakKWh ?? 0;
-  const stdKWh = invoice?.standardKWh ?? invoice?.normalizedJson?.consumption?.standardKwh ?? totals.standardKWh ?? 0;
-  const offKWh = invoice?.offPeakKWh ?? invoice?.normalizedJson?.consumption?.offPeakKwh ?? totals.offPeakKWh ?? 0;
-  const totalKWh = invoice?.totalKWh ?? invoice?.normalizedJson?.consumption?.totalKwh ?? totals.totalKWh ?? (peakKWh + stdKWh + offKWh);
-  const maxDemandKVA = invoice?.maxDemandKVA ?? invoice?.normalizedJson?.consumption?.peakDemand ?? totals.maxDemandKVA ?? 85740;
+  const peakKWh =
+    invoice?.peakKWh ?? invoice?.normalizedJson?.consumption?.peakKwh ?? totals.peakKWh ?? 0;
+  const stdKWh =
+    invoice?.standardKWh ??
+    invoice?.normalizedJson?.consumption?.standardKwh ??
+    totals.standardKWh ??
+    0;
+  const offKWh =
+    invoice?.offPeakKWh ??
+    invoice?.normalizedJson?.consumption?.offPeakKwh ??
+    totals.offPeakKWh ??
+    0;
+  const totalKWh =
+    invoice?.totalKWh ??
+    invoice?.normalizedJson?.consumption?.totalKwh ??
+    totals.totalKWh ??
+    peakKWh + stdKWh + offKWh;
+  const maxDemandKVA =
+    invoice?.maxDemandKVA ??
+    invoice?.normalizedJson?.consumption?.peakDemand ??
+    totals.maxDemandKVA ??
+    85740;
 
   const diff = invoiceTotal - calculatedTotal;
   const pctErr = invoiceTotal ? (diff / invoiceTotal) * 100 : 0;
@@ -118,7 +135,11 @@ function DashboardPage() {
         <MetricCard
           label="Maximum Demand"
           value={`${NUM(invoice?.maxDemandKVA || totals.maxDemandKVA, 0)} kVA`}
-          sub={totals.maxDemandAt ? format(totals.maxDemandAt, "dd MMM yyyy HH:mm") : "NMD Cap 90,000 kVA"}
+          sub={
+            totals.maxDemandAt
+              ? format(totals.maxDemandAt, "dd MMM yyyy HH:mm")
+              : "NMD Cap 90,000 kVA"
+          }
         />
       </section>
 

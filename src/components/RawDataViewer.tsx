@@ -21,9 +21,9 @@ interface RawDataViewerProps {
 }
 
 export function RawDataViewer({ pipelineResult, onClose }: RawDataViewerProps) {
-  const [activeTab, setActiveTab] = useState<
-    "text" | "tables" | "validation" | "json" | "logs"
-  >("validation");
+  const [activeTab, setActiveTab] = useState<"text" | "tables" | "validation" | "json" | "logs">(
+    "validation",
+  );
   const [copied, setCopied] = useState<boolean>(false);
 
   const { invoice, validationReport, rawText, detectedTables, logs, confidenceScore } =
@@ -56,9 +56,7 @@ export function RawDataViewer({ pipelineResult, onClose }: RawDataViewerProps) {
         <div className="flex items-center gap-3">
           <FileText className="h-5 w-5 text-primary" />
           <div>
-            <h3 className="text-sm font-semibold">
-              Non-Lossy Raw Data &amp; Validation Inspector
-            </h3>
+            <h3 className="text-sm font-semibold">Non-Lossy Raw Data &amp; Validation Inspector</h3>
             <p className="text-xs text-muted-foreground">
               Invoice #{invoice.invoiceNumber || "785101497007"} • Extraction Confidence:{" "}
               <span className="font-bold text-emerald-400">{confidenceScore}%</span>
@@ -71,7 +69,11 @@ export function RawDataViewer({ pipelineResult, onClose }: RawDataViewerProps) {
             onClick={handleCopyJson}
             className="inline-flex items-center gap-1 text-xs bg-muted hover:bg-muted/80 text-foreground px-2.5 py-1.5 rounded-md font-medium transition"
           >
-            {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? (
+              <Check className="h-3.5 w-3.5 text-emerald-400" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
             {copied ? "Copied" : "Copy JSON"}
           </button>
           <button
@@ -180,8 +182,8 @@ export function RawDataViewer({ pipelineResult, onClose }: RawDataViewerProps) {
                     <p className="text-muted-foreground">{r.message}</p>
                     {r.expectedValue && r.actualValue && (
                       <div className="text-[11px] font-mono text-muted-foreground/80 pt-1">
-                        Expected: <span className="text-foreground">{r.expectedValue}</span> | Actual:{" "}
-                        <span className="text-foreground">{r.actualValue}</span>
+                        Expected: <span className="text-foreground">{r.expectedValue}</span> |
+                        Actual: <span className="text-foreground">{r.actualValue}</span>
                       </div>
                     )}
                   </div>
@@ -214,10 +216,17 @@ export function RawDataViewer({ pipelineResult, onClose }: RawDataViewerProps) {
                     {detectedTables.map((item, idx) => (
                       <tr key={idx} className="hover:bg-muted/20">
                         <td className="p-2.5 font-medium">{item.label || item.description}</td>
-                        <td className="p-2.5 text-muted-foreground font-mono">{item.code || item.basis || "—"}</td>
-                        <td className="p-2.5 text-right font-mono">{item.rate ? `R ${item.rate}` : "—"}</td>
+                        <td className="p-2.5 text-muted-foreground font-mono">
+                          {item.code || item.basis || "—"}
+                        </td>
+                        <td className="p-2.5 text-right font-mono">
+                          {item.rate ? `R ${item.rate}` : "—"}
+                        </td>
                         <td className="p-2.5 text-right font-mono font-semibold text-emerald-400">
-                          R {(item.amount || item.invoicedAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          R{" "}
+                          {(item.amount || item.invoicedAmount || 0).toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                          })}
                         </td>
                       </tr>
                     ))}
@@ -239,7 +248,10 @@ export function RawDataViewer({ pipelineResult, onClose }: RawDataViewerProps) {
         {activeTab === "logs" && (
           <div className="space-y-2">
             {logs.map((log, idx) => (
-              <div key={idx} className="flex items-center justify-between p-2 rounded-md bg-muted/20 text-xs font-mono">
+              <div
+                key={idx}
+                className="flex items-center justify-between p-2 rounded-md bg-muted/20 text-xs font-mono"
+              >
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-primary">[{log.stage}]</span>
                   <span>{log.message}</span>

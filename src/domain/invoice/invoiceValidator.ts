@@ -3,11 +3,15 @@
  * Performs mathematical, billing, and domain consistency checks on extracted invoices
  */
 
-import type { ExtractedInvoiceDocument, InvoiceDiscrepancy, InvoiceValidationSummary } from './types';
+import type {
+  ExtractedInvoiceDocument,
+  InvoiceDiscrepancy,
+  InvoiceValidationSummary,
+} from "./types";
 
 export class InvoiceValidator {
   private static readonly ENERGY_TOLERANCE_KWH = 0.5;
-  private static readonly FINANCIAL_TOLERANCE_ZAR = 0.50;
+  private static readonly FINANCIAL_TOLERANCE_ZAR = 0.5;
 
   /**
    * Evaluate mathematical & domain validation rules on an extracted invoice
@@ -29,9 +33,9 @@ export class InvoiceValidator {
       if (energyDiff > this.ENERGY_TOLERANCE_KWH) {
         energyReconciled = false;
         discrepancies.push({
-          rule_id: 'RULE_ENERGY_SUM_MISMATCH',
-          rule_name: 'Time-of-Use Energy Sum Mismatch',
-          severity: 'major',
+          rule_id: "RULE_ENERGY_SUM_MISMATCH",
+          rule_name: "Time-of-Use Energy Sum Mismatch",
+          severity: "major",
           expected_value: totalKwh,
           actual_value: sumTouEnergy,
           variance_amount: energyDiff,
@@ -53,9 +57,9 @@ export class InvoiceValidator {
       if (finDiff > this.FINANCIAL_TOLERANCE_ZAR) {
         financialReconciled = false;
         discrepancies.push({
-          rule_id: 'RULE_FINANCIAL_VAT_MISMATCH',
-          rule_name: 'Subtotal & VAT Sum Mismatch',
-          severity: 'critical',
+          rule_id: "RULE_FINANCIAL_VAT_MISMATCH",
+          rule_name: "Subtotal & VAT Sum Mismatch",
+          severity: "critical",
           expected_value: totalInclVat,
           actual_value: calcTotal,
           variance_amount: finDiff,
@@ -70,9 +74,9 @@ export class InvoiceValidator {
 
     if (nmd > 0 && maxDemand > nmd) {
       discrepancies.push({
-        rule_id: 'RULE_NMD_EXCEEDED',
-        rule_name: 'Notified Maximum Demand Exceeded',
-        severity: 'warning',
+        rule_id: "RULE_NMD_EXCEEDED",
+        rule_name: "Notified Maximum Demand Exceeded",
+        severity: "warning",
         expected_value: nmd,
         actual_value: maxDemand,
         variance_amount: maxDemand - nmd,
@@ -84,21 +88,21 @@ export class InvoiceValidator {
     const pf = Number(invoice.power_factor.value) || 0;
     if (pf !== 0 && (pf < 0.0 || pf > 1.0)) {
       discrepancies.push({
-        rule_id: 'RULE_INVALID_POWER_FACTOR',
-        rule_name: 'Power Factor Out of Range',
-        severity: 'warning',
-        expected_value: '0.00 - 1.00',
+        rule_id: "RULE_INVALID_POWER_FACTOR",
+        rule_name: "Power Factor Out of Range",
+        severity: "warning",
+        expected_value: "0.00 - 1.00",
         actual_value: pf,
         message: `Extracted Power Factor (${pf}) is outside valid physical range [0.0 - 1.0].`,
       });
     }
 
     // Determine Overall Status
-    let status: 'valid' | 'discrepancy' | 'failed' = 'valid';
-    if (discrepancies.some((d) => d.severity === 'critical')) {
-      status = 'failed';
+    let status: "valid" | "discrepancy" | "failed" = "valid";
+    if (discrepancies.some((d) => d.severity === "critical")) {
+      status = "failed";
     } else if (discrepancies.length > 0) {
-      status = 'discrepancy';
+      status = "discrepancy";
     }
 
     return {
