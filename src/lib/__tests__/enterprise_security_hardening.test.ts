@@ -7,7 +7,7 @@ import { AppRole, SecurityPermission, ROLE_PERMISSIONS_MAP } from "../../domain/
 import { createSecurityContext, hasPermission, validateTenantAccess } from "../../domain/security/tenantContextService";
 import { sanitizeCsvValue, escapeHtml, validateUploadedFile, redactSensitiveData } from "../../domain/security/inputSanitizer";
 
-function assert(condition: boolean, message: string) {
+function assert(condition: boolean | undefined, message: string) {
   if (!condition) {
     throw new Error(`SECURITY TEST FAILED: ${message}`);
   }

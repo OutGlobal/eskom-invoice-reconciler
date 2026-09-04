@@ -160,9 +160,9 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
               <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `${v} kWh`} />
               <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
               <Legend />
-              <Bar dataKey="peakKwh" fill={TOU_COLOR.PEAK} name="Peak kWh" stackId="a" />
-              <Bar dataKey="standardKwh" fill={TOU_COLOR.STANDARD} name="Standard kWh" stackId="a" />
-              <Bar dataKey="offPeakKwh" fill={TOU_COLOR.OFF_PEAK} name="Off-Peak kWh" stackId="a" />
+              <Bar dataKey="peakKwh" fill={TOU_COLOR.peak} name="Peak kWh" stackId="a" />
+              <Bar dataKey="standardKwh" fill={TOU_COLOR.standard} name="Standard kWh" stackId="a" />
+              <Bar dataKey="offPeakKwh" fill={TOU_COLOR.offPeak} name="Off-Peak kWh" stackId="a" />
             </BarChart>
           ) : activeTab === "daily" ? (
             <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
