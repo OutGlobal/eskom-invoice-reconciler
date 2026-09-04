@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Building2,
   AlertTriangle,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -35,6 +36,7 @@ const items = [
   { title: "Demand Analysis", url: "/demand", icon: Activity },
   { title: "Reconciliation", url: "/reconciliation", icon: Scale },
   { title: "Anomaly Diagnostics", url: "/anomalies", icon: AlertTriangle },
+  { title: "Audit Ledger", url: "/audit", icon: ShieldCheck },
   { title: "Municipal Statements", url: "/municipal", icon: Building2 },
 
   { title: "Trends & Recoveries", url: "/trends", icon: TrendingUp },

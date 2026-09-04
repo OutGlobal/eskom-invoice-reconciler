@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnomaliesRouteImport } from './routes/anomalies'
+import { Route as AuditRouteImport } from './routes/audit'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as DemandRouteImport } from './routes/demand'
 import { Route as EnergyRouteImport } from './routes/energy'
@@ -31,6 +32,11 @@ const IndexRoute = IndexRouteImport.update({
 const AnomaliesRoute = AnomaliesRouteImport.update({
   id: '/anomalies',
   path: '/anomalies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditRoute = AuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomersRoute = CustomersRouteImport.update({
@@ -92,6 +98,7 @@ const UploadRoute = UploadRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/anomalies': typeof AnomaliesRoute
+  '/audit': typeof AuditRoute
   '/customers': typeof CustomersRoute
   '/demand': typeof DemandRoute
   '/energy': typeof EnergyRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/anomalies': typeof AnomaliesRoute
+  '/audit': typeof AuditRoute
   '/customers': typeof CustomersRoute
   '/demand': typeof DemandRoute
   '/energy': typeof EnergyRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/anomalies': typeof AnomaliesRoute
+  '/audit': typeof AuditRoute
   '/customers': typeof CustomersRoute
   '/demand': typeof DemandRoute
   '/energy': typeof EnergyRoute
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/anomalies'
+    | '/audit'
     | '/customers'
     | '/demand'
     | '/energy'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/anomalies'
+    | '/audit'
     | '/customers'
     | '/demand'
     | '/energy'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/anomalies'
+    | '/audit'
     | '/customers'
     | '/demand'
     | '/energy'
@@ -186,6 +198,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnomaliesRoute: typeof AnomaliesRoute
+  AuditRoute: typeof AuditRoute
   CustomersRoute: typeof CustomersRoute
   DemandRoute: typeof DemandRoute
   EnergyRoute: typeof EnergyRoute
@@ -213,6 +226,13 @@ declare module '@tanstack/react-router' {
       path: '/anomalies'
       fullPath: '/anomalies'
       preLoaderRoute: typeof AnomaliesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit': {
+      id: '/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/customers': {
@@ -298,6 +318,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnomaliesRoute: AnomaliesRoute,
+  AuditRoute: AuditRoute,
   CustomersRoute: CustomersRoute,
   DemandRoute: DemandRoute,
   EnergyRoute: EnergyRoute,
