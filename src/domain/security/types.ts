@@ -1,0 +1,80 @@
+/**
+ * Enterprise Security & RBAC Types
+ * Eskom Bill Balancer Platform
+ */
+
+export type AppRole =
+  | "SUPER_ADMIN"
+  | "ORGANISATION_ADMIN"
+  | "ENERGY_MANAGER"
+  | "ANALYST"
+  | "AUDITOR"
+  | "REVIEWER"
+  | "READ_ONLY";
+
+export type SecurityPermission =
+  | "PERM_MANAGE_ORGANISATION"
+  | "PERM_MANAGE_USERS"
+  | "PERM_UPLOAD_FILES"
+  | "PERM_RUN_RECONCILIATION"
+  | "PERM_APPROVE_FINDINGS"
+  | "PERM_EXPORT_REPORTS"
+  | "PERM_VIEW_AUDIT_LEDGER"
+  | "PERM_VIEW_DATA";
+
+export const ROLE_PERMISSIONS_MAP: Record<AppRole, SecurityPermission[]> = {
+  SUPER_ADMIN: [
+    "PERM_MANAGE_ORGANISATION",
+    "PERM_MANAGE_USERS",
+    "PERM_UPLOAD_FILES",
+    "PERM_RUN_RECONCILIATION",
+    "PERM_APPROVE_FINDINGS",
+    "PERM_EXPORT_REPORTS",
+    "PERM_VIEW_AUDIT_LEDGER",
+    "PERM_VIEW_DATA",
+  ],
+  ORGANISATION_ADMIN: [
+    "PERM_MANAGE_USERS",
+    "PERM_UPLOAD_FILES",
+    "PERM_RUN_RECONCILIATION",
+    "PERM_APPROVE_FINDINGS",
+    "PERM_EXPORT_REPORTS",
+    "PERM_VIEW_AUDIT_LEDGER",
+    "PERM_VIEW_DATA",
+  ],
+  ENERGY_MANAGER: [
+    "PERM_UPLOAD_FILES",
+    "PERM_RUN_RECONCILIATION",
+    "PERM_APPROVE_FINDINGS",
+    "PERM_EXPORT_REPORTS",
+    "PERM_VIEW_AUDIT_LEDGER",
+    "PERM_VIEW_DATA",
+  ],
+  ANALYST: [
+    "PERM_UPLOAD_FILES",
+    "PERM_RUN_RECONCILIATION",
+    "PERM_EXPORT_REPORTS",
+    "PERM_VIEW_DATA",
+  ],
+  AUDITOR: [
+    "PERM_EXPORT_REPORTS",
+    "PERM_VIEW_AUDIT_LEDGER",
+    "PERM_VIEW_DATA",
+  ],
+  REVIEWER: [
+    "PERM_APPROVE_FINDINGS",
+    "PERM_EXPORT_REPORTS",
+    "PERM_VIEW_DATA",
+  ],
+  READ_ONLY: [
+    "PERM_VIEW_DATA",
+  ],
+};
+
+export interface UserSecurityContext {
+  userId: string;
+  email: string;
+  organisationId: string;
+  role: AppRole;
+  permissions: SecurityPermission[];
+}
