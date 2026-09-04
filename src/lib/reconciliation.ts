@@ -40,7 +40,18 @@ export function computeTotals(rows: Measurement[], nmd = 85740): Totals {
   };
   const RATE_PER_KVA_MONTH = 54.32; // Capacity ceiling rate: Network R35.98 + TX R10.25 + Gen R8.09
 
+  // Deduplicate rows by timestamp to prevent duplicate accumulation
+  const seenTimestamps = new Set<number>();
+  const uniqueRows: Measurement[] = [];
   for (const r of rows) {
+    const key = r.ts.getTime();
+    if (!seenTimestamps.has(key)) {
+      seenTimestamps.add(key);
+      uniqueRows.push(r);
+    }
+  }
+
+  for (const r of uniqueRows) {
     const kWh = r.kW * 0.5; // 30-minute integration
     const kVAh = r.kVA * 0.5;
     const kVA_inst = r.kVA;

@@ -51,9 +51,22 @@ export const TARIFF = {
 export type TouPeriod = "peak" | "standard" | "offPeak";
 export type Season = "high" | "low";
 
+/** Helper to convert any Date object to South Africa Standard Time (UTC+2) components */
+export function getSastComponents(d: Date): { year: number; month: number; day: number; dow: number; hours: number } {
+  const sastMs = d.getTime() + 2 * 60 * 60 * 1000;
+  const sastDate = new Date(sastMs);
+  return {
+    year: sastDate.getUTCFullYear(),
+    month: sastDate.getUTCMonth() + 1,
+    day: sastDate.getUTCDate(),
+    dow: sastDate.getUTCDay(),
+    hours: sastDate.getUTCHours(),
+  };
+}
+
 export function getSeason(d: Date): Season {
-  const m = d.getMonth() + 1; // 1-12
-  return m >= 6 && m <= 8 ? "high" : "low";
+  const { month } = getSastComponents(d);
+  return month >= 6 && month <= 8 ? "high" : "low";
 }
 
 // Eskom Public Holidays Specification (§10, p.11 of Schedule)
@@ -70,16 +83,15 @@ const SATURDAY_HOLIDAYS = new Set<string>([
 ]);
 
 function getEffectiveDayOfWeek(d: Date): number {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const dateStr = `${y}-${m}-${day}`;
-  const actualDow = d.getDay(); // 0 Sun .. 6 Sat
+  const { year, month, day, dow } = getSastComponents(d);
+  const mStr = String(month).padStart(2, "0");
+  const dStr = String(day).padStart(2, "0");
+  const dateStr = `${year}-${mStr}-${dStr}`;
 
-  if (actualDow === 0) return 0; // Sundays remain Sunday
+  if (dow === 0) return 0; // Sundays remain Sunday
   if (SUNDAY_HOLIDAYS.has(dateStr)) return 0; // Billed as Sunday
   if (SATURDAY_HOLIDAYS.has(dateStr)) return 6; // Billed as Saturday
-  return actualDow;
+  return dow;
 }
 
 /**
@@ -98,7 +110,7 @@ export function classifyTou(d: Date): TouPeriod {
   const block = new Date(d.getTime() - 1);
   const season = getSeason(block);
   const dow = getEffectiveDayOfWeek(block);
-  const h = block.getHours();
+  const { hours: h } = getSastComponents(block);
   const inRange = (start: number, end: number) => h >= start && h < end;
 
   // Sundays: 18:00–20:00 is Standard in 2025/26 clock; off-peak otherwise

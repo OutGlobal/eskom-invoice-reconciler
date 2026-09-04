@@ -78,9 +78,11 @@ export class TouScheduleEngine {
     date: Date,
     tariffDef: TariffVersionDefinition
   ): TouPeriodType {
-    const season = this.getSeason(date);
-    const dayType = this.getDayType(date, tariffDef.public_holidays);
-    const hour = date.getHours(); // 0..23
+    // Subtract 1ms so interval-end timestamps (e.g. 06:00) evaluate the ending block (05:30-06:00)
+    const block = new Date(date.getTime() - 1);
+    const season = this.getSeason(block);
+    const dayType = this.getDayType(block, tariffDef.public_holidays);
+    const hour = block.getHours(); // 0..23
 
     const seasonConfig = tariffDef.tou_schedule.find((s) => s.season === season);
     if (!seasonConfig) return 'off_peak';

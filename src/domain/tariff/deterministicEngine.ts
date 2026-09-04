@@ -96,7 +96,7 @@ export class DeterministicEngine {
     };
 
     // 1. Energy Charges (Peak, Standard, Off-Peak)
-    const activeComponents = tariffVersion.components.filter(
+    const activeComponents = (tariffVersion.components || []).filter(
       (c) => c.component_type === 'ACTIVE_ENERGY' && (c.season === season || c.season === 'all')
     );
 
@@ -122,7 +122,7 @@ export class DeterministicEngine {
     }
 
     // 2. Demand & Capacity Charges (R/kVA/month)
-    const demandComponents = tariffVersion.components.filter((c) =>
+    const demandComponents = (tariffVersion.components || []).filter((c) =>
       ['NETWORK_DEMAND', 'NETWORK_CAPACITY', 'GENERATION_CAPACITY', 'TRANSMISSION_NETWORK'].includes(
         c.component_type
       )
@@ -190,19 +190,24 @@ export class DeterministicEngine {
     }
 
     // 5. Reactive Energy & Power Factor Penalty
-    const reactiveComp = tariffVersion.components.find((c) => c.component_type === 'REACTIVE_ENERGY');
+    const reactiveComp = (tariffVersion.components || []).find((c) => c.component_type === 'REACTIVE_ENERGY');
     if (reactiveComp && input.power_factor.gt(0) && input.power_factor.lt(new Decimal('0.96'))) {
-      const reactiveQty = input.reactive_energy_kvarh.gt(0) ? input.reactive_energy_kvarh : new Decimal(1000);
-      addItem(
-        reactiveComp.component_code,
-        reactiveComp.component_name,
-        reactiveComp.unit_of_measure,
-        reactiveComp.rate_value,
-        reactiveQty,
-        `Power factor penalty applied (PF ${input.power_factor.toString()} < 0.96 threshold)`,
-        `amount = reactive_kvarh * penalty_rate`,
-        'all'
-      );
+      const reactiveQty = input.reactive_energy_kvarh && input.reactive_energy_kvarh.gt(0)
+        ? input.reactive_energy_kvarh
+        : new Decimal(0);
+
+      if (reactiveQty.gt(0)) {
+        addItem(
+          reactiveComp.component_code,
+          reactiveComp.component_name,
+          reactiveComp.unit_of_measure,
+          reactiveComp.rate_value,
+          reactiveQty,
+          `Power factor penalty applied (PF ${input.power_factor.toString()} < 0.96 threshold)`,
+          `amount = reactive_kvarh * penalty_rate`,
+          'all'
+        );
+      }
     }
 
     // Calculate Subtotal Ex-VAT

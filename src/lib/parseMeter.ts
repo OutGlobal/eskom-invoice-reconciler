@@ -126,33 +126,80 @@ export async function parseMeterWorkbook(buffer: ArrayBuffer): Promise<Measureme
 
 /**
  * Data-quality pass applied to every ingested dataset:
- *  - NaN / null measurements are repaired by linear interpolation of the
- *    neighbouring intervals ((val[i-1] + val[i+1]) / 2) and badged `estimated`.
- *  - All-zero intervals (0 kW / 0 kVA) are tagged as an unsupplied grid outage
- *    and given a safe power factor of 1.0 (no divide-by-zero).
+ *  - Deduplicates identical timestamps (keeps first valid reading).
+ *  - Fills time gaps (> 30 mins) by generating synthetic 30-minute interval slots badged `estimated`.
+ *  - NaN / null measurements are repaired by linear interpolation.
+ *  - All-zero intervals (0 kW / 0 kVA) are tagged as an unsupplied grid outage and given safe PF 1.0.
  */
-export function imputeAndFlag(rows: Measurement[]): Measurement[] {
+export function imputeAndFlag(inputRows: Measurement[]): Measurement[] {
+  if (!inputRows || inputRows.length === 0) return [];
+
+  // Step 1: Sort by timestamp
+  const sorted = [...inputRows].sort((a, b) => a.ts.getTime() - b.ts.getTime());
+
+  // Step 2: Deduplicate identical timestamps
+  const uniqueMap = new Map<number, Measurement>();
+  for (const r of sorted) {
+    const key = r.ts.getTime();
+    if (!uniqueMap.has(key)) {
+      uniqueMap.set(key, { ...r });
+    }
+  }
+  const deduplicated = Array.from(uniqueMap.values());
+
+  // Step 3: Detect and fill missing 30-minute time gaps
+  const filledRows: Measurement[] = [];
+  const INTERVAL_MS = 30 * 60 * 1000;
+
+  for (let i = 0; i < deduplicated.length; i++) {
+    const current = deduplicated[i];
+
+    if (i > 0) {
+      const prev = filledRows[filledRows.length - 1];
+      const gapMs = current.ts.getTime() - prev.ts.getTime();
+
+      // If gap is greater than 30 minutes, insert missing 30-minute slots
+      if (gapMs > INTERVAL_MS + 1000) {
+        let missingTs = prev.ts.getTime() + INTERVAL_MS;
+        while (missingTs < current.ts.getTime()) {
+          const synthTs = new Date(missingTs);
+          filledRows.push({
+            ts: synthTs,
+            kW: NaN,
+            kVAr: NaN,
+            kVA: NaN,
+            pf: 1.0,
+            tou: classifyTou(synthTs),
+            estimated: true,
+          });
+          missingTs += INTERVAL_MS;
+        }
+      }
+    }
+
+    filledRows.push(current);
+  }
+
+  // Step 4: Repair NaNs & badge estimated/outage
   const fields: Array<"kW" | "kVAr" | "kVA"> = ["kW", "kVAr", "kVA"];
 
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i];
+  for (let i = 0; i < filledRows.length; i++) {
+    const r = filledRows[i];
     let repaired = false;
 
     for (const f of fields) {
       if (isFinite(r[f])) continue;
-      // find previous finite value
       let prev: number | undefined;
       for (let j = i - 1; j >= 0; j--) {
-        if (isFinite(rows[j][f])) {
-          prev = rows[j][f];
+        if (isFinite(filledRows[j][f])) {
+          prev = filledRows[j][f];
           break;
         }
       }
-      // find next finite value
       let next: number | undefined;
-      for (let j = i + 1; j < rows.length; j++) {
-        if (isFinite(rows[j][f])) {
-          next = rows[j][f];
+      for (let j = i + 1; j < filledRows.length; j++) {
+        if (isFinite(filledRows[j][f])) {
+          next = filledRows[j][f];
           break;
         }
       }
@@ -168,7 +215,6 @@ export function imputeAndFlag(rows: Measurement[]): Measurement[] {
       r.kVA = r.kVA > 0 ? r.kVA : Math.sqrt(r.kW * r.kW + r.kVAr * r.kVAr);
     }
 
-    // Outage detection + zero-division guard
     if (r.kW === 0 && r.kVA === 0) {
       r.outage = true;
       r.pf = 1.0;
@@ -177,7 +223,7 @@ export function imputeAndFlag(rows: Measurement[]): Measurement[] {
     }
   }
 
-  return rows;
+  return filledRows;
 }
 
 /** Generates 100% deterministic 30-minute interval meter dataset incorporating exact sub-incomer peak readings from attached raw meter dataset */
