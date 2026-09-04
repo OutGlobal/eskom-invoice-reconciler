@@ -11,7 +11,7 @@ import {
   Settings as SettingsIcon,
   TrendingUp,
   Building2,
-
+  AlertTriangle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -34,6 +34,7 @@ const items = [
   { title: "Energy Analysis", url: "/energy", icon: Zap },
   { title: "Demand Analysis", url: "/demand", icon: Activity },
   { title: "Reconciliation", url: "/reconciliation", icon: Scale },
+  { title: "Anomaly Diagnostics", url: "/anomalies", icon: AlertTriangle },
   { title: "Municipal Statements", url: "/municipal", icon: Building2 },
 
   { title: "Trends & Recoveries", url: "/trends", icon: TrendingUp },
