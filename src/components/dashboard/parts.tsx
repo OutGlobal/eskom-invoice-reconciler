@@ -22,11 +22,12 @@ import { TARIFF, TOU_COLOR, TOU_LABEL, getSeason, type TouPeriod } from "@/lib/t
 import { useApp } from "@/lib/store";
 import { validateMeterRows } from "@/lib/validation";
 import { lttb } from "@/lib/downsample";
+import { FinancialMath } from "@/domain/services/financialMath";
 
 export const ZAR = (n: number) =>
-  "R " + n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  "R " + FinancialMath.roundCurrency(n).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export const NUM = (n: number, d = 2) =>
-  n.toLocaleString("en-ZA", { minimumFractionDigits: d, maximumFractionDigits: d });
+  (isNaN(n) ? 0 : n).toLocaleString("en-ZA", { minimumFractionDigits: d, maximumFractionDigits: d });
 
 /** Loads default complete 4-month telemetry meter dataset once on mount if store has partial rows. */
 export function useBootstrapMeter() {
