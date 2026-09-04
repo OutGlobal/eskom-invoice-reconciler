@@ -79,7 +79,6 @@ export const DisputePackModal: React.FC<DisputePackModalProps> = ({
             "Disputed Overcharge (ZAR)": 1800.0,
             "Evidence Reference": "Derived 15% VAT on disputed overcharges",
           },
-        ],
         ] as any),
         [],
         `Eskom_Dispute_Pack_${accountNumber}_${invoiceNumber}`,
