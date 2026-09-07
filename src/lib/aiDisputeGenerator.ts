@@ -68,7 +68,7 @@ c) Apply the corrected balance against our active commercial statement.
 Prepared & Submitted by:
 ${req.preparedBy}
 Commercial Energy & Infrastructure Audit Team
-Impala Platinum Limited
+${customerName}
 Email: admin@eskombalancer.co.za
 `;
 }

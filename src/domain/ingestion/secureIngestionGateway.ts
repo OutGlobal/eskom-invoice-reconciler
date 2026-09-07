@@ -284,6 +284,7 @@ export class SecureIngestionGateway {
       fileHeader,
       batchJob,
       extractedInvoice: extractRes.extractedFields,
+      intervals: extractRes.intervals,
       rawExtractionText: extractRes.rawTextPreview,
       confidenceScore: extractRes.confidenceScore,
       errors: extractRes.errors,

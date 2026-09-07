@@ -129,8 +129,20 @@ function CustomersPage() {
     setShowAddModal(false);
 
     try {
-      await supabase.from("customers").upsert(rec, { onConflict: "account_number" });
-      toast.success(`Customer ${newName} added & synced to Supabase!`);
+      const dbPayload = {
+        account_number: rec.account_number,
+        customer_name: rec.customer_name,
+        meter_number: rec.meter_number,
+        address: rec.address,
+        nmd: rec.nmd,
+      };
+      const { error } = await supabase.from("customers").upsert(dbPayload, { onConflict: "account_number" });
+      if (error) {
+        console.warn("Supabase customer sync notice:", error.message);
+        toast.success(`Customer ${newName} added locally.`);
+      } else {
+        toast.success(`Customer ${newName} added & synced to Supabase!`);
+      }
     } catch (err) {
       toast.success(`Customer ${newName} added locally.`);
     }

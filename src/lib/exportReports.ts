@@ -127,16 +127,18 @@ export function exportToCsv(
     "Notes",
   ];
   const csvRows = [
-    headers.join(","),
+    headers.map((h) => sanitizeCsvCell(h)).join(","),
     ...rows.map((r) =>
       [
-        `"${r.charge.replace(/"/g, '""')}"`,
-        r.calculated.toFixed(2),
-        r.invoice > 0 ? r.invoice.toFixed(2) : "",
-        r.invoice > 0 ? r.varianceR.toFixed(2) : "",
-        r.invoice > 0 ? `${r.variancePct.toFixed(2)}%` : "",
-        `"${r.status}"`,
-        `"${(r.reason || "").replace(/"/g, '""')}"`,
+        sanitizeCsvCell(r.charge),
+        sanitizeCsvCell(r.calculated),
+        r.invoice > 0 ? sanitizeCsvCell(r.invoice) : '""',
+        r.invoice > 0 ? sanitizeCsvCell(r.varianceR) : '""',
+        r.invoice > 0
+          ? sanitizeCsvCell(`${r.variancePct >= 0 ? "+" : ""}${r.variancePct.toFixed(2)}%`)
+          : '""',
+        sanitizeCsvCell(r.status),
+        sanitizeCsvCell(r.reason || ""),
       ].join(","),
     ),
   ];

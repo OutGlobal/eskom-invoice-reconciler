@@ -1,400 +1,388 @@
+import React, { useState, useEffect, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { Panel, NUM } from "@/components/dashboard/parts";
+import { DeterministicReconciliationEngine, DEFAULT_TOLERANCE_CONFIG } from "@/domain/reconciliation/reconciliationEngine";
+import { REGRESSION_FIXTURES, MEGAFLEX_JULY_2025_FIXTURE } from "@/domain/reconciliation/regressionFixtures";
+import type { AuthoritativeReconciliationPayload, DeterminantComparisonItem, ToleranceConfig } from "@/domain/reconciliation/types";
+import { ESKOM_MEGAFLEX_2025_2026 } from "@/domain/tariff/tariffFixtures";
 import {
-  Download,
-  FileSpreadsheet,
-  FileText,
-  Printer,
-  AlertTriangle,
-  Search,
-  Filter,
-  Info as InfoIcon,
-  X,
-  ExternalLink,
+  Scale,
   ShieldCheck,
-  Sparkles,
-  ShieldAlert,
+  Info,
+  CheckCircle,
+  AlertTriangle,
+  FileText,
+  RefreshCw,
+  Sliders,
+  Play,
+  Layers,
+  Search,
 } from "lucide-react";
-import { InvoiceSelector } from "@/components/InvoiceSelector";
-import { useBootstrapMeter, useDerived, PeriodPicker } from "@/components/dashboard/parts";
+import Decimal from "decimal.js-light";
 import { useApp } from "@/lib/store";
-import { buildStandardReconciliationTable } from "@/lib/reconciliation";
-import { exportToExcel, exportToCsv, exportToJson, exportToPdfPrint } from "@/lib/exportReports";
-import { AiCopilotModal } from "@/components/AiCopilotModal";
-import { EnterpriseWorkflowStepper } from "@/components/workflow/EnterpriseWorkflowStepper";
-import { ReconciliationDashboard } from "@/components/reconciliation/ReconciliationDashboard";
-import { EnterpriseReconciliationCharts } from "@/components/reconciliation/EnterpriseReconciliationCharts";
-import { DrillDownInspector } from "@/components/reconciliation/DrillDownInspector";
-import { DisputePackModal } from "@/components/reconciliation/DisputePackModal";
-import { WorkflowStepId, EnterpriseDashboardMetrics } from "@/domain/workflow/types";
-import { AiInvestigationPanel } from "@/components/investigation/AiInvestigationPanel";
-import { ApprovalWorkflowBar } from "@/components/governance/ApprovalWorkflowBar";
 
 export const Route = createFileRoute("/reconciliation")({
-  head: () => ({ meta: [{ title: "Enterprise Reconciliation Workspace — Eskom Bill Balancer" }] }),
-  component: ReconPage,
+  head: () => ({ meta: [{ title: "Authoritative Reconciliation Engine — Eskom Bill Balancer" }] }),
+  component: ReconciliationPage,
 });
 
-function ReconPage() {
-  useBootstrapMeter();
-  const { totals, charges, calculatedTotal } = useDerived();
-  const nmd = useApp((s) => s.customer.nmd);
-  const setCustomer = useApp((s) => s.setCustomer);
-  const customer = useApp((s) => s.customer);
-
-  const invoice = useApp((s) => s.invoice);
-  const invoiceLines = useApp((s) => s.invoiceLines);
-  const invoiceItems = useApp((s) => s.invoiceItems);
-  const invoiceTotal = useApp((s) => s.invoiceTotal);
-  const loadMarch2026SampleInvoice = useApp((s) => s.loadMarch2026SampleInvoice);
-
-  const [currentStep, setCurrentStep] = useState<WorkflowStepId>(7);
-  const [disputePackOpen, setDisputePackOpen] = useState<boolean>(false);
+function ReconciliationPage() {
+  const activeInvoice = useApp((s) => s.invoice);
+  const [selectedFixtureCode, setSelectedFixtureCode] = useState<string>("ACTIVE_INVOICE");
+  const [payload, setPayload] = useState<AuthoritativeReconciliationPayload | null>(null);
+  const [selectedDeterminant, setSelectedDeterminant] = useState<DeterminantComparisonItem | null>(null);
+  const [isExplainerOpen, setIsExplainerOpen] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [filterTab, setFilterTab] = useState<"all" | "discrepancies" | "matches">("all");
-  const [selectedChargeModal, setSelectedChargeModal] = useState<any | null>(null);
-  const [aiCopilotOpen, setAiCopilotOpen] = useState<boolean>(false);
 
-  // Build the 15 standard reconciliation table rows
-  const reconRows = useMemo(
-    () =>
-      buildStandardReconciliationTable(
-        invoiceLines,
-        charges,
-        invoice?.vat,
-        invoice?.invoiceTotal || invoiceTotal,
-      ),
-    [invoiceLines, charges, invoice, invoiceTotal],
-  );
+  // Run reconciliation against active invoice or selected fixture
+  const runReconciliation = (fixtureCode: string) => {
+    let input;
+    if (fixtureCode === "ACTIVE_INVOICE" && activeInvoice) {
+      input = {
+        tenant_id: "TENANT_SOUTH_AFRICA",
+        invoice_id: activeInvoice.invoiceNumber || activeInvoice.invoiceNo || "ACTIVE_INV",
+        invoice_number: activeInvoice.invoiceNumber || activeInvoice.invoiceNo || "ACTIVE_INV",
+        account_number: activeInvoice.accountNumber || "ACC-CURRENT",
+        telemetry_batch_id: "BATCH_ACTIVE",
+        billing_start: activeInvoice.billingPeriodStart || "2026-02-17",
+        billing_end: activeInvoice.billingPeriodEnd || "2026-03-18",
+        tariff_version: "2025.1",
+        calendar_version_id: "2025.1",
 
-  const filteredReconRows = useMemo(() => {
-    return reconRows.filter((r) => {
+        billed_peak_kwh: new Decimal(activeInvoice.peakKWh || 0),
+        billed_standard_kwh: new Decimal(activeInvoice.standardKWh || 0),
+        billed_off_peak_kwh: new Decimal(activeInvoice.offPeakKWh || 0),
+        billed_total_kwh: new Decimal(activeInvoice.totalKWh || 0),
+        billed_maximum_demand_kva: new Decimal(activeInvoice.maxDemandKVA || 0),
+        billed_ratcheted_demand_kva: new Decimal(activeInvoice.maxDemandKVA || 0),
+        billed_reactive_energy_kvarh: new Decimal(activeInvoice.reactive || 0),
+        billed_energy_charges_zar: new Decimal(
+          (activeInvoice.peakEnergyCharge || 0) +
+          (activeInvoice.standardEnergyCharge || 0) +
+          (activeInvoice.offPeakEnergyCharge || 0)
+        ),
+        billed_demand_charges_zar: new Decimal(activeInvoice.networkDemandCharge || 0),
+        billed_network_charges_zar: new Decimal(
+          (activeInvoice.transmissionNetworkCharge || 0) +
+          (activeInvoice.networkCapacityCharge || 0)
+        ),
+        billed_service_charges_zar: new Decimal(activeInvoice.serviceCharge || 0),
+        billed_ancillary_charges_zar: new Decimal(activeInvoice.ancillary || 0),
+        billed_vat_zar: new Decimal(activeInvoice.vat || 0),
+        billed_total_invoice_zar: new Decimal(activeInvoice.totalInclVat || activeInvoice.invoiceTotal || 0),
+      };
+    } else {
+      const fixture = REGRESSION_FIXTURES.find((f) => f.fixture_code === fixtureCode) || MEGAFLEX_JULY_2025_FIXTURE;
+      const inv = fixture.invoice_inputs;
+      input = {
+        tenant_id: "TENANT_SOUTH_AFRICA",
+        invoice_id: inv.invoice_number,
+        invoice_number: inv.invoice_number,
+        account_number: inv.account_number,
+        telemetry_batch_id: "BATCH_2025_07_001",
+        billing_start: fixture.billing_start,
+        billing_end: fixture.billing_end,
+        tariff_version: fixture.tariff_version,
+        calendar_version_id: "2025.1",
+
+        billed_peak_kwh: inv.peak_kwh,
+        billed_standard_kwh: inv.standard_kwh,
+        billed_off_peak_kwh: inv.off_peak_kwh,
+        billed_total_kwh: inv.total_kwh,
+        billed_maximum_demand_kva: inv.maximum_demand_kva,
+        billed_ratcheted_demand_kva: inv.ratcheted_demand_kva,
+        billed_reactive_energy_kvarh: inv.reactive_energy_kvarh,
+        billed_energy_charges_zar: inv.energy_charges_zar,
+        billed_demand_charges_zar: inv.demand_charges_zar,
+        billed_network_charges_zar: inv.network_charges_zar,
+        billed_service_charges_zar: inv.service_charges_zar,
+        billed_ancillary_charges_zar: inv.ancillary_charges_zar,
+        billed_vat_zar: inv.vat_zar,
+        billed_total_invoice_zar: inv.total_invoice_zar,
+      };
+    }
+
+    const result = DeterministicReconciliationEngine.reconcile(input, DEFAULT_TOLERANCE_CONFIG);
+    setPayload(result);
+  };
+
+  useEffect(() => {
+    runReconciliation(selectedFixtureCode);
+  }, [selectedFixtureCode, activeInvoice]);
+
+  const handleFixtureChange = (code: string) => {
+    setSelectedFixtureCode(code);
+  };
+
+  const openExplainer = (item: DeterminantComparisonItem) => {
+    setSelectedDeterminant(item);
+    setIsExplainerOpen(true);
+  };
+
+  const filteredComparisons = useMemo(() => {
+    if (!payload) return [];
+    return payload.determinant_comparisons.filter((item) => {
       const matchesSearch =
         !searchTerm ||
-        r.charge.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (r.reason ? r.reason.toLowerCase().includes(searchTerm.toLowerCase()) : false);
+        item.determinant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.determinant_code.toLowerCase().includes(searchTerm.toLowerCase());
+
       const matchesTab =
         filterTab === "all"
           ? true
           : filterTab === "discrepancies"
-            ? r.status === "amber" || r.status === "red" || r.status === "grey"
-            : r.status === "green";
+          ? item.classification === "DISCREPANCY" || item.classification === "CRITICAL"
+          : item.classification === "PASS" || item.classification === "WARNING";
+
       return matchesSearch && matchesTab;
     });
-  }, [reconRows, searchTerm, filterTab]);
+  }, [payload, searchTerm, filterTab]);
 
-  const matchedCount = reconRows.filter((r) => r.status === "green").length;
-  const foundCount = reconRows.filter((r) => r.hasInvoice).length;
-  const accuracyPct = foundCount > 0 ? (matchedCount / foundCount) * 100 : 0;
-
-  const invTotalVal = invoiceTotal || invoice?.invoiceTotal || 495000;
-  const calcTotalVal = calculatedTotal || 472500;
-  const diffVal = invTotalVal - calcTotalVal;
-  const pctErrVal = invTotalVal ? (diffVal / invTotalVal) * 100 : 0;
-
-  // Compute 15 Enterprise Dashboard Metrics
-  const dashboardMetrics: EnterpriseDashboardMetrics = useMemo(() => {
-    const isOver = diffVal > 0;
-    const overcharge = isOver ? diffVal : 0;
-    const undercharge = !isOver ? Math.abs(diffVal) : 0;
-
-    return {
-      invoiceTotal: invTotalVal,
-      calculatedTotal: calcTotalVal,
-      variance: diffVal,
-      variancePct: pctErrVal,
-      potentialOvercharge: overcharge,
-      potentialUndercharge: undercharge,
-      energyVariance: { kwh: 12500, zar: 16650.0 },
-      demandVariance: { kva: 15.2, zar: 5800.0 },
-      reactiveVariance: { kvarh: 0, zar: 2450.0 },
-      networkVariance: { zar: 0.0 },
-      vatVariance: { zar: 3735.0 },
-      dataQualityPct: 98.5,
-      telemetryCompletenessPct: 100.0,
-      invoiceConfidencePct: invoice?.extraction?.overallConfidence || 99.2,
-      reconciliationStatus:
-        Math.abs(diffVal) < 100
-          ? "CLEAN_MATCH"
-          : Math.abs(diffVal) > 1000
-            ? "MATERIAL_DISCREPANCY"
-            : "UNDER_REVIEW",
-    };
-  }, [invTotalVal, calcTotalVal, diffVal, pctErrVal, invoice]);
-
-  const investigationContext = useMemo(
-    () => ({
-      customerName: customer?.name,
-      accountNumber: customer?.accountNumber,
-      invoiceNumber: invoice?.invoiceNo,
-      meterId: customer?.meter,
-      billingPeriodStr:
-        invoice?.billingPeriodStart && invoice?.billingPeriodEnd
-          ? `${invoice.billingPeriodStart} to ${invoice.billingPeriodEnd}`
-          : undefined,
-      reconciliationResult: {
-        billedTotalZar: invTotalVal,
-        calculatedTotalZar: calcTotalVal,
-        varianceZar: diffVal,
-        variancePercentage: pctErrVal,
-        reconciliationStatus: dashboardMetrics.reconciliationStatus,
-        lineItems: reconRows.map((r) => ({
-          componentName: r.charge,
-          billedAmountZar: r.invoice ?? 0,
-          calculatedAmountZar: r.calculated ?? 0,
-          varianceZar: r.varianceR ?? 0,
-          status: r.status,
-        })),
-        discrepancies: reconRows.filter((r) => r.status === "red" || r.status === "amber"),
-        auditLedgerHash: "",
-        sourceFileHashes: [],
-        calculationTrace: [],
-      } as any,
-    }),
-    [customer, invoice, invTotalVal, calcTotalVal, diffVal, pctErrVal, dashboardMetrics, reconRows],
-  );
-
-  const exportRowsForReport = reconRows.map((r) => ({
-    charge: r.charge,
-    calculated: r.calculated,
-    invoice: r.invoice,
-    varianceR: r.varianceR,
-    variancePct: r.variancePct,
-    status: r.statusText,
-    reason: r.reason,
-  }));
-
-  const handleSelectWorkflowStep = (stepId: WorkflowStepId) => {
-    setCurrentStep(stepId);
-    if (stepId === 12) {
-      setDisputePackOpen(true);
-    }
-  };
+  if (!payload) {
+    return <div className="p-8 text-center text-sm text-muted-foreground">Loading Authoritative Reconciliation Engine...</div>;
+  }
 
   return (
     <div className="space-y-6">
-      {/* Action Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">
-            Enterprise Reconciliation Workspace
-          </h1>
-          <p className="text-xs text-slate-400">
-            End-to-end 12-step utility invoice reconciliation, 4-level audit drill-down, and dispute
-            pack generator.
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold tracking-tight">Authoritative Billing Reconciliation Engine</h1>
+            <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full">
+              ENGINE v{payload.engine_version} &bull; DETERMINISTIC
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Zero floating-point financial settlement. 14 billing determinants compared against gazetted NERSA rates and telemetry.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="text-xs text-slate-400">NMD (kVA)</label>
+        <div className="flex items-center gap-2">
+          <select
+            value={selectedFixtureCode}
+            onChange={(e) => handleFixtureChange(e.target.value)}
+            className="bg-background border border-border rounded px-3 py-1.5 text-xs font-medium"
+          >
+            <option value="ACTIVE_INVOICE">
+              Active Invoice ({activeInvoice?.invoiceNumber || activeInvoice?.invoiceNo || "Current Period"})
+            </option>
+            {REGRESSION_FIXTURES.map((f) => (
+              <option key={f.fixture_code} value={f.fixture_code}>
+                {f.fixture_name}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => runReconciliation(selectedFixtureCode)}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Re-Run
+          </button>
+        </div>
+      </div>
+
+      {/* Idempotency & Metadata Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="rounded-lg border border-border bg-card p-3 space-y-1">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Reconciliation Run ID</div>
+          <div className="text-xs font-mono font-medium truncate">{payload.run_id}</div>
+          <div className="text-[10px] text-muted-foreground">{payload.completed_at}</div>
+        </div>
+
+        <div className="rounded-lg border border-border bg-card p-3 space-y-1">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Idempotency SHA-256 Checksum</div>
+          <div className="text-xs font-mono font-medium text-emerald-600 dark:text-emerald-400 truncate">
+            {payload.result_checksum}
+          </div>
+          <div className="text-[10px] text-muted-foreground">Same Inputs = Same Output</div>
+        </div>
+
+        <div className="rounded-lg border border-border bg-card p-3 space-y-1">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Billed vs Calculated Settlement</div>
+          <div className="text-xs font-mono font-semibold text-foreground">
+            R {NUM(payload.billed_total_zar.toNumber())} / R {NUM(payload.calculated_total_zar.toNumber())}
+          </div>
+          <div className="text-[10px] text-muted-foreground">
+            Variance: <span className="font-mono font-medium">R {NUM(payload.variance_total_zar.toNumber())} ({payload.variance_percentage.toFixed(2)}%)</span>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border bg-card p-3 space-y-1">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Overall Classification</div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span
+              className={`px-2 py-0.5 text-xs font-semibold uppercase rounded font-mono ${
+                payload.classification === "PASS"
+                  ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                  : payload.classification === "WARNING"
+                  ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                  : "bg-red-500/10 text-red-500 border border-red-500/20"
+              }`}
+            >
+              {payload.classification}
+            </span>
+            <span className="text-[10px] text-muted-foreground font-mono">STATUS: {payload.status}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter & Search Bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card p-2.5 rounded-lg border border-border">
+        <div className="flex items-center gap-1.5 w-full sm:w-auto">
+          <button
+            onClick={() => setFilterTab("all")}
+            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+              filterTab === "all" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            All Determinants (14)
+          </button>
+          <button
+            onClick={() => setFilterTab("discrepancies")}
+            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+              filterTab === "discrepancies" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            Discrepancies Only
+          </button>
+          <button
+            onClick={() => setFilterTab("matches")}
+            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+              filterTab === "matches" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            Matches (PASS)
+          </button>
+        </div>
+
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
           <input
-            type="number"
-            value={nmd}
-            onChange={(e) => setCustomer({ nmd: Number(e.target.value) || 0 })}
-            className="w-24 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm font-mono text-slate-200"
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search determinant..."
+            className="w-full pl-8 pr-3 py-1 bg-background border border-border rounded text-xs"
           />
-          <PeriodPicker />
-
-          <div className="flex items-center gap-1.5 border-l border-slate-800 pl-3 ml-1">
-            <button
-              onClick={() => setDisputePackOpen(true)}
-              className="inline-flex items-center gap-1.5 text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded px-3 py-1 font-semibold transition shadow-xs"
-              title="Generate Official Utility Dispute Pack"
-            >
-              <ShieldAlert className="h-4 w-4 text-amber-400" /> Dispute Pack
-            </button>
-
-            <button
-              onClick={() => exportToExcel(invoice, exportRowsForReport, invoiceItems)}
-              className="inline-flex items-center gap-1 text-xs bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded px-2.5 py-1 font-medium transition"
-              title="Export Excel Report (.xlsx)"
-            >
-              <FileSpreadsheet className="h-3.5 w-3.5" /> Excel
-            </button>
-
-            <button
-              onClick={() => exportToCsv(invoice, exportRowsForReport)}
-              className="inline-flex items-center gap-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded px-2.5 py-1 font-medium transition"
-              title="Export CSV (.csv)"
-            >
-              <Download className="h-3.5 w-3.5" /> CSV
-            </button>
-
-            <button
-              onClick={() => setAiCopilotOpen(true)}
-              className="inline-flex items-center gap-1.5 text-xs bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded px-3 py-1 font-medium transition shadow-xs"
-              title="Run AI Commercial Tariff Audit"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-blue-400 animate-pulse" /> AI Audit
-            </button>
-
-            <button
-              onClick={() => exportToPdfPrint()}
-              className="inline-flex items-center gap-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded px-2.5 py-1 font-medium transition"
-              title="Print / Save PDF"
-            >
-              <Printer className="h-3.5 w-3.5" /> PDF
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* 1. Interactive 12-Step Workflow Stepper */}
-      <EnterpriseWorkflowStepper
-        currentStep={currentStep}
-        onSelectStep={handleSelectWorkflowStep}
-      />
-
-      {/* Invoice Selector Banner */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
-        <InvoiceSelector />
-      </div>
-
-      {/* Governance & Approval Workflow Bar */}
-      <ApprovalWorkflowBar />
-
-      {/* 2. 15 Enterprise Dashboard Metric Cards */}
-      <ReconciliationDashboard metrics={dashboardMetrics} />
-
-      {/* 3. 8 Enterprise Charts Grid */}
-      <EnterpriseReconciliationCharts />
-
-      {/* AI-Assisted Investigation Layer */}
-      <AiInvestigationPanel context={investigationContext} />
-
-      {/* 4. 4-Level Drill-Down Audit Inspector */}
-      <DrillDownInspector />
-
-      {/* Standard 15 Reconciliation Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-slate-800 pb-3">
-          <div className="flex items-center space-x-2">
-            <ShieldCheck className="h-5 w-5 text-emerald-400" />
-            <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
-              15 Standard Reconciliation Line Items
-            </h3>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <div className="relative">
-              <Search className="h-3.5 w-3.5 absolute left-2.5 top-2.5 text-slate-500" />
-              <input
-                type="text"
-                placeholder="Search charge lines..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 pr-3 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-slate-200 w-48"
-              />
-            </div>
-            <div className="flex bg-slate-950 rounded-lg p-0.5 border border-slate-800 text-[11px] font-semibold">
-              <button
-                onClick={() => setFilterTab("all")}
-                className={`px-2.5 py-1 rounded-md transition ${
-                  filterTab === "all"
-                    ? "bg-slate-800 text-slate-100"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                All ({reconRows.length})
-              </button>
-              <button
-                onClick={() => setFilterTab("discrepancies")}
-                className={`px-2.5 py-1 rounded-md transition ${
-                  filterTab === "discrepancies"
-                    ? "bg-amber-500/20 text-amber-300 font-bold"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                Discrepancies
-              </button>
-              <button
-                onClick={() => setFilterTab("matches")}
-                className={`px-2.5 py-1 rounded-md transition ${
-                  filterTab === "matches"
-                    ? "bg-emerald-500/20 text-emerald-300 font-bold"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                Matches ({matchedCount})
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto rounded-lg border border-slate-800">
-          <table className="w-full text-xs text-left text-slate-300 font-mono">
-            <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] border-b border-slate-800">
+      {/* 14 Billing Determinant Comparison Matrix Table */}
+      <Panel
+        title="14 Billing Determinant Comparison Matrix"
+        subtitle="Comparing Extracted Eskom Billed Values vs Telemetry & Gazetted NERSA Calculated Values"
+      >
+        <div className="border border-border rounded-md overflow-hidden">
+          <table className="w-full text-xs text-left">
+            <thead className="bg-muted/50 text-muted-foreground">
               <tr>
-                <th className="py-2.5 px-3">Line Item</th>
-                <th className="py-2.5 px-3 text-right">Calculated (ZAR)</th>
-                <th className="py-2.5 px-3 text-right">Extracted Billed (ZAR)</th>
-                <th className="py-2.5 px-3 text-right">Variance (ZAR)</th>
-                <th className="py-2.5 px-3 text-right">Variance %</th>
-                <th className="py-2.5 px-3 text-center">Status</th>
-                <th className="py-2.5 px-3">Reason / Diagnostic</th>
+                <th className="p-2.5 font-medium">Billing Determinant</th>
+                <th className="p-2.5 font-medium text-right">Eskom Billed</th>
+                <th className="p-2.5 font-medium text-right">Calculated</th>
+                <th className="p-2.5 font-medium text-right">Variance</th>
+                <th className="p-2.5 font-medium text-right">Variance %</th>
+                <th className="p-2.5 font-medium text-center">Status</th>
+                <th className="p-2.5 font-medium text-center">Audit</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {filteredReconRows.map((row, idx) => (
-                <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="py-2.5 px-3 font-semibold text-slate-200">{row.charge}</td>
-                  <td className="py-2.5 px-3 text-right text-emerald-400">
-                    R {row.calculated.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            <tbody className="divide-y divide-border">
+              {filteredComparisons.map((item) => (
+                <tr key={item.determinant_code} className="hover:bg-muted/20">
+                  <td className="p-2.5 font-medium">
+                    <div>{item.determinant_name}</div>
+                    <div className="text-[10px] text-muted-foreground font-mono">{item.determinant_code}</div>
                   </td>
-                  <td className="py-2.5 px-3 text-right text-slate-200">
-                    {row.hasInvoice
-                      ? `R ${row.invoice.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-                      : "—"}
+                  <td className="p-2.5 font-mono text-right font-medium">
+                    {item.unit_of_measure === "ZAR" ? `R ${NUM(item.billed_value.toNumber())}` : `${item.billed_value.toString()} ${item.unit_of_measure}`}
                   </td>
-                  <td
-                    className={`py-2.5 px-3 text-right font-bold ${
-                      row.varianceR > 0
-                        ? "text-amber-400"
-                        : row.varianceR < 0
-                          ? "text-emerald-400"
-                          : "text-slate-400"
-                    }`}
-                  >
-                    R {row.varianceR.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  <td className="p-2.5 font-mono text-right font-medium">
+                    {item.unit_of_measure === "ZAR" ? `R ${NUM(item.calculated_value.toNumber())}` : `${item.calculated_value.toString()} ${item.unit_of_measure}`}
                   </td>
-                  <td className="py-2.5 px-3 text-right">
-                    {row.variancePct !== 0 ? `${row.variancePct.toFixed(2)}%` : "0.00%"}
-                  </td>
-                  <td className="py-2.5 px-3 text-center">
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                        row.status === "green"
-                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                          : row.status === "amber"
-                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                            : "bg-slate-800 text-slate-400"
-                      }`}
-                    >
-                      {row.statusText}
+                  <td className="p-2.5 font-mono text-right">
+                    <span className={item.variance_value.isZero() ? "text-muted-foreground" : item.variance_value.gt(0) ? "text-amber-500 font-medium" : "text-emerald-500 font-medium"}>
+                      {item.unit_of_measure === "ZAR" ? `R ${NUM(item.variance_value.toNumber())}` : `${item.variance_value.toString()} ${item.unit_of_measure}`}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3 text-slate-400 truncate max-w-xs">
-                    {row.reason || "Matched NERSA rate"}
+                  <td className="p-2.5 font-mono text-right">
+                    {item.variance_percentage.toFixed(2)}%
+                  </td>
+                  <td className="p-2.5 text-center">
+                    <span
+                      className={`px-2 py-0.5 text-[10px] font-mono font-semibold rounded ${
+                        item.classification === "PASS"
+                          ? "bg-emerald-500/10 text-emerald-500"
+                          : item.classification === "WARNING"
+                          ? "bg-amber-500/10 text-amber-500"
+                          : "bg-red-500/10 text-red-500"
+                      }`}
+                    >
+                      {item.classification}
+                    </span>
+                  </td>
+                  <td className="p-2.5 text-center">
+                    <button
+                      onClick={() => openExplainer(item)}
+                      className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+                      title="Inspect calculation explanation formula lineage"
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </Panel>
 
-      {/* Dispute Pack Modal */}
-      <DisputePackModal
-        isOpen={disputePackOpen}
-        onClose={() => setDisputePackOpen(false)}
-        customerName={customer.name}
-        accountNumber={customer.accountNumber}
-        invoiceNumber={invoice?.invoiceNo || "INV-2026-03-8891"}
-        disputedAmount={dashboardMetrics.potentialOvercharge || 22500.0}
-      />
+      {/* Calculation Explanation Inspector Modal */}
+      {isExplainerOpen && selectedDeterminant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-lg space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold text-sm">Calculation Explanation Lineage</h3>
+              </div>
+              <button
+                onClick={() => setIsExplainerOpen(false)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Close
+              </button>
+            </div>
 
-      {/* AI Copilot Modal */}
-      <AiCopilotModal isOpen={aiCopilotOpen} onClose={() => setAiCopilotOpen(false)} />
+            <div className="space-y-3 text-xs">
+              <div className="p-3 bg-muted/40 rounded border border-border space-y-1">
+                <div className="font-semibold text-foreground">{selectedDeterminant.determinant_name} ({selectedDeterminant.determinant_code})</div>
+                <div className="text-muted-foreground font-mono text-[11px]">{selectedDeterminant.explanation.input_value}</div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-muted-foreground">
+                <div><span className="font-semibold text-foreground">Formula:</span> {selectedDeterminant.explanation.formula_used}</div>
+                <div><span className="font-semibold text-foreground">Rate Applied:</span> {selectedDeterminant.explanation.rate_applied}</div>
+                <div><span className="font-semibold text-foreground">Precision Model:</span> {selectedDeterminant.explanation.precision}</div>
+                <div><span className="font-semibold text-foreground">Rounding Method:</span> {selectedDeterminant.explanation.rounding_method}</div>
+              </div>
+
+              <div className="p-2 font-mono text-[11px] bg-background border border-border rounded text-foreground">
+                Output Value: <span className="font-bold text-primary">{selectedDeterminant.explanation.output_value} {selectedDeterminant.unit_of_measure}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setIsExplainerOpen(false)}
+                className="px-4 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded hover:opacity-90"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

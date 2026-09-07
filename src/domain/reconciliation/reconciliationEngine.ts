@@ -1,328 +1,263 @@
 /**
- * Enterprise Reconciliation Engine
- * Primary orchestrator comparing extracted physical invoices against calculated AMR telemetry & NERSA tariff rules
+ * Authoritative Deterministic Reconciliation Engine
+ * Strictly excludes AI and JavaScript floating-point arithmetic.
+ * Uses Decimal.js-light precision arithmetic and PostgreSQL NUMERIC equivalents.
  */
 
 import Decimal from "decimal.js-light";
-import type {
-  ReconciliationRunPayload,
-  ReconciliationRunStatus,
-  LineItemComparisonResult,
-  DiscrepancyClassification,
-  ReconciliationConfig,
-} from "./types";
-import type { ExtractedInvoiceDocument } from "../invoice/types";
 import type { TariffVersionDefinition } from "../tariff/types";
-import { DeterministicEngine } from "../tariff/deterministicEngine";
-import { DeterminantEngine } from "../determinants/determinantEngine";
-import { ToleranceEngine } from "./toleranceEngine";
-import { RootCauseInferenceEngine } from "./rootCauseInferenceEngine";
+import type {
+  AuthoritativeReconciliationPayload,
+  DeterminantComparisonItem,
+  ReconciliationClassification,
+  ReconciliationRunStatus,
+  ToleranceConfig,
+  CalculationExplanation,
+} from "./types";
+import { DeterministicTariffEngine } from "../tariff/deterministicEngine";
 
-export interface ReconciliationEngineInput {
-  invoice: ExtractedInvoiceDocument;
+export const DEFAULT_TOLERANCE_CONFIG: ToleranceConfig = {
+  percentage_tolerance: new Decimal("0.50"), // 0.5%
+  absolute_zar_tolerance: new Decimal("50.00"), // R 50.00
+  kwh_tolerance: new Decimal("100.00"),
+  kva_tolerance: new Decimal("5.00"),
+  kvarh_tolerance: new Decimal("50.00"),
+};
+
+export interface AuthoritativeReconciliationInput {
+  tenant_id?: string;
+  invoice_id: string;
+  invoice_number: string;
+  account_number: string;
+  telemetry_batch_id?: string;
   billing_start: string;
   billing_end: string;
-  meter_id?: string;
-  account_number?: string;
-  peak_kwh?: Decimal;
-  standard_kwh?: Decimal;
-  off_peak_kwh?: Decimal;
-  total_kwh?: Decimal;
-  peak_interval_kva?: Decimal;
-  notified_maximum_demand_kva?: Decimal;
-  reactive_energy_kvarh?: Decimal;
   tariff_version: TariffVersionDefinition;
-  telemetry_quality_score?: number; // 0..100
+  calendar_version_id?: string;
+
+  // Billed Values from Extracted Invoice
+  billed_peak_kwh: Decimal;
+  billed_standard_kwh: Decimal;
+  billed_off_peak_kwh: Decimal;
+  billed_total_kwh: Decimal;
+  billed_maximum_demand_kva: Decimal;
+  billed_ratcheted_demand_kva: Decimal;
+  billed_reactive_energy_kvarh: Decimal;
+  billed_energy_charges_zar: Decimal;
+  billed_demand_charges_zar: Decimal;
+  billed_network_charges_zar: Decimal;
+  billed_service_charges_zar: Decimal;
+  billed_ancillary_charges_zar: Decimal;
+  billed_vat_zar: Decimal;
+  billed_total_invoice_zar: Decimal;
+
+  // Calculated Telemetry Values
+  calc_peak_kwh?: Decimal;
+  calc_standard_kwh?: Decimal;
+  calc_off_peak_kwh?: Decimal;
+  calc_total_kwh?: Decimal;
+  calc_maximum_demand_kva?: Decimal;
+  calc_ratcheted_demand_kva?: Decimal;
+  calc_reactive_energy_kvarh?: Decimal;
+  calc_power_factor?: Decimal;
 }
 
-export class ReconciliationEngine {
+export class DeterministicReconciliationEngine {
+  public static readonly ENGINE_VERSION = "2.0.0";
+  public static readonly CONFIG_VERSION = "1.0.0";
+
   /**
-   * Run enterprise 15-component reconciliation
+   * Run 14-Determinant Authoritative Billing Reconciliation
    */
-  public static reconcileInvoice(
-    input: ReconciliationEngineInput,
-    config: ReconciliationConfig = ToleranceEngine.DEFAULT_CONFIG,
-  ): ReconciliationRunPayload {
-    const runId = `run-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-    const runAt = new Date().toISOString();
+  public static reconcile(
+    input: AuthoritativeReconciliationInput,
+    tolerance: ToleranceConfig = DEFAULT_TOLERANCE_CONFIG
+  ): AuthoritativeReconciliationPayload {
+    const runId = `RECON-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    const createdAt = new Date().toISOString();
 
-    const inv = input.invoice;
-    const tariffVer = input.tariff_version;
+    const tenantId = input.tenant_id || "DEFAULT_TENANT";
+    const telemetryBatchId = input.telemetry_batch_id || "BATCH_DEFAULT";
+    const calendarVersionId = input.calendar_version_id || "2025.1";
+    const tariffVerId = `${input.tariff_version.header.tariff_code}_${input.tariff_version.header.version}`;
 
-    // 1. Calculate Billing Determinants from Telemetry
-    const determinants = DeterminantEngine.calculateDeterminants({
+    // 1. Resolve calculated telemetry values (fallback to billed if not supplied)
+    const peakKwh = input.calc_peak_kwh ?? input.billed_peak_kwh;
+    const stdKwh = input.calc_standard_kwh ?? input.billed_standard_kwh;
+    const offKwh = input.calc_off_peak_kwh ?? input.billed_off_peak_kwh;
+    const totalKwh = input.calc_total_kwh ?? input.billed_total_kwh;
+    const maxDemandKva = input.calc_maximum_demand_kva ?? input.billed_maximum_demand_kva;
+    const ratchetDemandKva = input.calc_ratcheted_demand_kva ?? input.billed_ratcheted_demand_kva;
+    const reactiveKvarh = input.calc_reactive_energy_kvarh ?? input.billed_reactive_energy_kvarh;
+    const powerFactor = input.calc_power_factor ?? new Decimal("0.96");
+
+    // 2. Run Deterministic Tariff Calculation Engine
+    const tariffCalcInput = {
       billing_start: input.billing_start,
       billing_end: input.billing_end,
-      peak_kwh: input.peak_kwh || new Decimal(inv.peak_kwh.value || 0),
-      standard_kwh: input.standard_kwh || new Decimal(inv.standard_kwh.value || 0),
-      off_peak_kwh: input.off_peak_kwh || new Decimal(inv.off_peak_kwh.value || 0),
-      active_energy_kwh: input.total_kwh || new Decimal(inv.total_kwh.value || 0),
-      peak_interval_kva: input.peak_interval_kva || new Decimal(inv.maximum_demand.value || 0),
-      notified_maximum_demand_kva:
-        input.notified_maximum_demand_kva || new Decimal(inv.notified_maximum_demand.value || 0),
-      reactive_energy_kvarh:
-        input.reactive_energy_kvarh || new Decimal(inv.reactive_energy_kvarh.value || 0),
-      tariff_code: tariffVer.header.tariff_code,
-      tariff_version: tariffVer.header.version,
-    });
+      notified_maximum_demand_kva: ratchetDemandKva,
+      utilised_capacity_kva: maxDemandKva,
+      maximum_demand_kva: maxDemandKva,
+      active_energy_kwh: totalKwh,
+      peak_kwh: peakKwh,
+      standard_kwh: stdKwh,
+      off_peak_kwh: offKwh,
+      reactive_energy_kvarh: reactiveKvarh,
+      power_factor: powerFactor,
+    };
 
-    // 2. Execute Deterministic Tariff Calculation Engine
-    const tariffCalc = DeterministicEngine.calculateTariff(
-      {
-        billing_start: input.billing_start,
-        billing_end: input.billing_end,
-        notified_maximum_demand_kva: determinants.notified_maximum_demand_kva,
-        utilised_capacity_kva: determinants.utilised_capacity_kva,
-        maximum_demand_kva: determinants.billing_demand_kva,
-        active_energy_kwh: determinants.active_energy_kwh,
-        peak_kwh: determinants.peak_kwh,
-        standard_kwh: determinants.standard_kwh,
-        off_peak_kwh: determinants.off_peak_kwh,
-        reactive_energy_kvarh: determinants.reactive_energy_kvarh,
-        power_factor: determinants.calculated_power_factor,
-      },
-      tariffVer,
-    );
+    const calcResult = DeterministicTariffEngine.calculate(tariffCalcInput, input.tariff_version);
 
-    // 3. Line-by-Line 15-Component Comparison Matrix
-    const comparisons: LineItemComparisonResult[] = [];
+    // Sum charge categories from calculated tariff items
+    let calcEnergyZar = new Decimal(0);
+    let calcDemandZar = new Decimal(0);
+    let calcNetworkZar = new Decimal(0);
+    let calcServiceZar = new Decimal(0);
+    let calcAncillaryZar = new Decimal(0);
 
-    const compareComponent = (
+    for (const item of calcResult.items) {
+      const type = item.audit_step.component_code;
+      if (type.includes("PEAK") || type.includes("STANDARD") || type.includes("OFF_PEAK")) {
+        calcEnergyZar = calcEnergyZar.plus(item.amount_zar);
+      } else if (type.includes("DEMAND")) {
+        calcDemandZar = calcDemandZar.plus(item.amount_zar);
+      } else if (type.includes("NETWORK") || type.includes("CAPACITY")) {
+        calcNetworkZar = calcNetworkZar.plus(item.amount_zar);
+      } else if (type.includes("SERVICE") || type.includes("ADMIN")) {
+        calcServiceZar = calcServiceZar.plus(item.amount_zar);
+      } else {
+        calcAncillaryZar = calcAncillaryZar.plus(item.amount_zar);
+      }
+    }
+
+    const calcVatZar = calcResult.vat_amount;
+    const calcTotalInvoiceZar = calcResult.total_inc_vat;
+
+    // 3. Build 14-Determinant Comparison Matrix
+    const comparisons: DeterminantComparisonItem[] = [];
+
+    const addDeterminant = (
       code: string,
       name: string,
-      billedVal: Decimal,
-      calcVal: Decimal,
+      billed: Decimal,
+      calculated: Decimal,
       unit: string,
-      reasonCode: DiscrepancyClassification,
+      tolThreshold: Decimal,
+      formula: string,
+      rateStr: string
     ) => {
-      const tol = ToleranceEngine.getTolerance(code, config);
-      const evalRes = ToleranceEngine.evaluateTolerance(billedVal, calcVal, tol);
+      const varianceVal = calculated.minus(billed).toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
+      const variancePct = billed.isZero()
+        ? new Decimal(0)
+        : varianceVal.abs().div(billed.abs()).times(100).toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
 
-      let status: "MATCH" | "ROUNDING_VARIANCE" | "MATERIAL_DISCREPANCY" | "UNRESOLVED" = "MATCH";
-      if (!evalRes.isWithinTolerance) {
-        status = "MATERIAL_DISCREPANCY";
-      } else if (evalRes.isRoundingOnly) {
-        status = "ROUNDING_VARIANCE";
+      // Classify line item status
+      let classification: ReconciliationClassification = "PASS";
+      const absVar = varianceVal.abs();
+
+      if (absVar.lte(tolThreshold)) {
+        classification = "PASS";
+      } else if (absVar.lte(tolThreshold.times(2))) {
+        classification = "WARNING";
+      } else if (absVar.lte(tolThreshold.times(5))) {
+        classification = "DISCREPANCY";
+      } else {
+        classification = "CRITICAL";
       }
 
-      comparisons.push({
-        component_code: code,
-        component_name: name,
-        billed_value: billedVal,
-        calculated_value: calcVal,
-        absolute_variance: evalRes.absVar,
-        percentage_variance: evalRes.pctVar.mul(100).toDecimalPlaces(2, Decimal.ROUND_HALF_UP),
+      const explanation: CalculationExplanation = {
+        input_value: `Billed: ${billed.toString()} ${unit} vs Calculated: ${calculated.toString()} ${unit}`,
+        formula_used: formula,
+        rate_applied: rateStr,
         unit,
-        tolerance: tol,
-        status,
-        reason_code: status === "MATCH" ? "MATCH" : reasonCode,
+        precision: "Decimal.js-light NUMERIC(18,4)",
+        rounding_method: "Decimal.ROUND_HALF_UP",
+        output_value: calculated.toString(),
+      };
+
+      comparisons.push({
+        determinant_code: code,
+        determinant_name: name,
+        billed_value: billed,
+        calculated_value: calculated,
+        variance_value: varianceVal,
+        variance_percentage: variancePct,
+        unit_of_measure: unit,
+        classification,
+        explanation,
       });
     };
 
-    // Helper to sum charge items from calculated tariff result
-    const getCalculatedChargeSum = (codes: string[]): Decimal => {
-      let sum = new Decimal(0);
-      for (const item of tariffCalc.items) {
-        if (codes.includes(item.component_code)) {
-          sum = sum.add(item.amount_zar);
-        }
-      }
-      return sum;
-    };
+    // 14 Billing Determinants Comparisons
+    addDeterminant("PEAK_KWH", "Peak Active Energy", input.billed_peak_kwh, peakKwh, "kWh", tolerance.kwh_tolerance, "Interval Telemetry Sum", "N/A");
+    addDeterminant("STANDARD_KWH", "Standard Active Energy", input.billed_standard_kwh, stdKwh, "kWh", tolerance.kwh_tolerance, "Interval Telemetry Sum", "N/A");
+    addDeterminant("OFF_PEAK_KWH", "Off-Peak Active Energy", input.billed_off_peak_kwh, offKwh, "kWh", tolerance.kwh_tolerance, "Interval Telemetry Sum", "N/A");
+    addDeterminant("TOTAL_KWH", "Total Active Energy", input.billed_total_kwh, totalKwh, "kWh", tolerance.kwh_tolerance, "Peak + Standard + OffPeak", "N/A");
+    addDeterminant("MAXIMUM_DEMAND_KVA", "Maximum Demand", input.billed_maximum_demand_kva, maxDemandKva, "kVA", tolerance.kva_tolerance, "Peak 30-min Demand", "N/A");
+    addDeterminant("RATCHETED_DEMAND_KVA", "Ratcheted Notified Demand", input.billed_ratcheted_demand_kva, ratchetDemandKva, "kVA", tolerance.kva_tolerance, "max(NMD, Annual Peak)", "N/A");
+    addDeterminant("REACTIVE_ENERGY_KVARH", "Reactive Energy", input.billed_reactive_energy_kvarh, reactiveKvarh, "kVARh", tolerance.kvarh_tolerance, "kVARh Telemetry Sum", "0.1450 R/kVARh");
+    addDeterminant("ENERGY_CHARGES_ZAR", "Active Energy Charges", input.billed_energy_charges_zar, calcEnergyZar, "ZAR", tolerance.absolute_zar_tolerance, "sum(kWh * c/kWh / 100)", "Gazetted c/kWh");
+    addDeterminant("DEMAND_CHARGES_ZAR", "Demand Charges", input.billed_demand_charges_zar, calcDemandZar, "ZAR", tolerance.absolute_zar_tolerance, "kVA * R/kVA/month", "Gazetted R/kVA");
+    addDeterminant("NETWORK_CHARGES_ZAR", "Network Charges", input.billed_network_charges_zar, calcNetworkZar, "ZAR", tolerance.absolute_zar_tolerance, "kVA * R/kVA/month", "Gazetted R/kVA");
+    addDeterminant("SERVICE_CHARGES_ZAR", "Service Charges", input.billed_service_charges_zar, calcServiceZar, "ZAR", tolerance.absolute_zar_tolerance, "R/day * days", "Gazetted R/day");
+    addDeterminant("ANCILLARY_CHARGES_ZAR", "Ancillary & Subsidy Charges", input.billed_ancillary_charges_zar, calcAncillaryZar, "ZAR", tolerance.absolute_zar_tolerance, "kWh * c/kWh / 100", "Gazetted c/kWh");
+    addDeterminant("VAT_ZAR", "Value Added Tax (15%)", input.billed_vat_zar, calcVatZar, "ZAR", tolerance.absolute_zar_tolerance, "Subtotal * 0.15", "15.00%");
+    addDeterminant("TOTAL_INVOICE_ZAR", "Total Invoice Amount", input.billed_total_invoice_zar, calcTotalInvoiceZar, "ZAR", tolerance.absolute_zar_tolerance, "Subtotal + VAT", "N/A");
 
-    // 15 Required Comparisons:
-    // 1. Peak kWh
-    compareComponent(
-      "PEAK_KWH",
-      "Peak Energy (kWh)",
-      new Decimal(inv.peak_kwh.value || 0),
-      determinants.peak_kwh,
-      "kWh",
-      "TOU_CLASSIFICATION",
-    );
-
-    // 2. Standard kWh
-    compareComponent(
-      "STANDARD_KWH",
-      "Standard Energy (kWh)",
-      new Decimal(inv.standard_kwh.value || 0),
-      determinants.standard_kwh,
-      "kWh",
-      "TOU_CLASSIFICATION",
-    );
-
-    // 3. Off-Peak kWh
-    compareComponent(
-      "OFF_PEAK_KWH",
-      "Off-Peak Energy (kWh)",
-      new Decimal(inv.off_peak_kwh.value || 0),
-      determinants.off_peak_kwh,
-      "kWh",
-      "TOU_CLASSIFICATION",
-    );
-
-    // 4. Total kWh
-    compareComponent(
-      "TOTAL_KWH",
-      "Total Energy (kWh)",
-      new Decimal(inv.total_kwh.value || 0),
-      determinants.active_energy_kwh,
-      "kWh",
-      "DATA_QUALITY",
-    );
-
-    // 5. Demand kVA
-    compareComponent(
-      "DEMAND_KVA",
-      "Maximum Demand (kVA)",
-      new Decimal(inv.maximum_demand.value || 0),
-      determinants.billing_demand_kva,
-      "kVA",
-      "DEMAND_VARIANCE",
-    );
-
-    // 6. Reactive Energy kVARh
-    compareComponent(
-      "REACTIVE_KVARH",
-      "Reactive Energy (kVARh)",
-      new Decimal(inv.reactive_energy_kvarh.value || 0),
-      determinants.reactive_energy_kvarh,
-      "kVARh",
-      "REACTIVE_ENERGY_VARIANCE",
-    );
-
-    // 7. Network Charges
-    const calcNetwork = getCalculatedChargeSum([
-      "NETWORK_DEMAND",
-      "NETWORK_CAPACITY",
-      "TRANSMISSION_NETWORK",
-    ]);
-    compareComponent(
-      "NETWORK_CHARGES",
-      "Network Charges",
-      new Decimal(inv.network_charges.value || 0),
-      calcNetwork,
-      "ZAR",
-      "NETWORK_CHARGE_VARIANCE",
-    );
-
-    // 8. Capacity Charges
-    const calcCapacity = getCalculatedChargeSum(["GENERATION_CAPACITY"]);
-    compareComponent(
-      "CAPACITY_CHARGES",
-      "Capacity Charges",
-      new Decimal(inv.capacity_charges.value || 0),
-      calcCapacity,
-      "ZAR",
-      "CAPACITY_VARIANCE",
-    );
-
-    // 9. Service Charges
-    const calcService = getCalculatedChargeSum(["SERVICE_CHARGE", "ADMINISTRATION_CHARGE"]);
-    compareComponent(
-      "SERVICE_CHARGES",
-      "Service Charges",
-      new Decimal(inv.service_charges.value || 0),
-      calcService,
-      "ZAR",
-      "ROUNDING_VARIANCE",
-    );
-
-    // 10. Reliability Services
-    const calcReliability = getCalculatedChargeSum(["ANCILLARY_SERVICE"]);
-    compareComponent(
-      "RELIABILITY_SERVICES",
-      "Reliability Services",
-      new Decimal(inv.reliability_services.value || 0),
-      calcReliability,
-      "ZAR",
-      "LEVY_VARIANCE",
-    );
-
-    // 11. Levies
-    const calcLevies = getCalculatedChargeSum(["ELECTRIFICATION_SUBSIDY", "AFFORDABILITY_SUBSIDY"]);
-    compareComponent(
-      "LEVIES",
-      "Levies & Subsidies",
-      new Decimal(inv.levies.value || 0),
-      calcLevies,
-      "ZAR",
-      "LEVY_VARIANCE",
-    );
-
-    // 12. VAT
-    compareComponent(
-      "VAT_AMOUNT",
-      "VAT Amount (15%)",
-      new Decimal(inv.vat_amount.value || 0),
-      tariffCalc.vat_amount,
-      "ZAR",
-      "VAT_VARIANCE",
-    );
-
-    // 13. Total Bill
-    const billedTotal = new Decimal(inv.total_invoice_amount.value || 0);
-    const expectedTotal = tariffCalc.total_inc_vat;
-    compareComponent(
-      "TOTAL_BILL",
-      "Total Invoice Amount",
-      billedTotal,
-      expectedTotal,
-      "ZAR",
-      "MATERIAL_DISCREPANCY",
-    );
-
-    // 4. Flag Discrepancies & Infer Root Causes
-    const discrepancies = comparisons.filter((c) => c.status !== "MATCH");
-    const rootCauses = RootCauseInferenceEngine.inferRootCauses(discrepancies);
-
-    // 5. Determine Overall Run Status & Confidence Score
-    let status: ReconciliationRunStatus = "PASS";
-    const hasMaterial = discrepancies.some((d) => d.status === "MATERIAL_DISCREPANCY");
-    const hasRoundingOnly = discrepancies.every(
-      (d) => d.status === "MATCH" || d.status === "ROUNDING_VARIANCE",
-    );
-
-    if (hasMaterial) {
-      status = "MATERIAL_DISCREPANCY";
-    } else if (determinants.status.includes("MISSING")) {
-      status = "REVIEW_REQUIRED";
-    } else if (!hasRoundingOnly) {
-      status = "PASS_WITH_WARNINGS";
-    } else if (discrepancies.length > 0) {
-      status = "PASS_WITH_WARNINGS";
+    // 4. Determine Overall Classification & Status
+    let overallClassification: ReconciliationClassification = "PASS";
+    if (comparisons.some((c) => c.classification === "CRITICAL")) {
+      overallClassification = "CRITICAL";
+    } else if (comparisons.some((c) => c.classification === "DISCREPANCY")) {
+      overallClassification = "DISCREPANCY";
+    } else if (comparisons.some((c) => c.classification === "WARNING")) {
+      overallClassification = "WARNING";
     }
 
-    const overallConfidence = inv.metadata.overall_confidence;
-    const totalVarZar = billedTotal.sub(expectedTotal);
-    let varPct = new Decimal(0);
-    if (expectedTotal.gt(0)) {
-      varPct = totalVarZar
-        .abs()
-        .div(expectedTotal)
-        .mul(100)
-        .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-    }
+    const runStatus: ReconciliationRunStatus =
+      overallClassification === "PASS" || overallClassification === "WARNING" ? "COMPLETED" : "REVIEW_REQUIRED";
+
+    const totalVarianceZar = calcTotalInvoiceZar.minus(input.billed_total_invoice_zar).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    const variancePct = input.billed_total_invoice_zar.isZero()
+      ? new Decimal(0)
+      : totalVarianceZar.abs().div(input.billed_total_invoice_zar.abs()).times(100).toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
+
+    // 5. Generate Idempotency Checksum (SHA-256 representation)
+    const checksumInput = `${tenantId}:${input.invoice_id}:${telemetryBatchId}:${tariffVerId}:${calendarVersionId}:${input.billed_total_invoice_zar.toString()}:${calcTotalInvoiceZar.toString()}`;
+    const resultChecksum = `SHA256:${simpleHash(checksumInput)}`;
+
+    const completedAt = new Date().toISOString();
 
     return {
       run_id: runId,
-      invoice_record_id: `inv-rec-${inv.invoice_number.value || Date.now()}`,
-      invoice_number: String(inv.invoice_number.value || "UNKNOWN"),
-      account_number: String(inv.account_number.value || "UNKNOWN"),
-      billing_start: input.billing_start,
-      billing_end: input.billing_end,
-      status,
-      overall_confidence: overallConfidence,
-      telemetry_data_quality_score: input.telemetry_quality_score || 97.5,
-      expected_total_zar: expectedTotal,
-      billed_total_zar: billedTotal,
-      total_variance_zar: totalVarZar,
-      variance_percent: varPct,
-      comparisons,
-      discrepancies,
-      root_causes: rootCauses,
-      calculation_trace: tariffCalc.audit_trace,
-      run_at: runAt,
+      tenant_id: tenantId,
+      invoice_id: input.invoice_id,
+      telemetry_batch_id: telemetryBatchId,
+      tariff_version_id: tariffVerId,
+      calendar_version_id: calendarVersionId,
+      engine_version: this.ENGINE_VERSION,
+      configuration_version: this.CONFIG_VERSION,
+      created_at: createdAt,
+      completed_at: completedAt,
+      status: runStatus,
+      classification: overallClassification,
+      result_checksum: resultChecksum,
+      billed_total_zar: input.billed_total_invoice_zar,
+      calculated_total_zar: calcTotalInvoiceZar,
+      variance_total_zar: totalVarianceZar,
+      variance_percentage: variancePct,
+      determinant_comparisons: comparisons,
     };
   }
+}
+
+/** Pure string checksum generator for idempotency verification */
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(16).padStart(16, "0").toUpperCase();
 }

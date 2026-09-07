@@ -12,15 +12,18 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnomaliesRouteImport } from './routes/anomalies'
 import { Route as AuditRouteImport } from './routes/audit'
+import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as DemandRouteImport } from './routes/demand'
 import { Route as EnergyRouteImport } from './routes/energy'
 import { Route as InvoicesRouteImport } from './routes/invoices'
+import { Route as MetersRouteImport } from './routes/meters'
 import { Route as MunicipalRouteImport } from './routes/municipal'
 import { Route as ReconciliationRouteImport } from './routes/reconciliation'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TariffRouteImport } from './routes/tariff'
+import { Route as TelemetryRouteImport } from './routes/telemetry'
 import { Route as TrendsRouteImport } from './routes/trends'
 import { Route as UploadRouteImport } from './routes/upload'
 
@@ -37,6 +40,11 @@ const AnomaliesRoute = AnomaliesRouteImport.update({
 const AuditRoute = AuditRouteImport.update({
   id: '/audit',
   path: '/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalendarRoute = CalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomersRoute = CustomersRouteImport.update({
@@ -57,6 +65,11 @@ const EnergyRoute = EnergyRouteImport.update({
 const InvoicesRoute = InvoicesRouteImport.update({
   id: '/invoices',
   path: '/invoices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MetersRoute = MetersRouteImport.update({
+  id: '/meters',
+  path: '/meters',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MunicipalRoute = MunicipalRouteImport.update({
@@ -84,6 +97,11 @@ const TariffRoute = TariffRouteImport.update({
   path: '/tariff',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TelemetryRoute = TelemetryRouteImport.update({
+  id: '/telemetry',
+  path: '/telemetry',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TrendsRoute = TrendsRouteImport.update({
   id: '/trends',
   path: '/trends',
@@ -99,15 +117,18 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/anomalies': typeof AnomaliesRoute
   '/audit': typeof AuditRoute
+  '/calendar': typeof CalendarRoute
   '/customers': typeof CustomersRoute
   '/demand': typeof DemandRoute
   '/energy': typeof EnergyRoute
   '/invoices': typeof InvoicesRoute
+  '/meters': typeof MetersRoute
   '/municipal': typeof MunicipalRoute
   '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/tariff': typeof TariffRoute
+  '/telemetry': typeof TelemetryRoute
   '/trends': typeof TrendsRoute
   '/upload': typeof UploadRoute
 }
@@ -115,15 +136,18 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/anomalies': typeof AnomaliesRoute
   '/audit': typeof AuditRoute
+  '/calendar': typeof CalendarRoute
   '/customers': typeof CustomersRoute
   '/demand': typeof DemandRoute
   '/energy': typeof EnergyRoute
   '/invoices': typeof InvoicesRoute
+  '/meters': typeof MetersRoute
   '/municipal': typeof MunicipalRoute
   '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/tariff': typeof TariffRoute
+  '/telemetry': typeof TelemetryRoute
   '/trends': typeof TrendsRoute
   '/upload': typeof UploadRoute
 }
@@ -132,15 +156,18 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/anomalies': typeof AnomaliesRoute
   '/audit': typeof AuditRoute
+  '/calendar': typeof CalendarRoute
   '/customers': typeof CustomersRoute
   '/demand': typeof DemandRoute
   '/energy': typeof EnergyRoute
   '/invoices': typeof InvoicesRoute
+  '/meters': typeof MetersRoute
   '/municipal': typeof MunicipalRoute
   '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/tariff': typeof TariffRoute
+  '/telemetry': typeof TelemetryRoute
   '/trends': typeof TrendsRoute
   '/upload': typeof UploadRoute
 }
@@ -150,15 +177,18 @@ export interface FileRouteTypes {
     | '/'
     | '/anomalies'
     | '/audit'
+    | '/calendar'
     | '/customers'
     | '/demand'
     | '/energy'
     | '/invoices'
+    | '/meters'
     | '/municipal'
     | '/reconciliation'
     | '/reports'
     | '/settings'
     | '/tariff'
+    | '/telemetry'
     | '/trends'
     | '/upload'
   fileRoutesByTo: FileRoutesByTo
@@ -166,15 +196,18 @@ export interface FileRouteTypes {
     | '/'
     | '/anomalies'
     | '/audit'
+    | '/calendar'
     | '/customers'
     | '/demand'
     | '/energy'
     | '/invoices'
+    | '/meters'
     | '/municipal'
     | '/reconciliation'
     | '/reports'
     | '/settings'
     | '/tariff'
+    | '/telemetry'
     | '/trends'
     | '/upload'
   id:
@@ -182,15 +215,18 @@ export interface FileRouteTypes {
     | '/'
     | '/anomalies'
     | '/audit'
+    | '/calendar'
     | '/customers'
     | '/demand'
     | '/energy'
     | '/invoices'
+    | '/meters'
     | '/municipal'
     | '/reconciliation'
     | '/reports'
     | '/settings'
     | '/tariff'
+    | '/telemetry'
     | '/trends'
     | '/upload'
   fileRoutesById: FileRoutesById
@@ -199,15 +235,18 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnomaliesRoute: typeof AnomaliesRoute
   AuditRoute: typeof AuditRoute
+  CalendarRoute: typeof CalendarRoute
   CustomersRoute: typeof CustomersRoute
   DemandRoute: typeof DemandRoute
   EnergyRoute: typeof EnergyRoute
   InvoicesRoute: typeof InvoicesRoute
+  MetersRoute: typeof MetersRoute
   MunicipalRoute: typeof MunicipalRoute
   ReconciliationRoute: typeof ReconciliationRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
   TariffRoute: typeof TariffRoute
+  TelemetryRoute: typeof TelemetryRoute
   TrendsRoute: typeof TrendsRoute
   UploadRoute: typeof UploadRoute
 }
@@ -233,6 +272,13 @@ declare module '@tanstack/react-router' {
       path: '/audit'
       fullPath: '/audit'
       preLoaderRoute: typeof AuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calendar': {
+      id: '/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/customers': {
@@ -261,6 +307,13 @@ declare module '@tanstack/react-router' {
       path: '/invoices'
       fullPath: '/invoices'
       preLoaderRoute: typeof InvoicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meters': {
+      id: '/meters'
+      path: '/meters'
+      fullPath: '/meters'
+      preLoaderRoute: typeof MetersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/municipal': {
@@ -298,6 +351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TariffRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/telemetry': {
+      id: '/telemetry'
+      path: '/telemetry'
+      fullPath: '/telemetry'
+      preLoaderRoute: typeof TelemetryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/trends': {
       id: '/trends'
       path: '/trends'
@@ -319,15 +379,18 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnomaliesRoute: AnomaliesRoute,
   AuditRoute: AuditRoute,
+  CalendarRoute: CalendarRoute,
   CustomersRoute: CustomersRoute,
   DemandRoute: DemandRoute,
   EnergyRoute: EnergyRoute,
   InvoicesRoute: InvoicesRoute,
+  MetersRoute: MetersRoute,
   MunicipalRoute: MunicipalRoute,
   ReconciliationRoute: ReconciliationRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
   TariffRoute: TariffRoute,
+  TelemetryRoute: TelemetryRoute,
   TrendsRoute: TrendsRoute,
   UploadRoute: UploadRoute,
 }

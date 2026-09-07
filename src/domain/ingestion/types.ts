@@ -128,6 +128,7 @@ export interface IngestionGatewayResult {
   fileHeader: FileMetadataHeader;
   batchJob: IngestionBatchJob;
   extractedInvoice?: ExtractedInvoiceFields;
+  intervals?: any[];
   rawExtractionText?: string;
   confidenceScore: number;
   errors: IngestionErrorRecord[];

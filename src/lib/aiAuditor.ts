@@ -70,7 +70,7 @@ export function runAiInvoiceAudit(
       impactAmountR: 878835.0,
       nersaCitation: "Eskom Schedule of Standard Prices 2025/26 Table 3 p.16 Row ≥500V & <66kV",
       recommendation:
-        "Review Impala's specific connection agreement to confirm whether transmission capacity is subject to zero-rating under contractual distribution clauses.",
+        `Review ${invoice.customerName || "the customer"}'s specific connection agreement to confirm whether transmission capacity is subject to zero-rating under contractual distribution clauses.`,
     });
   }
 

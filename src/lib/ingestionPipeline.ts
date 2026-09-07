@@ -82,41 +82,48 @@ export async function runIngestionPipeline(
     pdfResult = await extractInvoiceFromPdf(file);
     rawText =
       pdfResult.invoice.source || `Extracted Invoice No: ${pdfResult.invoice.invoiceNumber}`;
-  } catch (pdfErr) {
-    addLog("PDF Extraction Error", "Standard PDF text layer missing or damaged. Switching to OCR.");
-    parserType = "tesseract_ocr";
+  } catch (pdfErr: any) {
+    addLog("PDF Extraction Error", `Standard PDF text layer unreadable (${pdfErr?.message || "format error"}). Switching to AI/OCR fallback.`);
+    parserType = "ai_fallback";
     confidenceScore = 75;
   }
 
-  const invoice: Partial<InvoiceData> = pdfResult?.invoice || {
+  let invoice: Partial<InvoiceData> = pdfResult?.invoice || {
     invoiceNumber: `INV-${Date.now()}`,
-    customerName: "Impala Plats Rustenburg Mine",
-    accountNumber: "7856504676",
-    premiseId: "7856504226",
+    customerName: "",
+    accountNumber: "",
+    premiseId: "",
     tariffName: "Megaflex Non-Local Authority",
   };
 
-  if (!pdfResult) {
-    throw new Error(
-      "Invoice extraction failed: no verified fields were recovered from the document.",
-    );
-  }
-
-  // Stage 3: AI Fallback Check (If confidence < 90% or fields missing)
+  // Stage 3: AI Fallback Check (If extraction failed, confidence < 90% or fields missing)
   let aiResult: AiParserResult | undefined;
-  if (!invoice.invoiceTotal || confidenceScore < 90) {
+  if (!pdfResult || !invoice.invoiceTotal || confidenceScore < 90) {
     onProgress?.(
       "Executing AI Fallback Parser",
       60,
       "Resolving unstructured billing tables with AI",
     );
-    addLog("AI Fallback", "Invoking Gemini AI parser to resolve missing billing fields");
-    aiResult = await processWithAiFallback(rawText);
-    if (aiResult.invoice.invoiceTotal) {
-      invoice.invoiceTotal = aiResult.invoice.invoiceTotal;
+    addLog("AI Fallback", "Invoking AI parser to resolve missing billing fields");
+    try {
+      aiResult = await processWithAiFallback(rawText || file.name);
+      if (aiResult?.invoice) {
+        invoice = { ...invoice, ...aiResult.invoice };
+        if (aiResult.invoice.invoiceTotal) {
+          invoice.invoiceTotal = aiResult.invoice.invoiceTotal;
+        }
+        parserType = pdfResult ? "hybrid" : "ai_fallback";
+        confidenceScore = Math.max(confidenceScore, aiResult.confidenceScore);
+      }
+    } catch (aiErr: any) {
+      addLog("AI Fallback Error", `AI fallback parser error: ${aiErr?.message || aiErr}`);
     }
-    parserType = "hybrid";
-    confidenceScore = Math.max(confidenceScore, aiResult.confidenceScore);
+  }
+
+  if (!invoice.invoiceTotal && !pdfResult) {
+    throw new Error(
+      "Invoice extraction failed: no verified fields were recovered from the document.",
+    );
   }
 
   // Stage 4: Mathematical Validation Engine
@@ -191,8 +198,8 @@ export async function runIngestionPipeline(
     aiResult,
     rawText,
     detectedTables: pdfResult?.lineItems || [],
-    chargeLines: pdfResult.chargeLines,
-    lineItems: pdfResult.lineItems,
+    chargeLines: pdfResult?.chargeLines || {},
+    lineItems: pdfResult?.lineItems || [],
     confidenceScore,
     logs,
   };

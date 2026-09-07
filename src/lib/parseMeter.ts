@@ -57,8 +57,8 @@ export async function parseMeterWorkbook(buffer: ArrayBuffer): Promise<Measureme
         const tsKey = findKey(["timestamp", "reading time", "date & time", "date", "time"]);
 
         // Fallback for headerless spreadsheets: assume col 0 is ts, col 1 is kW, col 2 is kVAr
-        const effectiveKwKey = kwKey || keys[1] || keys[0];
         const effectiveTsKey = tsKey || keys[0];
+        const effectiveKwKey = kwKey || (keys.length > 1 && keys[1] !== effectiveTsKey ? keys[1] : undefined);
 
         // Detect if intervals are 30-min active energy in kWh instead of kW demand
         const isKwhInterval = keys.some((k) => k.toLowerCase().includes("kwh"));
@@ -79,7 +79,7 @@ export async function parseMeterWorkbook(buffer: ArrayBuffer): Promise<Measureme
 
           if (!ts || isNaN(ts.getTime())) continue;
 
-          let kW = Number(r[effectiveKwKey]);
+          let kW = effectiveKwKey ? Number(r[effectiveKwKey]) : NaN;
           const kwMissing = !isFinite(kW);
 
           // If interval energy in kWh is provided, multiply by 2 to convert 30-min kWh to kW demand
@@ -129,7 +129,7 @@ export async function parseMeterWorkbook(buffer: ArrayBuffer): Promise<Measureme
 /**
  * Data-quality pass applied to every ingested dataset:
  *  - Deduplicates identical timestamps (keeps first valid reading).
- *  - Fills time gaps (> 30 mins) by generating synthetic 30-minute interval slots badged `estimated`.
+ *  - Fills time gaps (> 30 mins, up to 24 hours / 48 intervals) by generating synthetic 30-minute interval slots badged `estimated`.
  *  - NaN / null measurements are repaired by linear interpolation.
  *  - All-zero intervals (0 kW / 0 kVA) are tagged as an unsupplied grid outage and given safe PF 1.0.
  */
@@ -149,9 +149,10 @@ export function imputeAndFlag(inputRows: Measurement[]): Measurement[] {
   }
   const deduplicated = Array.from(uniqueMap.values());
 
-  // Step 3: Detect and fill missing 30-minute time gaps
+  // Step 3: Detect and fill missing 30-minute time gaps (capped to 48 intervals / 24h to avoid OOM)
   const filledRows: Measurement[] = [];
   const INTERVAL_MS = 30 * 60 * 1000;
+  const MAX_GAP_INTERVALS = 48; // max 24 hours interpolation
 
   for (let i = 0; i < deduplicated.length; i++) {
     const current = deduplicated[i];
@@ -160,21 +161,24 @@ export function imputeAndFlag(inputRows: Measurement[]): Measurement[] {
       const prev = filledRows[filledRows.length - 1];
       const gapMs = current.ts.getTime() - prev.ts.getTime();
 
-      // If gap is greater than 30 minutes, insert missing 30-minute slots
+      // If gap is greater than 30 minutes, insert missing 30-minute slots up to safety cap
       if (gapMs > INTERVAL_MS + 1000) {
-        let missingTs = prev.ts.getTime() + INTERVAL_MS;
-        while (missingTs < current.ts.getTime()) {
-          const synthTs = new Date(missingTs);
-          filledRows.push({
-            ts: synthTs,
-            kW: NaN,
-            kVAr: NaN,
-            kVA: NaN,
-            pf: 1.0,
-            tou: classifyTou(synthTs),
-            estimated: true,
-          });
-          missingTs += INTERVAL_MS;
+        const gapIntervals = Math.floor(gapMs / INTERVAL_MS) - 1;
+        if (gapIntervals <= MAX_GAP_INTERVALS) {
+          let missingTs = prev.ts.getTime() + INTERVAL_MS;
+          while (missingTs < current.ts.getTime()) {
+            const synthTs = new Date(missingTs);
+            filledRows.push({
+              ts: synthTs,
+              kW: NaN,
+              kVAr: NaN,
+              kVA: NaN,
+              pf: 1.0,
+              tou: classifyTou(synthTs),
+              estimated: true,
+            });
+            missingTs += INTERVAL_MS;
+          }
         }
       }
     }
@@ -192,14 +196,16 @@ export function imputeAndFlag(inputRows: Measurement[]): Measurement[] {
     for (const f of fields) {
       if (isFinite(r[f])) continue;
       let prev: number | undefined;
-      for (let j = i - 1; j >= 0; j--) {
+      const minJ = Math.max(0, i - 100);
+      for (let j = i - 1; j >= minJ; j--) {
         if (isFinite(filledRows[j][f])) {
           prev = filledRows[j][f];
           break;
         }
       }
       let next: number | undefined;
-      for (let j = i + 1; j < filledRows.length; j++) {
+      const maxJ = Math.min(filledRows.length, i + 100);
+      for (let j = i + 1; j < maxJ; j++) {
         if (isFinite(filledRows[j][f])) {
           next = filledRows[j][f];
           break;

@@ -3,6 +3,18 @@
  * Enterprise Electricity Invoice Ingestion & Extraction Engine
  */
 
+export type InvoiceLifecycleState =
+  | "UPLOADED"
+  | "EXTRACTED"
+  | "VALIDATED"
+  | "REVIEW_REQUIRED"
+  | "APPROVED"
+  | "READY_FOR_RECONCILIATION"
+  | "RECONCILING"
+  | "RECONCILED"
+  | "DISPUTED"
+  | "CLOSED";
+
 export interface ExtractedField<T = string | number> {
   field_name: string;
   value: T;
@@ -21,9 +33,11 @@ export interface ExtractedInvoiceLineItem {
   quantity: ExtractedField<number>;
   unit_of_measure: string;
   invoiced_amount: ExtractedField<number>;
+  normalized_amount?: number;
   source_page: number;
   source_text_reference: string;
   confidence_score: number;
+  calculation_status?: "verified" | "unverified" | "discrepancy";
 }
 
 export interface ExtractedInvoiceDeterminant {
@@ -34,6 +48,34 @@ export interface ExtractedInvoiceDeterminant {
   period_end?: string;
   source_page: number;
   source_text_reference: string;
+}
+
+export interface BillingDeterminantRecord {
+  // Energy Determinants
+  peak_kwh: number;
+  standard_kwh: number;
+  off_peak_kwh: number;
+  total_kwh: number;
+
+  // Demand & Reactive Determinants
+  maximum_demand_kva: number;
+  notified_maximum_demand_kva: number;
+  utilised_capacity_kva: number;
+  reactive_energy_kvarh: number;
+  power_factor: number;
+
+  // Financial Charges Breakdown
+  energy_charges_zar: number;
+  network_charges_zar: number;
+  demand_charges_zar: number;
+  service_charges_zar: number;
+  ancillary_charges_zar: number;
+  subsidies_adjustments_zar: number;
+
+  // Totals
+  subtotal_zar: number;
+  vat_zar: number;
+  total_invoice_zar: number;
 }
 
 export interface InvoiceDiscrepancy {
@@ -67,6 +109,43 @@ export interface ClassifiedPage {
   text_content: string;
 }
 
+export interface InvoiceCorrectionEntry {
+  id: string;
+  invoice_record_id: string;
+  field_name: string;
+  original_value: string | number;
+  corrected_value: string | number;
+  reason: string;
+  user_id?: string;
+  user_name: string;
+  timestamp: string;
+  approved_by?: string;
+}
+
+export interface InvoiceHeaderMeta {
+  invoice_id: string;
+  account_number: string;
+  organisation_id?: string;
+  client_name?: string;
+  site_id?: string;
+  site_name?: string;
+  pod_id?: string;
+  premise_id?: string;
+  meter_number?: string;
+  billing_period_start: string;
+  billing_period_end: string;
+  invoice_date: string;
+  tariff_code?: string;
+  tariff_name?: string;
+  supply_voltage?: number;
+  source_file_id?: string;
+  sha256_hash: string;
+  extraction_status: "success" | "partial" | "failed";
+  validation_status: "passed" | "warnings" | "failed";
+  reconciliation_status: "unprocessed" | "pending" | "matched" | "discrepancy";
+  lifecycle_state: InvoiceLifecycleState;
+}
+
 export interface InvoiceExtractionMetadata {
   sha256_hash: string;
   source_filename: string;
@@ -81,6 +160,9 @@ export interface InvoiceExtractionMetadata {
 }
 
 export interface ExtractedInvoiceDocument {
+  id?: string;
+  lifecycle_state?: InvoiceLifecycleState;
+
   // Required Header & Account Fields
   account_number: ExtractedField<string>;
   customer_name: ExtractedField<string>;
@@ -133,4 +215,7 @@ export interface ExtractedInvoiceDocument {
   // Document Metadata & Validation Results
   metadata: InvoiceExtractionMetadata;
   validation_summary: InvoiceValidationSummary;
+
+  // Human Review Audit Log
+  corrections_log?: InvoiceCorrectionEntry[];
 }

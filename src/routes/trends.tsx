@@ -256,7 +256,29 @@ export function TrendsPage() {
     [],
   );
 
-  const totalInvoiced4Months = HISTORICAL_TRENDS_DATA.reduce((a, b) => a + b.totalInvoice, 0);
+  const trendsData = useMemo(() => {
+    if (!invoice || !invoice.billingPeriod) return HISTORICAL_TRENDS_DATA;
+    const currentPeriodLabel = invoice.accountMonth || invoice.billingPeriod;
+    const exists = HISTORICAL_TRENDS_DATA.some(
+      (d) => d.period.toLowerCase().includes(currentPeriodLabel.toLowerCase()) || currentPeriodLabel.toLowerCase().includes(d.period.toLowerCase()),
+    );
+    if (exists) return HISTORICAL_TRENDS_DATA;
+
+    const activeItem = {
+      period: currentPeriodLabel,
+      peakEnergy: invoice.peakEnergyCharge || 0,
+      standardEnergy: invoice.standardEnergyCharge || 0,
+      offPeakEnergy: invoice.offPeakEnergyCharge || 0,
+      networkCapacity: (invoice.transmissionNetworkCharge || 0) + (invoice.networkCapacityCharge || 0),
+      demandCharge: invoice.networkDemandCharge || 0,
+      subsidiesAndLegacy: (invoice.affordability || 0) + (invoice.electrification || 0) + (invoice.ancillary || 0) + (invoice.legacy || 0),
+      totalInvoice: invoice.totalInclVat || invoice.invoiceTotal || 0,
+      recoveryAmount: 0,
+    };
+    return [...HISTORICAL_TRENDS_DATA, activeItem];
+  }, [invoice]);
+
+  const totalInvoiced4Months = trendsData.reduce((a, b) => a + b.totalInvoice, 0);
   const totalRecoveries4Months = recoveryItems.reduce((a, b) => a + b.recoveryAmount, 0);
   const approvedRecoveries = recoveryItems
     .filter((r) => r.status === "approved")
@@ -540,7 +562,7 @@ export function TrendsPage() {
           <div className="h-72 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
-                data={HISTORICAL_TRENDS_DATA}
+                data={trendsData}
                 margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
@@ -593,7 +615,7 @@ export function TrendsPage() {
           <div className="h-72 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
-                data={HISTORICAL_TRENDS_DATA}
+                data={trendsData}
                 margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
@@ -614,7 +636,7 @@ export function TrendsPage() {
                 />
                 <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
                 <Bar dataKey="recoveryAmount" name="Recovery Amount (ZAR)">
-                  {HISTORICAL_TRENDS_DATA.map((entry, index) => (
+                  {trendsData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={

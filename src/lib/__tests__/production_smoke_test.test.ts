@@ -181,4 +181,13 @@ export async function runProductionSmokeTests() {
   console.log("=========================================================\n");
 }
 
-runProductionSmokeTests();
+if (process.argv[1] && process.argv[1].includes("production_smoke_test")) {
+  runProductionSmokeTests()
+    .then(() => {
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error("Test execution failed:", err);
+      process.exit(1);
+    });
+}

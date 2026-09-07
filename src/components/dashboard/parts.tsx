@@ -48,7 +48,8 @@ export function useBootstrapMeter() {
   const setBilling = useApp((s) => s.setBilling);
   const started = useRef(false);
   useEffect(() => {
-    if (rows.length >= 5000 || started.current) return;
+    // Only bootstrap benchmark data if store is completely empty
+    if (rows.length > 0 || started.current) return;
     started.current = true;
     (async () => {
       try {

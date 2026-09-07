@@ -8,8 +8,8 @@
     "build": "npm run test && vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
-    "test": "npx tsx src/lib/__tests__/comprehensive_enterprise_test_suite.test.ts",
-    "test:all": "npx tsx src/lib/__tests__/run-tests.ts",
+    "test": "tsx src/lib/__tests__/comprehensive_enterprise_test_suite.test.ts",
+    "test:all": "tsx src/lib/__tests__/run-tests.ts",
     "lint": "eslint src/",
     "format": "prettier --write ."
   },
@@ -93,6 +93,7 @@
     "globals": "^15.15.0",
     "nitro": "3.0.260603-beta",
     "prettier": "^3.7.3",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^8.0.16"

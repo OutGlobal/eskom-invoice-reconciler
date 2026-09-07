@@ -376,6 +376,7 @@ async function runMasterTestSuite() {
   console.log("=========================================================");
   console.log(`  ALL ${passedScenarios} / 20 ESSENTIAL TEST SCENARIOS PASSED 100%`);
   console.log("=========================================================");
+  process.exit(0);
 }
 
 runMasterTestSuite().catch((err) => {

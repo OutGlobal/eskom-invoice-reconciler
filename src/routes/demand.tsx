@@ -13,7 +13,7 @@ import {
   NUM,
   ZAR,
 } from "@/components/dashboard/parts";
-import { TOU_COLOR, TOU_LABEL } from "@/lib/tariff";
+import { TOU_COLOR, TOU_LABEL, TARIFF } from "@/lib/tariff";
 import { useApp } from "@/lib/store";
 import { InvoiceSelector } from "@/components/InvoiceSelector";
 import {
@@ -78,33 +78,40 @@ export function DemandPage() {
   const isApr = activeMonth.includes("APRIL") || invoice?.invoiceNo === "785684906677";
   const isMay = activeMonth.includes("MAY") || invoice?.invoiceNo === "785595072130";
 
-  // Dynamic active peak data
-  let activeBilledPeakKVA =
-    invoice?.simMaxDemand || invoice?.maxDemandKVA || totals.maxDemandKVA || 86432.56;
-  let activeRawPeakKVA = 87431.54;
-  let activePeakTimestampText = "04 Feb 2026 at 12:00:00";
-  let activePeakDate = totals.maxDemandAt || new Date("2026-02-04T12:00:00");
-  let activeDemandChargeR = invoice?.networkDemandCharge || 2089075.22;
+  // Dynamic active peak data derived from active invoice and telemetry
+  const activeBilledPeakKVA =
+    invoice?.maxDemandKVA ||
+    invoice?.simMaxDemand ||
+    totals.maxDemandKVA ||
+    (isMar ? 86986.5 : isApr ? 82639.83 : isMay ? 81132.08 : 86432.56);
 
-  if (isMar) {
-    activeBilledPeakKVA = 86986.5;
-    activeRawPeakKVA = 92948.29;
-    activePeakTimestampText = "04 Mar 2026 at 12:00:00 (Curtailment Spike)";
-    activePeakDate = new Date("2026-03-04T12:00:00");
-    activeDemandChargeR = 2102463.71;
-  } else if (isApr) {
-    activeBilledPeakKVA = 82639.83;
-    activeRawPeakKVA = 85760.81;
-    activePeakTimestampText = "30 Mar 2026 at 14:00:00";
-    activePeakDate = new Date("2026-03-30T14:00:00");
-    activeDemandChargeR = 2094064.8;
-  } else if (isMay) {
-    activeBilledPeakKVA = 81132.08;
-    activeRawPeakKVA = 84529.33;
-    activePeakTimestampText = "04 May 2026 at 11:30:00";
-    activePeakDate = new Date("2026-05-04T11:30:00");
-    activeDemandChargeR = 2132962.38;
-  }
+  const activeRawPeakKVA =
+    totals.maxDemandKVA ||
+    (isMar ? 92948.29 : isApr ? 85760.81 : isMay ? 84529.33 : 87431.54);
+
+  const activePeakTimestampText = totals.maxDemandAt
+    ? format(totals.maxDemandAt, "dd MMM yyyy 'at' HH:mm:ss")
+    : isMar
+    ? "04 Mar 2026 at 12:00:00 (Curtailment Spike)"
+    : isApr
+    ? "30 Mar 2026 at 14:00:00"
+    : isMay
+    ? "04 May 2026 at 11:30:00"
+    : "04 Feb 2026 at 12:00:00";
+
+  const activePeakDate =
+    totals.maxDemandAt ||
+    (isMar
+      ? new Date("2026-03-04T12:00:00")
+      : isApr
+      ? new Date("2026-03-30T14:00:00")
+      : isMay
+      ? new Date("2026-05-04T11:30:00")
+      : new Date("2026-02-04T12:00:00"));
+
+  const activeDemandChargeR =
+    invoice?.networkDemandCharge ||
+    (activeBilledPeakKVA * TARIFF.networkDemand);
 
   const activeExceedanceKVA = Math.max(0, activeBilledPeakKVA - nmd);
   const isExceeded = activeExceedanceKVA > 0.01;

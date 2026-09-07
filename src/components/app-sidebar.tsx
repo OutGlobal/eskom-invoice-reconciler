@@ -13,6 +13,8 @@ import {
   Building2,
   AlertTriangle,
   ShieldCheck,
+  Gauge,
+  Calendar,
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,8 +32,12 @@ import {
 const items = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Customers", url: "/customers", icon: Users },
+  { title: "Meters Subsystem", url: "/meters", icon: Gauge },
+  { title: "AMR Telemetry Engine", url: "/telemetry", icon: Activity },
+  { title: "Data Governance & Quality", url: "/quality", icon: ShieldCheck },
   { title: "Meter Data Upload", url: "/upload", icon: Upload },
   { title: "Tariff Management", url: "/tariff", icon: ReceiptText },
+  { title: "Calendar & TOU Engine", url: "/calendar", icon: Calendar },
   { title: "Energy Analysis", url: "/energy", icon: Zap },
   { title: "Demand Analysis", url: "/demand", icon: Activity },
   { title: "Reconciliation", url: "/reconciliation", icon: Scale },

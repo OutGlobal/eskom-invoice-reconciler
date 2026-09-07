@@ -1,6 +1,7 @@
 /**
- * Versioned Tariff Engine Domain Types
+ * Versioned Deterministic Tariff Engine Domain Types
  * Enterprise Data-Driven Tariff Model for Eskom & Municipal Utilities
+ * Tariffs are DATA, not frontend code.
  */
 
 import Decimal from "decimal.js-light";
@@ -8,15 +9,27 @@ import Decimal from "decimal.js-light";
 export type SeasonType = "high" | "low";
 export type TouPeriodType = "peak" | "standard" | "off_peak";
 export type DayType = "weekday" | "saturday" | "sunday" | "public_holiday";
-export type VoltageCategory = "high" | "medium" | "low";
-export type CustomerClass = "urban_transmission" | "urban_distribution" | "rural";
+export type VoltageCategory = "high" | "medium" | "low" | "transmission";
+export type CustomerClass =
+  | "urban_transmission"
+  | "urban_distribution"
+  | "rural"
+  | "municipal_bulk"
+  | "commercial";
 export type TariffStatus = "active" | "superseded" | "draft";
+export type TariffFamilyType =
+  | "megaflex"
+  | "miniflex"
+  | "nightsave"
+  | "businessrate"
+  | "municipal"
+  | "custom";
 
 export interface TariffScheduleHeader {
   tariff_code: string;
   tariff_name: string;
   utility: string; // e.g. 'Eskom', 'City of Johannesburg', 'City of Tshwane'
-  tariff_family: "megaflex" | "miniflex" | "nightsave" | "municipal";
+  tariff_family: TariffFamilyType;
   version: string; // e.g. '2025.1', '2026.1'
   effective_date: string; // YYYY-MM-DD
   expiry_date?: string; // YYYY-MM-DD
@@ -24,6 +37,7 @@ export interface TariffScheduleHeader {
   voltage_level: VoltageCategory;
   customer_class: CustomerClass;
   status: TariffStatus;
+  vat_treatment: "standard_15" | "zero_rated";
   source_document: string; // e.g. 'NERSA Tariff Schedule Gazette 2025/26'
   source_hash: string; // SHA-256 fingerprint of source gazette
 }
@@ -58,12 +72,15 @@ export interface TariffComponentRule {
     | "SERVICE_CHARGE"
     | "ADMINISTRATION_CHARGE"
     | "ELECTRIFICATION_SUBSIDY"
-    | "AFFORDABILITY_SUBSIDY";
+    | "AFFORDABILITY_SUBSIDY"
+    | "NMD_RATCHET_PENALTY";
   unit_of_measure: "c/kWh" | "R/kVA/month" | "R/kW/month" | "R/kVARh" | "R/day" | "R/month" | "%";
   season?: SeasonType | "all";
   tou_period?: TouPeriodType | "all";
   voltage_level?: VoltageCategory | "all";
   rate_value: Decimal; // Gazetted rate value
+  rule_id: string;
+  formula_template: string; // e.g. "quantity * rate / 100"
 }
 
 export interface TariffVersionDefinition {
@@ -75,12 +92,17 @@ export interface TariffVersionDefinition {
     name: string;
     tou_treatment: "sunday_schedule" | "off_peak";
   }>;
+  reactive_penalty_rate: Decimal; // R/kVARh for PF < 0.95
+  pf_threshold: Decimal; // 0.95
+  nmd_ratchet_multiplier: Decimal; // 2.0x for excess demand
+  minimum_nmd_kva: Decimal; // 50 kVA
 }
 
 export interface CalculationAuditStep {
   step_number: number;
   tariff_code: string;
   tariff_version: string;
+  rule_id: string;
   component_code: string;
   component_name: string;
   season: SeasonType | "all";
@@ -114,6 +136,7 @@ export interface DeterministicCalculationInput {
 export interface TariffCalculationItem {
   component_code: string;
   component_name: string;
+  rule_id: string;
   unit: string;
   rate: Decimal;
   quantity: Decimal;
@@ -133,4 +156,29 @@ export interface TariffCalculationResult {
   vat_amount: Decimal;
   total_inc_vat: Decimal;
   audit_trace: CalculationAuditStep[];
+}
+
+/**
+ * Rate Lineage Explanation Function Response Contract
+ * Answers: "Why was this tariff rate applied?"
+ */
+export interface RateLineageExplanation {
+  tariff_name: string;
+  tariff_code: string;
+  version_id: string;
+  version_number: string;
+  effective_date: string;
+  expiry_date?: string;
+  customer_category: string;
+  voltage_level: string;
+  season: string;
+  tou_period: string;
+  component_code: string;
+  component_name: string;
+  rate_value: string;
+  unit_of_measure: string;
+  formula_used: string;
+  rule_id: string;
+  gazette_reference: string;
+  explanation_text: string;
 }

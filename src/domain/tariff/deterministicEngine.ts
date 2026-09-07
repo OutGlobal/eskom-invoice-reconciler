@@ -21,6 +21,14 @@ export class DeterministicEngine {
   /**
    * Main calculation entry point using exact Decimal math
    */
+  public static calculate = (
+    input: DeterministicCalculationInput,
+    tariffVersion: TariffVersionDefinition,
+  ) => DeterministicEngine.calculateTariff(input, tariffVersion);
+
+  /**
+   * Main calculation entry point using exact Decimal math
+   */
   public static calculateTariff(
     input: DeterministicCalculationInput,
     tariffVersion: TariffVersionDefinition,
@@ -28,12 +36,25 @@ export class DeterministicEngine {
     const startDate = new Date(input.billing_start);
     const endDate = new Date(input.billing_end);
 
-    // Calculate days in billing period (inclusive)
+    // Calculate days in billing period (inclusive) and season distribution
     const diffMs = Math.abs(endDate.getTime() - startDate.getTime());
     const billingDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24)) + 1;
 
-    // Determine Season from start date
-    const season: SeasonType = TouScheduleEngine.getSeason(startDate);
+    let highDays = 0;
+    let lowDays = 0;
+    const cur = new Date(startDate.getTime());
+    while (cur <= endDate) {
+      if (TouScheduleEngine.getSeason(cur) === "high") {
+        highDays++;
+      } else {
+        lowDays++;
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+    const totalDays = Math.max(1, highDays + lowDays);
+    const highRatio = new Decimal(highDays).div(totalDays);
+    const lowRatio = new Decimal(lowDays).div(totalDays);
+    const season: SeasonType = highDays >= lowDays ? "high" : "low";
 
     const items: TariffCalculationItem[] = [];
     const auditTrace: CalculationAuditStep[] = [];
@@ -51,6 +72,7 @@ export class DeterministicEngine {
       quantity: Decimal,
       ruleApplied: string,
       formulaUsed: string,
+      ruleId: string = `RULE_${code}`,
       seasonType: SeasonType | "all" = season,
       touPeriod?: "peak" | "standard" | "off_peak" | "all",
     ) => {
@@ -68,6 +90,7 @@ export class DeterministicEngine {
         step_number: stepCounter++,
         tariff_code: tariffVersion.header.tariff_code,
         tariff_version: tariffVersion.header.version,
+        rule_id: ruleId,
         component_code: code,
         component_name: name,
         season: seasonType,
@@ -85,6 +108,7 @@ export class DeterministicEngine {
       items.push({
         component_code: code,
         component_name: name,
+        rule_id: ruleId,
         unit,
         rate,
         quantity,
@@ -96,26 +120,49 @@ export class DeterministicEngine {
     };
 
     // 1. Energy Charges (Peak, Standard, Off-Peak)
+    // Handle both single-season and cross-seasonal day-weighted energy buckets
     const activeComponents = (tariffVersion.components || []).filter(
-      (c) => c.component_type === "ACTIVE_ENERGY" && (c.season === season || c.season === "all"),
+      (c) => c.component_type === "ACTIVE_ENERGY",
     );
 
     for (const comp of activeComponents) {
-      let qty = new Decimal(0);
-      if (comp.tou_period === "peak") qty = input.peak_kwh;
-      else if (comp.tou_period === "standard") qty = input.standard_kwh;
-      else if (comp.tou_period === "off_peak") qty = input.off_peak_kwh;
+      let baseQty = new Decimal(0);
+      if (comp.tou_period === "peak") baseQty = input.peak_kwh;
+      else if (comp.tou_period === "standard") baseQty = input.standard_kwh;
+      else if (comp.tou_period === "off_peak") baseQty = input.off_peak_kwh;
 
-      if (qty.gt(0)) {
+      if (!baseQty.gt(0)) continue;
+
+      let appliedQty = baseQty;
+      let shouldApply = false;
+
+      if (comp.season === "all" || !comp.season) {
+        shouldApply = true;
+      } else if (comp.season === "high") {
+        if (highDays > 0) {
+          shouldApply = true;
+          appliedQty = lowDays > 0 ? baseQty.mul(highRatio).toDecimalPlaces(2, Decimal.ROUND_HALF_UP) : baseQty;
+        }
+      } else if (comp.season === "low") {
+        if (lowDays > 0) {
+          shouldApply = true;
+          appliedQty = highDays > 0 ? baseQty.mul(lowRatio).toDecimalPlaces(2, Decimal.ROUND_HALF_UP) : baseQty;
+        }
+      }
+
+      if (shouldApply && appliedQty.gt(0)) {
+        const seasonLabel = comp.season ? `${comp.season.toUpperCase()} season` : "All season";
+        const splitNote = highDays > 0 && lowDays > 0 ? ` (${comp.season === "high" ? highDays : lowDays} of ${totalDays} billing days)` : "";
         addItem(
           comp.component_code,
           comp.component_name,
           comp.unit_of_measure,
           comp.rate_value,
-          qty,
-          `Gazetted ${comp.season?.toUpperCase()} season ${comp.tou_period?.toUpperCase()} energy rate`,
+          appliedQty,
+          `Gazetted ${seasonLabel} ${comp.tou_period?.toUpperCase()} energy rate${splitNote}`,
           `amount = (qty_kwh * rate_cents) / 100`,
-          season,
+          comp.rule_id || `RULE_${comp.component_code}`,
+          comp.season as SeasonType || season,
           comp.tou_period,
         );
       }
@@ -151,6 +198,7 @@ export class DeterministicEngine {
           qty,
           `Gazetted NERSA ${comp.component_name} per kVA of billing demand`,
           `amount = demand_kva * rate_zar`,
+          comp.rule_id || `RULE_${comp.component_code}`,
           "all",
         );
       }
@@ -171,6 +219,7 @@ export class DeterministicEngine {
         days,
         `Fixed daily ${comp.component_name} multiplied by ${billingDays} billing days`,
         `amount = billing_days * rate_per_day`,
+        comp.rule_id || `RULE_${comp.component_code}`,
         "all",
       );
     }
@@ -192,6 +241,7 @@ export class DeterministicEngine {
           input.active_energy_kwh,
           `Gazetted NERSA ${comp.component_name} on total active energy`,
           `amount = (total_kwh * rate_cents) / 100`,
+          comp.rule_id || `RULE_${comp.component_code}`,
           "all",
         );
       }
@@ -216,6 +266,7 @@ export class DeterministicEngine {
           reactiveQty,
           `Power factor penalty applied (PF ${input.power_factor.toString()} < 0.96 threshold)`,
           `amount = reactive_kvarh * penalty_rate`,
+          reactiveComp.rule_id || `RULE_${reactiveComp.component_code}`,
           "all",
         );
       }
@@ -246,3 +297,5 @@ export class DeterministicEngine {
     };
   }
 }
+
+export const DeterministicTariffEngine = DeterministicEngine;

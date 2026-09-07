@@ -22,6 +22,10 @@ import { QuarantineManager } from "@/domain/ingestion/quarantineManager";
 import type { IngestionGatewayResult, IngestionLifecycleState } from "@/domain/ingestion/types";
 import { ZAR, NUM } from "@/components/dashboard/parts";
 
+import { useApp, type InvoiceData } from "@/lib/store";
+import { syncInvoiceToSupabase } from "@/lib/supabase";
+import { validateMeterRows } from "@/lib/validation";
+
 export function SecureUploadGateway() {
   const [dragActive, setDragActive] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -50,6 +54,89 @@ export function SecureUploadGateway() {
         },
       );
       setIngestionResult(res);
+
+      if (res.success) {
+        const store = useApp.getState();
+
+        // 1. If invoice fields were extracted, reflect in app store and Supabase
+        if (res.extractedInvoice) {
+          const ext = res.extractedInvoice;
+          const invoiceNum = ext.accountNumber ? `INV-${ext.accountNumber}` : `INV-${Date.now()}`;
+          const mappedInvoice: InvoiceData = {
+            source: file.name,
+            invoiceNumber: invoiceNum,
+            customerName: ext.pod || ext.premiseId || "Commercial Customer",
+            accountNumber: ext.accountNumber || "",
+            meterNumber: ext.meterNumber || ext.meterSerial || "",
+            tariffName: ext.tariff || "Megaflex Non-Local Authority",
+            voltage: ext.voltage || ">= 500V & < 66kV",
+            nmd: ext.notifiedMaximumDemand || 2000,
+            billingPeriod: ext.billingPeriod || "Current Period",
+            billingPeriodStart: ext.billingStart,
+            billingPeriodEnd: ext.billingEnd,
+            peakKWh: ext.peakKwh || 0,
+            standardKWh: ext.standardKwh || 0,
+            offPeakKWh: ext.offPeakKwh || 0,
+            totalKWh: ext.totalKwh || 0,
+            maxDemandKVA: ext.billedMaximumDemand || ext.kva || 0,
+            transmissionNetworkCharge: (ext.networkCharges || 0) * 0.3,
+            networkCapacityCharge: (ext.networkCharges || 0) * 0.4,
+            generationCapacityCharge: 0,
+            networkDemandCharge: (ext.networkCharges || 0) * 0.3,
+            ancillary: ext.ancillaryCharges || 0,
+            legacy: 0,
+            affordability: (ext.subsidies || 0) * 0.7,
+            electrification: (ext.subsidies || 0) * 0.3,
+            reactive: 0,
+            peakEnergyCharge: (ext.energyCharges || 0) * 0.45,
+            standardEnergyCharge: (ext.energyCharges || 0) * 0.40,
+            offPeakEnergyCharge: (ext.energyCharges || 0) * 0.15,
+            vat: ext.vat || (ext.totalInvoice ? ext.totalInvoice * 0.15 : 0),
+            invoiceTotal: ext.totalInvoice - (ext.vat || 0),
+            totalInclVat: ext.totalInvoice,
+          };
+
+          store.setInvoice(mappedInvoice);
+          store.addUpload({
+            name: file.name,
+            size: file.size,
+            type: "invoice",
+            uploadedAt: new Date(),
+          });
+          store.addProcessedInvoiceNumber(invoiceNum);
+
+          // Sync to Supabase invoices table
+          syncInvoiceToSupabase({
+            account_number: mappedInvoice.accountNumber,
+            invoice_number: invoiceNum,
+            customer_name: mappedInvoice.customerName,
+            premise_id: ext.premiseId,
+            tariff_name: mappedInvoice.tariffName,
+            billing_period: mappedInvoice.billingPeriod,
+            billing_start: mappedInvoice.billingPeriodStart,
+            billing_end: mappedInvoice.billingPeriodEnd,
+            peak_kwh: mappedInvoice.peakKWh,
+            standard_kwh: mappedInvoice.standardKWh,
+            off_peak_kwh: mappedInvoice.offPeakKWh,
+            total_kwh: mappedInvoice.totalKWh,
+            max_demand_kva: mappedInvoice.maxDemandKVA,
+            invoiced_total: mappedInvoice.totalInclVat,
+            status: "verified",
+          }).catch((err) => console.warn("Background invoice sync warning:", err));
+        }
+
+        // 2. If telemetry interval readings were extracted, reflect in store
+        if (res.intervals && res.intervals.length > 0) {
+          store.setRows(res.intervals);
+          store.setValidation(validateMeterRows(res.intervals));
+          store.addUpload({
+            name: file.name,
+            size: file.size,
+            type: "meter",
+            uploadedAt: new Date(),
+          });
+        }
+      }
     } catch (err: any) {
       console.error("Ingestion Gateway execution error:", err);
     } finally {

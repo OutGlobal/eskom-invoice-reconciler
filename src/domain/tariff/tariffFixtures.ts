@@ -1,6 +1,7 @@
 /**
  * Tariff Fixtures & Gazetted NERSA Data Models
- * Contains gazetted NERSA rates (2025/2026) for Eskom & Municipal tariffs
+ * Contains gazetted NERSA rates (2025/2026) for Eskom Megaflex, Miniflex, Nightsave,
+ * Businessrate, and Municipal Bulk tariffs.
  */
 
 import Decimal from "decimal.js-light";
@@ -102,11 +103,7 @@ const PUBLIC_HOLIDAYS_SA = [
   { date: "2026-05-01", name: "Workers' Day", tou_treatment: "off_peak" as const },
   { date: "2026-06-16", name: "Youth Day", tou_treatment: "off_peak" as const },
   { date: "2026-08-09", name: "National Women's Day", tou_treatment: "off_peak" as const },
-  {
-    date: "2026-08-10",
-    name: "National Women's Day (Observed)",
-    tou_treatment: "off_peak" as const,
-  },
+  { date: "2026-08-10", name: "National Women's Day (Observed)", tou_treatment: "off_peak" as const },
   { date: "2026-09-24", name: "Heritage Day", tou_treatment: "off_peak" as const },
   { date: "2026-12-16", name: "Day of Reconciliation", tou_treatment: "off_peak" as const },
   { date: "2026-12-25", name: "Christmas Day", tou_treatment: "off_peak" as const },
@@ -114,7 +111,7 @@ const PUBLIC_HOLIDAYS_SA = [
 ];
 
 /**
- * Gazetted Eskom Megaflex Tariff Definition (2025/2026)
+ * 1. Gazetted Eskom Megaflex Tariff Definition (2025/2026)
  */
 export const ESKOM_MEGAFLEX_2025_2026: TariffVersionDefinition = {
   header: {
@@ -129,13 +126,17 @@ export const ESKOM_MEGAFLEX_2025_2026: TariffVersionDefinition = {
     voltage_level: "high",
     customer_class: "urban_transmission",
     status: "active",
+    vat_treatment: "standard_15",
     source_document: "NERSA Tariff Schedule Gazette 2025/26 Table 1",
     source_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   },
   tou_schedule: [HIGH_SEASON_TOU, LOW_SEASON_TOU],
   public_holidays: PUBLIC_HOLIDAYS_SA,
+  reactive_penalty_rate: new Decimal("0.1450"),
+  pf_threshold: new Decimal("0.95"),
+  nmd_ratchet_multiplier: new Decimal("2.0"),
+  minimum_nmd_kva: new Decimal("50.0"),
   components: [
-    // Energy Rates (c/kWh) - High Season
     {
       component_code: "PEAK_ENERGY_HIGH",
       component_name: "Peak Energy Charge (High Season)",
@@ -144,6 +145,8 @@ export const ESKOM_MEGAFLEX_2025_2026: TariffVersionDefinition = {
       season: "high",
       tou_period: "peak",
       rate_value: new Decimal("666.92"),
+      rule_id: "RULE-MEGA-01",
+      formula_template: "quantity_kwh * rate_c_per_kwh / 100",
     },
     {
       component_code: "STANDARD_ENERGY_HIGH",
@@ -153,6 +156,8 @@ export const ESKOM_MEGAFLEX_2025_2026: TariffVersionDefinition = {
       season: "high",
       tou_period: "standard",
       rate_value: new Decimal("198.84"),
+      rule_id: "RULE-MEGA-02",
+      formula_template: "quantity_kwh * rate_c_per_kwh / 100",
     },
     {
       component_code: "OFF_PEAK_ENERGY_HIGH",
@@ -162,8 +167,9 @@ export const ESKOM_MEGAFLEX_2025_2026: TariffVersionDefinition = {
       season: "high",
       tou_period: "off_peak",
       rate_value: new Decimal("111.15"),
+      rule_id: "RULE-MEGA-03",
+      formula_template: "quantity_kwh * rate_c_per_kwh / 100",
     },
-    // Energy Rates (c/kWh) - Low Season
     {
       component_code: "PEAK_ENERGY_LOW",
       component_name: "Peak Energy Charge (Low Season)",
@@ -172,6 +178,8 @@ export const ESKOM_MEGAFLEX_2025_2026: TariffVersionDefinition = {
       season: "low",
       tou_period: "peak",
       rate_value: new Decimal("214.35"),
+      rule_id: "RULE-MEGA-04",
+      formula_template: "quantity_kwh * rate_c_per_kwh / 100",
     },
     {
       component_code: "STANDARD_ENERGY_LOW",
@@ -181,6 +189,8 @@ export const ESKOM_MEGAFLEX_2025_2026: TariffVersionDefinition = {
       season: "low",
       tou_period: "standard",
       rate_value: new Decimal("143.12"),
+      rule_id: "RULE-MEGA-05",
+      formula_template: "quantity_kwh * rate_c_per_kwh / 100",
     },
     {
       component_code: "OFF_PEAK_ENERGY_LOW",
@@ -190,8 +200,9 @@ export const ESKOM_MEGAFLEX_2025_2026: TariffVersionDefinition = {
       season: "low",
       tou_period: "off_peak",
       rate_value: new Decimal("95.42"),
+      rule_id: "RULE-MEGA-06",
+      formula_template: "quantity_kwh * rate_c_per_kwh / 100",
     },
-    // Network & Capacity Charges (R/kVA/month)
     {
       component_code: "NETWORK_DEMAND",
       component_name: "Network Demand Charge",
@@ -199,6 +210,8 @@ export const ESKOM_MEGAFLEX_2025_2026: TariffVersionDefinition = {
       unit_of_measure: "R/kVA/month",
       season: "all",
       rate_value: new Decimal("42.85"),
+      rule_id: "RULE-MEGA-07",
+      formula_template: "nmd_kva * rate_r_per_kva",
     },
     {
       component_code: "NETWORK_CAPACITY",
@@ -207,14 +220,8 @@ export const ESKOM_MEGAFLEX_2025_2026: TariffVersionDefinition = {
       unit_of_measure: "R/kVA/month",
       season: "all",
       rate_value: new Decimal("28.50"),
-    },
-    {
-      component_code: "GENERATION_CAPACITY",
-      component_name: "Generation Capacity Charge",
-      component_type: "GENERATION_CAPACITY",
-      unit_of_measure: "R/kVA/month",
-      season: "all",
-      rate_value: new Decimal("24.10"),
+      rule_id: "RULE-MEGA-08",
+      formula_template: "nmd_kva * rate_r_per_kva",
     },
     {
       component_code: "TRANSMISSION_NETWORK",
@@ -223,8 +230,9 @@ export const ESKOM_MEGAFLEX_2025_2026: TariffVersionDefinition = {
       unit_of_measure: "R/kVA/month",
       season: "all",
       rate_value: new Decimal("36.20"),
+      rule_id: "RULE-MEGA-09",
+      formula_template: "nmd_kva * rate_r_per_kva",
     },
-    // Subsidies & Ancillary (c/kWh)
     {
       component_code: "ANCILLARY_SERVICE",
       component_name: "Ancillary Service Charge",
@@ -232,6 +240,8 @@ export const ESKOM_MEGAFLEX_2025_2026: TariffVersionDefinition = {
       unit_of_measure: "c/kWh",
       season: "all",
       rate_value: new Decimal("0.68"),
+      rule_id: "RULE-MEGA-10",
+      formula_template: "total_kwh * rate_c_per_kwh / 100",
     },
     {
       component_code: "ELECTRIFICATION_SUBSIDY",
@@ -240,8 +250,9 @@ export const ESKOM_MEGAFLEX_2025_2026: TariffVersionDefinition = {
       unit_of_measure: "c/kWh",
       season: "all",
       rate_value: new Decimal("1.96"),
+      rule_id: "RULE-MEGA-11",
+      formula_template: "total_kwh * rate_c_per_kwh / 100",
     },
-    // Fixed Daily Charges (R/day)
     {
       component_code: "SERVICE_CHARGE",
       component_name: "Service Charge",
@@ -249,16 +260,9 @@ export const ESKOM_MEGAFLEX_2025_2026: TariffVersionDefinition = {
       unit_of_measure: "R/day",
       season: "all",
       rate_value: new Decimal("185.50"),
+      rule_id: "RULE-MEGA-12",
+      formula_template: "days * rate_r_per_day",
     },
-    {
-      component_code: "ADMINISTRATION_CHARGE",
-      component_name: "Administration Charge",
-      component_type: "ADMINISTRATION_CHARGE",
-      unit_of_measure: "R/day",
-      season: "all",
-      rate_value: new Decimal("124.80"),
-    },
-    // Reactive Energy Penalty (R/kVARh for PF < 0.96)
     {
       component_code: "REACTIVE_ENERGY",
       component_name: "Reactive Energy Penalty",
@@ -266,6 +270,226 @@ export const ESKOM_MEGAFLEX_2025_2026: TariffVersionDefinition = {
       unit_of_measure: "R/kVARh",
       season: "all",
       rate_value: new Decimal("0.1450"),
+      rule_id: "RULE-MEGA-13",
+      formula_template: "excess_kvarh * rate_r_per_kvarh",
+    },
+  ],
+};
+
+/**
+ * 2. Gazetted Eskom Miniflex Tariff Definition (2025/2026)
+ */
+export const ESKOM_MINIFLEX_2025_2026: TariffVersionDefinition = {
+  header: {
+    tariff_code: "ESKOM_MINIFLEX_MV_2025_2026",
+    tariff_name: "Eskom Miniflex (Medium Voltage 1kV-33kV)",
+    utility: "Eskom",
+    tariff_family: "miniflex",
+    version: "2025.1",
+    effective_date: "2025-04-01",
+    expiry_date: "2026-03-31",
+    season: "high",
+    voltage_level: "medium",
+    customer_class: "urban_distribution",
+    status: "active",
+    vat_treatment: "standard_15",
+    source_document: "NERSA Tariff Schedule Gazette 2025/26 Table 2",
+    source_hash: "a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0",
+  },
+  tou_schedule: [HIGH_SEASON_TOU, LOW_SEASON_TOU],
+  public_holidays: PUBLIC_HOLIDAYS_SA,
+  reactive_penalty_rate: new Decimal("0.1650"),
+  pf_threshold: new Decimal("0.95"),
+  nmd_ratchet_multiplier: new Decimal("2.0"),
+  minimum_nmd_kva: new Decimal("25.0"),
+  components: [
+    {
+      component_code: "PEAK_ENERGY_HIGH",
+      component_name: "Peak Energy Charge (High Season)",
+      component_type: "ACTIVE_ENERGY",
+      unit_of_measure: "c/kWh",
+      season: "high",
+      tou_period: "peak",
+      rate_value: new Decimal("712.45"),
+      rule_id: "RULE-MINI-01",
+      formula_template: "quantity_kwh * rate_c_per_kwh / 100",
+    },
+    {
+      component_code: "STANDARD_ENERGY_HIGH",
+      component_name: "Standard Energy Charge (High Season)",
+      component_type: "ACTIVE_ENERGY",
+      unit_of_measure: "c/kWh",
+      season: "high",
+      tou_period: "standard",
+      rate_value: new Decimal("215.30"),
+      rule_id: "RULE-MINI-02",
+      formula_template: "quantity_kwh * rate_c_per_kwh / 100",
+    },
+    {
+      component_code: "OFF_PEAK_ENERGY_HIGH",
+      component_name: "Off-Peak Energy Charge (High Season)",
+      component_type: "ACTIVE_ENERGY",
+      unit_of_measure: "c/kWh",
+      season: "high",
+      tou_period: "off_peak",
+      rate_value: new Decimal("122.40"),
+      rule_id: "RULE-MINI-03",
+      formula_template: "quantity_kwh * rate_c_per_kwh / 100",
+    },
+    {
+      component_code: "NETWORK_DEMAND",
+      component_name: "Distribution Network Demand Charge",
+      component_type: "NETWORK_DEMAND",
+      unit_of_measure: "R/kVA/month",
+      season: "all",
+      rate_value: new Decimal("54.20"),
+      rule_id: "RULE-MINI-04",
+      formula_template: "nmd_kva * rate_r_per_kva",
+    },
+    {
+      component_code: "SERVICE_CHARGE",
+      component_name: "Service & Account Charge",
+      component_type: "SERVICE_CHARGE",
+      unit_of_measure: "R/day",
+      season: "all",
+      rate_value: new Decimal("98.40"),
+      rule_id: "RULE-MINI-05",
+      formula_template: "days * rate_r_per_day",
+    },
+  ],
+};
+
+/**
+ * 3. Gazetted Eskom Nightsave Urban Tariff Definition (2025/2026)
+ */
+export const ESKOM_NIGHTSAVE_2025_2026: TariffVersionDefinition = {
+  header: {
+    tariff_code: "ESKOM_NIGHTSAVE_URBAN_2025_2026",
+    tariff_name: "Eskom Nightsave Urban (Off-Peak Night Demand Tariff)",
+    utility: "Eskom",
+    tariff_family: "nightsave",
+    version: "2025.1",
+    effective_date: "2025-04-01",
+    expiry_date: "2026-03-31",
+    season: "high",
+    voltage_level: "high",
+    customer_class: "urban_transmission",
+    status: "active",
+    vat_treatment: "standard_15",
+    source_document: "NERSA Tariff Schedule Gazette 2025/26 Table 3",
+    source_hash: "b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef012",
+  },
+  tou_schedule: [HIGH_SEASON_TOU, LOW_SEASON_TOU],
+  public_holidays: PUBLIC_HOLIDAYS_SA,
+  reactive_penalty_rate: new Decimal("0.1450"),
+  pf_threshold: new Decimal("0.95"),
+  nmd_ratchet_multiplier: new Decimal("2.0"),
+  minimum_nmd_kva: new Decimal("100.0"),
+  components: [
+    {
+      component_code: "PEAK_ENERGY_HIGH",
+      component_name: "Peak Energy Charge (High Season)",
+      component_type: "ACTIVE_ENERGY",
+      unit_of_measure: "c/kWh",
+      season: "high",
+      tou_period: "peak",
+      rate_value: new Decimal("640.10"),
+      rule_id: "RULE-NIGHT-01",
+      formula_template: "quantity_kwh * rate_c_per_kwh / 100",
+    },
+    {
+      component_code: "OFF_PEAK_ENERGY_HIGH",
+      component_name: "Off-Peak Energy Charge (High Season)",
+      component_type: "ACTIVE_ENERGY",
+      unit_of_measure: "c/kWh",
+      season: "high",
+      tou_period: "off_peak",
+      rate_value: new Decimal("89.50"),
+      rule_id: "RULE-NIGHT-02",
+      formula_template: "quantity_kwh * rate_c_per_kwh / 100",
+    },
+    {
+      component_code: "NETWORK_DEMAND",
+      component_name: "Night Demand Capacity Charge",
+      component_type: "NETWORK_DEMAND",
+      unit_of_measure: "R/kVA/month",
+      season: "all",
+      rate_value: new Decimal("38.50"),
+      rule_id: "RULE-NIGHT-03",
+      formula_template: "nmd_kva * rate_r_per_kva",
+    },
+  ],
+};
+
+/**
+ * 4. Gazetted Municipal Bulk Electricity Tariff (City of Johannesburg 2025/2026)
+ */
+export const MUNICIPAL_COJ_BULK_2025_2026: TariffVersionDefinition = {
+  header: {
+    tariff_code: "COJ_BULK_INDUSTRIAL_2025_2026",
+    tariff_name: "City of Johannesburg Bulk Industrial TOU Tariff",
+    utility: "City of Johannesburg",
+    tariff_family: "municipal",
+    version: "2025.1",
+    effective_date: "2025-07-01",
+    expiry_date: "2026-06-30",
+    season: "high",
+    voltage_level: "medium",
+    customer_class: "municipal_bulk",
+    status: "active",
+    vat_treatment: "standard_15",
+    source_document: "City of Johannesburg Tariff Schedule Gazette 2025/26",
+    source_hash: "c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0123",
+  },
+  tou_schedule: [HIGH_SEASON_TOU, LOW_SEASON_TOU],
+  public_holidays: PUBLIC_HOLIDAYS_SA,
+  reactive_penalty_rate: new Decimal("0.1850"),
+  pf_threshold: new Decimal("0.95"),
+  nmd_ratchet_multiplier: new Decimal("2.0"),
+  minimum_nmd_kva: new Decimal("100.0"),
+  components: [
+    {
+      component_code: "PEAK_ENERGY_HIGH",
+      component_name: "CoJ Peak Energy Charge (High Season)",
+      component_type: "ACTIVE_ENERGY",
+      unit_of_measure: "c/kWh",
+      season: "high",
+      tou_period: "peak",
+      rate_value: new Decimal("685.00"),
+      rule_id: "RULE-COJ-01",
+      formula_template: "quantity_kwh * rate_c_per_kwh / 100",
+    },
+    {
+      component_code: "STANDARD_ENERGY_HIGH",
+      component_name: "CoJ Standard Energy Charge (High Season)",
+      component_type: "ACTIVE_ENERGY",
+      unit_of_measure: "c/kWh",
+      season: "high",
+      tou_period: "standard",
+      rate_value: new Decimal("345.00"),
+      rule_id: "RULE-COJ-02",
+      formula_template: "quantity_kwh * rate_c_per_kwh / 100",
+    },
+    {
+      component_code: "OFF_PEAK_ENERGY_HIGH",
+      component_name: "CoJ Off-Peak Energy Charge (High Season)",
+      component_type: "ACTIVE_ENERGY",
+      unit_of_measure: "c/kWh",
+      season: "high",
+      tou_period: "off_peak",
+      rate_value: new Decimal("185.00"),
+      rule_id: "RULE-COJ-03",
+      formula_template: "quantity_kwh * rate_c_per_kwh / 100",
+    },
+    {
+      component_code: "NETWORK_DEMAND",
+      component_name: "CoJ Network Demand Charge",
+      component_type: "NETWORK_DEMAND",
+      unit_of_measure: "R/kVA/month",
+      season: "all",
+      rate_value: new Decimal("68.50"),
+      rule_id: "RULE-COJ-04",
+      formula_template: "nmd_kva * rate_r_per_kva",
     },
   ],
 };

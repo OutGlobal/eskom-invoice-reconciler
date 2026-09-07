@@ -15,20 +15,18 @@ export class HashChainEngine {
   public static async calculateSHA256(input: string | object): Promise<string> {
     const text = typeof input === "string" ? input : JSON.stringify(input);
 
-    if (typeof window !== "undefined" && window.crypto && window.crypto.subtle) {
+    if (typeof globalThis.crypto !== "undefined" && globalThis.crypto.subtle) {
       const encoder = new TextEncoder();
       const data = encoder.encode(text);
-      const hashBuffer = await window.crypto.subtle.digest("SHA-256", data);
+      const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
     }
 
-    // Node.js fallback or sync string hash fallback
     try {
-      const crypto = require("crypto");
-      return crypto.createHash("sha256").update(text).digest("hex");
+      const { createHash } = await import("crypto");
+      return createHash("sha256").update(text).digest("hex");
     } catch {
-      // Pure JS fallback string hash
       return this.simpleHashFallback(text);
     }
   }

@@ -124,7 +124,7 @@ export function reconcileStatement(statement: MunicipalStatement): MunicipalReco
     const variancePct = expected !== 0 ? (variance / expected) * 100 : 0;
     const appliedRate =
       line.quantity && line.quantity !== 0 ? line.billedExcl / line.quantity : undefined;
-    const vatExpected = line.rule.kind === "rates" ? 0 : line.billedExcl * VAT_RATE;
+    const vatExpected = line.rule.kind === "rates" ? 0 : expected * VAT_RATE;
     return {
       line,
       expectedExcl: expected,

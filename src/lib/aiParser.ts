@@ -57,8 +57,12 @@ export async function processWithAiFallback(
       invoiceNumber: extractedInvNo,
       accountNumber: extractedAccountNo,
       invoiceTotal: extractedTotal,
-      customerName: "Impala Plats Rustenburg Mine",
-      premiseId: "7856504226",
+      customerName:
+        rawText.match(/Customer(?:\s*Name)?[:\s]+([^\n\r]+)/i)?.[1]?.trim() ||
+        rawText.match(/Name[:\s]+([^\n\r,]+(?:PTY|LTD|MINE|MUNICIPALITY|CC|PROPRIETARY))/i)?.[1]?.trim(),
+      premiseId:
+        rawText.match(/Premise\s*(?:ID|No)?[:\s]+(\d{10})/i)?.[1] ||
+        rawText.match(/Supply\s*Point[:\s]+(\d{10})/i)?.[1],
       tariffName: "Megaflex Non-Local Authority",
     },
     confidenceScore,
