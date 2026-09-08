@@ -27,6 +27,7 @@ import {
   Building2,
   Gauge,
   HelpCircle,
+  ShieldCheck,
 } from "lucide-react";
 import { TelemetryQualityEngine, type RawTelemetryRowInput } from "@/domain/telemetry/telemetryQualityEngine";
 import { TelemetryStorageService } from "@/domain/telemetry/telemetryStorageService";

@@ -118,6 +118,7 @@ import { runInvoiceSubsystemTests } from "./invoice_lifecycle_subsystem.test";
 import { runMeterSubsystemTests } from "./meter_subsystem.test";
 import { runTelemetrySubsystemTests } from "./telemetry_subsystem.test";
 import { runVersionedTariffEngineTests } from "./versioned_tariff_engine.test";
+import { runEvidenceSubsystemTests } from "./evidence_chain_subsystem.test";
 
 runAiInvestigationTests();
 runGovernanceWorkflowTests();
@@ -126,6 +127,8 @@ await runInvoiceSubsystemTests();
 await runMeterSubsystemTests();
 await runTelemetrySubsystemTests();
 runVersionedTariffEngineTests();
+runEvidenceSubsystemTests();
 
 console.log("=== ALL AUTOMATED TESTS PASSED SUCCESSFULLY ===");
 process.exit(0);
+

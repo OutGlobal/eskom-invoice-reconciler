@@ -1,517 +1,357 @@
 /**
- * Enterprise Audit & Lineage Viewer Component
- * Cryptographic Hash Chain & Reproducible Run Snapshot Auditor
+ * Authoritative 12-Node Evidence Explorer & Lineage Inspector Component
+ * Interactive Enterprise Auditability Workspace connecting:
+ * SOURCE FILE -> INVOICE -> INVOICE LINE -> BILLING DETERMINANT -> TELEMETRY INTERVAL -> METER CONFIGURATION -> MULTIPLIER -> TARIFF RULE -> CALENDAR RULE -> CALCULATION -> VARIANCE -> DISCREPANCY
+ * Enforces tenant authorization security boundaries.
  */
 
 import React, { useState, useEffect, useMemo } from "react";
 import {
   ShieldCheck,
   ShieldAlert,
-  Lock,
-  RefreshCw,
-  Search,
-  Filter,
-  CheckCircle2,
-  FileCode,
+  FileText,
   Layers,
-  Clock,
-  User,
-  Key,
-  Database,
-  ExternalLink,
+  ChevronRight,
+  Search,
+  Info,
+  CheckCircle2,
+  Lock,
+  ArrowRight,
+  FileCode,
+  Gauge,
+  Activity,
+  Calendar,
+  Scale,
+  AlertTriangle,
 } from "lucide-react";
-import type {
-  AuditEventRecord,
-  HashChainVerificationResult,
-  ReproducibleRunSnapshot,
-  AuditEventType,
-} from "../../domain/audit/types";
-import { AuditLedgerService } from "../../domain/audit/auditLedgerService";
-import { HashChainEngine } from "../../domain/audit/hashChainEngine";
-import { toast } from "react-hot-toast";
+import type { CompleteEvidenceChain, EvidenceChainNode, AuthorizationContext } from "@/domain/evidence/types";
+import { EvidenceStorageService } from "@/domain/evidence/evidenceStorageService";
+import { EvidenceChainEngine } from "@/domain/evidence/evidenceChainEngine";
 
 export const AuditViewer: React.FC = () => {
-  const [events, setEvents] = useState<AuditEventRecord[]>([]);
-  const [verificationResult, setVerificationResult] = useState<HashChainVerificationResult | null>(
-    null,
-  );
+  const [selectedVarianceId, setSelectedVarianceId] = useState<string>("VAR-PEAK-001");
+  const [chain, setChain] = useState<CompleteEvidenceChain | null>(null);
+  const [selectedNodeIndex, setSelectedNodeIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isVerifying, setIsVerifying] = useState<boolean>(false);
-  const [selectedEventType, setSelectedEventType] = useState<string>("ALL");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedSnapshot, setSelectedSnapshot] = useState<ReproducibleRunSnapshot | null>(null);
 
-  // Load audit ledger events on mount
+  // Authorization context
+  const authContext: AuthorizationContext = useMemo(
+    () => ({
+      user_id: "USER_AUDITOR_01",
+      tenant_id: "DEFAULT_TENANT",
+      role: "AUDITOR",
+      permitted_site_ids: ["SITE_01"],
+    }),
+    []
+  );
+
   useEffect(() => {
-    loadLedgerData();
-  }, []);
-
-  const loadLedgerData = async () => {
-    setIsLoading(true);
-    try {
-      // Seed sample events if empty for rich initial audit demo
-      let ledger = await AuditLedgerService.getLedgerEvents();
-      if (ledger.length === 0) {
-        await seedSampleLedgerEvents();
-        ledger = await AuditLedgerService.getLedgerEvents();
-      }
-
-      setEvents(ledger);
-
-      // Perform initial integrity check
-      const result = await HashChainEngine.verifyChainIntegrity(ledger);
-      setVerificationResult(result);
-    } catch (err: any) {
-      toast.error(`Error loading audit ledger: ${err?.message || err}`);
-    } finally {
+    async function load() {
+      setIsLoading(true);
+      const res = await EvidenceStorageService.getEvidenceChain(selectedVarianceId, authContext);
+      setChain(res);
       setIsLoading(false);
     }
-  };
+    load();
+  }, [selectedVarianceId, authContext]);
 
-  const seedSampleLedgerEvents = async () => {
-    const actor = "admin@eskombalancer.co.za";
-    await AuditLedgerService.logEvent(
-      "FILE_UPLOADED",
-      "source_file",
-      "src-file-2026-03-01.csv",
-      { filename: "amr_telemetry_2026_03.csv", bytes: 1048576, sha256: "a3f8b921..." },
-      actor,
-    );
-    await AuditLedgerService.logEvent(
-      "FILE_PARSED",
-      "source_file",
-      "src-file-2026-03-01.csv",
-      { parser_version: "1.0.0", rows_parsed: 1488, duration_ms: 120 },
-      actor,
-    );
-    await AuditLedgerService.logEvent(
-      "FILE_VALIDATED",
-      "source_file",
-      "src-file-2026-03-01.csv",
-      { data_quality_score: 97.5, missing_intervals: 3 },
-      actor,
-    );
-    await AuditLedgerService.logEvent(
-      "INVOICE_CREATED",
-      "invoice",
-      "INV-2026-03-9988",
-      { invoice_number: "INV-2026-03-9988", billed_total_zar: 920000.0 },
-      actor,
-    );
-    await AuditLedgerService.logEvent(
-      "TARIFF_SELECTED",
-      "tariff_schedule",
-      "ESKOM_MEGAFLEX_HV_2025_2026",
-      { tariff_code: "ESKOM_MEGAFLEX_HV_2025_2026", version: "2025-2026-V1" },
-      actor,
-    );
-    await AuditLedgerService.logEvent(
-      "RECONCILIATION_STARTED",
-      "reconciliation_run",
-      "run-rec-2026-03-full",
-      { site_id: "site-001", meter_id: "mtr-30m-99" },
-      actor,
-    );
-    await AuditLedgerService.logEvent(
-      "RECONCILIATION_COMPLETED",
-      "reconciliation_run",
-      "run-rec-2026-03-full",
-      { status: "MATERIAL_DISCREPANCY", variance_zar: 44587.5 },
-      actor,
-    );
-    await AuditLedgerService.logEvent(
-      "DISCREPANCY_CREATED",
-      "discrepancy",
-      "disc-001",
-      { reason_code: "TOU_CLASSIFICATION", impact_zar: 18421.32 },
-      actor,
-    );
-    await AuditLedgerService.logEvent(
-      "REPORT_GENERATED",
-      "generated_report",
-      "rep-dispute-pack-01",
-      { report_type: "DISPUTE_PACK_PDF" },
-      actor,
-    );
-    await AuditLedgerService.logEvent(
-      "EXPORT_GENERATED",
-      "export",
-      "exp-excel-01",
-      { format: "XLSX" },
-      actor,
-    );
-    await AuditLedgerService.logEvent(
-      "USER_REVIEWED",
-      "reconciliation_run",
-      "run-rec-2026-03-full",
-      { reviewer: actor, comments: "Verified TOU peak clock shift" },
-      actor,
-    );
-    await AuditLedgerService.logEvent(
-      "USER_APPROVED",
-      "reconciliation_run",
-      "run-rec-2026-03-full",
-      { approver: actor, status: "APPROVED_FOR_DISPUTE" },
-      actor,
-    );
+  if (isLoading || !chain) {
+    return <div className="p-8 text-center text-sm text-muted-foreground">Loading 12-Node Evidence Chain Engine...</div>;
+  }
 
-    // Save reproducible run snapshot
-    await AuditLedgerService.saveRunSnapshot({
-      run_id: "run-rec-2026-03-full",
-      user_id: "usr-001",
-      organisation_id: "org-001",
-      source_file_ids: ["src-file-2026-03-01.csv"],
-      source_file_hashes: ["a3f8b921827419e48719284192841e9284192849182419284192849182419284"],
-      invoice_id: "INV-2026-03-9988",
-      meter_id: "mtr-30m-99",
-      tariff_version_id: "2025-2026-V1",
-      tariff_snapshot: {
-        tariff_code: "ESKOM_MEGAFLEX_HV_2025_2026",
-        peak_rate_c_kwh: 666.92,
-        offpeak_rate_c_kwh: 111.15,
-      },
-      calendar_version: "2025/2026-V1",
-      parser_version: "1.0.0",
-      calculation_engine_version: "2.0.0",
-      application_version: "1.0.0",
-      configuration_snapshot: { nmd_ratchet_pct: 0.7, pf_threshold: 0.96, voltage_tier_kv: 33 },
-      started_at: new Date(Date.now() - 3600000).toISOString(),
-      completed_at: new Date().toISOString(),
-      execution_environment: "production-browser",
-      status: "COMPLETED",
-      created_at: new Date().toISOString(),
-    });
-  };
-
-  const handleVerifyChain = async () => {
-    setIsVerifying(true);
-    try {
-      const result = await HashChainEngine.verifyChainIntegrity(events);
-      setVerificationResult(result);
-      if (result.is_valid) {
-        toast.success(
-          `Cryptographic Hash Chain Verified! All ${result.total_events_checked} events are 100% immutable & untampered.`,
-        );
-      } else {
-        toast.error(
-          `CHAIN TAMPERING DETECTED! Sequence #${result.first_broken_sequence_number} failed verification.`,
-        );
-      }
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  const handleViewSnapshot = async (runId: string) => {
-    const snapshot = await AuditLedgerService.getRunSnapshot(runId);
-    if (snapshot) {
-      setSelectedSnapshot(snapshot);
-    } else {
-      toast.error(`No snapshot context found for run ${runId}`);
-    }
-  };
-
-  const filteredEvents = useMemo(() => {
-    return events.filter((e) => {
-      if (selectedEventType !== "ALL" && e.event_type !== selectedEventType) return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        return (
-          e.event_type.toLowerCase().includes(q) ||
-          e.object_id.toLowerCase().includes(q) ||
-          e.actor_email.toLowerCase().includes(q) ||
-          e.current_event_hash.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
-  }, [events, selectedEventType, searchQuery]);
+  const activeNode = chain.nodes[selectedNodeIndex] || chain.nodes[0];
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border border-border rounded-xl p-6 shadow-sm">
-        <div className="space-y-1">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+        <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 font-semibold text-xs flex items-center gap-1.5">
-              <Lock className="h-4 w-4" /> SHA-256 Cryptographic Hash Chain
-            </span>
-            <span className="text-xs text-muted-foreground font-mono">
-              Append-Only Database RLS
+            <h1 className="text-xl font-semibold tracking-tight">Navigable Evidence Explorer &amp; Auditability Subsystem</h1>
+            <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full">
+              12-NODE LINEAGE &bull; STABLE OBJECT IDs
             </span>
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">
-            Enterprise Audit & Cryptographic Lineage Ledger
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Immutably records every file upload, invoice extraction, tariff evaluation, and
-            reconciliation event in a tamper-detectable SHA-256 hash chain.
+          <p className="text-xs text-muted-foreground mt-1">
+            Complete 12-step audit trail connecting source PDF documents, extracted line items, telemetry intervals, multipliers, NERSA tariff rules, and calculations.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleVerifyChain}
-            disabled={isVerifying}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 ${isVerifying ? "animate-spin" : ""}`} />
-            {isVerifying ? "Verifying Chain..." : "Verify Cryptographic Chain"}
-          </button>
+        {/* Tenant Authorization Security Badge */}
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border rounded text-xs">
+          <Lock className="h-3.5 w-3.5 text-emerald-500" />
+          <span className="text-muted-foreground">Tenant:</span>
+          <span className="font-mono font-medium text-foreground">{authContext.tenant_id}</span>
+          <span className="text-[10px] bg-emerald-500/10 text-emerald-500 font-mono px-1.5 rounded">AUTHORIZED</span>
         </div>
       </div>
 
-      {/* Chain Integrity Status Card */}
-      {verificationResult && (
-        <div
-          className={`border rounded-xl p-5 shadow-sm ${
-            verificationResult.is_valid
-              ? "bg-emerald-500/5 border-emerald-500/30 text-emerald-950 dark:text-emerald-200"
-              : "bg-red-500/5 border-red-500/30 text-red-950 dark:text-red-200"
-          }`}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              {verificationResult.is_valid ? (
-                <ShieldCheck className="h-8 w-8 text-emerald-500 shrink-0" />
-              ) : (
-                <ShieldAlert className="h-8 w-8 text-red-500 shrink-0" />
-              )}
-              <div>
-                <h3 className="text-lg font-bold flex items-center gap-2">
-                  {verificationResult.is_valid
-                    ? "Cryptographic Hash Chain: Verified Immutable"
-                    : "ALERT: Cryptographic Hash Chain Broken"}
-                </h3>
-                <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                  Checked {verificationResult.total_events_checked} audit events · Genesis Hash:{" "}
-                  {verificationResult.genesis_hash.slice(0, 16)}...
-                </p>
-              </div>
-            </div>
-
-            <div className="text-right font-mono text-xs">
-              <span className="text-muted-foreground">Latest Event Hash:</span>
-              <div className="font-semibold text-foreground truncate max-w-xs">
-                {verificationResult.latest_hash.slice(0, 24)}...
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Filter Bar */}
-      <div className="bg-card border border-border rounded-xl p-4 shadow-sm space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search by event type, object ID, actor, or hash..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-lg border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground font-medium">Event Filter:</span>
-            <select
-              value={selectedEventType}
-              onChange={(e) => setSelectedEventType(e.target.value)}
-              className="bg-background text-foreground px-3 py-1.5 rounded-lg border border-input text-xs font-medium focus:ring-1 focus:ring-primary"
+      {/* Variance Selector Bar */}
+      <div className="flex items-center gap-3 bg-card p-3 rounded-lg border border-border">
+        <label className="text-xs font-semibold uppercase text-muted-foreground whitespace-nowrap">Select Material Variance:</label>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: "VAR-PEAK-001", label: "Peak Energy Charge (R 666,920.00)" },
+            { id: "VAR-DEMAND-001", label: "Maximum Demand Charge (R 29,004.00)" },
+            { id: "VAR-NETWORK-001", label: "Network Capacity Charge (R 43,176.00)" },
+            { id: "VAR-VAT-001", label: "Value Added Tax 15% (R 215,933.59)" },
+          ].map((v) => (
+            <button
+              key={v.id}
+              onClick={() => {
+                setSelectedVarianceId(v.id);
+                setSelectedNodeIndex(0);
+              }}
+              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                selectedVarianceId === v.id
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+              }`}
             >
-              <option value="ALL">All 12 Event Types</option>
-              <option value="FILE_UPLOADED">FILE_UPLOADED</option>
-              <option value="FILE_PARSED">FILE_PARSED</option>
-              <option value="FILE_VALIDATED">FILE_VALIDATED</option>
-              <option value="INVOICE_CREATED">INVOICE_CREATED</option>
-              <option value="TARIFF_SELECTED">TARIFF_SELECTED</option>
-              <option value="RECONCILIATION_STARTED">RECONCILIATION_STARTED</option>
-              <option value="RECONCILIATION_COMPLETED">RECONCILIATION_COMPLETED</option>
-              <option value="DISCREPANCY_CREATED">DISCREPANCY_CREATED</option>
-              <option value="REPORT_GENERATED">REPORT_GENERATED</option>
-              <option value="EXPORT_GENERATED">EXPORT_GENERATED</option>
-              <option value="USER_REVIEWED">USER_REVIEWED</option>
-              <option value="USER_APPROVED">USER_APPROVED</option>
-            </select>
-          </div>
+              {v.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Ledger Table */}
-      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-            <Layers className="h-4 w-4 text-primary" /> Cryptographic Ledger Log (
-            {filteredEvents.length} Events)
-          </h3>
-          <span className="text-xs text-muted-foreground font-mono">
-            Append-Only Database RLS Enforced
+      {/* 12-Node Navigable Stepper Graph */}
+      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+        <div className="flex items-center justify-between border-b border-border pb-2">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Navigable 12-Node Lineage Chain (Chain ID: {chain.chain_id})
           </span>
+          <span className="text-[10px] font-mono text-muted-foreground">Click any node to inspect evidence</span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-muted/50 border-b border-border text-muted-foreground font-medium uppercase tracking-wider">
-                <th className="p-3">Seq #</th>
-                <th className="p-3">Event Type</th>
-                <th className="p-3">Object Target</th>
-                <th className="p-3">Actor</th>
-                <th className="p-3">Timestamp (UTC)</th>
-                <th className="p-3 font-mono">SHA-256 Current Hash (H_n)</th>
-                <th className="p-3 font-mono">Previous Hash (H_n-1)</th>
-                <th className="p-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border font-mono">
-              {filteredEvents.map((evt) => (
-                <tr key={evt.event_id} className="hover:bg-muted/30 transition-colors">
-                  <td className="p-3 font-bold text-foreground">
-                    #{evt.sequence_number.toString().padStart(4, "0")}
-                  </td>
-                  <td className="p-3">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-accent text-accent-foreground font-sans">
-                      {evt.event_type}
-                    </span>
-                  </td>
-                  <td className="p-3 font-sans">
-                    <span className="text-muted-foreground font-mono">{evt.object_type}:</span>{" "}
-                    <strong className="text-foreground">{evt.object_id}</strong>
-                  </td>
-                  <td className="p-3 font-sans text-muted-foreground flex items-center gap-1">
-                    <User className="h-3 w-3 text-primary" /> {evt.actor_email}
-                  </td>
-                  <td className="p-3 text-muted-foreground font-sans">
-                    {evt.timestamp.replace("T", " ").slice(0, 19)}
-                  </td>
-                  <td
-                    className="p-3 text-foreground font-bold text-[11px]"
-                    title={evt.current_event_hash}
-                  >
-                    {evt.current_event_hash.slice(0, 12)}...
-                  </td>
-                  <td
-                    className="p-3 text-muted-foreground text-[11px]"
-                    title={evt.previous_event_hash}
-                  >
-                    {evt.previous_event_hash.slice(0, 12)}...
-                  </td>
-                  <td className="p-3 text-right font-sans">
-                    {evt.object_type === "reconciliation_run" ? (
-                      <button
-                        onClick={() => handleViewSnapshot(evt.object_id)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-primary/10 text-primary text-[11px] font-medium hover:bg-primary/20"
-                      >
-                        <FileCode className="h-3 w-3" /> Snapshot
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => toast.success(`Payload Hash: ${evt.payload_hash}`)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded bg-muted text-muted-foreground text-[11px] hover:text-foreground"
-                      >
-                        Payload
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+          {chain.nodes.map((node, idx) => (
+            <button
+              key={node.node_id}
+              onClick={() => setSelectedNodeIndex(idx)}
+              className={`p-2.5 rounded border text-left transition-all ${
+                selectedNodeIndex === idx
+                  ? "border-primary bg-primary/10 shadow-sm"
+                  : "border-border bg-background hover:bg-muted/40"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] font-mono font-bold text-muted-foreground">Step {node.sequence_index}/12</span>
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              </div>
+              <div className="text-xs font-bold font-mono text-foreground mt-1 truncate">{node.node_type}</div>
+              <div className="text-[10px] text-muted-foreground font-mono truncate">{node.stable_object_id}</div>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Reproducible Run Snapshot Modal */}
-      {selectedSnapshot && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl shadow-xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div>
-                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                  <Database className="h-5 w-5 text-primary" /> Reproducible Run Snapshot
-                </h3>
-                <p className="text-xs text-muted-foreground font-mono">
-                  Run ID: {selectedSnapshot.run_id}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedSnapshot(null)}
-                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div>
-                <span className="text-muted-foreground">Parser Version:</span>
-                <div className="font-mono font-bold text-foreground">
-                  {selectedSnapshot.parser_version}
-                </div>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Engine Version:</span>
-                <div className="font-mono font-bold text-foreground">
-                  {selectedSnapshot.calculation_engine_version}
-                </div>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Calendar Version:</span>
-                <div className="font-mono font-bold text-foreground">
-                  {selectedSnapshot.calendar_version}
-                </div>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Tariff Version ID:</span>
-                <div className="font-mono font-bold text-foreground">
-                  {selectedSnapshot.tariff_version_id}
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
-                Source File Cryptographic Hashes:
-              </span>
-              <div className="bg-muted p-3 rounded-lg font-mono text-[11px] space-y-1 text-muted-foreground overflow-x-auto">
-                {selectedSnapshot.source_file_hashes.map((h, idx) => (
-                  <div key={idx}>
-                    SHA256[{idx}]: {h}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
-                Tariff Rate Snapshot:
-              </span>
-              <pre className="bg-muted p-3 rounded-lg font-mono text-[11px] text-foreground overflow-x-auto">
-                {JSON.stringify(selectedSnapshot.tariff_snapshot, null, 2)}
-              </pre>
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
-                Configuration Snapshot:
-              </span>
-              <pre className="bg-muted p-3 rounded-lg font-mono text-[11px] text-foreground overflow-x-auto">
-                {JSON.stringify(selectedSnapshot.configuration_snapshot, null, 2)}
-              </pre>
-            </div>
-
-            <div className="pt-2 text-right">
-              <button
-                onClick={() => setSelectedSnapshot(null)}
-                className="px-4 py-2 bg-primary text-primary-foreground text-xs font-medium rounded-lg hover:bg-primary/90"
-              >
-                Close Snapshot
-              </button>
-            </div>
+      {/* Active Node Detail Card */}
+      <div className="rounded-lg border border-border bg-card p-6 space-y-4">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 text-xs font-mono font-bold bg-primary text-primary-foreground rounded">
+              Node {activeNode.sequence_index}: {activeNode.node_type}
+            </span>
+            <h3 className="font-semibold text-sm">{activeNode.title}</h3>
           </div>
+          <div className="text-xs font-mono text-muted-foreground">Stable Object ID: <span className="text-foreground font-semibold">{activeNode.stable_object_id}</span></div>
         </div>
-      )}
+
+        {/* Dynamic Display Rendering by Node Type */}
+        <div className="space-y-3 text-xs">
+          {activeNode.node_type === "CALCULATION" && (
+            <CalculationNodeDisplay data={activeNode.node_data as any} />
+          )}
+
+          {activeNode.node_type === "INVOICE_LINE" && (
+            <InvoiceLineNodeDisplay data={activeNode.node_data as any} />
+          )}
+
+          {activeNode.node_type === "TELEMETRY_INTERVAL" && (
+            <TelemetryNodeDisplay data={activeNode.node_data as any} />
+          )}
+
+          {activeNode.node_type === "TARIFF_RULE" && (
+            <TariffRuleNodeDisplay data={activeNode.node_data as any} />
+          )}
+
+          {activeNode.node_type === "MULTIPLIER" && (
+            <MultiplierNodeDisplay data={activeNode.node_data as any} />
+          )}
+
+          {activeNode.node_type !== "CALCULATION" &&
+            activeNode.node_type !== "INVOICE_LINE" &&
+            activeNode.node_type !== "TELEMETRY_INTERVAL" &&
+            activeNode.node_type !== "TARIFF_RULE" &&
+            activeNode.node_type !== "MULTIPLIER" && (
+              <GenericNodeDisplay data={activeNode.node_data} />
+            )}
+        </div>
+      </div>
     </div>
   );
 };
+
+function CalculationNodeDisplay({ data }: { data: any }) {
+  return (
+    <div className="space-y-3">
+      <div className="p-3 bg-muted/40 rounded border border-border space-y-1">
+        <div className="text-[10px] uppercase font-semibold text-muted-foreground">Calculation Formula Lineage</div>
+        <div className="font-mono text-sm font-bold text-primary">{data.formula}</div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Input Quantity &amp; Rate</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">{data.input}</div>
+        </div>
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Rate Applied</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">{data.rate}</div>
+        </div>
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Precision Model</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">{data.precision}</div>
+        </div>
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Rounding Method</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">{data.rounding}</div>
+        </div>
+      </div>
+      <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded font-mono text-xs flex justify-between items-center text-emerald-600 dark:text-emerald-400">
+        <span>Calculated Output: <strong>{data.output} {data.units}</strong></span>
+        <span className="text-[10px]">Engine Version: {data.engine_version}</span>
+      </div>
+    </div>
+  );
+}
+
+function InvoiceLineNodeDisplay({ data }: { data: any }) {
+  return (
+    <div className="space-y-3">
+      <div className="p-3 bg-muted/40 rounded border border-border space-y-1">
+        <div className="text-[10px] uppercase font-semibold text-muted-foreground">Extracted Line Item Value</div>
+        <div className="font-mono text-sm font-bold text-foreground">{data.extracted_value}</div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Normalized Value</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">{data.normalized_value}</div>
+        </div>
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Source Document</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">{data.source_document}</div>
+        </div>
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">PDF Page &amp; Location</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">Page {data.page} ({data.location})</div>
+        </div>
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">OCR Confidence Score</div>
+          <div className="font-mono font-medium text-emerald-500 mt-0.5">{(data.confidence * 100).toFixed(1)}%</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TelemetryNodeDisplay({ data }: { data: any }) {
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Meter Serial Number</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">{data.meter}</div>
+        </div>
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Point of Delivery (POD)</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">{data.POD}</div>
+        </div>
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">SAST Timestamp</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">{data.timestamp}</div>
+        </div>
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Channel</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">{data.channel}</div>
+        </div>
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Raw Register Value</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">{data.raw_value}</div>
+        </div>
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Scaling Multiplier</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">{data.multiplier}</div>
+        </div>
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Engineering Value</div>
+          <div className="font-mono font-medium text-emerald-500 mt-0.5">{data.engineering_value}</div>
+        </div>
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Quality State &amp; Source File</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">{data.quality_state} ({data.source_file})</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TariffRuleNodeDisplay({ data }: { data: any }) {
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Tariff Family &amp; Code</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">{data.tariff}</div>
+        </div>
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Tariff Version</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">{data.tariff_version}</div>
+        </div>
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Effective Date</div>
+          <div className="font-mono font-medium text-foreground mt-0.5">{data.effective_date}</div>
+        </div>
+        <div className="p-2.5 bg-background rounded border border-border">
+          <div className="text-[10px] uppercase text-muted-foreground">Gazetted Rate Value</div>
+          <div className="font-mono font-medium text-emerald-500 mt-0.5">{data.rate}</div>
+        </div>
+      </div>
+      <div className="p-2.5 bg-muted/40 rounded border border-border font-mono text-xs">
+        NERSA Gazetted Rule: <strong>{data.rule}</strong>
+      </div>
+    </div>
+  );
+}
+
+function MultiplierNodeDisplay({ data }: { data: any }) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="p-2.5 bg-background rounded border border-border">
+        <div className="text-[10px] uppercase text-muted-foreground">CT Ratio Multiplier</div>
+        <div className="font-mono font-medium text-foreground mt-0.5">{data.ct_multiplier}</div>
+      </div>
+      <div className="p-2.5 bg-background rounded border border-border">
+        <div className="text-[10px] uppercase text-muted-foreground">VT Ratio Multiplier</div>
+        <div className="font-mono font-medium text-foreground mt-0.5">{data.vt_multiplier}</div>
+      </div>
+      <div className="p-2.5 bg-background rounded border border-border">
+        <div className="text-[10px] uppercase text-muted-foreground">Combined Multiplier</div>
+        <div className="font-mono font-medium text-emerald-500 mt-0.5">{data.combined_multiplier}</div>
+      </div>
+      <div className="p-2.5 bg-background rounded border border-border">
+        <div className="text-[10px] uppercase text-muted-foreground">Pulse Scaling Factor</div>
+        <div className="font-mono font-medium text-foreground mt-0.5">{data.pulse_scaling_factor}</div>
+      </div>
+    </div>
+  );
+}
+
+function GenericNodeDisplay({ data }: { data: any }) {
+  return (
+    <div className="p-3 bg-muted/30 rounded border border-border font-mono text-xs space-y-1">
+      <pre className="whitespace-pre-wrap overflow-x-auto text-[11px] text-foreground">
+        {JSON.stringify(data, null, 2)}
+      </pre>
+    </div>
+  );
+}

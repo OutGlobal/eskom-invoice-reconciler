@@ -280,35 +280,35 @@ export class LayeredExtractor {
     // Charge Summaries
     const demand_charges = extractRegexField<number>(
       "demand_charges",
-      [/(?:demand\s*charge|network\s*demand\s*charge)[\s:]*R?\s*([0-9]+(?:\.[0-9]+)?)/i],
+      [/(?:demand\s*charges?|network\s*demand\s*charges?)[\s:]*R?\s*([0-9]+(?:\.[0-9]+)?)/i],
       "ZAR",
       "number",
     );
 
     const network_charges = extractRegexField<number>(
       "network_charges",
-      [/(?:network\s*charge|transmission\s*network)[\s:]*R?\s*([0-9]+(?:\.[0-9]+)?)/i],
+      [/(?:network\s*charges?|transmission\s*network)[\s:]*R?\s*([0-9]+(?:\.[0-9]+)?)/i],
       "ZAR",
       "number",
     );
 
     const capacity_charges = extractRegexField<number>(
       "capacity_charges",
-      [/(?:capacity\s*charge|generator\s*capacity)[\s:]*R?\s*([0-9]+(?:\.[0-9]+)?)/i],
+      [/(?:capacity\s*charges?|generator\s*capacity)[\s:]*R?\s*([0-9]+(?:\.[0-9]+)?)/i],
       "ZAR",
       "number",
     );
 
     const service_charges = extractRegexField<number>(
       "service_charges",
-      [/(?:service\s*charge|admin\s*charge)[\s:]*R?\s*([0-9]+(?:\.[0-9]+)?)/i],
+      [/(?:service\s*charges?|admin\s*charges?)[\s:]*R?\s*([0-9]+(?:\.[0-9]+)?)/i],
       "ZAR",
       "number",
     );
 
     const reliability_services = extractRegexField<number>(
       "reliability_services",
-      [/(?:reliability\s*service|ancillary\s*service)[\s:]*R?\s*([0-9]+(?:\.[0-9]+)?)/i],
+      [/(?:reliability\s*services?|ancillary\s*services?)[\s:]*R?\s*([0-9]+(?:\.[0-9]+)?)/i],
       "ZAR",
       "number",
     );
@@ -316,7 +316,7 @@ export class LayeredExtractor {
     const levies = extractRegexField<number>(
       "levies",
       [
-        /(?:electrification\s*subsidy|environmental\s*levy|subsidy)[\s:]*R?\s*([0-9]+(?:\.[0-9]+)?)/i,
+        /(?:levies|electrification\s*subsidy|environmental\s*levy|subsidy)[\s:]*R?\s*([0-9]+(?:\.[0-9]+)?)/i,
       ],
       "ZAR",
       "number",

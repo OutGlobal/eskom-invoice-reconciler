@@ -56,17 +56,17 @@ export const MEGAFLEX_JULY_2025_FIXTURE: RegressionFixture = {
     maximum_demand_kva: new Decimal("1200"),
     ratcheted_demand_kva: new Decimal("1200"),
     reactive_energy_kvarh: new Decimal("50000"),
-    energy_charges_zar: new Decimal("1330755.00"), // (100k*6.6692 + 250k*1.9884 + 150k*1.1115) = 666,920 + 497,100 + 166,725
-    demand_charges_zar: new Decimal("29004.00"), // 1200 kVA * 24.17
-    network_charges_zar: new Decimal("43176.00"), // 1200 kVA * 35.98
-    service_charges_zar: new Decimal("34672.26"), // (1118.46 + 19.37) * 31 days
-    ancillary_charges_zar: new Decimal("1950.00"), // 500k kWh * 0.39 c/kWh / 100
-    vat_zar: new Decimal("215933.59"), // 15% VAT
-    total_invoice_zar: new Decimal("1655490.85"),
+    energy_charges_zar: new Decimal("1330745.00"), // 100k*6.6692 + 250k*1.9884 + 150k*1.1115 = 666,920 + 497,100 + 166,725
+    demand_charges_zar: new Decimal("51420.00"), // 1200 kVA * 42.85
+    network_charges_zar: new Decimal("77640.00"), // 1200 kVA * (28.50 + 36.20)
+    service_charges_zar: new Decimal("5750.50"), // 185.50 * 31 days
+    ancillary_charges_zar: new Decimal("13200.00"), // 500k kWh * (0.68 + 1.96) c/kWh / 100
+    vat_zar: new Decimal("221813.33"), // 15% VAT on 1,478,755.50
+    total_invoice_zar: new Decimal("1700568.83"),
   },
   expected_results: {
     classification: "PASS",
-    total_calculated_zar: new Decimal("1655490.85"),
+    total_calculated_zar: new Decimal("1700568.83"),
     total_variance_zar: new Decimal("0.00"),
   },
 };

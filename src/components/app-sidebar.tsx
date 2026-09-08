@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Gauge,
   Calendar,
+  FileText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,6 +37,7 @@ const items = [
   { title: "AMR Telemetry Engine", url: "/telemetry", icon: Activity },
   { title: "Data Governance & Quality", url: "/quality", icon: ShieldCheck },
   { title: "Meter Data Upload", url: "/upload", icon: Upload },
+  { title: "Invoice Workspace", url: "/invoices", icon: FileText },
   { title: "Tariff Management", url: "/tariff", icon: ReceiptText },
   { title: "Calendar & TOU Engine", url: "/calendar", icon: Calendar },
   { title: "Energy Analysis", url: "/energy", icon: Zap },

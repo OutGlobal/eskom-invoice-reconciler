@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "tsx src/lib/__tests__/comprehensive_enterprise_test_suite.test.ts",
     "test:all": "tsx src/lib/__tests__/run-tests.ts",
+    "test:vitest": "vitest run",
     "lint": "eslint src/",
     "format": "prettier --write ."
   },
@@ -96,6 +97,7 @@
     "tsx": "^4.19.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "vitest": "^5.0.0"
   }
 }

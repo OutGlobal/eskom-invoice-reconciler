@@ -19,6 +19,7 @@ import { Route as EnergyRouteImport } from './routes/energy'
 import { Route as InvoicesRouteImport } from './routes/invoices'
 import { Route as MetersRouteImport } from './routes/meters'
 import { Route as MunicipalRouteImport } from './routes/municipal'
+import { Route as QualityRouteImport } from './routes/quality'
 import { Route as ReconciliationRouteImport } from './routes/reconciliation'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -77,6 +78,11 @@ const MunicipalRoute = MunicipalRouteImport.update({
   path: '/municipal',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QualityRoute = QualityRouteImport.update({
+  id: '/quality',
+  path: '/quality',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReconciliationRoute = ReconciliationRouteImport.update({
   id: '/reconciliation',
   path: '/reconciliation',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/invoices': typeof InvoicesRoute
   '/meters': typeof MetersRoute
   '/municipal': typeof MunicipalRoute
+  '/quality': typeof QualityRoute
   '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/invoices': typeof InvoicesRoute
   '/meters': typeof MetersRoute
   '/municipal': typeof MunicipalRoute
+  '/quality': typeof QualityRoute
   '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -163,6 +171,7 @@ export interface FileRoutesById {
   '/invoices': typeof InvoicesRoute
   '/meters': typeof MetersRoute
   '/municipal': typeof MunicipalRoute
+  '/quality': typeof QualityRoute
   '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -184,6 +193,7 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/meters'
     | '/municipal'
+    | '/quality'
     | '/reconciliation'
     | '/reports'
     | '/settings'
@@ -203,6 +213,7 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/meters'
     | '/municipal'
+    | '/quality'
     | '/reconciliation'
     | '/reports'
     | '/settings'
@@ -222,6 +233,7 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/meters'
     | '/municipal'
+    | '/quality'
     | '/reconciliation'
     | '/reports'
     | '/settings'
@@ -242,6 +254,7 @@ export interface RootRouteChildren {
   InvoicesRoute: typeof InvoicesRoute
   MetersRoute: typeof MetersRoute
   MunicipalRoute: typeof MunicipalRoute
+  QualityRoute: typeof QualityRoute
   ReconciliationRoute: typeof ReconciliationRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
@@ -323,6 +336,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MunicipalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/quality': {
+      id: '/quality'
+      path: '/quality'
+      fullPath: '/quality'
+      preLoaderRoute: typeof QualityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reconciliation': {
       id: '/reconciliation'
       path: '/reconciliation'
@@ -386,6 +406,7 @@ const rootRouteChildren: RootRouteChildren = {
   InvoicesRoute: InvoicesRoute,
   MetersRoute: MetersRoute,
   MunicipalRoute: MunicipalRoute,
+  QualityRoute: QualityRoute,
   ReconciliationRoute: ReconciliationRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
