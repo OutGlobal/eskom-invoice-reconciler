@@ -17,6 +17,7 @@ import type {
   LineItemComparisonResult,
   DiscrepancyClassification,
   ReconciliationConfig,
+  ComponentTolerance,
 } from "./types";
 import { DeterministicTariffEngine, DeterministicEngine } from "../tariff/deterministicEngine";
 import { DeterminantEngine } from "../determinants/determinantEngine";

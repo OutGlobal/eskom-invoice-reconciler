@@ -1,4 +1,3 @@
-// @ts-expect-error vitest types imported dynamically
 import { describe, expect, it } from "vitest";
 import { DashboardService } from "../../domain/dashboard/dashboardService";
 import { SAMPLE_MARCH_2026_INVOICE } from "../sampleInvoice";

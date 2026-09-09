@@ -46,15 +46,62 @@ function isH3SwallowedErrorBody(body: string): boolean {
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    const url = new URL(request.url);
+
+    // Liveness & Readiness Health Probe Endpoint for Cloud Orchestrators
+    if (url.pathname === "/api/health" || url.pathname === "/healthz") {
+      return new Response(
+        JSON.stringify({
+          status: "UP",
+          service: "eskom-bill-balancer",
+          version: "2.5.0",
+          timestamp: new Date().toISOString(),
+          uptime_seconds: typeof process !== "undefined" && process.uptime ? Math.floor(process.uptime()) : 0,
+          deterministic_engine: "Decimal.js-light",
+          security_status: "RLS_ENFORCED_TENANT_ISOLATION",
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+            "cache-control": "no-cache, no-store, must-revalidate",
+            "X-Content-Type-Options": "nosniff",
+            "X-Frame-Options": "SAMEORIGIN",
+          },
+        },
+      );
+    }
+
     try {
       const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const rawResponse = await handler.fetch(request, env, ctx);
+      const response = await normalizeCatastrophicSsrResponse(rawResponse);
+
+      // Attach Production Security Headers
+      const headers = new Headers(response.headers);
+      if (!headers.has("X-Content-Type-Options")) {
+        headers.set("X-Content-Type-Options", "nosniff");
+      }
+      if (!headers.has("X-Frame-Options")) {
+        headers.set("X-Frame-Options", "SAMEORIGIN");
+      }
+      if (!headers.has("Referrer-Policy")) {
+        headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+      }
+
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      });
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {
         status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "X-Content-Type-Options": "nosniff",
+        },
       });
     }
   },

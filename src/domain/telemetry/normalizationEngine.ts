@@ -49,7 +49,7 @@ export class TelemetryNormalizationEngine {
     let rolloverCount = 0;
 
     // Detect cumulative vs interval-based readings
-    const hasCumulativeData = rawIntervals.some((r) => r.cumulativeKwh !== undefined);
+    const hasCumulativeData = rawIntervals.some((r: ParsedRawInterval) => r.cumulativeKwh !== undefined);
     let prevCumulativeKwh: number | null = null;
     const MAX_REGISTER_CAP = 1000000; // 1,000,000 kWh dial reset ceiling
 

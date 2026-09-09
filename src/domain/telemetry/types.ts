@@ -102,3 +102,85 @@ export interface TelemetryQualitySummary {
   missingGapsCount: number;
   estimationsCount: number;
 }
+
+export type TelemetryQualityStatus =
+  | "measured"
+  | "estimated"
+  | "interpolated"
+  | "duplicate"
+  | "suspect"
+  | "rollover"
+  | "missing"
+  | "validated";
+
+export interface CanonicalTelemetryRecord {
+  meter_id: string;
+  timestamp_utc: string;
+  local_timestamp: string;
+  timezone: string;
+  interval_minutes: 15 | 30;
+  active_energy_kwh: number;
+  reactive_energy_kvarh: number;
+  apparent_power_kva: number;
+  active_power_kw: number;
+  power_factor?: number;
+  tou_period?: "PEAK" | "STANDARD" | "OFF_PEAK" | "peak" | "standard" | "off_peak";
+  quality_status: TelemetryQualityStatus;
+  source_file_id: string;
+  source_row_number: number;
+  parser_version: string;
+  raw_payload?: Record<string, any>;
+}
+
+export interface ParsedRawInterval {
+  rowNumber: number;
+  timestampStr: string;
+  kw?: number;
+  kwh?: number;
+  kvarh?: number;
+  kva?: number;
+  cumulativeKwh?: number;
+  powerFactor?: number;
+  rawLine?: string;
+  rawPayload?: Record<string, any>;
+}
+
+export interface ParserOptions {
+  meterId?: string;
+  sourceFileId?: string;
+  defaultTimezone?: string;
+  multiplier?: number;
+  channel?: TelemetryChannel;
+}
+
+export interface ITelemetryParser {
+  readonly parserName: string;
+  readonly parserVersion: string;
+  canParse(filename: string, headerOrContent: string): boolean;
+  parseContent(content: string, options?: ParserOptions): ParsedRawInterval[];
+}
+
+export interface TelemetryGapEvent {
+  meterId: string;
+  gapStartUtc: string;
+  gapEndUtc: string;
+  missingIntervals: number;
+  estimationPermitted: boolean;
+  resolutionStatus: "estimated" | "open" | "resolved";
+}
+
+export interface TelemetryQualityMetrics {
+  totalExpectedIntervals: number;
+  totalParsedIntervals: number;
+  validMeasuredCount: number;
+  duplicateCount: number;
+  estimatedCount: number;
+  suspectCount: number;
+  clockInconsistencyCount: number;
+  completenessPercent: number;
+  validityPercent: number;
+  duplicatePercent: number;
+  estimatedPercent: number;
+  clockConsistencyPercent: number;
+  overallQualityScore: number;
+}

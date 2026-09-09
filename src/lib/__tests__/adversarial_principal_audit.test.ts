@@ -1,4 +1,3 @@
-// @ts-expect-error vitest types imported dynamically
 import { describe, it, expect } from "vitest";
 import Decimal from "decimal.js-light";
 import { TariffEngine } from "../../domain/services/tariffEngine";

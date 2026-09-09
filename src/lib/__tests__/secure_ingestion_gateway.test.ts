@@ -1,4 +1,3 @@
-// @ts-expect-error vitest types imported dynamically
 import { describe, expect, it, beforeEach } from "vitest";
 import { SecureIngestionGateway } from "../../domain/ingestion/secureIngestionGateway";
 import { MimeInspector } from "../../domain/ingestion/mimeInspector";
