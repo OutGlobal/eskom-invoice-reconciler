@@ -520,18 +520,34 @@ export function DemandLineChart({
         </ResponsiveContainer>
       </div>
       {maxDemandAt && (
-        <div className="mt-2.5 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-mono bg-muted/40 p-2.5 rounded border border-border">
-          <div>
-            <span className="text-muted-foreground">Simultaneous Maximum Demand: </span>
-            <span className="font-bold text-red-400 text-sm">{NUM(maxDemandKVA)} kVA</span>
-            <span className="text-muted-foreground">
-              {" "}
-              · {format(maxDemandAt, "EEE dd MMM yyyy 'at' HH:mm")}
-            </span>
+        <div className="mt-3 text-xs flex flex-col md:flex-row md:items-center justify-between gap-3 font-mono bg-card/80 p-3 rounded-lg border-2 border-primary/30 shadow-sm">
+          <div className="space-y-0.5">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse inline-block" />
+              Recorded Simultaneous Maximum Demand (1.e)
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="font-extrabold text-red-400 text-base">{NUM(maxDemandKVA)} kVA</span>
+              <span className="text-muted-foreground text-xs">
+                · Occurred on <strong className="text-foreground">{format(maxDemandAt, "EEE, dd MMM yyyy 'at' HH:mm:ss")}</strong>
+              </span>
+            </div>
+            <div className="text-[10px] text-muted-foreground">
+              Conversion Formula: kVA = kW / 0.96 (Power Factor PF = 0.96) · 30-min integration
+            </div>
           </div>
-          <div>
-            <span className="text-muted-foreground">Agreed NMD Threshold: </span>
-            <span className="font-bold text-amber-400">{NUM(nmd, 0)} kVA</span>
+          <div className="flex items-center gap-2 self-start md:self-center">
+            <div className="text-right">
+              <div className="text-[10px] uppercase text-muted-foreground">Agreed NMD Baseline</div>
+              <div className="font-bold text-amber-400">{NUM(nmd, 0)} kVA</div>
+            </div>
+            <div className="h-8 w-px bg-border mx-1" />
+            <div className="text-right">
+              <div className="text-[10px] uppercase text-muted-foreground">Exceedance Margin</div>
+              <div className={`font-bold ${maxDemandKVA > nmd ? "text-red-400" : "text-emerald-400"}`}>
+                {maxDemandKVA > nmd ? `+${NUM(maxDemandKVA - nmd)} kVA` : "Compliant"}
+              </div>
+            </div>
           </div>
         </div>
       )}

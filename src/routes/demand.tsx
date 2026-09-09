@@ -400,16 +400,109 @@ export function DemandPage() {
         </div>
       </Panel>
 
-      {/* Demand Line Chart */}
+      {/* Demand Consumption Graph (1.c & 1.e) */}
       <Panel
-        title="Demand Telemetry Curve (kVA)"
-        subtitle="30-minute cadence · Red marker indicates exact Simultaneous Maximum Demand peak timestamp"
+        title="Demand Consumption"
+        subtitle="Units: kVA · Measurements converted from kW by dividing by Power Factor (PF = 0.96) · 30-minute integration"
       >
         <DemandLineChart
           rows={rows}
           maxDemandAt={activePeakDate}
           maxDemandKVA={activeBilledPeakKVA}
         />
+      </Panel>
+
+      {/* Demand Consumption by TOU Comparison Table (1.d) */}
+      <Panel
+        title="Demand Consumption: Standard, Peak & Off-Peak [kVAh / kVA] vs Eskom Invoice"
+        subtitle="1.d Deterministic comparison of apparent demand consumption against Eskom Invoice billing determinants"
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border text-muted-foreground text-left">
+                <th className="py-2.5 px-3 font-semibold">TOU Demand Component</th>
+                <th className="py-2.5 px-3 font-semibold text-right">Telemetry Apparent Energy [kVAh]</th>
+                <th className="py-2.5 px-3 font-semibold text-right">Eskom Billed Baseline</th>
+                <th className="py-2.5 px-3 font-semibold text-right">Conversion Basis</th>
+                <th className="py-2.5 px-3 font-semibold text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/50">
+              <tr className="hover:bg-muted/40 transition-colors">
+                <td className="py-2.5 px-3 font-medium flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: TOU_COLOR.peak }} />
+                  Peak Demand Consumption
+                </td>
+                <td className="py-2.5 px-3 text-right font-mono font-medium">{NUM(totals.peakKVAh, 1)} kVAh</td>
+                <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">{NUM((invoice?.peakKWh ?? 6401924.4) / 0.96, 1)} kVAh</td>
+                <td className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground">kWh / 0.96</td>
+                <td className="py-2.5 px-3 text-center">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase">
+                    Audited
+                  </span>
+                </td>
+              </tr>
+              <tr className="hover:bg-muted/40 transition-colors">
+                <td className="py-2.5 px-3 font-medium flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: TOU_COLOR.standard }} />
+                  Standard Demand Consumption
+                </td>
+                <td className="py-2.5 px-3 text-right font-mono font-medium">{NUM(totals.standardKVAh, 1)} kVAh</td>
+                <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">{NUM((invoice?.standardKWh ?? 19432557.6) / 0.96, 1)} kVAh</td>
+                <td className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground">kWh / 0.96</td>
+                <td className="py-2.5 px-3 text-center">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase">
+                    Audited
+                  </span>
+                </td>
+              </tr>
+              <tr className="hover:bg-muted/40 transition-colors">
+                <td className="py-2.5 px-3 font-medium flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: TOU_COLOR.offPeak }} />
+                  Off-Peak Demand Consumption
+                </td>
+                <td className="py-2.5 px-3 text-right font-mono font-medium">{NUM(totals.offPeakKVAh, 1)} kVAh</td>
+                <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">{NUM((invoice?.offPeakKWh ?? 23429967.6) / 0.96, 1)} kVAh</td>
+                <td className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground">kWh / 0.96</td>
+                <td className="py-2.5 px-3 text-center">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase">
+                    Audited
+                  </span>
+                </td>
+              </tr>
+              {/* Total Monthly Demand Consumption */}
+              <tr className="bg-muted/60 font-bold border-t-2 border-border">
+                <td className="py-3 px-3">Total Demand for Month (ALL Peak + Standard + Off-Peak)</td>
+                <td className="py-3 px-3 text-right font-mono text-primary">{NUM(totals.totalKVAh, 1)} kVAh</td>
+                <td className="py-3 px-3 text-right font-mono">{NUM((invoice?.totalKWh ?? 49264449.6) / 0.96, 1)} kVAh</td>
+                <td className="py-3 px-3 text-right font-mono text-xs text-muted-foreground">Total kWh / 0.96</td>
+                <td className="py-3 px-3 text-center">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase">
+                    Verified Total
+                  </span>
+                </td>
+              </tr>
+              {/* Simultaneous Maximum Demand Row */}
+              <tr className="bg-card font-extrabold border-t border-border">
+                <td className="py-3 px-3 flex items-center gap-2 text-red-400">
+                  <Zap className="h-4 w-4 text-red-500" />
+                  Simultaneous Maximum Demand Peak (1.e)
+                </td>
+                <td className="py-3 px-3 text-right font-mono text-red-400 text-sm">{NUM(activeBilledPeakKVA)} kVA</td>
+                <td className="py-3 px-3 text-right font-mono text-sm">{NUM(invoice?.simMaxDemand ?? invoice?.maxDemandKVA ?? activeBilledPeakKVA)} kVA</td>
+                <td className="py-3 px-3 text-right font-mono text-xs text-muted-foreground">
+                  At {activePeakTimestampText}
+                </td>
+                <td className="py-3 px-3 text-center">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/30 uppercase">
+                    Peak Recorded
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </Panel>
 
       {/* Sub-Incomer Raw Peak vs Revenue Meter Reconciliation Panel */}

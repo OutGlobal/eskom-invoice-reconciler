@@ -23,6 +23,8 @@ import { useApp } from "@/lib/store";
 import { AnomalyDashboard } from "@/components/discrepancy/AnomalyDashboard";
 import { AuditViewer } from "@/components/audit/AuditViewer";
 import { InvoiceSelector } from "@/components/InvoiceSelector";
+import { StatutoryReconciliationWorkbench } from "@/components/reconciliation/StatutoryReconciliationWorkbench";
+import { Calculator } from "lucide-react";
 
 export const Route = createFileRoute("/reconciliation")({
   head: () => ({ meta: [{ title: "Authoritative Reconciliation Engine — Eskom Bill Balancer" }] }),
@@ -37,7 +39,7 @@ function ReconciliationPage() {
   const [isExplainerOpen, setIsExplainerOpen] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [filterTab, setFilterTab] = useState<"all" | "discrepancies" | "matches">("all");
-  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<"matrix" | "anomalies" | "evidence">("matrix");
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<"statutory" | "matrix" | "anomalies" | "evidence">("statutory");
 
   // Run reconciliation against active invoice or selected fixture
   const runReconciliation = (fixtureCode: string) => {
@@ -191,10 +193,25 @@ function ReconciliationPage() {
       </div>
 
       {/* Workspace Hub Navigation Tabs */}
-      <div className="flex border-b border-border gap-2">
+      <div className="flex border-b border-border gap-2 overflow-x-auto">
+        <button
+          onClick={() => setActiveWorkspaceTab("statutory")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+            activeWorkspaceTab === "statutory"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Calculator className="h-4 w-4" />
+          <span>Statutory Reconciliation (2.a – 2.d)</span>
+          <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-primary/10 text-primary font-mono font-bold">
+            Statutory
+          </span>
+        </button>
+
         <button
           onClick={() => setActiveWorkspaceTab("matrix")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
             activeWorkspaceTab === "matrix"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -209,7 +226,7 @@ function ReconciliationPage() {
 
         <button
           onClick={() => setActiveWorkspaceTab("anomalies")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
             activeWorkspaceTab === "anomalies"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -224,7 +241,7 @@ function ReconciliationPage() {
 
         <button
           onClick={() => setActiveWorkspaceTab("evidence")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
             activeWorkspaceTab === "evidence"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -237,6 +254,10 @@ function ReconciliationPage() {
           </span>
         </button>
       </div>
+
+      {activeWorkspaceTab === "statutory" && (
+        <StatutoryReconciliationWorkbench />
+      )}
 
       {activeWorkspaceTab === "matrix" && (
         <>

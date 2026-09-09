@@ -180,13 +180,24 @@ export class DeterministicEngine {
 
     for (const comp of demandComponents) {
       let qty = input.maximum_demand_kva;
+      let basisText = "kVA of billing demand";
+
       if (
         comp.component_type === "NETWORK_CAPACITY" ||
-        comp.component_type === "GENERATION_CAPACITY"
+        comp.component_type === "GENERATION_CAPACITY" ||
+        comp.component_type === "TRANSMISSION_NETWORK"
       ) {
+        // Requirement 2.a: Notified Maximum Demand (kVA) is multiplied by Transmission (TX) Network Capacity Charge, Network Capacity Charge & Generator Capacity Charge
         qty = input.notified_maximum_demand_kva.gt(0)
           ? input.notified_maximum_demand_kva
           : input.maximum_demand_kva;
+        basisText = `Contracted Notified Maximum Demand (${qty.toString()} kVA)`;
+      } else if (comp.component_type === "NETWORK_DEMAND") {
+        // Requirement 2.d: Multiply the recorded Simultaneous Maximum Demand (as per 1.e) with the Network Demand Charge
+        qty = input.utilised_capacity_kva.gt(0)
+          ? input.utilised_capacity_kva
+          : input.maximum_demand_kva;
+        basisText = `Recorded Simultaneous Maximum Demand (${qty.toString()} kVA)`;
       }
 
       if (qty.gt(0)) {
@@ -196,7 +207,7 @@ export class DeterministicEngine {
           comp.unit_of_measure,
           comp.rate_value,
           qty,
-          `Gazetted NERSA ${comp.component_name} per kVA of billing demand`,
+          `Gazetted NERSA ${comp.component_name} applied to ${basisText}`,
           `amount = demand_kva * rate_zar`,
           comp.rule_id || `RULE_${comp.component_code}`,
           "all",
@@ -224,9 +235,9 @@ export class DeterministicEngine {
       );
     }
 
-    // 4. Subsidies & Ancillary (c/kWh on Total Energy)
+    // 4. Subsidies & Ancillary (c/kWh on Total Energy: Ancillary, Legacy, Affordability, Electrification) (2.c)
     const subsidyComponents = tariffVersion.components.filter((c) =>
-      ["ANCILLARY_SERVICE", "ELECTRIFICATION_SUBSIDY", "AFFORDABILITY_SUBSIDY"].includes(
+      ["ANCILLARY_SERVICE", "ELECTRIFICATION_SUBSIDY", "AFFORDABILITY_SUBSIDY", "LEGACY_CHARGE"].includes(
         c.component_type,
       ),
     );
@@ -239,7 +250,7 @@ export class DeterministicEngine {
           comp.unit_of_measure,
           comp.rate_value,
           input.active_energy_kwh,
-          `Gazetted NERSA ${comp.component_name} on total active energy`,
+          `Statutory NERSA ${comp.component_name} on total active energy (ALL Peak + Standard + Off-Peak) — independently calculated, NOT copied from Eskom`,
           `amount = (total_kwh * rate_cents) / 100`,
           comp.rule_id || `RULE_${comp.component_code}`,
           "all",
