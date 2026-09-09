@@ -30,3 +30,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local IDE configuration & runtime artifacts
+mcp_config.json
+config.json
+.migrated
+projects/
+plugins/
+
