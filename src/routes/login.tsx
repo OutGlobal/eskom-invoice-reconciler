@@ -5,7 +5,7 @@ import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
-    meta: [{ title: "Client Portal Login — Eskom Bill Balancer" }],
+    meta: [{ title: "Client Portal Login — ENERA Energy Financial Intelligence" }],
   }),
   component: LoginPage,
 });
@@ -21,19 +21,19 @@ function LoginPage() {
   }, [session, navigate]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col justify-between">
+    <div className="min-h-screen bg-[#030712] text-white flex flex-col justify-between font-sans">
       {/* Top Bar with back to home link */}
-      <header className="p-4 sm:p-6 flex items-center justify-between border-b border-border/40 bg-background/50 backdrop-blur-md">
+      <header className="p-4 sm:p-6 flex items-center justify-between border-b border-white/10 bg-black/40 backdrop-blur-md">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-white transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" />
-          <span>Back to Energy Financial Control System</span>
+          <ArrowLeft className="h-4 w-4 text-cyan-400" />
+          <span>Back to ENERA Platform</span>
         </Link>
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[11px] font-mono text-muted-foreground">SECURE 256-BIT PORTAL</span>
+          <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
+          <span className="text-[11px] font-mono text-slate-400">ENERA SECURE 256-BIT PORTAL</span>
         </div>
       </header>
 

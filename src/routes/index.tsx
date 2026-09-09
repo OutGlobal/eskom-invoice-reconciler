@@ -1,83 +1,70 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { LandingNav } from "@/components/landing/LandingNav";
-import { HeroSection } from "@/components/landing/HeroSection";
-import { BigIdeaSection } from "@/components/landing/BigIdeaSection";
-import { MoneyFlowSection } from "@/components/landing/MoneyFlowSection";
-import { InteractiveBillDemo } from "@/components/landing/InteractiveBillDemo";
-import { BillStorySection } from "@/components/landing/BillStorySection";
-import { ReconciliationVisualSection } from "@/components/landing/ReconciliationVisualSection";
-import { AiIntelligenceSection } from "@/components/landing/AiIntelligenceSection";
-import { MultiSiteSection } from "@/components/landing/MultiSiteSection";
-import { ExecutiveRoiSection } from "@/components/landing/ExecutiveRoiSection";
-import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
-import { TrustAuditSection } from "@/components/landing/TrustAuditSection";
-import { UseCasesSection } from "@/components/landing/UseCasesSection";
-import { FinalCtaSection } from "@/components/landing/FinalCtaSection";
+import { EneraNav } from "@/components/landing/enera/EneraNav";
+import { EneraHeroSection } from "@/components/landing/enera/EneraHeroSection";
+import { EneraBillSignalSection } from "@/components/landing/enera/EneraBillSignalSection";
+import { EneraDifferenceSection } from "@/components/landing/enera/EneraDifferenceSection";
+import { EneraCopilotSection } from "@/components/landing/enera/EneraCopilotSection";
+import { EneraNetworkSection } from "@/components/landing/enera/EneraNetworkSection";
+import { EneraImpactSection } from "@/components/landing/enera/EneraImpactSection";
+import { EneraInteractiveUploadSection } from "@/components/landing/enera/EneraInteractiveUploadSection";
+import { EneraAuditTrailSection } from "@/components/landing/enera/EneraAuditTrailSection";
+import { EneraFinalCtaSection } from "@/components/landing/enera/EneraFinalCtaSection";
+import { EneraFooter } from "@/components/landing/enera/EneraFooter";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       {
-        title:
-          "Eskom Bill Balancer — Energy Financial Control System | Utility Reconciliation Platform",
+        title: "ENERA — Energy Financial Intelligence | SEE BEYOND THE BILL",
       },
       {
         name: "description",
         content:
-          "Autonomous electricity invoice reconciliation and energy financial intelligence for commercial and industrial facilities across South Africa. Know what you should pay. Know what you actually paid. Know where the difference went.",
+          "AI-powered energy intelligence that reconciles every charge, detects hidden anomalies and helps businesses understand where every energy rand goes.",
       },
     ],
   }),
-  component: LandingPage,
+  component: EneraLandingPage,
 });
 
-function LandingPage() {
+function EneraLandingPage() {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-300 font-sans antialiased overflow-x-hidden">
-      {/* Sticky Translucent Navigation */}
-      <LandingNav />
+    <div className="min-h-screen bg-[#030712] text-white selection:bg-cyan-500/30 selection:text-cyan-200 font-sans antialiased overflow-x-hidden">
+      {/* 1. Transparent-to-blur Sticky Navigation */}
+      <EneraNav />
 
-      {/* Main Flow */}
+      {/* 2. Main Narrative Progression */}
       <main>
-        {/* 1. Hero Section with Live Energy Intelligence Engine Visual */}
-        <HeroSection />
+        {/* Stage 3-7: Cinematic Hero with Canvas Particle Engine & Controlled Scene Loop */}
+        <EneraHeroSection />
 
-        {/* 2. The Big Idea Typographic Callout */}
-        <BigIdeaSection />
+        {/* Stage 8: "EVERY BILL HAS A SIGNAL" — Progressive Deconstruction */}
+        <EneraBillSignalSection />
 
-        {/* 3. Follow The Money Pipeline Visualization */}
-        <MoneyFlowSection />
+        {/* Stage 9: "FIND THE DIFFERENCE" — Billed vs Actual Ground Truth */}
+        <EneraDifferenceSection />
 
-        {/* 4. Interactive Simulated Bill Drop Engine */}
-        <InteractiveBillDemo />
+        {/* Stage 10: "ASK YOUR ENERGY DATA" — AI Energy Copilot */}
+        <EneraCopilotSection />
 
-        {/* 5. Every Bill Tells a Story — Anatomy of an Eskom Bill */}
-        <BillStorySection />
+        {/* Stage 11: "ONE PLATFORM. EVERY ENERGY SIGNAL" — Interactive Topology Network */}
+        <EneraNetworkSection />
 
-        {/* 6. Dual Stream Reconciliation Visual */}
-        <ReconciliationVisualSection />
+        {/* Stage 12: "TURN ENERGY DATA INTO ADVANTAGE" — Executive ROI Impact */}
+        <EneraImpactSection />
 
-        {/* 7. AI Energy Intelligence Natural Language Console */}
-        <AiIntelligenceSection />
+        {/* Stage 13-14: "DROP A BILL. WATCH ENERA THINK" — Interactive Upload Simulator & /upload Gateway */}
+        <EneraInteractiveUploadSection />
 
-        {/* 8. Multi-Site Portfolio Command Grid */}
-        <MultiSiteSection />
+        {/* Stage 15: "EVERY NUMBER HAS A TRAIL" — 7-Node Cryptographic Audit Chain */}
+        <EneraAuditTrailSection />
 
-        {/* 9. Financial ROI & Proof Metrics */}
-        <ExecutiveRoiSection />
-
-        {/* 10. How It Works 4-Step Journey */}
-        <HowItWorksSection />
-
-        {/* 11. Immutable Audit Trail & Regulatory Compliance */}
-        <TrustAuditSection />
-
-        {/* 12. Enterprise Persona Use Cases */}
-        <UseCasesSection />
-
-        {/* 13. Final CTA & Regulatory Footer */}
-        <FinalCtaSection />
+        {/* Stage 16: "YOUR NEXT BILL SHOULDN'T BE A SURPRISE" — Cinematic Echo Final CTA */}
+        <EneraFinalCtaSection />
       </main>
+
+      {/* Stage 17: Minimal Luxury Footer */}
+      <EneraFooter />
     </div>
   );
 }
