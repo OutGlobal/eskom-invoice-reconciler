@@ -20,6 +20,9 @@ import {
 } from "lucide-react";
 import Decimal from "decimal.js-light";
 import { useApp } from "@/lib/store";
+import { AnomalyDashboard } from "@/components/discrepancy/AnomalyDashboard";
+import { AuditViewer } from "@/components/audit/AuditViewer";
+import { InvoiceSelector } from "@/components/InvoiceSelector";
 
 export const Route = createFileRoute("/reconciliation")({
   head: () => ({ meta: [{ title: "Authoritative Reconciliation Engine — Eskom Bill Balancer" }] }),
@@ -34,6 +37,7 @@ function ReconciliationPage() {
   const [isExplainerOpen, setIsExplainerOpen] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [filterTab, setFilterTab] = useState<"all" | "discrepancies" | "matches">("all");
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<"matrix" | "anomalies" | "evidence">("matrix");
 
   // Run reconciliation against active invoice or selected fixture
   const runReconciliation = (fixtureCode: string) => {
@@ -47,7 +51,7 @@ function ReconciliationPage() {
         telemetry_batch_id: "BATCH_ACTIVE",
         billing_start: activeInvoice.billingPeriodStart || "2026-02-17",
         billing_end: activeInvoice.billingPeriodEnd || "2026-03-18",
-        tariff_version: "2025.1",
+        tariff_version: ESKOM_MEGAFLEX_2025_2026,
         calendar_version_id: "2025.1",
 
         billed_peak_kwh: new Decimal(activeInvoice.peakKWh || 0),
@@ -145,6 +149,9 @@ function ReconciliationPage() {
 
   return (
     <div className="space-y-6">
+      {/* Impala Platinum 4-Month Billing Period Selector */}
+      <InvoiceSelector />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
@@ -183,159 +190,243 @@ function ReconciliationPage() {
         </div>
       </div>
 
-      {/* Idempotency & Metadata Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-lg border border-border bg-card p-3 space-y-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Reconciliation Run ID</div>
-          <div className="text-xs font-mono font-medium truncate">{payload.run_id}</div>
-          <div className="text-[10px] text-muted-foreground">{payload.completed_at}</div>
-        </div>
+      {/* Workspace Hub Navigation Tabs */}
+      <div className="flex border-b border-border gap-2">
+        <button
+          onClick={() => setActiveWorkspaceTab("matrix")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+            activeWorkspaceTab === "matrix"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Scale className="h-4 w-4" />
+          <span>14-Determinant Reconciliation Matrix</span>
+          <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-muted font-mono">
+            {payload.determinant_comparisons.length}
+          </span>
+        </button>
 
-        <div className="rounded-lg border border-border bg-card p-3 space-y-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Idempotency SHA-256 Checksum</div>
-          <div className="text-xs font-mono font-medium text-emerald-600 dark:text-emerald-400 truncate">
-            {payload.result_checksum}
-          </div>
-          <div className="text-[10px] text-muted-foreground">Same Inputs = Same Output</div>
-        </div>
+        <button
+          onClick={() => setActiveWorkspaceTab("anomalies")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+            activeWorkspaceTab === "anomalies"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <span>Root-Cause Discrepancy Diagnostics</span>
+          <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-amber-500/10 text-amber-600 font-mono">
+            12 Codes
+          </span>
+        </button>
 
-        <div className="rounded-lg border border-border bg-card p-3 space-y-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Billed vs Calculated Settlement</div>
-          <div className="text-xs font-mono font-semibold text-foreground">
-            R {NUM(payload.billed_total_zar.toNumber())} / R {NUM(payload.calculated_total_zar.toNumber())}
-          </div>
-          <div className="text-[10px] text-muted-foreground">
-            Variance: <span className="font-mono font-medium">R {NUM(payload.variance_total_zar.toNumber())} ({payload.variance_percentage.toFixed(2)}%)</span>
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-border bg-card p-3 space-y-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Overall Classification</div>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span
-              className={`px-2 py-0.5 text-xs font-semibold uppercase rounded font-mono ${
-                payload.classification === "PASS"
-                  ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
-                  : payload.classification === "WARNING"
-                  ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
-                  : "bg-red-500/10 text-red-500 border border-red-500/20"
-              }`}
-            >
-              {payload.classification}
-            </span>
-            <span className="text-[10px] text-muted-foreground font-mono">STATUS: {payload.status}</span>
-          </div>
-        </div>
+        <button
+          onClick={() => setActiveWorkspaceTab("evidence")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+            activeWorkspaceTab === "evidence"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <ShieldCheck className="h-4 w-4 text-emerald-500" />
+          <span>12-Node Evidence Ledger & Cryptographic Trace</span>
+          <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-emerald-500/10 text-emerald-600 font-mono">
+            Audited
+          </span>
+        </button>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card p-2.5 rounded-lg border border-border">
-        <div className="flex items-center gap-1.5 w-full sm:w-auto">
-          <button
-            onClick={() => setFilterTab("all")}
-            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-              filterTab === "all" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            All Determinants (14)
-          </button>
-          <button
-            onClick={() => setFilterTab("discrepancies")}
-            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-              filterTab === "discrepancies" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            Discrepancies Only
-          </button>
-          <button
-            onClick={() => setFilterTab("matches")}
-            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-              filterTab === "matches" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            Matches (PASS)
-          </button>
-        </div>
+      {activeWorkspaceTab === "matrix" && (
+        <>
+          {/* Idempotency & Metadata Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="rounded-lg border border-border bg-card p-3 space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Reconciliation Run ID</div>
+              <div className="text-xs font-mono font-medium truncate">{payload.run_id}</div>
+              <div className="text-[10px] text-muted-foreground">{payload.completed_at}</div>
+            </div>
 
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search determinant..."
-            className="w-full pl-8 pr-3 py-1 bg-background border border-border rounded text-xs"
-          />
-        </div>
-      </div>
+            <div className="rounded-lg border border-border bg-card p-3 space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Idempotency SHA-256 Checksum</div>
+              <div className="text-xs font-mono font-medium text-emerald-600 dark:text-emerald-400 truncate">
+                {payload.result_checksum}
+              </div>
+              <div className="text-[10px] text-muted-foreground">Same Inputs = Same Output</div>
+            </div>
 
-      {/* 14 Billing Determinant Comparison Matrix Table */}
-      <Panel
-        title="14 Billing Determinant Comparison Matrix"
-        subtitle="Comparing Extracted Eskom Billed Values vs Telemetry & Gazetted NERSA Calculated Values"
-      >
-        <div className="border border-border rounded-md overflow-hidden">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-muted/50 text-muted-foreground">
-              <tr>
-                <th className="p-2.5 font-medium">Billing Determinant</th>
-                <th className="p-2.5 font-medium text-right">Eskom Billed</th>
-                <th className="p-2.5 font-medium text-right">Calculated</th>
-                <th className="p-2.5 font-medium text-right">Variance</th>
-                <th className="p-2.5 font-medium text-right">Variance %</th>
-                <th className="p-2.5 font-medium text-center">Status</th>
-                <th className="p-2.5 font-medium text-center">Audit</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredComparisons.map((item) => (
-                <tr key={item.determinant_code} className="hover:bg-muted/20">
-                  <td className="p-2.5 font-medium">
-                    <div>{item.determinant_name}</div>
-                    <div className="text-[10px] text-muted-foreground font-mono">{item.determinant_code}</div>
-                  </td>
-                  <td className="p-2.5 font-mono text-right font-medium">
-                    {item.unit_of_measure === "ZAR" ? `R ${NUM(item.billed_value.toNumber())}` : `${item.billed_value.toString()} ${item.unit_of_measure}`}
-                  </td>
-                  <td className="p-2.5 font-mono text-right font-medium">
-                    {item.unit_of_measure === "ZAR" ? `R ${NUM(item.calculated_value.toNumber())}` : `${item.calculated_value.toString()} ${item.unit_of_measure}`}
-                  </td>
-                  <td className="p-2.5 font-mono text-right">
-                    <span className={item.variance_value.isZero() ? "text-muted-foreground" : item.variance_value.gt(0) ? "text-amber-500 font-medium" : "text-emerald-500 font-medium"}>
-                      {item.unit_of_measure === "ZAR" ? `R ${NUM(item.variance_value.toNumber())}` : `${item.variance_value.toString()} ${item.unit_of_measure}`}
-                    </span>
-                  </td>
-                  <td className="p-2.5 font-mono text-right">
-                    {item.variance_percentage.toFixed(2)}%
-                  </td>
-                  <td className="p-2.5 text-center">
-                    <span
-                      className={`px-2 py-0.5 text-[10px] font-mono font-semibold rounded ${
-                        item.classification === "PASS"
-                          ? "bg-emerald-500/10 text-emerald-500"
-                          : item.classification === "WARNING"
-                          ? "bg-amber-500/10 text-amber-500"
-                          : "bg-red-500/10 text-red-500"
-                      }`}
-                    >
-                      {item.classification}
-                    </span>
-                  </td>
-                  <td className="p-2.5 text-center">
-                    <button
-                      onClick={() => openExplainer(item)}
-                      className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
-                      title="Inspect calculation explanation formula lineage"
-                    >
-                      <Info className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            <div className="rounded-lg border border-border bg-card p-3 space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Billed vs Calculated Settlement</div>
+              <div className="text-xs font-mono font-semibold text-foreground">
+                R {NUM(payload.billed_total_zar.toNumber())} / R {NUM(payload.calculated_total_zar.toNumber())}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                Variance: <span className="font-mono font-medium">R {NUM(payload.variance_total_zar.toNumber())} ({payload.variance_percentage.toFixed(2)}%)</span>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-3 space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Overall Classification</div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span
+                  className={`px-2 py-0.5 text-xs font-semibold uppercase rounded font-mono ${
+                    payload.classification === "PASS"
+                      ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                      : payload.classification === "WARNING"
+                      ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                      : "bg-red-500/10 text-red-500 border border-red-500/20"
+                  }`}
+                >
+                  {payload.classification}
+                </span>
+                <span className="text-[10px] text-muted-foreground font-mono">STATUS: {payload.status}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Filter & Search Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card p-2.5 rounded-lg border border-border">
+            <div className="flex items-center gap-1.5 w-full sm:w-auto">
+              <button
+                onClick={() => setFilterTab("all")}
+                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                  filterTab === "all" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                All Determinants (14)
+              </button>
+              <button
+                onClick={() => setFilterTab("discrepancies")}
+                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                  filterTab === "discrepancies" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                Discrepancies Only
+              </button>
+              <button
+                onClick={() => setFilterTab("matches")}
+                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                  filterTab === "matches" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                Matches (PASS)
+              </button>
+            </div>
+
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search determinant..."
+                className="w-full pl-8 pr-3 py-1 bg-background border border-border rounded text-xs"
+              />
+            </div>
+          </div>
+
+          {/* 14 Billing Determinant Comparison Matrix Table */}
+          <Panel
+            title="14 Billing Determinant Comparison Matrix"
+            subtitle="Comparing Extracted Eskom Billed Values vs Telemetry & Gazetted NERSA Calculated Values"
+          >
+            <div className="border border-border rounded-md overflow-hidden">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-muted/50 text-muted-foreground">
+                  <tr>
+                    <th className="p-2.5 font-medium">Billing Determinant</th>
+                    <th className="p-2.5 font-medium text-right">Eskom Billed</th>
+                    <th className="p-2.5 font-medium text-right">Calculated</th>
+                    <th className="p-2.5 font-medium text-right">Variance</th>
+                    <th className="p-2.5 font-medium text-right">Variance %</th>
+                    <th className="p-2.5 font-medium text-center">Status</th>
+                    <th className="p-2.5 font-medium text-center">Audit & Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredComparisons.map((item) => (
+                    <tr key={item.determinant_code} className="hover:bg-muted/20">
+                      <td className="p-2.5 font-medium">
+                        <div>{item.determinant_name}</div>
+                        <div className="text-[10px] text-muted-foreground font-mono">{item.determinant_code}</div>
+                      </td>
+                      <td className="p-2.5 font-mono text-right font-medium">
+                        {item.unit_of_measure === "ZAR" ? `R ${NUM(item.billed_value.toNumber())}` : `${item.billed_value.toString()} ${item.unit_of_measure}`}
+                      </td>
+                      <td className="p-2.5 font-mono text-right font-medium">
+                        {item.unit_of_measure === "ZAR" ? `R ${NUM(item.calculated_value.toNumber())}` : `${item.calculated_value.toString()} ${item.unit_of_measure}`}
+                      </td>
+                      <td className="p-2.5 font-mono text-right">
+                        <span className={item.variance_value.isZero() ? "text-muted-foreground" : item.variance_value.gt(0) ? "text-amber-500 font-medium" : "text-emerald-500 font-medium"}>
+                          {item.unit_of_measure === "ZAR" ? `R ${NUM(item.variance_value.toNumber())}` : `${item.variance_value.toString()} ${item.unit_of_measure}`}
+                        </span>
+                      </td>
+                      <td className="p-2.5 font-mono text-right">
+                        {item.variance_percentage.toFixed(2)}%
+                      </td>
+                      <td className="p-2.5 text-center">
+                        <span
+                          className={`px-2 py-0.5 text-[10px] font-mono font-semibold rounded ${
+                            item.classification === "PASS"
+                              ? "bg-emerald-500/10 text-emerald-500"
+                              : item.classification === "WARNING"
+                              ? "bg-amber-500/10 text-amber-500"
+                              : "bg-red-500/10 text-red-500"
+                          }`}
+                        >
+                          {item.classification}
+                        </span>
+                      </td>
+                      <td className="p-2.5 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => openExplainer(item)}
+                            className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+                            title="Inspect calculation explanation formula lineage"
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                          {item.classification !== "PASS" && (
+                            <>
+                              <button
+                                onClick={() => setActiveWorkspaceTab("anomalies")}
+                                className="px-1.5 py-0.5 text-[10px] font-medium bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 rounded"
+                                title="Jump to Root-Cause Diagnostics"
+                              >
+                                Diagnose
+                              </button>
+                              <button
+                                onClick={() => setActiveWorkspaceTab("evidence")}
+                                className="px-1.5 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 rounded"
+                                title="Trace 12-Node Evidence Chain"
+                              >
+                                Trace
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
+        </>
+      )}
+
+      {activeWorkspaceTab === "anomalies" && (
+        <div className="space-y-4">
+          <AnomalyDashboard />
         </div>
-      </Panel>
+      )}
+
+      {activeWorkspaceTab === "evidence" && (
+        <div className="space-y-4">
+          <AuditViewer />
+        </div>
+      )}
 
       {/* Calculation Explanation Inspector Modal */}
       {isExplainerOpen && selectedDeterminant && (

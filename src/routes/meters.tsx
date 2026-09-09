@@ -45,7 +45,7 @@ export const Route = createFileRoute("/meters")({
   component: MetersPage,
 });
 
-function MetersPage() {
+export function MetersPage() {
   const [hierarchy, setHierarchy] = useState<MasterHierarchyTree | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 

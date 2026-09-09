@@ -13,7 +13,7 @@ export const Route = createFileRoute("/calendar")({
   component: CalendarPage,
 });
 
-function CalendarPage() {
+export function CalendarPage() {
   const [holidays, setHolidays] = useState<CalendarHolidayConfig[]>([]);
   const [testTimestamp, setTestTimestamp] = useState<string>("2025-06-16T08:00:00Z"); // Youth Day (Public Holiday)
   const [explanation, setExplanation] = useState<IntervalClassificationExplanation | null>(null);

@@ -23,7 +23,7 @@ export const Route = createFileRoute("/energy")({
 
 type Bucket = "day" | "week" | "month" | "period";
 
-function EnergyPage() {
+export function EnergyPage() {
   useBootstrapMeter();
   const { rows, totals } = useDerived();
   const validation = useApp((s) => s.validation);

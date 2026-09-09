@@ -18,6 +18,8 @@ import {
   Hash,
 } from "lucide-react";
 import { InvoiceReviewWorkspace } from "@/components/invoice/InvoiceReviewWorkspace";
+import { SecureUploadGateway } from "@/components/upload/SecureUploadGateway";
+import { InvoiceSelector } from "@/components/InvoiceSelector";
 import { LayeredExtractor } from "@/domain/invoice/layeredExtractor";
 import { InvoiceStorageService, type InvoiceSearchFilter } from "@/domain/invoice/invoiceStorageService";
 import { InvoiceLifecycleService } from "@/domain/invoice/invoiceLifecycleService";
@@ -75,7 +77,7 @@ TOTAL INVOICE AMOUNT: R 920000.00
 function InvoicesPage() {
   const [activeDoc, setActiveDoc] = useState<ExtractedInvoiceDocument | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [viewMode, setViewMode] = useState<"table" | "workspace">("workspace");
+  const [viewMode, setViewMode] = useState<"table" | "workspace" | "upload">("workspace");
 
   // Invoices List State
   const [invoices, setInvoices] = useState<InvoiceHeaderMeta[]>([]);
@@ -252,6 +254,14 @@ function InvoicesPage() {
 
   return (
     <div className="space-y-6">
+      {/* Active Period Selector Banner */}
+      <div className="rounded-lg border border-primary/20 bg-card p-3 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
+        <InvoiceSelector />
+        <span className="text-xs text-muted-foreground hidden md:inline">
+          Synchronizes Telemetry, Reconciliation &amp; Regulatory Audits
+        </span>
+      </div>
+
       {/* Top Action Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-6 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm">
         <div>
@@ -259,7 +269,7 @@ function InvoicesPage() {
             <FileText className="w-7 h-7 text-blue-600" /> Authoritative Invoice Subsystem
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            10-State Invoice Lifecycle, Decoupled Determinants, Audit Corrections & Drill-Down Lineage
+            10-State Invoice Lifecycle, Multi-Layout OCR Ingestion, Audit Corrections &amp; Determinant Lineage
           </p>
         </div>
 
@@ -274,6 +284,16 @@ function InvoicesPage() {
               }`}
             >
               Review Workspace
+            </button>
+            <button
+              onClick={() => setViewMode("upload")}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors flex items-center gap-1.5 ${
+                viewMode === "upload"
+                  ? "bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-xs"
+                  : "text-gray-600 dark:text-gray-400"
+              }`}
+            >
+              <Upload className="w-3.5 h-3.5" /> Upload &amp; Ingestion
             </button>
             <button
               onClick={() => setViewMode("table")}
@@ -293,11 +313,6 @@ function InvoicesPage() {
           >
             Reload Megaflex Sample
           </button>
-
-          <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors">
-            <Upload className="w-4 h-4" /> Upload PDF Invoice
-            <input type="file" accept=".pdf,.txt" onChange={handleFileUpload} className="hidden" />
-          </label>
         </div>
       </div>
 
@@ -439,6 +454,10 @@ function InvoicesPage() {
           <p className="text-base font-semibold text-gray-800 dark:text-gray-200">
             Running 8-Stage Extraction Pipeline & Validation Checks...
           </p>
+        </div>
+      ) : viewMode === "upload" ? (
+        <div className="bg-white dark:bg-gray-900 rounded-xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm">
+          <SecureUploadGateway />
         </div>
       ) : viewMode === "workspace" && activeDoc ? (
         <InvoiceReviewWorkspace document={activeDoc} onApprove={handleApprove} />

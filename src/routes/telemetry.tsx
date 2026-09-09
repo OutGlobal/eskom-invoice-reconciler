@@ -28,6 +28,8 @@ import {
   Gauge,
   HelpCircle,
   ShieldCheck,
+  BarChart3,
+  TrendingUp,
 } from "lucide-react";
 import { TelemetryQualityEngine, type RawTelemetryRowInput } from "@/domain/telemetry/telemetryQualityEngine";
 import { TelemetryStorageService } from "@/domain/telemetry/telemetryStorageService";
@@ -41,6 +43,10 @@ import type {
   EstimationMethod,
 } from "@/domain/telemetry/types";
 import toast from "react-hot-toast";
+import { EnergyPage } from "@/routes/energy";
+import { DemandPage } from "@/routes/demand";
+import { MetersPage } from "@/routes/meters";
+import { InvoiceSelector } from "@/components/InvoiceSelector";
 
 export const Route = createFileRoute("/telemetry")({
   head: () => ({ meta: [{ title: "AMR Telemetry & Time-Series Validation Engine — Eskom Reconciler" }] }),
@@ -49,6 +55,7 @@ export const Route = createFileRoute("/telemetry")({
 
 function TelemetryPage() {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [workspaceTab, setWorkspaceTab] = useState<"stream" | "energy" | "demand" | "meters">("stream");
   const [activeTab, setActiveTab] = useState<"stream" | "gaps" | "quarantine" | "benchmark">("stream");
 
   // Telemetry Domain State
@@ -172,40 +179,110 @@ function TelemetryPage() {
 
   return (
     <div className="space-y-6">
+      {/* Impala Platinum 4-Month Billing Period Selector */}
+      <InvoiceSelector />
+
       {/* Header Action Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-6 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <Activity className="w-7 h-7 text-blue-600" /> Time-Series Ingestion & Quality Engine
+            <Activity className="w-7 h-7 text-blue-600" /> AMR Telemetry & Metering Hub
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            15/30-Min Telemetry Stream Validation, 8 Quality States, Gap Analytics & High-Volume Benchmarking
+            Consolidated Ingestion, TOU Load Profiling, NMD Exceedance Diagnostics & Meter Multiplier Engineering
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={runInitialDemoStream}
-            className="px-3.5 py-2 text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100"
-          >
-            Reload Stream Sample
-          </button>
-          <button
-            onClick={() => handleRunBenchmark(10000)}
-            className="px-3.5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm"
-          >
-            Run 10k Benchmark
-          </button>
-          <button
-            onClick={() => handleRunBenchmark(100000)}
-            className="px-3.5 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-sm"
-          >
-            Run 100k Benchmark
-          </button>
-        </div>
+        {workspaceTab === "stream" && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={runInitialDemoStream}
+              className="px-3.5 py-2 text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100"
+            >
+              Reload Stream Sample
+            </button>
+            <button
+              onClick={() => handleRunBenchmark(10000)}
+              className="px-3.5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm"
+            >
+              Run 10k Benchmark
+            </button>
+            <button
+              onClick={() => handleRunBenchmark(100000)}
+              className="px-3.5 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-sm"
+            >
+              Run 100k Benchmark
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Overview KPI Cards */}
+      {/* Workspace Hub Navigation Tabs */}
+      <div className="flex border-b border-border gap-2 overflow-x-auto">
+        <button
+          onClick={() => setWorkspaceTab("stream")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+            workspaceTab === "stream"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Activity className="h-4 w-4 text-blue-500" />
+          <span>Interval Stream & Quality Engine</span>
+          <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-blue-500/10 text-blue-600 font-mono">
+            {qualitySummary.totalRecords}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setWorkspaceTab("energy")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+            workspaceTab === "energy"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <BarChart3 className="h-4 w-4 text-emerald-500" />
+          <span>TOU Energy Load Profile</span>
+          <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-emerald-500/10 text-emerald-600 font-mono">
+            Active kW
+          </span>
+        </button>
+
+        <button
+          onClick={() => setWorkspaceTab("demand")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+            workspaceTab === "demand"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <TrendingUp className="h-4 w-4 text-amber-500" />
+          <span>Demand & NMD Peak Exceedance</span>
+          <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-amber-500/10 text-amber-600 font-mono">
+            kVA Audit
+          </span>
+        </button>
+
+        <button
+          onClick={() => setWorkspaceTab("meters")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+            workspaceTab === "meters"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Gauge className="h-4 w-4 text-purple-500" />
+          <span>Meter Master Data & Multipliers</span>
+          <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-purple-500/10 text-purple-600 font-mono">
+            CT/VT
+          </span>
+        </button>
+      </div>
+
+      {workspaceTab === "stream" && (
+        <>
+          {/* Overview KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xs">
           <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Processed Intervals</span>
@@ -653,8 +730,28 @@ function TelemetryPage() {
           </div>
         )}
       </div>
+    </>
+  )}
 
-      {/* Explicit Telemetry Estimation Modal */}
+  {workspaceTab === "energy" && (
+    <div className="space-y-4">
+      <EnergyPage />
+    </div>
+  )}
+
+  {workspaceTab === "demand" && (
+    <div className="space-y-4">
+      <DemandPage />
+    </div>
+  )}
+
+  {workspaceTab === "meters" && (
+    <div className="space-y-4">
+      <MetersPage />
+    </div>
+  )}
+
+  {/* Explicit Telemetry Estimation Modal */}
       {selectedGap && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-800 space-y-4">

@@ -30,26 +30,42 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const items = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Customers", url: "/customers", icon: Users },
-  { title: "Meters Subsystem", url: "/meters", icon: Gauge },
-  { title: "AMR Telemetry Engine", url: "/telemetry", icon: Activity },
-  { title: "Data Governance & Quality", url: "/quality", icon: ShieldCheck },
-  { title: "Meter Data Upload", url: "/upload", icon: Upload },
-  { title: "Invoice Workspace", url: "/invoices", icon: FileText },
-  { title: "Tariff Management", url: "/tariff", icon: ReceiptText },
-  { title: "Calendar & TOU Engine", url: "/calendar", icon: Calendar },
-  { title: "Energy Analysis", url: "/energy", icon: Zap },
-  { title: "Demand Analysis", url: "/demand", icon: Activity },
-  { title: "Reconciliation", url: "/reconciliation", icon: Scale },
-  { title: "Anomaly Diagnostics", url: "/anomalies", icon: AlertTriangle },
-  { title: "Audit Ledger", url: "/audit", icon: ShieldCheck },
-  { title: "Municipal Statements", url: "/municipal", icon: Building2 },
+interface NavSection {
+  label: string;
+  items: {
+    title: string;
+    url: string;
+    icon: React.ComponentType<{ className?: string }>;
+    matchUrls?: string[];
+  }[];
+}
 
-  { title: "Trends & Recoveries", url: "/trends", icon: TrendingUp },
-  { title: "Reports", url: "/reports", icon: FileBarChart },
-  { title: "Settings", url: "/settings", icon: SettingsIcon },
+const navSections: NavSection[] = [
+  {
+    label: "Operations",
+    items: [
+      { title: "Command Centre", url: "/", icon: LayoutDashboard },
+      { title: "Invoice Workspace", url: "/invoices", icon: FileText, matchUrls: ["/invoices", "/upload"] },
+      { title: "AMR Telemetry & Metering", url: "/telemetry", icon: Activity, matchUrls: ["/telemetry", "/meters", "/energy", "/demand"] },
+      { title: "Reconciliation & Audits", url: "/reconciliation", icon: Scale, matchUrls: ["/reconciliation", "/anomalies", "/audit"] },
+      { title: "Dispute Packs & Reports", url: "/reports", icon: FileBarChart, matchUrls: ["/reports", "/trends"] },
+    ],
+  },
+  {
+    label: "Regulatory & Compliance",
+    items: [
+      { title: "Tariffs & Regulations", url: "/tariff", icon: ReceiptText, matchUrls: ["/tariff", "/calendar"] },
+      { title: "Data Governance & Quality", url: "/quality", icon: ShieldCheck },
+      { title: "Municipal Statements", url: "/municipal", icon: Building2 },
+    ],
+  },
+  {
+    label: "Administration",
+    items: [
+      { title: "Customers & Accounts", url: "/customers", icon: Users },
+      { title: "Settings", url: "/settings", icon: SettingsIcon },
+    ],
+  },
 ];
 
 export function AppSidebar() {
@@ -67,32 +83,36 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="min-w-0">
               <div className="text-sm font-semibold leading-tight truncate">Meter Recon</div>
-              <div className="text-[10px] text-muted-foreground truncate">Eskom Megaflex</div>
+              <div className="text-[10px] text-muted-foreground truncate">Eskom Megaflex Platform</div>
             </div>
           )}
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map((item) => {
-                const active = pathname === item.url;
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
-                      <Link to={item.url} className="flex items-center gap-2">
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {navSections.map((section) => (
+          <SidebarGroup key={section.label}>
+            <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {section.items.map((item) => {
+                  const active =
+                    pathname === item.url ||
+                    Boolean(item.matchUrls && item.matchUrls.includes(pathname));
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
+                        <Link to={item.url} className="flex items-center gap-2">
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
     </Sidebar>
   );

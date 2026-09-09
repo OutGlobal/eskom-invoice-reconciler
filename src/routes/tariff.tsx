@@ -7,6 +7,7 @@ import { explainAppliedRateByRule } from "@/domain/tariff/rateLineageExplainer";
 import type { TariffVersionDefinition, RateLineageExplanation, TariffFamilyType } from "@/domain/tariff/types";
 import { ShieldCheck, Info, FileText, CheckCircle2, AlertTriangle, Clock, Layers, Plus, Calendar } from "lucide-react";
 import Decimal from "decimal.js-light";
+import { CalendarPage } from "@/routes/calendar";
 
 export const Route = createFileRoute("/tariff")({
   head: () => ({ meta: [{ title: "Tariff Management — Production Tariff Engine" }] }),
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/tariff")({
 });
 
 function TariffPage() {
+  const [workspaceTab, setWorkspaceTab] = useState<"schedules" | "calendar">("schedules");
   const [versions, setVersions] = useState<TariffVersionDefinition[]>([]);
   const [selectedFamily, setSelectedFamily] = useState<TariffFamilyType>("megaflex");
   const [selectedVersionId, setSelectedVersionId] = useState<string>("");
@@ -108,17 +110,54 @@ function TariffPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => alert("New Tariff Version Builder Modal launched.")}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            New Version
-          </button>
+          {workspaceTab === "schedules" && (
+            <button
+              onClick={() => alert("New Tariff Version Builder Modal launched.")}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              New Version
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Family & Timeline Bar */}
+      {/* Workspace Hub Navigation Tabs */}
+      <div className="flex border-b border-border gap-2">
+        <button
+          onClick={() => setWorkspaceTab("schedules")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+            workspaceTab === "schedules"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Layers className="h-4 w-4" />
+          <span>Gazetted Tariff Schedules & Master Data</span>
+          <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-muted font-mono">
+            {versions.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setWorkspaceTab("calendar")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+            workspaceTab === "calendar"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Calendar className="h-4 w-4 text-emerald-500" />
+          <span>Calendar Rules, Public Holidays & TOU Slots</span>
+          <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-emerald-500/10 text-emerald-600 font-mono">
+            SAST UTC+2
+          </span>
+        </button>
+      </div>
+
+      {workspaceTab === "schedules" && (
+        <>
+          {/* Family & Timeline Bar */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Family Selector */}
         <div className="rounded-lg border border-border bg-card p-3 space-y-2">
@@ -351,8 +390,16 @@ function TariffPage() {
           </div>
         </Panel>
       </div>
+    </>
+  )}
 
-      {/* Rate Lineage Explainer Inspector Modal */}
+  {workspaceTab === "calendar" && (
+    <div className="space-y-4">
+      <CalendarPage />
+    </div>
+  )}
+
+  {/* Rate Lineage Explainer Inspector Modal */}
       {isExplainerOpen && explainerData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
           <div className="w-full max-w-xl rounded-lg border border-border bg-card p-6 shadow-lg space-y-4">
