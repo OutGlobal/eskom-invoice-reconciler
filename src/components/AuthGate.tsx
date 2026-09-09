@@ -96,7 +96,7 @@ function friendlyAuthError(err: any): string {
   return msg;
 }
 
-function SignInScreen({ onBypass }: { onBypass?: () => void }) {
+export function SignInScreen({ onBypass }: { onBypass?: () => void }) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

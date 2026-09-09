@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -147,41 +148,51 @@ function RootComponent() {
   const routeContext = Route.useRouteContext();
   const queryClient = useMemo(() => routeContext?.queryClient || new QueryClient(), [routeContext]);
   const [aiModalOpen, setAiModalOpen] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  // Dedicated public routes: Landing page and Login
+  const isPublicPage = pathname === "/" || pathname === "/login";
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthGate>
-        <SidebarProvider>
-          <div className="min-h-screen flex w-full bg-background text-foreground">
-            <AppSidebar />
-            <div className="flex-1 flex flex-col min-w-0">
-              <header className="h-12 flex items-center gap-2 border-b border-border bg-card px-3 sticky top-0 z-10">
-                <SidebarTrigger />
-                <div className="text-sm font-medium flex items-center gap-2">
-                  <span>Eskom Meter Data Reconciliation</span>
-                </div>
-                <div className="ml-auto flex items-center gap-2 sm:gap-3">
-                  <button
-                    onClick={() => setAiModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 border border-primary/30 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition shadow-2xs"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 animate-pulse text-primary" />
-                    <span>AI Copilot</span>
-                  </button>
-                  <div className="text-xs text-muted-foreground hidden lg:block">
-                    2025/2026 Tariff Book · 30-min analytics
+      {isPublicPage ? (
+        <main className="min-h-screen w-full bg-background text-foreground animate-in fade-in duration-200">
+          <Outlet />
+        </main>
+      ) : (
+        <AuthGate>
+          <SidebarProvider>
+            <div className="min-h-screen flex w-full bg-background text-foreground">
+              <AppSidebar />
+              <div className="flex-1 flex flex-col min-w-0">
+                <header className="h-12 flex items-center gap-2 border-b border-border bg-card px-3 sticky top-0 z-10">
+                  <SidebarTrigger />
+                  <div className="text-sm font-medium flex items-center gap-2">
+                    <span>Eskom Meter Data Reconciliation</span>
                   </div>
-                  <SignOutButton />
-                </div>
-              </header>
-              <main className="flex-1 min-w-0 p-4 md:p-6 animate-in fade-in duration-200">
-                <Outlet />
-              </main>
+                  <div className="ml-auto flex items-center gap-2 sm:gap-3">
+                    <button
+                      onClick={() => setAiModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 border border-primary/30 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition shadow-2xs"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 animate-pulse text-primary" />
+                      <span>AI Copilot</span>
+                    </button>
+                    <div className="text-xs text-muted-foreground hidden lg:block">
+                      2025/2026 Tariff Book · 30-min analytics
+                    </div>
+                    <SignOutButton />
+                  </div>
+                </header>
+                <main className="flex-1 min-w-0 p-4 md:p-6 animate-in fade-in duration-200">
+                  <Outlet />
+                </main>
+              </div>
             </div>
-          </div>
-          <AiCopilotModal isOpen={aiModalOpen} onClose={() => setAiModalOpen(false)} />
-        </SidebarProvider>
-      </AuthGate>
+            <AiCopilotModal isOpen={aiModalOpen} onClose={() => setAiModalOpen(false)} />
+          </SidebarProvider>
+        </AuthGate>
+      )}
       <Toaster
         position="bottom-right"
         toastOptions={{

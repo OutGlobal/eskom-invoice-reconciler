@@ -14,9 +14,11 @@ import { Route as AnomaliesRouteImport } from './routes/anomalies'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as CustomersRouteImport } from './routes/customers'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as DemandRouteImport } from './routes/demand'
 import { Route as EnergyRouteImport } from './routes/energy'
 import { Route as InvoicesRouteImport } from './routes/invoices'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as MetersRouteImport } from './routes/meters'
 import { Route as MunicipalRouteImport } from './routes/municipal'
 import { Route as QualityRouteImport } from './routes/quality'
@@ -53,6 +55,11 @@ const CustomersRoute = CustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemandRoute = DemandRouteImport.update({
   id: '/demand',
   path: '/demand',
@@ -66,6 +73,11 @@ const EnergyRoute = EnergyRouteImport.update({
 const InvoicesRoute = InvoicesRouteImport.update({
   id: '/invoices',
   path: '/invoices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MetersRoute = MetersRouteImport.update({
@@ -125,9 +137,11 @@ export interface FileRoutesByFullPath {
   '/audit': typeof AuditRoute
   '/calendar': typeof CalendarRoute
   '/customers': typeof CustomersRoute
+  '/dashboard': typeof DashboardRoute
   '/demand': typeof DemandRoute
   '/energy': typeof EnergyRoute
   '/invoices': typeof InvoicesRoute
+  '/login': typeof LoginRoute
   '/meters': typeof MetersRoute
   '/municipal': typeof MunicipalRoute
   '/quality': typeof QualityRoute
@@ -145,9 +159,11 @@ export interface FileRoutesByTo {
   '/audit': typeof AuditRoute
   '/calendar': typeof CalendarRoute
   '/customers': typeof CustomersRoute
+  '/dashboard': typeof DashboardRoute
   '/demand': typeof DemandRoute
   '/energy': typeof EnergyRoute
   '/invoices': typeof InvoicesRoute
+  '/login': typeof LoginRoute
   '/meters': typeof MetersRoute
   '/municipal': typeof MunicipalRoute
   '/quality': typeof QualityRoute
@@ -166,9 +182,11 @@ export interface FileRoutesById {
   '/audit': typeof AuditRoute
   '/calendar': typeof CalendarRoute
   '/customers': typeof CustomersRoute
+  '/dashboard': typeof DashboardRoute
   '/demand': typeof DemandRoute
   '/energy': typeof EnergyRoute
   '/invoices': typeof InvoicesRoute
+  '/login': typeof LoginRoute
   '/meters': typeof MetersRoute
   '/municipal': typeof MunicipalRoute
   '/quality': typeof QualityRoute
@@ -188,9 +206,11 @@ export interface FileRouteTypes {
     | '/audit'
     | '/calendar'
     | '/customers'
+    | '/dashboard'
     | '/demand'
     | '/energy'
     | '/invoices'
+    | '/login'
     | '/meters'
     | '/municipal'
     | '/quality'
@@ -208,9 +228,11 @@ export interface FileRouteTypes {
     | '/audit'
     | '/calendar'
     | '/customers'
+    | '/dashboard'
     | '/demand'
     | '/energy'
     | '/invoices'
+    | '/login'
     | '/meters'
     | '/municipal'
     | '/quality'
@@ -228,9 +250,11 @@ export interface FileRouteTypes {
     | '/audit'
     | '/calendar'
     | '/customers'
+    | '/dashboard'
     | '/demand'
     | '/energy'
     | '/invoices'
+    | '/login'
     | '/meters'
     | '/municipal'
     | '/quality'
@@ -249,9 +273,11 @@ export interface RootRouteChildren {
   AuditRoute: typeof AuditRoute
   CalendarRoute: typeof CalendarRoute
   CustomersRoute: typeof CustomersRoute
+  DashboardRoute: typeof DashboardRoute
   DemandRoute: typeof DemandRoute
   EnergyRoute: typeof EnergyRoute
   InvoicesRoute: typeof InvoicesRoute
+  LoginRoute: typeof LoginRoute
   MetersRoute: typeof MetersRoute
   MunicipalRoute: typeof MunicipalRoute
   QualityRoute: typeof QualityRoute
@@ -301,6 +327,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CustomersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demand': {
       id: '/demand'
       path: '/demand'
@@ -320,6 +353,13 @@ declare module '@tanstack/react-router' {
       path: '/invoices'
       fullPath: '/invoices'
       preLoaderRoute: typeof InvoicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/meters': {
@@ -401,9 +441,11 @@ const rootRouteChildren: RootRouteChildren = {
   AuditRoute: AuditRoute,
   CalendarRoute: CalendarRoute,
   CustomersRoute: CustomersRoute,
+  DashboardRoute: DashboardRoute,
   DemandRoute: DemandRoute,
   EnergyRoute: EnergyRoute,
   InvoicesRoute: InvoicesRoute,
+  LoginRoute: LoginRoute,
   MetersRoute: MetersRoute,
   MunicipalRoute: MunicipalRoute,
   QualityRoute: QualityRoute,

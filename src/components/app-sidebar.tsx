@@ -44,7 +44,7 @@ const navSections: NavSection[] = [
   {
     label: "Operations",
     items: [
-      { title: "Command Centre", url: "/", icon: LayoutDashboard },
+      { title: "Command Centre", url: "/dashboard", icon: LayoutDashboard },
       { title: "Invoice Workspace", url: "/invoices", icon: FileText, matchUrls: ["/invoices", "/upload"] },
       { title: "AMR Telemetry & Metering", url: "/telemetry", icon: Activity, matchUrls: ["/telemetry", "/meters", "/energy", "/demand"] },
       { title: "Reconciliation & Audits", url: "/reconciliation", icon: Scale, matchUrls: ["/reconciliation", "/anomalies", "/audit"] },

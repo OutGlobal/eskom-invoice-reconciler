@@ -1,0 +1,55 @@
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { SignInScreen, useSupabaseSession } from "@/components/AuthGate";
+import { useEffect } from "react";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
+
+export const Route = createFileRoute("/login")({
+  head: () => ({
+    meta: [{ title: "Client Portal Login — Eskom Bill Balancer" }],
+  }),
+  component: LoginPage,
+});
+
+function LoginPage() {
+  const { session } = useSupabaseSession();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (session) {
+      navigate({ to: "/dashboard" });
+    }
+  }, [session, navigate]);
+
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col justify-between">
+      {/* Top Bar with back to home link */}
+      <header className="p-4 sm:p-6 flex items-center justify-between border-b border-border/40 bg-background/50 backdrop-blur-md">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back to Energy Financial Control System</span>
+        </Link>
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[11px] font-mono text-muted-foreground">SECURE 256-BIT PORTAL</span>
+        </div>
+      </header>
+
+      {/* Main Login Screen */}
+      <main className="flex-1 flex items-center justify-center p-4">
+        <SignInScreen
+          onBypass={() => {
+            navigate({ to: "/dashboard" });
+          }}
+        />
+      </main>
+
+      {/* Trust Footer */}
+      <footer className="p-4 text-center text-xs text-muted-foreground/60 border-t border-border/40">
+        Enterprise access is provisioned by organization administrators. Inquiries: security@outglobal.co.za
+      </footer>
+    </div>
+  );
+}
