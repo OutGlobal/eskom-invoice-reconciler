@@ -7,6 +7,7 @@ import { EneraCopilotSection } from "@/components/landing/enera/EneraCopilotSect
 import { EneraNetworkSection } from "@/components/landing/enera/EneraNetworkSection";
 import { EneraImpactSection } from "@/components/landing/enera/EneraImpactSection";
 import { EneraInteractiveUploadSection } from "@/components/landing/enera/EneraInteractiveUploadSection";
+import { EneraSouthAfricanContextSection } from "@/components/landing/enera/EneraSouthAfricanContextSection";
 import { EneraAuditTrailSection } from "@/components/landing/enera/EneraAuditTrailSection";
 import { EneraFinalCtaSection } from "@/components/landing/enera/EneraFinalCtaSection";
 import { EneraFooter } from "@/components/landing/enera/EneraFooter";
@@ -53,8 +54,11 @@ function EneraLandingPage() {
         {/* Stage 12: "TURN ENERGY DATA INTO ADVANTAGE" — Executive ROI Impact */}
         <EneraImpactSection />
 
-        {/* Stage 13-14: "DROP A BILL. WATCH ENERA THINK" — Interactive Upload Simulator & /upload Gateway */}
+        {/* Stage 13: "DROP A BILL. WATCH ENERA THINK" — Interactive Upload Simulator & /upload Gateway */}
         <EneraInteractiveUploadSection />
+
+        {/* Stage 14: SOUTH AFRICAN ENERGY CONTEXT — Eskom, Megaflex, Municipal Billing, AMR, TOU Determinants */}
+        <EneraSouthAfricanContextSection />
 
         {/* Stage 15: "EVERY NUMBER HAS A TRAIL" — 7-Node Cryptographic Audit Chain */}
         <EneraAuditTrailSection />
