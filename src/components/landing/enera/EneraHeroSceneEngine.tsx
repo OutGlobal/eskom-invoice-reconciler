@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Zap,
   FileText,
@@ -36,9 +36,15 @@ export function EneraHeroSceneEngine() {
   const [isAutoPlaying, setIsAutoPlaying] = useState<boolean>(true);
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
   const [reducedMotion, setReducedMotion] = useState<boolean>(false);
+  const [isInView, setIsInView] = useState<boolean>(true);
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const subTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check prefers-reduced-motion
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReducedMotion(mediaQuery.matches);
     const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
@@ -46,34 +52,58 @@ export function EneraHeroSceneEngine() {
     return () => mediaQuery.removeEventListener("change", handler);
   }, []);
 
+  // Viewport intersection observer to pause auto-play when offscreen
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   // Controlled timed progression cycle (4-7 seconds per scene) with smooth cross-dissolve
   useEffect(() => {
-    if (!isAutoPlaying) return;
+    if (!isAutoPlaying || !isInView) return;
 
     const currentMeta = SCENES.find((s) => s.id === activeScene) || SCENES[0];
 
-    const timer = setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       setIsTransitioning(true);
-      setTimeout(() => {
+      subTimerRef.current = setTimeout(() => {
         setActiveScene((prev) => (prev === 7 ? 1 : ((prev + 1) as SceneId)));
         setIsTransitioning(false);
       }, 300); // 300ms cross-dissolve window
     }, currentMeta.duration);
 
-    return () => clearTimeout(timer);
-  }, [activeScene, isAutoPlaying]);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (subTimerRef.current) clearTimeout(subTimerRef.current);
+    };
+  }, [activeScene, isAutoPlaying, isInView]);
 
   const handleSelectScene = (sceneId: SceneId) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (subTimerRef.current) clearTimeout(subTimerRef.current);
     setIsAutoPlaying(false);
     setIsTransitioning(true);
-    setTimeout(() => {
+    subTimerRef.current = setTimeout(() => {
       setActiveScene(sceneId);
       setIsTransitioning(false);
     }, 200);
   };
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto mt-6 rounded-2xl bg-[#0d1117]/90 border border-white/10 backdrop-blur-2xl shadow-[0_0_50px_-10px_rgba(6,182,212,0.15)] overflow-hidden transition-all">
+    <div
+      ref={containerRef}
+      className="relative w-full max-w-4xl mx-auto mt-6 rounded-2xl bg-[#0d1117]/90 border border-white/10 backdrop-blur-2xl shadow-[0_0_50px_-10px_rgba(6,182,212,0.15)] overflow-hidden transition-all"
+    >
       {/* Top Scene Progress Rail */}
       <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/10 bg-white/[0.02]">
         <div className="flex items-center gap-2">

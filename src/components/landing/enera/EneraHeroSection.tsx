@@ -43,10 +43,17 @@ export function EneraHeroSection() {
     let currentX = 0;
     let currentY = 0;
 
+    let isVisible = true;
+    let isMoving = false;
+
     const handleMouseMove = (e: MouseEvent) => {
       const { innerWidth, innerHeight } = window;
       targetX = (e.clientX / innerWidth - 0.5) * 2; // -1 to +1
       targetY = (e.clientY / innerHeight - 0.5) * 2;
+      isMoving = true;
+      if (isVisible && !rafId) {
+        rafId = requestAnimationFrame(updateParallax);
+      }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
@@ -54,12 +61,20 @@ export function EneraHeroSection() {
         const touch = e.touches[0];
         targetX = (touch.clientX / window.innerWidth - 0.5) * 1.4;
         targetY = (touch.clientY / window.innerHeight - 0.5) * 1.4;
+        isMoving = true;
+        if (isVisible && !rafId) {
+          rafId = requestAnimationFrame(updateParallax);
+        }
       }
     };
 
     const handleTouchEnd = () => {
       targetX = 0;
       targetY = 0;
+      isMoving = true;
+      if (isVisible && !rafId) {
+        rafId = requestAnimationFrame(updateParallax);
+      }
     };
 
     const handleScroll = () => {
@@ -68,29 +83,58 @@ export function EneraHeroSection() {
     };
 
     const updateParallax = () => {
-      currentX += (targetX - currentX) * 0.05;
-      currentY += (targetY - currentY) * 0.05;
-      setMouseOffset({ x: currentX, y: currentY });
-      rafId = requestAnimationFrame(updateParallax);
+      if (!isVisible) {
+        rafId = 0;
+        return;
+      }
+
+      const diffX = targetX - currentX;
+      const diffY = targetY - currentY;
+
+      if (Math.abs(diffX) > 0.002 || Math.abs(diffY) > 0.002) {
+        currentX += diffX * 0.05;
+        currentY += diffY * 0.05;
+        setMouseOffset({ x: currentX, y: currentY });
+        rafId = requestAnimationFrame(updateParallax);
+      } else {
+        currentX = targetX;
+        currentY = targetY;
+        setMouseOffset({ x: currentX, y: currentY });
+        rafId = 0;
+        isMoving = false;
+      }
     };
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+        if (isVisible && isMoving && !rafId) {
+          rafId = requestAnimationFrame(updateParallax);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const sectionEl = document.getElementById("hero");
+    if (sectionEl) observer.observe(sectionEl);
 
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
     window.addEventListener("touchmove", handleTouchMove, { passive: true });
     window.addEventListener("touchend", handleTouchEnd, { passive: true });
     window.addEventListener("scroll", handleScroll, { passive: true });
-    rafId = requestAnimationFrame(updateParallax);
 
     return () => {
+      observer.disconnect();
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleTouchEnd);
       window.removeEventListener("scroll", handleScroll);
-      cancelAnimationFrame(rafId);
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, [reducedMotion]);
 
   return (
-    <section className="relative min-h-screen pt-32 pb-20 overflow-hidden flex flex-col justify-between bg-[#030712] text-white">
+    <section id="hero" className="relative min-h-screen pt-32 pb-20 overflow-hidden flex flex-col justify-between bg-[#030712] text-white">
       {/* 1. Cinematic Canvas Particle & Electrical Stream Engine */}
       <EneraHeroCanvas />
 

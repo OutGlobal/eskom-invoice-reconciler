@@ -96,7 +96,10 @@ export function EneraInteractiveUploadSection() {
   const [userFileSize, setUserFileSize] = useState<string | null>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
+  const [isInView, setIsInView] = useState<boolean>(false);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -108,16 +111,32 @@ export function EneraInteractiveUploadSection() {
     }
   }, []);
 
-  // Progressive simulation stepper
+  // Viewport observer to pause simulation progress when offscreen
   useEffect(() => {
-    if (!isRunning || prefersReducedMotion) return;
+    const el = sectionRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Progressive simulation stepper (Paused when off-screen or reduced motion)
+  useEffect(() => {
+    if (!isRunning || prefersReducedMotion || !isInView) return;
 
     const timer = setInterval(() => {
       setCurrentStep((prev) => (prev >= 7 ? 1 : prev + 1));
     }, 2800);
 
     return () => clearInterval(timer);
-  }, [isRunning, prefersReducedMotion]);
+  }, [isRunning, prefersReducedMotion, isInView]);
 
   const activeStage = SIMULATION_STAGES[currentStep - 1] || SIMULATION_STAGES[0];
 
@@ -130,6 +149,7 @@ export function EneraInteractiveUploadSection() {
 
   return (
     <section
+      ref={sectionRef}
       id="use-cases"
       className="relative py-28 sm:py-36 bg-[#0a0e17] text-white overflow-hidden border-t border-white/5"
       aria-label="Interactive Bill Upload and Cognitive Pipeline"

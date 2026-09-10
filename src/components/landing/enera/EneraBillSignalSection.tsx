@@ -135,14 +135,17 @@ export function EneraBillSignalSection() {
     return () => mediaQuery.removeEventListener("change", handler);
   }, []);
 
-  // Scroll Progress Listener: progressively decodes the bill as user scrolls
+  // Scroll Progress Listener: progressively decodes the bill as user scrolls (active only when in viewport, RAF-throttled)
   useEffect(() => {
     if (reducedMotion || isManualScrub) return;
 
-    const handleScroll = () => {
-      const el = sectionRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
+    const el = sectionRef.current;
+    if (!el) return;
+
+    let ticking = false;
+    const updateProgress = () => {
+      if (!sectionRef.current) return;
+      const rect = sectionRef.current.getBoundingClientRect();
       const windowHeight = window.innerHeight;
 
       // Calculate 0.0 to 1.0 progress through this section
@@ -151,11 +154,43 @@ export function EneraBillSignalSection() {
       const rawProgress = currentDist / totalDist;
       const clamped = Math.min(Math.max(rawProgress, 0), 1);
       setScrollProgress(clamped);
+      ticking = false;
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateProgress);
+        ticking = true;
+      }
+    };
+
+    let isObserving = false;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (!isObserving) {
+            window.addEventListener("scroll", handleScroll, { passive: true });
+            handleScroll();
+            isObserving = true;
+          }
+        } else {
+          if (isObserving) {
+            window.removeEventListener("scroll", handleScroll);
+            isObserving = false;
+          }
+        }
+      },
+      { threshold: 0.05 }
+    );
+
+    observer.observe(el);
+
+    return () => {
+      observer.disconnect();
+      if (isObserving) {
+        window.removeEventListener("scroll", handleScroll);
+      }
+    };
   }, [reducedMotion, isManualScrub]);
 
   const activeElement =

@@ -68,8 +68,23 @@ export function EneraFinalCtaSection() {
     if (!ctx) return;
 
     let animationFrameId: number;
+    let isVisible = false;
     let width = (canvas.width = canvas.offsetWidth);
     let height = (canvas.height = canvas.offsetHeight);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const wasVisible = isVisible;
+        isVisible = entry.isIntersecting;
+        if (!wasVisible && isVisible) {
+          animationFrameId = requestAnimationFrame(render);
+        } else if (wasVisible && !isVisible) {
+          cancelAnimationFrame(animationFrameId);
+        }
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(canvas);
 
     const handleResize = () => {
       if (!canvas) return;
@@ -77,7 +92,7 @@ export function EneraFinalCtaSection() {
       height = canvas.height = canvas.offsetHeight;
     };
 
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", handleResize, { passive: true });
 
     // Generate constellation of energy network nodes echoing Hero telemetry
     const nodeCount = Math.min(32, Math.max(18, Math.floor(width / 45)));
@@ -135,6 +150,7 @@ export function EneraFinalCtaSection() {
     const maxConnectionDistance = 180;
 
     const render = (time: number) => {
+      if (!isVisible) return;
       ctx.clearRect(0, 0, width, height);
 
       // Subtle background radial gradient
@@ -259,9 +275,8 @@ export function EneraFinalCtaSection() {
       animationFrameId = requestAnimationFrame(render);
     };
 
-    animationFrameId = requestAnimationFrame(render);
-
     return () => {
+      observer.disconnect();
       window.removeEventListener("resize", handleResize);
       cancelAnimationFrame(animationFrameId);
     };

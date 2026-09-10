@@ -163,6 +163,8 @@ export function EneraCopilotSection() {
 
   const cur = QUERIES[selectedIdx];
   const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const [isInView, setIsInView] = useState<boolean>(false);
 
   // Check prefers-reduced-motion
   useEffect(() => {
@@ -173,6 +175,22 @@ export function EneraCopilotSection() {
       mediaQuery.addEventListener("change", listener);
       return () => mediaQuery.removeEventListener("change", listener);
     }
+  }, []);
+
+  // Viewport intersection observer to pause rotation when off-screen
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   // Typewriter streaming effect when query changes
@@ -208,9 +226,9 @@ export function EneraCopilotSection() {
     };
   }, [selectedIdx, prefersReducedMotion, cur.question]);
 
-  // Auto-rotation timer loop
+  // Auto-rotation timer loop (Paused when offscreen or hovered)
   useEffect(() => {
-    if (!isAutoPlaying || isHovered) {
+    if (!isAutoPlaying || isHovered || !isInView) {
       return;
     }
 
@@ -226,7 +244,7 @@ export function EneraCopilotSection() {
     }, CYCLE_STEP_MS);
 
     return () => clearInterval(interval);
-  }, [isAutoPlaying, isHovered]);
+  }, [isAutoPlaying, isHovered, isInView]);
 
   const handleSelectQuery = useCallback((idx: number) => {
     setSelectedIdx(idx);
@@ -294,6 +312,7 @@ export function EneraCopilotSection() {
 
   return (
     <section
+      ref={sectionRef}
       id="intelligence"
       className="relative py-28 sm:py-32 bg-[#030712] text-white overflow-hidden"
       aria-label="AI Energy Copilot Cognition"

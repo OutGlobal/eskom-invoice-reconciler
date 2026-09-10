@@ -101,7 +101,7 @@ export function EneraDifferenceSection() {
 
     const duration = 1600;
     let startTimestamp: number | null = null;
-    let animationFrameId: number;
+    let activeRafId: number | null = null;
 
     const step = (timestamp: number) => {
       if (!startTimestamp) startTimestamp = timestamp;
@@ -113,7 +113,7 @@ export function EneraDifferenceSection() {
       setActualCounter(Math.floor(ease * cur.actualVal));
 
       if (progress < 1) {
-        animationFrameId = requestAnimationFrame(step);
+        activeRafId = requestAnimationFrame(step);
       } else {
         setBilledCounter(cur.billedVal);
         setActualCounter(cur.actualVal);
@@ -130,7 +130,7 @@ export function EneraDifferenceSection() {
           setVarianceCounter(Math.floor(vEase * cur.varianceVal));
 
           if (vProgress < 1) {
-            requestAnimationFrame(vStep);
+            activeRafId = requestAnimationFrame(vStep);
           } else {
             setVarianceCounter(cur.varianceVal);
             setStage(3);
@@ -145,21 +145,23 @@ export function EneraDifferenceSection() {
               const fEase = 1 - Math.pow(1 - fProgress, 3);
               setImpactCounter(Math.floor(fEase * targetMoney));
               if (fProgress < 1) {
-                requestAnimationFrame(fStep);
+                activeRafId = requestAnimationFrame(fStep);
               } else {
                 setImpactCounter(targetMoney);
               }
             };
-            requestAnimationFrame(fStep);
+            activeRafId = requestAnimationFrame(fStep);
           }
         };
-        requestAnimationFrame(vStep);
+        activeRafId = requestAnimationFrame(vStep);
       }
     };
 
-    animationFrameId = requestAnimationFrame(step);
+    activeRafId = requestAnimationFrame(step);
 
-    return () => cancelAnimationFrame(animationFrameId);
+    return () => {
+      if (activeRafId) cancelAnimationFrame(activeRafId);
+    };
   }, [isVisible, activeMetric, reducedMotion]);
 
   return (

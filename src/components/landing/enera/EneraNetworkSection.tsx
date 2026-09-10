@@ -270,9 +270,12 @@ export function EneraNetworkSection() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(false);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [packetCount, setPacketCount] = useState<number>(142890);
+  const [isInView, setIsInView] = useState<boolean>(false);
 
+  const sectionRef = useRef<HTMLElement | null>(null);
   const requestRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(performance.now());
+  const lastUpdateRef = useRef<number>(0);
   const autoCycleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check prefers-reduced-motion
@@ -286,20 +289,42 @@ export function EneraNetworkSection() {
     }
   }, []);
 
-  // Continuous animation frame ticker for harmonic drift & packet evolution
+  // IntersectionObserver to pause all RAF, timers, and intervals when off-screen
   useEffect(() => {
-    if (prefersReducedMotion) return;
+    const el = sectionRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      { threshold: 0.05 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Continuous animation frame ticker for harmonic drift & packet evolution (Throttled & paused off-screen)
+  useEffect(() => {
+    if (prefersReducedMotion || !isInView) return;
 
     let isRunning = true;
     const animate = (time: number) => {
       if (!isRunning) return;
-      setElapsedTime(time - startTimeRef.current);
+
+      // Throttle React state re-renders to ~33fps (every ~30ms) to save CPU/GPU cycles
+      if (time - lastUpdateRef.current >= 30) {
+        setElapsedTime(time - startTimeRef.current);
+        lastUpdateRef.current = time;
+      }
+
       requestRef.current = requestAnimationFrame(animate);
     };
 
     requestRef.current = requestAnimationFrame(animate);
 
-    // Live packet counter flux
+    // Live packet counter flux only while in viewport
     const counterInterval = setInterval(() => {
       setPacketCount((prev) => prev + Math.floor(Math.random() * 3 + 1));
     }, 450);
@@ -309,11 +334,11 @@ export function EneraNetworkSection() {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
       clearInterval(counterInterval);
     };
-  }, [prefersReducedMotion]);
+  }, [prefersReducedMotion, isInView]);
 
-  // Autonomous Evolution Cycle (cycles active focus across nodes when idle)
+  // Autonomous Evolution Cycle (cycles active focus across nodes when idle & in viewport)
   useEffect(() => {
-    if (!isAutoEvolving || isUserHovering) return;
+    if (!isAutoEvolving || isUserHovering || !isInView) return;
 
     autoCycleTimerRef.current = setInterval(() => {
       setActiveNodeId((prevId) => {
@@ -326,7 +351,7 @@ export function EneraNetworkSection() {
     return () => {
       if (autoCycleTimerRef.current) clearInterval(autoCycleTimerRef.current);
     };
-  }, [isAutoEvolving, isUserHovering]);
+  }, [isAutoEvolving, isUserHovering, isInView]);
 
   // Compute live drifting coordinates for each node
   const nodePositions = useMemo(() => {
@@ -425,6 +450,7 @@ export function EneraNetworkSection() {
 
   return (
     <section
+      ref={sectionRef}
       id="platform"
       className="relative py-28 sm:py-36 bg-[#030712] text-white overflow-hidden border-t border-white/5"
       aria-label="Energy Platform Topology Visualizer"
