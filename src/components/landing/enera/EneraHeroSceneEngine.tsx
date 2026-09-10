@@ -35,6 +35,16 @@ export function EneraHeroSceneEngine() {
   const [activeScene, setActiveScene] = useState<SceneId>(1);
   const [isAutoPlaying, setIsAutoPlaying] = useState<boolean>(true);
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+  const [reducedMotion, setReducedMotion] = useState<boolean>(false);
+
+  // Check prefers-reduced-motion
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReducedMotion(mediaQuery.matches);
+    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
+  }, []);
 
   // Controlled timed progression cycle (4-7 seconds per scene) with smooth cross-dissolve
   useEffect(() => {
@@ -95,11 +105,13 @@ export function EneraHeroSceneEngine() {
         </div>
       </div>
 
-      {/* Main Scene Presentation Chamber with Smooth Opacity/Blur Transitions */}
+      {/* Main Scene Presentation Chamber with Smooth Opacity Transitions */}
       <div
-        className={`p-6 sm:p-8 min-h-[310px] flex items-center justify-center transition-all duration-300 ${
-          isTransitioning ? "opacity-0 blur-[2px] scale-[0.99]" : "opacity-100 blur-0 scale-100"
-        }`}
+        className={`p-6 sm:p-8 min-h-[310px] flex items-center justify-center transition-opacity duration-300 ${
+          isTransitioning
+            ? "opacity-0"
+            : "opacity-100"
+        } ${!reducedMotion && isTransitioning ? "scale-[0.99] blur-[1px]" : ""}`}
       >
         {/* SCENE 01 — ENERGY: Flowing Energy Particles */}
         {activeScene === 1 && (

@@ -6,6 +6,17 @@ import { EneraHeroSceneEngine } from "./EneraHeroSceneEngine";
 
 export function EneraHeroSection() {
   const [headlineStage, setHeadlineStage] = useState<number>(0);
+  const [mouseOffset, setMouseOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [reducedMotion, setReducedMotion] = useState<boolean>(false);
+
+  // Check prefers-reduced-motion
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReducedMotion(mediaQuery.matches);
+    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
+  }, []);
 
   // Headline animation sequence: SEE -> SEE BEYOND -> SEE BEYOND THE BILL.
   useEffect(() => {
@@ -20,10 +31,86 @@ export function EneraHeroSection() {
     };
   }, []);
 
+  // Desktop mouse movement, touch, and scroll parallax listener (Subtle, non-exaggerated)
+  const [scrollOffset, setScrollOffset] = useState<number>(0);
+
+  useEffect(() => {
+    if (reducedMotion) return;
+
+    let rafId: number;
+    let targetX = 0;
+    let targetY = 0;
+    let currentX = 0;
+    let currentY = 0;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const { innerWidth, innerHeight } = window;
+      targetX = (e.clientX / innerWidth - 0.5) * 2; // -1 to +1
+      targetY = (e.clientY / innerHeight - 0.5) * 2;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        targetX = (touch.clientX / window.innerWidth - 0.5) * 1.4;
+        targetY = (touch.clientY / window.innerHeight - 0.5) * 1.4;
+      }
+    };
+
+    const handleTouchEnd = () => {
+      targetX = 0;
+      targetY = 0;
+    };
+
+    const handleScroll = () => {
+      const scrollY = window.scrollY || window.pageYOffset;
+      setScrollOffset(Math.min(scrollY * 0.08, 30));
+    };
+
+    const updateParallax = () => {
+      currentX += (targetX - currentX) * 0.05;
+      currentY += (targetY - currentY) * 0.05;
+      setMouseOffset({ x: currentX, y: currentY });
+      rafId = requestAnimationFrame(updateParallax);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    rafId = requestAnimationFrame(updateParallax);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+      window.removeEventListener("scroll", handleScroll);
+      cancelAnimationFrame(rafId);
+    };
+  }, [reducedMotion]);
+
   return (
     <section className="relative min-h-screen pt-32 pb-20 overflow-hidden flex flex-col justify-between bg-[#030712] text-white">
       {/* 1. Cinematic Canvas Particle & Electrical Stream Engine */}
       <EneraHeroCanvas />
+
+      {/* Dual atmospheric background shift (Non-exaggerated, multi-plane depth) */}
+      <div
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[450px] rounded-full bg-cyan-500/5 blur-[140px] pointer-events-none transition-transform duration-300 ease-out"
+        style={{
+          transform: reducedMotion
+            ? "translate(-50%, -50%)"
+            : `translate(calc(-50% + ${mouseOffset.x * 8}px), calc(-50% + ${mouseOffset.y * 8 - scrollOffset * 0.3}px))`,
+        }}
+      />
+      <div
+        className="absolute top-[42%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[350px] rounded-full bg-violet-600/5 blur-[120px] pointer-events-none transition-transform duration-500 ease-out"
+        style={{
+          transform: reducedMotion
+            ? "translate(-50%, -50%)"
+            : `translate(calc(-50% + ${mouseOffset.x * -6}px), calc(-50% + ${mouseOffset.y * -6 - scrollOffset * 0.2}px))`,
+        }}
+      />
 
       {/* 2. Main Hero Typography & Call-To-Action Chamber */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center">
@@ -91,10 +178,17 @@ export function EneraHeroSection() {
           </a>
         </div>
 
-        {/* 3. Floating Glassmorphic Intelligence Cards around Hero */}
+        {/* 3. Floating Glassmorphic Intelligence Cards with Subtle Parallax & Tilt */}
         <div className="w-full max-w-5xl mt-12 grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
-          {/* Card 1: Energy Spend */}
-          <div className="enera-glass rounded-2xl p-4.5 transition-all hover:border-cyan-500/30 shadow-[0_0_30px_-10px_rgba(0,0,0,0.5)] flex items-start justify-between">
+          {/* Card 1: Energy Spend (Responds with gentle parallax) */}
+          <div
+            className="enera-glass rounded-2xl p-4.5 transition-all duration-300 hover:border-cyan-500/40 shadow-[0_0_30px_-10px_rgba(0,0,0,0.5)] flex items-start justify-between hover:scale-[1.01]"
+            style={{
+              transform: reducedMotion
+                ? "none"
+                : `perspective(1000px) translate3d(${mouseOffset.x * 5}px, ${mouseOffset.y * 5 - scrollOffset * 0.35}px, 0) rotateX(${mouseOffset.y * -1.2}deg) rotateY(${mouseOffset.x * 1.2}deg)`,
+            }}
+          >
             <div>
               <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase">
                 ENERGY SPEND
@@ -110,8 +204,15 @@ export function EneraHeroSection() {
             </div>
           </div>
 
-          {/* Card 2: AI Anomaly */}
-          <div className="enera-glass rounded-2xl p-4.5 transition-all hover:border-amber-500/30 shadow-[0_0_30px_-10px_rgba(0,0,0,0.5)] flex items-start justify-between">
+          {/* Card 2: AI Anomaly (Subtle opposing parallax & tilt) */}
+          <div
+            className="enera-glass rounded-2xl p-4.5 transition-all duration-300 hover:border-amber-500/40 shadow-[0_0_30px_-10px_rgba(0,0,0,0.5)] flex items-start justify-between hover:scale-[1.01]"
+            style={{
+              transform: reducedMotion
+                ? "none"
+                : `perspective(1000px) translate3d(${mouseOffset.x * -4}px, ${mouseOffset.y * -3 - scrollOffset * 0.5}px, 0) rotateX(${mouseOffset.y * -0.9}deg) rotateY(${mouseOffset.x * -0.9}deg)`,
+            }}
+          >
             <div>
               <span className="text-[10px] font-mono tracking-widest text-amber-400 uppercase font-semibold">
                 AI ANOMALY DETECTED
@@ -127,8 +228,15 @@ export function EneraHeroSection() {
             </div>
           </div>
 
-          {/* Card 3: Consumption */}
-          <div className="enera-glass rounded-2xl p-4.5 transition-all hover:border-emerald-500/30 shadow-[0_0_30px_-10px_rgba(0,0,0,0.5)] flex items-start justify-between">
+          {/* Card 3: Consumption (Subtle complementary parallax & tilt) */}
+          <div
+            className="enera-glass rounded-2xl p-4.5 transition-all duration-300 hover:border-emerald-500/40 shadow-[0_0_30px_-10px_rgba(0,0,0,0.5)] flex items-start justify-between hover:scale-[1.01]"
+            style={{
+              transform: reducedMotion
+                ? "none"
+                : `perspective(1000px) translate3d(${mouseOffset.x * 4}px, ${mouseOffset.y * -4 - scrollOffset * 0.4}px, 0) rotateX(${mouseOffset.y * -1.1}deg) rotateY(${mouseOffset.x * 1.1}deg)`,
+            }}
+          >
             <div>
               <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase">
                 CONSUMPTION
