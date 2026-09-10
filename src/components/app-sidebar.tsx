@@ -45,9 +45,10 @@ const navSections: NavSection[] = [
     label: "Operations",
     items: [
       { title: "Command Centre", url: "/dashboard", icon: LayoutDashboard },
-      { title: "Invoice Workspace", url: "/invoices", icon: FileText, matchUrls: ["/invoices", "/upload"] },
-      { title: "AMR Telemetry & Metering", url: "/telemetry", icon: Activity, matchUrls: ["/telemetry", "/meters", "/energy", "/demand"] },
+      { title: "Upload & Ingest", url: "/upload", icon: Upload },
       { title: "Reconciliation & Audits", url: "/reconciliation", icon: Scale, matchUrls: ["/reconciliation", "/anomalies", "/audit"] },
+      { title: "Invoice Workspace", url: "/invoices", icon: FileText },
+      { title: "AMR Telemetry & Metering", url: "/telemetry", icon: Activity, matchUrls: ["/telemetry", "/meters", "/energy", "/demand"] },
       { title: "Dispute Packs & Reports", url: "/reports", icon: FileBarChart, matchUrls: ["/reports", "/trends"] },
     ],
   },
@@ -77,15 +78,25 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-2">
-          <div className="h-8 w-8 shrink-0 rounded-md bg-accent flex items-center justify-center text-accent-foreground font-bold text-sm">
-            MR
-          </div>
-          {!collapsed && (
-            <div className="min-w-0">
-              <div className="text-sm font-semibold leading-tight truncate">Meter Recon</div>
-              <div className="text-[10px] text-muted-foreground truncate">Eskom Megaflex Platform</div>
+          <Link
+            to="/"
+            className="flex items-center gap-2 group w-full focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded-md"
+            title="Back to ENERA Public Landing Page"
+          >
+            <div className="h-8 w-8 shrink-0 rounded-md bg-gradient-to-br from-cyan-950 via-[#0d1117] to-slate-900 border border-cyan-500/40 flex items-center justify-center text-cyan-400 font-mono font-bold text-sm shadow-[0_0_12px_rgba(6,182,212,0.3)]">
+              E
             </div>
-          )}
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold leading-tight truncate group-hover:text-primary transition-colors flex items-center gap-1.5 font-mono">
+                  <span>ENERA Recon</span>
+                </div>
+                <div className="text-[10px] text-muted-foreground truncate">
+                  Platform Landing ↗
+                </div>
+              </div>
+            )}
+          </Link>
         </div>
       </SidebarHeader>
       <SidebarContent>

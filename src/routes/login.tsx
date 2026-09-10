@@ -14,9 +14,20 @@ function LoginPage() {
   const { session } = useSupabaseSession();
   const navigate = useNavigate();
 
+  // Safely extract redirect destination from query param (e.g. /upload, /reconciliation)
+  const getDestination = () => {
+    if (typeof window === "undefined") return "/dashboard";
+    const target = new URLSearchParams(window.location.search).get("redirect");
+    if (target && target.startsWith("/") && !target.startsWith("//")) {
+      return target;
+    }
+    return "/dashboard";
+  };
+
   useEffect(() => {
     if (session) {
-      navigate({ to: "/dashboard" });
+      const destination = getDestination();
+      navigate({ to: destination as any });
     }
   }, [session, navigate]);
 
@@ -41,7 +52,11 @@ function LoginPage() {
       <main className="flex-1 flex items-center justify-center p-4">
         <SignInScreen
           onBypass={() => {
-            navigate({ to: "/dashboard" });
+            if (typeof window !== "undefined") {
+              window.sessionStorage.setItem("enera_demo_access", "true");
+            }
+            const destination = getDestination();
+            navigate({ to: destination as any });
           }}
         />
       </main>

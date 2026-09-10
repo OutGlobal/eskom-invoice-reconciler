@@ -42,7 +42,19 @@ export function useSupabaseSession() {
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, ready } = useSupabaseSession();
-  const [bypassAuth, setBypassAuth] = useState(false);
+  const [bypassAuth, setBypassAuth] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.sessionStorage.getItem("enera_demo_access") === "true";
+    }
+    return false;
+  });
+
+  const handleBypass = () => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("enera_demo_access", "true");
+    }
+    setBypassAuth(true);
+  };
 
   if (!ready) {
     return (
@@ -73,7 +85,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!session && !bypassAuth) {
-    return <SignInScreen onBypass={() => setBypassAuth(true)} />;
+    return <SignInScreen onBypass={handleBypass} />;
   }
   return <>{children}</>;
 }
@@ -324,6 +336,9 @@ export function SignOutButton() {
     <button
       onClick={async () => {
         setBusy(true);
+        if (typeof window !== "undefined") {
+          window.sessionStorage.removeItem("enera_demo_access");
+        }
         await supabase.auth.signOut();
         setBusy(false);
       }}

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, ShieldCheck, Menu, X, Sparkles } from "lucide-react";
+import { ArrowRight, ShieldCheck, Menu, X, Sparkles, LayoutDashboard } from "lucide-react";
+import { useSupabaseSession } from "@/components/AuthGate";
 
 export function EneraNav() {
+  const { session } = useSupabaseSession();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -85,18 +87,27 @@ export function EneraNav() {
           {/* Desktop Action CTAs */}
           <div className="hidden sm:flex items-center gap-3">
             <Link
-              to="/login"
+              to={session ? "/dashboard" : "/login"}
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-slate-300 hover:text-white border border-white/10 hover:border-white/20 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             >
-              <ShieldCheck className="h-3.5 w-3.5 text-cyan-400" />
-              <span>Client Portal</span>
+              {session ? (
+                <>
+                  <LayoutDashboard className="h-3.5 w-3.5 text-cyan-400" />
+                  <span>Command Centre</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="h-3.5 w-3.5 text-cyan-400" />
+                  <span>Client Portal</span>
+                </>
+              )}
             </Link>
 
             <Link
               to="/upload"
               className="group relative inline-flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_-3px_rgba(6,182,212,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             >
-              <span>Analyse a Bill</span>
+              <span>Analyse Your Energy</span>
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
               <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none">
                 <div className="w-1/2 h-full bg-white/30 skew-x-12 animate-enera-pulse" />
@@ -107,10 +118,10 @@ export function EneraNav() {
           {/* Mobile Menu Toggle Button */}
           <div className="flex sm:hidden items-center gap-2">
             <Link
-              to="/login"
+              to={session ? "/dashboard" : "/login"}
               className="px-2.5 py-1 text-[11px] font-medium text-slate-300 border border-white/10 rounded-md bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
             >
-              Portal
+              {session ? "App" : "Portal"}
             </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -165,14 +176,23 @@ export function EneraNav() {
               </nav>
             </div>
 
-            <div className="space-y-3 pt-6 border-t border-white/10">
+            <div className="space-y-2.5 pt-5 border-t border-white/10">
               <Link
                 to="/upload"
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold text-slate-950 bg-gradient-to-r from-cyan-400 to-emerald-300 rounded-xl shadow-lg"
               >
-                <span>Analyse a Bill</span>
+                <span>Analyse Your Energy</span>
                 <ArrowRight className="h-4 w-4" />
+              </Link>
+
+              <Link
+                to="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold text-white border border-cyan-500/30 rounded-xl bg-cyan-950/40 hover:bg-cyan-900/50"
+              >
+                <LayoutDashboard className="h-4 w-4 text-cyan-400" />
+                <span>Explore ENERA (Command Centre)</span>
               </Link>
 
               <Link

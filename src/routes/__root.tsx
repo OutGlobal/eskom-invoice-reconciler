@@ -167,8 +167,16 @@ function RootComponent() {
               <div className="flex-1 flex flex-col min-w-0">
                 <header className="h-12 flex items-center gap-2 border-b border-border bg-card px-3 sticky top-0 z-10">
                   <SidebarTrigger />
-                  <div className="text-sm font-medium flex items-center gap-2">
-                    <span>Eskom Meter Data Reconciliation</span>
+                  <div className="text-sm font-medium flex items-center gap-2 min-w-0">
+                    <Link
+                      to="/"
+                      className="text-xs font-mono font-bold text-cyan-500 hover:text-cyan-400 transition-colors flex items-center gap-1 shrink-0"
+                      title="Return to ENERA Public Landing Page"
+                    >
+                      <span>ENERA</span>
+                      <span className="text-muted-foreground/40 font-normal">/</span>
+                    </Link>
+                    <span className="truncate">Eskom Meter Data Reconciliation</span>
                   </div>
                   <div className="ml-auto flex items-center gap-2 sm:gap-3">
                     <button

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Link } from "@tanstack/react-router";
 import { Scale, ArrowRight, TrendingDown, DollarSign, CheckCircle, AlertTriangle, Sparkles } from "lucide-react";
 
 export function EneraDifferenceSection() {
@@ -390,6 +391,18 @@ export function EneraDifferenceSection() {
                 <span>Audited Overcharge Recovery Dossier Ready</span>
               </div>
             </div>
+          </div>
+
+          {/* Action Link to Live Reconciliation Workflow */}
+          <div className="mt-8 flex justify-center">
+            <Link
+              to="/reconciliation"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 hover:text-cyan-200 border border-cyan-500/30 transition-all text-xs font-mono font-medium group focus-ring-enera"
+            >
+              <Scale className="h-4 w-4 text-cyan-400" />
+              <span>Explore Live 14-Determinant Reconciliation Engine</span>
+              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+            </Link>
           </div>
         </div>
       </div>
