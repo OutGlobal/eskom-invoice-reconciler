@@ -122,21 +122,36 @@ export function EneraHeroSection() {
           </span>
         </div>
 
-        {/* Cinematic Headline with Opacity/Blur/Translate Transition */}
+        {/* Cinematic Headline with Opacity/Blur/Translate/Scale Transition (Zero typewriter effect) */}
         <div className="min-h-[90px] sm:min-h-[130px] flex items-center justify-center">
           <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-white leading-none">
             {headlineStage === 1 && (
-              <span className="inline-block animate-in fade-in zoom-in-95 blur-sm duration-500 enera-text-gradient">
+              <span
+                key="stage-1"
+                className={`inline-block enera-text-gradient ${
+                  reducedMotion ? "opacity-100" : "animate-enera-headline"
+                }`}
+              >
                 SEE
               </span>
             )}
             {headlineStage === 2 && (
-              <span className="inline-block animate-in fade-in zoom-in-95 duration-500 enera-text-gradient">
+              <span
+                key="stage-2"
+                className={`inline-block enera-text-gradient ${
+                  reducedMotion ? "opacity-100" : "animate-enera-headline"
+                }`}
+              >
                 SEE BEYOND
               </span>
             )}
             {headlineStage >= 3 && (
-              <span className="inline-block animate-in fade-in zoom-in-95 duration-700 enera-text-gradient">
+              <span
+                key="stage-3"
+                className={`inline-block enera-text-gradient ${
+                  reducedMotion ? "opacity-100" : "animate-enera-headline"
+                }`}
+              >
                 SEE BEYOND THE BILL.
               </span>
             )}
@@ -151,30 +166,35 @@ export function EneraHeroSection() {
 
         {/* Action Button Row */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md">
-          {/* Primary CTA: Analyse Your Energy with traveling pulse arrow */}
+          {/* Primary CTA: Analyse Your Energy → with traveling arrow pulse */}
           <Link
             to="/upload"
-            className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-3 px-7 py-3.5 rounded-xl font-semibold text-sm text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 shadow-[0_0_35px_-5px_rgba(6,182,212,0.5)] hover:brightness-110 active:scale-[0.98] transition-all overflow-hidden"
+            className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-3 px-7 py-3.5 rounded-xl font-semibold text-sm text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 shadow-[0_0_35px_-5px_rgba(6,182,212,0.5)] hover:shadow-[0_0_45px_-2px_rgba(6,182,212,0.7)] hover:brightness-110 active:scale-[0.98] transition-all overflow-hidden"
           >
             <span>Analyse Your Energy</span>
-            {/* Pulsing arrow icon */}
-            <div className="relative flex items-center justify-center">
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              <span className="absolute -left-1 w-2 h-2 rounded-full bg-white/60 blur-[1px] group-hover:animate-ping" />
+
+            {/* Interactive Arrow Chamber with Traveling Energy Pulse */}
+            <div className="relative flex items-center justify-center w-4 h-4 overflow-visible">
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+              {/* Traveling energy photon pulse along the arrow */}
+              <span className="absolute -left-2 right-0 flex items-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <span className="h-1 w-2.5 rounded-full bg-white shadow-[0_0_8px_#ffffff,0_0_14px_#22d3ee] animate-enera-arrow-pulse" />
+              </span>
             </div>
+
             {/* Shimmer line effect */}
             <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
               <div className="w-1/2 h-full bg-white/25 skew-x-12 animate-enera-pulse" />
             </div>
           </Link>
 
-          {/* Secondary CTA: Explore ENERA */}
+          {/* Secondary CTA: Explore ENERA → */}
           <a
             href="#platform"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-medium text-sm text-slate-300 hover:text-white border border-white/10 hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05] backdrop-blur-md transition-all"
+            className="group w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-medium text-sm text-slate-300 hover:text-white border border-white/10 hover:border-cyan-500/30 bg-white/[0.02] hover:bg-white/[0.05] backdrop-blur-md transition-all shadow-[0_0_20px_-8px_transparent] hover:shadow-[0_0_20px_-5px_rgba(6,182,212,0.2)]"
           >
             <span>Explore ENERA</span>
-            <ArrowRight className="h-3.5 w-3.5 text-slate-500" />
+            <ArrowRight className="h-4 w-4 text-slate-400 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-cyan-300" />
           </a>
         </div>
 

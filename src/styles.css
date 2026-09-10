@@ -197,6 +197,25 @@
   50% { transform: translateY(-6px); }
 }
 
+@keyframes eneraArrowPulse {
+  0% {
+    transform: translateX(-4px) scale(0.7);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    transform: translateX(1px) scale(1);
+  }
+  65% {
+    opacity: 1;
+    transform: translateX(8px) scale(1.1);
+  }
+  100% {
+    transform: translateX(16px) scale(0.3);
+    opacity: 0;
+  }
+}
+
 .animate-enera-pulse {
   animation: eneraPulseLine 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
@@ -213,12 +232,37 @@
   animation: eneraFloat3 6.0s ease-in-out infinite 1.6s;
 }
 
+.animate-enera-arrow-pulse {
+  animation: eneraArrowPulse 1.0s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes eneraHeadlineReveal {
+  0% {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateY(14px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translateY(0px) scale(1);
+  }
+}
+
+.animate-enera-headline {
+  animation: eneraHeadlineReveal 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-enera-float-1,
   .animate-enera-float-2,
   .animate-enera-float-3,
-  .animate-enera-pulse {
+  .animate-enera-pulse,
+  .animate-enera-arrow-pulse,
+  .animate-enera-headline {
     animation: none !important;
   }
 }
+
+
 
