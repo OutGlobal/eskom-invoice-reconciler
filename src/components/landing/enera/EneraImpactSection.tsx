@@ -9,8 +9,8 @@ import {
   ArrowRight,
   CheckCircle2,
   AlertCircle,
-  BarChart3,
   Sparkles,
+  Info,
 } from "lucide-react";
 
 interface MetricStat {
@@ -20,7 +20,9 @@ interface MetricStat {
   suffix: string;
   decimals: number;
   subtitle: string;
+  tag: string;
   colorClass: string;
+  textGlowClass: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
@@ -31,18 +33,22 @@ const STATS: MetricStat[] = [
     prefix: "R ",
     suffix: "M",
     decimals: 2,
-    subtitle: "Aggregated monthly billing volume across reconciled enterprise facilities.",
-    colorClass: "text-white border-white/10 hover:border-cyan-500/30",
+    subtitle: "Illustrative monthly billing volume modeled for a high-voltage industrial facility.",
+    tag: "SAMPLE BENCHMARK",
+    colorClass: "border-white/10 hover:border-cyan-500/40 bg-[#0d1117]",
+    textGlowClass: "text-white",
     icon: Zap,
   },
   {
     label: "POTENTIAL RECOVERY",
-    targetNum: 421.89,
+    targetNum: 421,
     prefix: "R ",
     suffix: "K",
     decimals: 0,
-    subtitle: "Average verifiable overcharge recovery identified per fiscal quarter.",
-    colorClass: "text-emerald-300 border-emerald-500/30 bg-emerald-950/10 hover:border-emerald-500/50",
+    subtitle: "Modeled verifiable overcharge recovery identified per fiscal quarter.",
+    tag: "DEMO PROJECTION",
+    colorClass: "border-emerald-500/30 bg-emerald-950/15 hover:border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.1)]",
+    textGlowClass: "text-emerald-300",
     icon: TrendingUp,
   },
   {
@@ -51,18 +57,22 @@ const STATS: MetricStat[] = [
     prefix: "",
     suffix: "",
     decimals: 0,
-    subtitle: "High-impact determinant discrepancies quarantined for formal dispute resolution.",
-    colorClass: "text-amber-300 border-amber-500/30 bg-amber-950/10 hover:border-amber-500/50",
+    subtitle: "Sample determinant discrepancies quarantined for regulatory review.",
+    tag: "SYNTHETIC EXCEPTIONS",
+    colorClass: "border-amber-500/30 bg-amber-950/15 hover:border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.1)]",
+    textGlowClass: "text-amber-300",
     icon: AlertCircle,
   },
   {
-    label: "RECONCILED ACCURACY",
+    label: "RECONCILED",
     targetNum: 98.7,
     prefix: "",
     suffix: "%",
     decimals: 1,
-    subtitle: "Confidence score grounded in SANS 474 revenue metering ground truth.",
-    colorClass: "text-cyan-300 border-cyan-500/30 bg-cyan-950/10 hover:border-cyan-500/50",
+    subtitle: "Benchmark confidence score grounded in SANS 474 check metering standards.",
+    tag: "SIMULATED CONFIDENCE",
+    colorClass: "border-cyan-500/30 bg-cyan-950/15 hover:border-cyan-500/50 shadow-[0_0_30px_rgba(6,182,212,0.1)]",
+    textGlowClass: "text-cyan-300",
     icon: ShieldCheck,
   },
 ];
@@ -74,12 +84,13 @@ const PRESETS = [
 ];
 
 export function EneraImpactSection() {
-  const [isVisible, setIsVisible] = useState(false);
-  const [countProgress, setCountProgress] = useState(0); // 0 to 1
-  const [monthlySpend, setMonthlySpend] = useState<number>(5_000_000); // Default R 5M
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [hasEnteredViewport, setHasEnteredViewport] = useState<boolean>(false);
+  const [countProgress, setCountProgress] = useState<number>(0); // 0 to 1
+  const [monthlySpend, setMonthlySpend] = useState<number>(5_000_000); // Default R 5M demo
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(false);
   const sectionRef = useRef<HTMLElement | null>(null);
 
+  // Check prefers-reduced-motion
   useEffect(() => {
     if (typeof window !== "undefined") {
       const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -90,11 +101,12 @@ export function EneraImpactSection() {
     }
   }, []);
 
+  // Viewport trigger using IntersectionObserver
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setIsVisible(true);
+          setHasEnteredViewport(true);
         }
       },
       { threshold: 0.15 }
@@ -107,37 +119,39 @@ export function EneraImpactSection() {
     return () => observer.disconnect();
   }, []);
 
-  // Smooth count-up animation loop
+  // Smooth count-up animation loop upon viewport entry
   useEffect(() => {
-    if (!isVisible) return;
+    if (!hasEnteredViewport) return;
+
     if (prefersReducedMotion) {
       setCountProgress(1);
       return;
     }
 
-    const duration = 1800;
-    const start = performance.now();
+    const duration = 1800; // 1.8 seconds for smooth ease-out
+    const startTime = performance.now();
+    let animationFrameId: number;
 
-    const frame = (now: number) => {
-      const elapsed = now - start;
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
       const progress = Math.min(1, elapsed / duration);
-      // Ease-out cubic
+      // Ease-out cubic: 1 - (1 - p)^3
       const eased = 1 - Math.pow(1 - progress, 3);
       setCountProgress(eased);
 
       if (progress < 1) {
-        requestAnimationFrame(frame);
+        animationFrameId = requestAnimationFrame(animate);
       }
     };
 
-    const handle = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(handle);
-  }, [isVisible, prefersReducedMotion]);
+    animationFrameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [hasEnteredViewport, prefersReducedMotion]);
 
   // Derived ROI calculations based on South African C&I benchmarks (5.1% avg recoverable variance)
   const { annualSpend, annualRecovery, quarterlyRecovery, breakdown } = useMemo(() => {
     const annual = monthlySpend * 12;
-    const totalRecovery = annual * 0.051; // 5.1%
+    const totalRecovery = annual * 0.051; // 5.1% benchmark
     const quarterly = totalRecovery / 4;
 
     return {
@@ -167,12 +181,12 @@ export function EneraImpactSection() {
     <section
       ref={sectionRef}
       id="insights"
-      className="relative py-28 sm:py-32 bg-[#030712] text-white border-y border-white/5 overflow-hidden"
-      aria-label="Executive ROI and Enterprise Impact"
+      className="relative py-28 sm:py-36 bg-[#030712] text-white border-y border-white/5 overflow-hidden"
+      aria-label="Financial Impact and Benchmark Statistics"
     >
       {/* Background ambient lighting */}
       <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-emerald-500/5 rounded-full blur-[160px] pointer-events-none -z-10"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1050px] h-[600px] bg-emerald-500/5 rounded-full blur-[170px] pointer-events-none -z-10"
         aria-hidden="true"
       />
 
@@ -181,46 +195,60 @@ export function EneraImpactSection() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-mono mb-5 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
             <DollarSign className="h-3.5 w-3.5 text-emerald-400" />
-            <span className="tracking-wide">EXECUTIVE ROI // MEASURABLE ADVANTAGE</span>
+            <span className="tracking-wide">STAGE 12 // FINANCIAL IMPACT</span>
           </div>
 
-          <h2 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight enera-text-gradient">
+          <h2 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight enera-text-gradient leading-tight">
             TURN ENERGY DATA INTO ADVANTAGE.
           </h2>
 
-          <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed">
+          <p className="mt-5 text-base sm:text-lg text-slate-400 font-light leading-relaxed">
             Commercial and industrial enterprises lose an estimated <span className="text-emerald-300 font-medium">3% to 7%</span> of
             their annual electricity budget to unverified billing determinants, tariff misclassifications, and uncredited public holidays.
           </p>
+
+          {/* Explicit Demonstration Notice Badge */}
+          <div className="mt-5 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-mono text-slate-400">
+            <Info className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+            <span>SAMPLE / DEMONSTRATION VALUES · NOT ACTUAL CUSTOMER STATISTICS</span>
+          </div>
         </div>
 
-        {/* 4 Animated Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+        {/* 4 Animated Statistics Cards with Viewport-Triggered Count-Up */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {STATS.map((stat) => {
             const Icon = stat.icon;
-            const currentVal = (stat.targetNum * countProgress).toFixed(stat.decimals);
+            const animatedValue = (stat.targetNum * countProgress).toFixed(stat.decimals);
 
             return (
               <div
                 key={stat.label}
-                className={`rounded-2xl p-6 relative overflow-hidden transition-all duration-300 border bg-[#0d1117] shadow-lg hover:shadow-[0_0_30px_rgba(6,182,212,0.15)] flex flex-col justify-between ${stat.colorClass}`}
+                className={`rounded-3xl p-6 sm:p-7 relative overflow-hidden transition-all duration-300 border flex flex-col justify-between group hover:scale-[1.02] ${stat.colorClass}`}
               >
                 <div>
-                  <div className="flex items-center justify-between text-slate-400 pb-2">
-                    <span className="text-[11px] font-mono uppercase tracking-wider font-semibold">
-                      {stat.label}
+                  {/* Top Bar with Tag & Icon */}
+                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">
+                      {stat.tag}
                     </span>
-                    <Icon className="h-4 w-4 text-cyan-400" />
+                    <Icon className="h-4 w-4 text-slate-400 group-hover:text-cyan-300 transition-colors" />
                   </div>
 
-                  <div className="text-3xl sm:text-4xl font-extrabold font-mono mt-3 tracking-tight">
+                  {/* Prominent Large Number (Count-Up) */}
+                  <div className={`text-4xl sm:text-5xl font-black font-mono tracking-tight mt-5 ${stat.textGlowClass}`}>
                     <span>{stat.prefix}</span>
-                    <span>{currentVal}</span>
+                    <span>{animatedValue}</span>
                     <span>{stat.suffix}</span>
+                  </div>
+
+                  {/* Clean Statistic Label */}
+                  <div className="text-xs sm:text-sm font-mono font-bold text-slate-200 uppercase tracking-wider mt-2">
+                    {stat.label}
                   </div>
                 </div>
 
-                <p className="mt-4 text-xs text-slate-400 leading-relaxed font-sans border-t border-white/5 pt-3">
+                {/* Subtitle / Context Note */}
+                <p className="mt-6 text-xs text-slate-400 leading-relaxed font-sans border-t border-white/5 pt-3.5">
                   {stat.subtitle}
                 </p>
               </div>
@@ -228,30 +256,30 @@ export function EneraImpactSection() {
           })}
         </div>
 
-        {/* Interactive Enterprise Savings Calculator */}
-        <div className="mt-14 max-w-5xl mx-auto rounded-3xl bg-gradient-to-b from-[#0d1117] to-[#070b12] border border-cyan-500/25 p-6 sm:p-10 shadow-[0_0_80px_-20px_rgba(6,182,212,0.2)]">
+        {/* Interactive Demonstration ROI Calculator Widget */}
+        <div className="mt-16 max-w-5xl mx-auto rounded-3xl bg-gradient-to-b from-[#0d1117] to-[#070b12] border border-cyan-500/25 p-6 sm:p-10 shadow-[0_0_80px_-20px_rgba(6,182,212,0.2)]">
           <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/10">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+              <div className="p-2.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
                 <Calculator className="h-5 w-5" />
               </div>
               <div>
                 <h3 className="text-lg sm:text-xl font-bold text-white font-mono">
-                  ENTERPRISE AUDIT ROI CALCULATOR
+                  ENTERPRISE AUDIT ESTIMATOR (SIMULATION MODEL)
                 </h3>
                 <p className="text-xs text-slate-400 font-sans">
-                  Estimate verifiable overcharge recovery based on your monthly Eskom or municipal account spend.
+                  Calculate projected overcharge recoveries based on sample commercial electricity tariffs.
                 </p>
               </div>
             </div>
 
-            {/* Presets */}
+            {/* Benchmark Spend Presets */}
             <div className="flex items-center gap-1.5">
               {PRESETS.map((p) => (
                 <button
                   key={p.value}
                   onClick={() => setMonthlySpend(p.value)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all ${
                     monthlySpend === p.value
                       ? "bg-cyan-500 text-slate-950 font-bold shadow-[0_0_15px_rgba(6,182,212,0.4)]"
                       : "bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10"
@@ -264,12 +292,12 @@ export function EneraImpactSection() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8 items-center">
-            {/* Left: Spend Input & Slider */}
+            {/* Left Column: Spend Slider Input */}
             <div className="lg:col-span-6 space-y-5">
               <div>
                 <div className="flex items-center justify-between text-xs font-mono text-slate-400 mb-2">
-                  <span>MONTHLY UTILITY SPEND (ZAR)</span>
-                  <span className="text-cyan-400 font-bold">{formatZar(monthlySpend)} / month</span>
+                  <span>SAMPLE MONTHLY UTILITY SPEND</span>
+                  <span className="text-cyan-400 font-bold text-sm">{formatZar(monthlySpend)} / mo</span>
                 </div>
 
                 <input
@@ -280,7 +308,7 @@ export function EneraImpactSection() {
                   value={monthlySpend}
                   onChange={(e) => setMonthlySpend(Number(e.target.value))}
                   className="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
-                  aria-label="Monthly spend slider"
+                  aria-label="Monthly spend simulation slider"
                 />
 
                 <div className="flex justify-between text-[10px] font-mono text-slate-500 mt-1.5">
@@ -290,28 +318,28 @@ export function EneraImpactSection() {
                 </div>
               </div>
 
-              {/* Annualized Spend Summary */}
-              <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2 text-xs font-mono">
+              {/* Annual Summary Box */}
+              <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-2 text-xs font-mono">
                 <div className="flex justify-between text-slate-400">
-                  <span>ANNUAL GROSS UTILITY BUDGET:</span>
+                  <span>ANNUALIZED SAMPLE UTILITY EXPENDITURE:</span>
                   <span className="text-white font-bold">{formatZar(annualSpend)}</span>
                 </div>
                 <div className="flex justify-between text-slate-400">
-                  <span>ESTIMATED PAYBACK PERIOD:</span>
-                  <span className="text-emerald-400 font-semibold">&lt; 14 Days</span>
+                  <span>TYPICAL AUDIT PAYBACK PERIOD:</span>
+                  <span className="text-emerald-400 font-semibold">&lt; 14 Business Days</span>
                 </div>
                 <div className="flex justify-between text-slate-400">
-                  <span>AUDIT READINESS SCORE:</span>
-                  <span className="text-cyan-400 font-semibold">100% NERSA Verified</span>
+                  <span>REGULATORY METHODOLOGY:</span>
+                  <span className="text-cyan-400 font-semibold">100% NERSA Gazette Aligned</span>
                 </div>
               </div>
             </div>
 
-            {/* Right: Estimated Recoverable Yield */}
-            <div className="lg:col-span-6 p-6 rounded-2xl bg-gradient-to-br from-emerald-950/30 via-[#0b1319] to-cyan-950/20 border border-emerald-500/30 space-y-5">
+            {/* Right Column: Estimated Recovery Breakdown */}
+            <div className="lg:col-span-6 p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-emerald-950/30 via-[#0b1319] to-cyan-950/20 border border-emerald-500/30 space-y-5">
               <div>
                 <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-semibold block">
-                  PROJECTED ANNUAL OVERCHARGE RECOVERY (5.1% BENCHMARK)
+                  PROJECTED ANNUAL RECOVERY (5.1% BENCHMARK SAMPLE)
                 </span>
                 <div className="text-3xl sm:text-4xl font-extrabold font-mono text-emerald-300 mt-1.5 tracking-tight">
                   {formatZar(annualRecovery)}
@@ -321,40 +349,40 @@ export function EneraImpactSection() {
                 </div>
               </div>
 
-              {/* 4 Determinant Breakdown Bars */}
+              {/* Determinant Disaggregation */}
               <div className="space-y-2 pt-1">
                 <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider block">
-                  HISTORICAL RECOVERY DISAGGREGATION
+                  SAMPLE RECOVERY BY BILLING DETERMINANT
                 </span>
 
                 <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                  <div className="p-2.5 rounded-lg bg-black/40 border border-white/5">
+                  <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
                     <span className="text-slate-400 text-[10px] block">DEMAND SPIKES</span>
                     <span className="text-white font-semibold">{formatZar(breakdown.demandRatchet)}</span>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-black/40 border border-white/5">
+                  <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
                     <span className="text-slate-400 text-[10px] block">PUBLIC HOLIDAYS</span>
                     <span className="text-white font-semibold">{formatZar(breakdown.publicHoliday)}</span>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-black/40 border border-white/5">
+                  <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
                     <span className="text-slate-400 text-[10px] block">CT / MULTIPLIER DRIFT</span>
                     <span className="text-white font-semibold">{formatZar(breakdown.multiplierError)}</span>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-black/40 border border-white/5">
-                    <span className="text-slate-400 text-[10px] block">POWER FACTOR PENALTIES</span>
+                  <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
+                    <span className="text-slate-400 text-[10px] block">POWER FACTOR SURCHARGE</span>
                     <span className="text-white font-semibold">{formatZar(breakdown.powerFactor)}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Direct Ingestion Bridge CTA */}
+              {/* Direct Link to Upload Gateway */}
               <div className="pt-2">
                 <Link
                   to="/upload"
                   className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-bold text-xs font-mono flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(16,185,129,0.3)] transition-all group"
                 >
                   <Sparkles className="h-4 w-4" />
-                  <span>UPLOAD YOUR FIRST INVOICE — RECOVER OVERCHARGES</span>
+                  <span>AUDIT YOUR FIRST REAL INVOICE WITH ENERA</span>
                   <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
               </div>
@@ -362,9 +390,9 @@ export function EneraImpactSection() {
           </div>
         </div>
 
-        {/* Footnote */}
-        <div className="mt-8 text-center text-xs font-mono text-slate-500">
-          * Representative enterprise benchmark figures based on South African C&I manufacturing, cold-chain & mining audit portfolios.
+        {/* Clear Legal / Demo Footnote */}
+        <div className="mt-8 text-center text-xs font-mono text-slate-500 max-w-2xl mx-auto leading-relaxed">
+          * Disclaimer: The statistics above reflect sample demonstration values based on an illustrative benchmark dataset modeled from South African C&I manufacturing, cold-chain, and mining profiles. They do not claim to represent any specific real customer confidential data.
         </div>
       </div>
     </section>
