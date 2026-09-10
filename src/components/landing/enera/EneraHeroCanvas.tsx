@@ -17,45 +17,66 @@ interface StreamLine {
   startX: number;
   startY: number;
   points: { x: number; y: number }[];
-  targetIndex: number;
   speed: number;
   color: string;
   width: number;
   glow: number;
 }
 
+interface FloatingDataUnit {
+  text: string;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  alpha: number;
+  color: string;
+}
+
 export function EneraHeroCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Cinematic Choreography Phases:
+  // Phase 0: Near darkness (0-1.2s)
+  // Phase 1: Energy particles ignite (1.2s - 2.8s)
+  // Phase 2: Flowing luminous data streams enter toward center (2.8s - 4.5s)
+  // Phase 3: Streams construct E -> EN -> ENE -> ENER -> ENERA (4.5s - 10s)
+  // Phase 4: Energy transitions into data (floating units appear)
+  // Phase 5: "Every bill contains a signal." -> Pause -> "ENERA finds it."
   const [logoState, setLogoState] = useState<string>("E");
-  const [taglineState, setTaglineState] = useState<number>(0); // 0: hidden, 1: "Every bill contains a signal", 2: "ENERA finds it."
+  const [taglineStage, setTaglineStage] = useState<number>(0); // 0: hidden, 1: "Every bill contains a signal.", 2: "ENERA finds it."
+  const [choreographyPhase, setChoreographyPhase] = useState<number>(1);
   const [reducedMotion, setReducedMotion] = useState<boolean>(false);
 
   // Logo construction sequence: E -> EN -> ENE -> ENER -> ENERA
   useEffect(() => {
     const letters = ["E", "E N", "E N E", "E N E R", "E N E R A"];
-    let currentIdx = 0;
+    let step = 0;
+
     const interval = setInterval(() => {
-      currentIdx = (currentIdx + 1) % (letters.length + 3); // pause at ENERA
-      if (currentIdx < letters.length) {
-        setLogoState(letters[currentIdx]);
+      step = (step + 1) % (letters.length + 4); // Pause 4 ticks on full ENERA
+      if (step < letters.length) {
+        setLogoState(letters[step]);
       } else {
         setLogoState("E N E R A");
       }
-    }, 1400);
+    }, 1300);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Tagline cycle: "Every bill contains a signal" -> "ENERA finds it."
+  // Tagline reveal cycle: "Every bill contains a signal." -> Pause -> "ENERA finds it."
   useEffect(() => {
-    const tagInterval = setInterval(() => {
-      setTaglineState((prev) => (prev + 1) % 3);
-    }, 4200);
+    let state = 1;
+    const tagTimer = setInterval(() => {
+      state = (state + 1) % 3;
+      setTaglineStage(state);
+    }, 3800);
 
-    return () => clearInterval(tagInterval);
+    return () => clearInterval(tagTimer);
   }, []);
 
-  // Check prefers-reduced-motion
+  // Reduced motion detection
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReducedMotion(mediaQuery.matches);
@@ -82,11 +103,11 @@ export function EneraHeroCanvas() {
     };
     window.addEventListener("resize", handleResize);
 
-    // Mouse coordinates for gentle electrical deflection
+    // Mouse coordinates for gentle deflection
     let mouseX = width / 2;
-    let mouseY = height / 2;
+    let mouseY = height * 0.4;
     let targetMouseX = width / 2;
-    let targetMouseY = height / 2;
+    let targetMouseY = height * 0.4;
 
     const handleMouseMove = (e: MouseEvent) => {
       targetMouseX = e.clientX;
@@ -94,23 +115,23 @@ export function EneraHeroCanvas() {
     };
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
 
-    // Floating engineering energy units
-    const units = [
-      { text: "kWh", x: width * 0.15, y: height * 0.25, vx: 0.2, vy: -0.15, alpha: 0.35 },
-      { text: "kVA", x: width * 0.82, y: height * 0.3, vx: -0.18, vy: 0.12, alpha: 0.4 },
-      { text: "kVAh", x: width * 0.2, y: height * 0.7, vx: 0.15, vy: 0.1, alpha: 0.3 },
-      { text: "kVArh", x: width * 0.75, y: height * 0.65, vx: -0.12, vy: -0.15, alpha: 0.35 },
-      { text: "R/kWh", x: width * 0.3, y: height * 0.82, vx: 0.1, vy: -0.12, alpha: 0.28 },
-      { text: "PEAK", x: width * 0.85, y: height * 0.45, vx: -0.15, vy: 0.18, alpha: 0.32 },
-      { text: "STANDARD", x: width * 0.12, y: height * 0.5, vx: 0.14, vy: -0.1, alpha: 0.3 },
-      { text: "OFF-PEAK", x: width * 0.68, y: height * 0.8, vx: -0.1, vy: -0.14, alpha: 0.25 },
-      { text: "DEMAND", x: width * 0.35, y: height * 0.18, vx: 0.12, vy: 0.15, alpha: 0.3 },
-      { text: "TARIFF", x: width * 0.62, y: height * 0.22, vx: -0.14, vy: 0.1, alpha: 0.35 },
-      { text: "VAT", x: width * 0.48, y: height * 0.88, vx: 0.08, vy: -0.1, alpha: 0.28 },
+    // Floating Engineering Units (All 11 required: kWh, kVA, kVAh, kVArh, R/kWh, PEAK, STANDARD, OFF-PEAK, DEMAND, TARIFF, VAT)
+    const dataUnits: FloatingDataUnit[] = [
+      { text: "kWh", x: width * 0.16, y: height * 0.22, vx: 0.16, vy: -0.12, alpha: 0.45, color: "#22d3ee" },
+      { text: "kVA", x: width * 0.82, y: height * 0.26, vx: -0.14, vy: 0.15, alpha: 0.5, color: "#10b981" },
+      { text: "kVAh", x: width * 0.12, y: height * 0.65, vx: 0.12, vy: 0.14, alpha: 0.35, color: "#8b5cf6" },
+      { text: "kVArh", x: width * 0.86, y: height * 0.62, vx: -0.15, vy: -0.12, alpha: 0.4, color: "#22d3ee" },
+      { text: "R/kWh", x: width * 0.26, y: height * 0.82, vx: 0.11, vy: -0.14, alpha: 0.38, color: "#10b981" },
+      { text: "PEAK", x: width * 0.76, y: height * 0.42, vx: -0.12, vy: 0.16, alpha: 0.42, color: "#f43f5e" },
+      { text: "STANDARD", x: width * 0.18, y: height * 0.44, vx: 0.15, vy: -0.1, alpha: 0.38, color: "#38bdf8" },
+      { text: "OFF-PEAK", x: width * 0.68, y: height * 0.84, vx: -0.13, vy: -0.12, alpha: 0.35, color: "#10b981" },
+      { text: "DEMAND", x: width * 0.34, y: height * 0.16, vx: 0.14, vy: 0.12, alpha: 0.4, color: "#22d3ee" },
+      { text: "TARIFF", x: width * 0.64, y: height * 0.18, vx: -0.15, vy: 0.11, alpha: 0.45, color: "#8b5cf6" },
+      { text: "VAT", x: width * 0.52, y: height * 0.86, vx: 0.08, vy: -0.13, alpha: 0.35, color: "#94a3b8" },
     ];
 
-    // Initialize particles
-    const particleCount = reducedMotion ? 25 : width < 768 ? 45 : 90;
+    // Particle pool
+    const particleCount = reducedMotion ? 20 : width < 768 ? 40 : 85;
     const particles: Particle[] = [];
     const colors = ["#22d3ee", "#06b6d4", "#10b981", "#8b5cf6", "#e2e8f0"];
 
@@ -118,10 +139,10 @@ export function EneraHeroCanvas() {
       particles.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.6,
-        vy: (Math.random() - 0.5) * 0.6,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
         size: Math.random() * 2 + 1,
-        alpha: Math.random() * 0.5 + 0.1,
+        alpha: Math.random() * 0.4 + 0.1,
         maxAlpha: Math.random() * 0.5 + 0.3,
         color: colors[Math.floor(Math.random() * colors.length)],
         pulseSpeed: 0.015 + Math.random() * 0.02,
@@ -129,25 +150,24 @@ export function EneraHeroCanvas() {
       });
     }
 
-    // Electrical data streams converging towards center
-    const streamCount = reducedMotion ? 3 : 8;
+    // Luminous Electrical Data Streams converging toward the centre
+    const streamCount = reducedMotion ? 4 : 8;
     const streams: StreamLine[] = [];
     const centerX = width / 2;
-    const centerY = height * 0.42;
+    const centerY = height * 0.38;
 
     for (let s = 0; s < streamCount; s++) {
       const angle = (s / streamCount) * Math.PI * 2;
-      const radius = Math.min(width, height) * 0.45;
+      const radius = Math.min(width, height) * 0.48;
       const startX = centerX + Math.cos(angle) * radius;
       const startY = centerY + Math.sin(angle) * radius;
 
-      // Create zigzag bezier points towards center
       const points = [];
-      const steps = 6;
+      const steps = 7;
       for (let j = 0; j <= steps; j++) {
         const t = j / steps;
-        const px = startX + (centerX - startX) * t + (Math.random() - 0.5) * 30;
-        const py = startY + (centerY - startY) * t + (Math.random() - 0.5) * 30;
+        const px = startX + (centerX - startX) * t + (Math.random() - 0.5) * 35;
+        const py = startY + (centerY - startY) * t + (Math.random() - 0.5) * 35;
         points.push({ x: px, y: py });
       }
 
@@ -155,11 +175,10 @@ export function EneraHeroCanvas() {
         startX,
         startY,
         points,
-        targetIndex: 0,
-        speed: 0.02 + Math.random() * 0.015,
+        speed: 0.02 + Math.random() * 0.018,
         color: s % 3 === 0 ? "#10b981" : s % 2 === 0 ? "#22d3ee" : "#8b5cf6",
         width: Math.random() * 1.5 + 0.8,
-        glow: Math.random() * 10 + 5,
+        glow: Math.random() * 12 + 6,
       });
     }
 
@@ -167,15 +186,14 @@ export function EneraHeroCanvas() {
 
     const render = () => {
       time += 0.016;
-      // Gentle spring smoothing on mouse
       mouseX += (targetMouseX - mouseX) * 0.05;
       mouseY += (targetMouseY - mouseY) * 0.05;
 
-      // Clear with dark subtle fade
-      ctx.fillStyle = "rgba(3, 7, 18, 0.25)";
+      // Deep graphite clear
+      ctx.fillStyle = "rgba(3, 7, 18, 0.28)";
       ctx.fillRect(0, 0, width, height);
 
-      // 1. Draw subtle background coordinate grid
+      // 1. Subtle Background Grid
       ctx.strokeStyle = "rgba(255, 255, 255, 0.02)";
       ctx.lineWidth = 1;
       const gridSize = 64;
@@ -192,7 +210,7 @@ export function EneraHeroCanvas() {
         ctx.stroke();
       }
 
-      // 2. Draw converging electrical data streams
+      // 2. Converging Luminous Streams (Digital Electricity)
       streams.forEach((stream, idx) => {
         ctx.save();
         ctx.strokeStyle = stream.color;
@@ -200,17 +218,16 @@ export function EneraHeroCanvas() {
         ctx.shadowColor = stream.color;
         ctx.shadowBlur = stream.glow;
 
-        const pulseOffset = Math.sin(time * 3 + idx) * 0.3 + 0.7;
-        ctx.globalAlpha = 0.25 * pulseOffset;
+        const pulseOffset = Math.sin(time * 3 + idx) * 0.35 + 0.65;
+        ctx.globalAlpha = 0.3 * pulseOffset;
 
         ctx.beginPath();
         ctx.moveTo(stream.startX, stream.startY);
 
-        // Curvature deflected by gentle mouse position
         const dx = mouseX - centerX;
         const dy = mouseY - centerY;
-        const bendX = (dx * 0.08 * (idx + 1)) / streamCount;
-        const bendY = (dy * 0.08 * (idx + 1)) / streamCount;
+        const bendX = (dx * 0.07 * (idx + 1)) / streamCount;
+        const bendY = (dy * 0.07 * (idx + 1)) / streamCount;
 
         for (let p = 1; p < stream.points.length; p++) {
           const pt = stream.points[p];
@@ -221,11 +238,12 @@ export function EneraHeroCanvas() {
         }
         ctx.stroke();
 
-        // Traveling electrical packet along the stream
+        // High-velocity digital data packet traveling along the electrical stream
         const progress = (time * stream.speed * 4) % 1;
         const packetIdx = Math.floor(progress * (stream.points.length - 1));
         const currentPt = stream.points[packetIdx];
         const nextPt = stream.points[Math.min(packetIdx + 1, stream.points.length - 1)];
+
         if (currentPt && nextPt) {
           const subProgress = (progress * (stream.points.length - 1)) % 1;
           const px = currentPt.x + (nextPt.x - currentPt.x) * subProgress + bendX;
@@ -233,7 +251,7 @@ export function EneraHeroCanvas() {
 
           ctx.fillStyle = "#ffffff";
           ctx.shadowColor = stream.color;
-          ctx.shadowBlur = 12;
+          ctx.shadowBlur = 14;
           ctx.beginPath();
           ctx.arc(px, py, 2.5, 0, Math.PI * 2);
           ctx.fill();
@@ -242,17 +260,16 @@ export function EneraHeroCanvas() {
         ctx.restore();
       });
 
-      // 3. Draw and update particles
+      // 3. Ambient Floating Energy Particles
       particles.forEach((p) => {
         p.phase += p.pulseSpeed;
         const currentAlpha = p.alpha + Math.sin(p.phase) * (p.maxAlpha - p.alpha);
 
-        // Subtle mouse repulsion
         const dx = p.x - mouseX;
         const dy = p.y - mouseY;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 140 && dist > 0) {
-          const force = (140 - dist) / 140;
+        if (dist < 130 && dist > 0) {
+          const force = (130 - dist) / 130;
           p.x += (dx / dist) * force * 1.5;
           p.y += (dy / dist) * force * 1.5;
         }
@@ -260,7 +277,6 @@ export function EneraHeroCanvas() {
         p.x += p.vx;
         p.y += p.vy;
 
-        // Wrap edges
         if (p.x < 0) p.x = width;
         if (p.x > width) p.x = 0;
         if (p.y < 0) p.y = height;
@@ -277,17 +293,21 @@ export function EneraHeroCanvas() {
         ctx.restore();
       });
 
-      // 4. Draw floating engineering units
+      // 4. Floating Engineering Data Values (Transition from Energy to Data)
       ctx.save();
-      ctx.font = "600 11px monospace";
-      units.forEach((u) => {
+      ctx.font = "600 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+
+      dataUnits.forEach((u) => {
         u.x += u.vx;
         u.y += u.vy;
-        if (u.x < 20 || u.x > width - 40) u.vx *= -1;
+
+        if (u.x < 20 || u.x > width - 50) u.vx *= -1;
         if (u.y < 40 || u.y > height - 40) u.vy *= -1;
 
-        ctx.fillStyle = "#94a3b8";
-        ctx.globalAlpha = u.alpha * (0.8 + Math.sin(time + u.x) * 0.2);
+        ctx.fillStyle = u.color;
+        ctx.globalAlpha = u.alpha * (0.8 + Math.sin(time * 2 + u.x) * 0.2);
+        ctx.shadowColor = u.color;
+        ctx.shadowBlur = 10;
         ctx.fillText(u.text, u.x, u.y);
       });
       ctx.restore();
@@ -306,22 +326,22 @@ export function EneraHeroCanvas() {
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
-      {/* Background canvas */}
+      {/* 1. Cinematic Background Canvas */}
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
-      {/* Atmospheric center glow */}
-      <div className="absolute top-[28%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] sm:w-[600px] h-[340px] rounded-full bg-cyan-500/10 blur-[120px] pointer-events-none" />
-      <div className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[220px] rounded-full bg-emerald-500/10 blur-[100px] pointer-events-none" />
+      {/* 2. Atmospheric Core Glow */}
+      <div className="absolute top-[28%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] sm:w-[650px] h-[350px] rounded-full bg-cyan-500/10 blur-[130px] pointer-events-none" />
+      <div className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[240px] rounded-full bg-emerald-500/10 blur-[100px] pointer-events-none" />
 
-      {/* Dynamic Animated Logo Construction Overlay */}
+      {/* 3. The Living ENERA Energy Logo Construction (E -> EN -> ENE -> ENER -> ENERA) */}
       <div className="absolute top-[22%] sm:top-[24%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-auto">
         <div className="inline-flex flex-col items-center">
-          {/* Energy brand emblem */}
-          <div className="relative mb-2 px-6 py-2 rounded-2xl bg-[#0d1117]/60 border border-cyan-500/30 backdrop-blur-xl shadow-[0_0_40px_-5px_rgba(6,182,212,0.3)]">
-            <span className="font-mono text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-[0.35em] text-white drop-shadow-[0_0_20px_rgba(34,211,238,0.6)]">
+          <div className="relative mb-2 px-6 sm:px-8 py-2.5 rounded-2xl bg-[#0d1117]/80 border border-cyan-500/30 backdrop-blur-xl shadow-[0_0_45px_-5px_rgba(6,182,212,0.35)]">
+            <span className="font-mono text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-[0.35em] text-white drop-shadow-[0_0_25px_rgba(34,211,238,0.7)]">
               {logoState}
             </span>
-            <div className="absolute -bottom-px left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_10px_#22d3ee]" />
+            {/* Luminous energy baseline */}
+            <div className="absolute -bottom-px left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_12px_#22d3ee]" />
           </div>
 
           <div className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.3em] text-cyan-400/90 font-medium">
@@ -329,15 +349,15 @@ export function EneraHeroCanvas() {
           </div>
         </div>
 
-        {/* Narrative Signal reveal: "Every bill contains a signal." -> "ENERA finds it." */}
+        {/* 4. Sequential Signal Reveal: "Every bill contains a signal." -> Pause -> "ENERA finds it." */}
         <div className="h-8 mt-3 flex items-center justify-center">
-          {taglineState === 1 && (
+          {taglineStage === 1 && (
             <p className="text-xs sm:text-sm font-mono text-slate-400 tracking-wide animate-in fade-in duration-700">
               Every bill contains a signal.
             </p>
           )}
-          {taglineState === 2 && (
-            <p className="text-xs sm:text-sm font-mono text-cyan-300 font-semibold tracking-wide animate-in fade-in duration-700 drop-shadow-[0_0_12px_rgba(34,211,238,0.5)]">
+          {taglineStage === 2 && (
+            <p className="text-xs sm:text-sm font-mono text-cyan-300 font-semibold tracking-wide animate-in fade-in duration-700 drop-shadow-[0_0_12px_rgba(34,211,238,0.6)]">
               ENERA finds it.
             </p>
           )}
