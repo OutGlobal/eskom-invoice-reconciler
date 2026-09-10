@@ -17,6 +17,9 @@ import {
   Database,
   Layers,
   FileCheck,
+  ArrowDown,
+  Info,
+  ExternalLink,
 } from "lucide-react";
 
 interface SimulationStep {
@@ -33,64 +36,67 @@ const SIMULATION_STAGES: SimulationStep[] = [
     title: "READING DOCUMENT",
     desc: "OCR text layer rasterization & multi-page PDF structure parsing.",
     metric: "99.8% OCR Quality",
-    codeSnippet: 'OCR_STREAM: Ingested Eskom_Megaflex_Statement_9921402.pdf [5 pages, SHA-256: 4f1a...]',
+    codeSnippet: "OCR_STREAM: Ingested Eskom_Megaflex_Statement_9921402.pdf [5 pages, SHA-256: 4f1a...]",
   },
   {
     step: 2,
-    title: "EXTRACTING DETERMINANTS",
+    title: "EXTRACTING DATA",
     desc: "Account numbers, POD ID, billing period, and 8 tariff determinant vectors.",
     metric: "8 Vectors Extracted",
-    codeSnippet: 'EXTRACT: POD: 00029410 | Period: 01 Jun - 30 Jun | Active Energy: 4,218,441 kWh',
+    codeSnippet: "EXTRACT: POD: 00029410 | Period: 01 Jun - 30 Jun | Active Energy: 4,218,441 kWh",
   },
   {
     step: 3,
     title: "UNDERSTANDING TARIFF",
     desc: "Mapping Megaflex / Miniflex 2024/2025 NERSA gazetted rate schedules.",
     metric: "High Season Peak Confirmed",
-    codeSnippet: 'TARIFF_RULE: NERSA Schedule 2 | Megaflex High Season (Jun–Aug) | Peak TOU Rate: R 4.2811/kWh',
+    codeSnippet: "TARIFF_RULE: NERSA Schedule 2 | Megaflex High Season (Jun–Aug) | Peak TOU Rate: R 4.2811/kWh",
   },
   {
     step: 4,
     title: "CHECKING CONSUMPTION",
     desc: "Cross-referencing 2,880 half-hour AMR interval telemetry pulse points.",
     metric: "2,880 Intervals (100% Sync)",
-    codeSnippet: 'AMR_SYNC: Correlating Class 0.2S interval recorder logs | Missing: 0 | Duplicates: 0',
+    codeSnippet: "AMR_SYNC: Correlating Class 0.2S interval recorder logs | Missing: 0 | Duplicates: 0",
   },
   {
     step: 5,
-    title: "RECONCILING LIABILITIES",
+    title: "RECONCILING",
     desc: "Executing Decimal.js high-precision calculation against delivered physical power.",
     metric: "Δ 131,227 kWh Variance",
-    codeSnippet: 'RECON: Billed 4,218,441 kWh vs Actual 4,087,214 kWh | Variance Delta: -131,227 kWh',
+    codeSnippet: "RECON: Billed 4,218,441 kWh vs Actual 4,087,214 kWh | Variance Delta: -131,227 kWh",
   },
   {
     step: 6,
     title: "DETECTING ANOMALIES",
     desc: "Flagging uncredited public holidays, demand ratchets, and multiplier drift.",
     metric: "R 51,227.00 Overcharge",
-    codeSnippet: 'ANOMALY_FLAG: Youth Day billed at weekday peak rate instead of Sunday off-peak (-R 18,420)',
+    codeSnippet: "ANOMALY_FLAG: Youth Day billed at weekday peak rate instead of Sunday off-peak (-R 18,420)",
   },
   {
     step: 7,
-    title: "GENERATING INSIGHT & DOSSIER",
+    title: "GENERATING INSIGHT",
     desc: "Compiling Section 21 dispute package and executive audit certificate.",
     metric: "Dossier Ready for Claim",
-    codeSnippet: 'OUTPUT: Form 102 Regulatory Dispute Dossier Compiled | Audit Trail Hash Chain Verified',
+    codeSnippet: "OUTPUT: Form 102 Regulatory Dispute Dossier Compiled | Audit Trail Hash Chain Verified",
   },
 ];
 
 const SAMPLE_INVOICES = [
-  { name: "Megaflex Mining Facility (Jun 2024)", size: "2.4 MB PDF", code: "ESK-99214" },
-  { name: "Rustenburg Smelter 11kV (Jul 2024)", size: "1.8 MB PDF", code: "RST-4401" },
-  { name: "City Power TOU Commercial (May 2024)", size: "3.1 MB PDF", code: "CP-8812" },
+  { name: "Megaflex Mining Facility (Jun 2024)", size: "2.4 MB", type: "PDF", code: "ESK-99214" },
+  { name: "Rustenburg Smelter 11kV Interval Data", size: "1.8 MB", type: "CSV", code: "RST-4401" },
+  { name: "City Power TOU Commercial Register", size: "3.1 MB", type: "XLSX", code: "CP-8812" },
 ];
 
 export function EneraInteractiveUploadSection() {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isRunning, setIsRunning] = useState<boolean>(true);
   const [selectedSample, setSelectedSample] = useState<number>(0);
+  const [userFileName, setUserFileName] = useState<string | null>(null);
+  const [userFileSize, setUserFileSize] = useState<string | null>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -115,15 +121,22 @@ export function EneraInteractiveUploadSection() {
 
   const activeStage = SIMULATION_STAGES[currentStep - 1] || SIMULATION_STAGES[0];
 
+  const handleDemoFileSelection = (file: File) => {
+    setUserFileName(file.name);
+    setUserFileSize(`${(file.size / (1024 * 1024)).toFixed(2)} MB`);
+    setCurrentStep(1);
+    setIsRunning(true);
+  };
+
   return (
     <section
       id="use-cases"
-      className="relative py-28 sm:py-32 bg-[#0a0e17] text-white overflow-hidden"
-      aria-label="Interactive Verification Workbench"
+      className="relative py-28 sm:py-36 bg-[#0a0e17] text-white overflow-hidden border-t border-white/5"
+      aria-label="Interactive Bill Upload and Cognitive Pipeline"
     >
       {/* Background ambient gradient */}
       <div
-        className="absolute top-1/4 left-1/3 w-[800px] h-[500px] bg-cyan-500/10 rounded-full blur-[150px] pointer-events-none -z-10"
+        className="absolute top-1/4 left-1/3 w-[850px] h-[550px] bg-cyan-500/10 rounded-full blur-[160px] pointer-events-none -z-10"
         aria-hidden="true"
       />
 
@@ -132,17 +145,25 @@ export function EneraInteractiveUploadSection() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-xs font-mono mb-5 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
             <UploadCloud className="h-3.5 w-3.5 text-cyan-400" />
-            <span className="tracking-wide">INSTANT VERIFICATION WORKBENCH // 7-STEP PIPELINE</span>
+            <span className="tracking-wide">STAGE 13 // INTERACTIVE BILL UPLOAD</span>
           </div>
 
-          <h2 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight enera-text-gradient">
-            DROP A BILL. WATCH ENERA THINK.
+          <h2 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight enera-text-gradient leading-tight">
+            DROP A BILL.
+            <br />
+            WATCH ENERA THINK.
           </h2>
 
-          <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed">
+          <p className="mt-5 text-base sm:text-lg text-slate-400 font-light leading-relaxed">
             Drop an Eskom or municipal invoice. The engine reconstructs the entire tariff hierarchy,
             compares it against physical interval telemetry, and validates every single line item.
           </p>
+
+          {/* Demonstration Notice */}
+          <div className="mt-5 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-mono text-slate-400">
+            <Info className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+            <span>INTERACTIVE DEMONSTRATION STATE · CONNECT TO PRODUCTION GATEWAY FOR LIVE INGESTION</span>
+          </div>
         </div>
 
         {/* Workbench Container */}
@@ -150,15 +171,42 @@ export function EneraInteractiveUploadSection() {
           {/* Left Column: Interactive Drop Chamber & Sample Selector */}
           <div className="lg:col-span-5 rounded-3xl bg-[#030712]/95 border border-white/10 p-6 sm:p-8 flex flex-col justify-between shadow-2xl relative overflow-hidden">
             <div>
-              <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                <span className="text-xs font-mono text-slate-400 uppercase tracking-wider font-semibold">
-                  INGESTION CHAMBER
+              {/* Header with Format Support Badges */}
+              <div className="flex items-center justify-between pb-3.5 border-b border-white/10">
+                <span className="text-xs font-mono text-slate-300 uppercase tracking-wider font-semibold">
+                  UPLOAD COMPONENT
                 </span>
-                <span className="text-[11px] font-mono text-cyan-400">PDF · CSV · XLSX</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-mono text-slate-400 mr-1">Supported:</span>
+                  <span className="px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/30 text-[10px] font-mono text-cyan-300 font-bold">
+                    PDF
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/30 text-[10px] font-mono text-emerald-300 font-bold">
+                    CSV
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-500/30 text-[10px] font-mono text-amber-300 font-bold">
+                    XLSX
+                  </span>
+                </div>
               </div>
+
+              {/* Hidden file input for demo selection */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.csv,.xlsx"
+                className="hidden"
+                onChange={(e) => {
+                  const files = e.target.files;
+                  if (files && files.length > 0) {
+                    handleDemoFileSelection(files[0]);
+                  }
+                }}
+              />
 
               {/* Interactive Drag & Drop Area */}
               <div
+                onClick={() => fileInputRef.current?.click()}
                 onDragOver={(e) => {
                   e.preventDefault();
                   setIsDragOver(true);
@@ -167,51 +215,82 @@ export function EneraInteractiveUploadSection() {
                 onDrop={(e) => {
                   e.preventDefault();
                   setIsDragOver(false);
-                  setCurrentStep(1);
+                  const files = e.dataTransfer.files;
+                  if (files && files.length > 0) {
+                    handleDemoFileSelection(files[0]);
+                  }
                 }}
-                className={`mt-6 border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center transition-all ${
+                className={`mt-6 border-2 border-dashed rounded-2xl p-7 sm:p-9 text-center cursor-pointer transition-all ${
                   isDragOver
-                    ? "border-cyan-400 bg-cyan-950/30 scale-[1.02]"
-                    : "border-cyan-500/30 bg-cyan-950/10 hover:bg-cyan-950/20 hover:border-cyan-400/50"
+                    ? "border-cyan-400 bg-cyan-950/40 scale-[1.02]"
+                    : "border-cyan-500/30 bg-cyan-950/10 hover:bg-cyan-950/20 hover:border-cyan-400/60"
                 }`}
+                role="button"
+                tabIndex={0}
+                aria-label="Drop an Eskom or municipal invoice here"
               >
-                <div className="w-14 h-14 mx-auto rounded-2xl bg-[#0d1117] border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-3 shadow-[0_0_25px_rgba(6,182,212,0.25)]">
+                <div className="w-14 h-14 mx-auto rounded-2xl bg-[#0d1117] border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-3.5 shadow-[0_0_25px_rgba(6,182,212,0.25)] group-hover:scale-105 transition-transform">
                   <FileText className="h-6 w-6" />
                 </div>
-                <div className="text-sm font-semibold text-white font-mono">
-                  Drop any Eskom or Municipal Bill
+
+                {/* Exact Required Prompt String */}
+                <div className="text-sm sm:text-base font-semibold text-white font-mono">
+                  &ldquo;Drop an Eskom or municipal invoice here.&rdquo;
                 </div>
-                <p className="text-xs text-slate-400 mt-1 font-sans">
-                  Auto-detects Megaflex, Miniflex, Nightsave & Municipal TOU tariffs.
+
+                <p className="text-xs text-slate-400 mt-1.5 font-sans">
+                  Click to select a sample file or drop any Megaflex, Miniflex, or Municipal bill.
                 </p>
 
-                <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-mono text-slate-400">
-                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                  <span>POPIA & ISO 27001 Compliant</span>
+                {/* Formats pill */}
+                <div className="mt-3 flex items-center justify-center gap-2 text-[11px] font-mono text-cyan-300/80">
+                  <span>Supported:</span>
+                  <span className="font-bold text-white">PDF · CSV · XLSX</span>
                 </div>
+
+                {/* Active user file feedback if loaded */}
+                {userFileName ? (
+                  <div className="mt-4 p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-left flex items-center justify-between text-xs font-mono">
+                    <div className="flex items-center gap-2 truncate">
+                      <FileCheck className="h-4 w-4 text-cyan-400 shrink-0" />
+                      <span className="text-cyan-200 truncate">{userFileName}</span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 shrink-0 ml-2">{userFileSize}</span>
+                  </div>
+                ) : (
+                  <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-mono text-slate-400">
+                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+                    <span>Client-Side Preview Mode · Zero Data Stored</span>
+                  </div>
+                )}
               </div>
 
               {/* Sample Invoices Selector */}
               <div className="mt-6 space-y-2">
-                <span className="text-[10px] font-mono uppercase text-slate-500 tracking-wider block">
-                  OR TEST WITH PRE-LOADED SAMPLE BILLS
-                </span>
+                <div className="flex items-center justify-between text-[10px] font-mono uppercase text-slate-400 tracking-wider">
+                  <span>PRE-LOADED DEMONSTRATION BILLS</span>
+                  <span className="text-cyan-400">CLICK TO SIMULATE</span>
+                </div>
                 <div className="space-y-1.5">
                   {SAMPLE_INVOICES.map((sample, idx) => (
                     <button
                       key={sample.code}
                       onClick={() => {
                         setSelectedSample(idx);
+                        setUserFileName(null);
                         setCurrentStep(1);
+                        setIsRunning(true);
                       }}
                       className={`w-full text-left p-2.5 rounded-xl text-xs font-mono transition-all flex items-center justify-between border ${
-                        selectedSample === idx
+                        selectedSample === idx && !userFileName
                           ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-200 font-semibold shadow-[0_0_15px_rgba(6,182,212,0.15)]"
                           : "bg-white/[0.02] border-white/5 text-slate-400 hover:text-white hover:bg-white/[0.05]"
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <FileCheck className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+                        <span className="px-1.5 py-0.5 rounded bg-white/10 text-[9px] font-bold text-slate-300">
+                          {sample.type}
+                        </span>
                         <span className="truncate">{sample.name}</span>
                       </div>
                       <span className="text-[10px] text-slate-500 shrink-0">{sample.size}</span>
@@ -221,14 +300,19 @@ export function EneraInteractiveUploadSection() {
               </div>
             </div>
 
-            {/* Direct Link to Working Upload Workflow */}
-            <div className="mt-8 pt-4 border-t border-white/10">
+            {/* Direct Connection to the Existing Application Upload Workflow */}
+            <div className="mt-8 pt-4 border-t border-white/10 space-y-2">
+              <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
+                <AlertCircle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                <span>Ready to audit live data? Connect to production:</span>
+              </div>
+
               <Link
                 to="/upload"
-                className="w-full flex items-center justify-center gap-2 py-3 px-5 rounded-xl font-bold text-xs text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_25px_rgba(6,182,212,0.3)] font-mono"
+                className="w-full flex items-center justify-center gap-2 py-3 px-5 rounded-xl font-bold text-xs text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_25px_rgba(6,182,212,0.3)] font-mono group"
               >
-                <span>LAUNCH PRODUCTION INGESTION GATEWAY</span>
-                <ArrowRight className="h-4 w-4" />
+                <span>LAUNCH PRODUCTION UPLOAD GATEWAY</span>
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </div>
           </div>
@@ -241,7 +325,7 @@ export function EneraInteractiveUploadSection() {
                 <div className="flex items-center gap-2">
                   <Cpu className="h-4 w-4 text-cyan-400" />
                   <span className="text-xs font-mono uppercase text-cyan-300 font-bold tracking-wider">
-                    COGNITIVE RECONCILIATION PIPELINE
+                    PROCESSING ANIMATION PIPELINE
                   </span>
                 </div>
 
@@ -263,79 +347,111 @@ export function EneraInteractiveUploadSection() {
                       </>
                     )}
                   </button>
+                  <button
+                    onClick={() => {
+                      setCurrentStep(1);
+                      setIsRunning(true);
+                    }}
+                    className="p-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                    title="Restart Simulation"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                  </button>
                 </div>
               </div>
 
-              {/* 7-Step Interactive Pipeline List */}
-              <div className="mt-5 space-y-2.5">
-                {SIMULATION_STAGES.map((s) => {
+              {/* 7-Step Pipeline with Downward Transition Arrows (↓) */}
+              <div className="mt-5 space-y-1.5">
+                {SIMULATION_STAGES.map((s, idx) => {
                   const isDone = currentStep > s.step;
                   const isCurrent = currentStep === s.step;
 
                   return (
-                    <button
-                      key={s.step}
-                      onClick={() => setCurrentStep(s.step)}
-                      className={`w-full text-left p-3 rounded-xl transition-all border flex items-center justify-between gap-3 ${
-                        isCurrent
-                          ? "bg-gradient-to-r from-cyan-950/50 to-transparent border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.2)]"
-                          : isDone
-                            ? "bg-white/[0.02] border-emerald-500/20 text-slate-300 hover:bg-white/[0.04]"
-                            : "bg-white/[0.01] border-transparent text-slate-500 hover:text-slate-400 hover:bg-white/[0.02]"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-mono font-bold shrink-0 ${
-                            isDone
-                              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                              : isCurrent
-                                ? "bg-cyan-500 text-slate-950 shadow-[0_0_10px_rgba(6,182,212,0.6)]"
-                                : "bg-white/[0.05] text-slate-500 border border-white/5"
-                          }`}
-                        >
-                          {isDone ? <Check className="h-3.5 w-3.5" /> : s.step}
-                        </div>
-
-                        <div>
+                    <React.Fragment key={s.step}>
+                      <button
+                        onClick={() => setCurrentStep(s.step)}
+                        className={`w-full text-left p-3 rounded-xl transition-all border flex items-center justify-between gap-3 ${
+                          isCurrent
+                            ? "bg-gradient-to-r from-cyan-950/60 to-transparent border-cyan-500/60 shadow-[0_0_20px_rgba(6,182,212,0.25)]"
+                            : isDone
+                              ? "bg-white/[0.02] border-emerald-500/20 text-slate-300 hover:bg-white/[0.04]"
+                              : "bg-white/[0.01] border-transparent text-slate-500 hover:text-slate-400 hover:bg-white/[0.02]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
                           <div
-                            className={`text-xs font-mono font-bold flex items-center gap-2 ${
-                              isCurrent ? "text-cyan-300" : isDone ? "text-white" : "text-slate-500"
+                            className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-mono font-bold shrink-0 ${
+                              isDone
+                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                : isCurrent
+                                  ? "bg-cyan-500 text-slate-950 shadow-[0_0_12px_rgba(6,182,212,0.6)]"
+                                  : "bg-white/[0.05] text-slate-500 border border-white/5"
                             }`}
                           >
-                            <span>{s.title}</span>
+                            {isDone ? <Check className="h-3.5 w-3.5" /> : s.step}
                           </div>
-                          <div className="text-[11px] text-slate-400 font-sans mt-0.5">{s.desc}</div>
-                        </div>
-                      </div>
 
-                      <div className="text-right shrink-0">
-                        {isCurrent ? (
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold animate-pulse">
-                            ACTIVE
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-mono text-slate-500">
-                            {s.metric}
-                          </span>
-                        )}
-                      </div>
-                    </button>
+                          <div>
+                            <div
+                              className={`text-xs font-mono font-bold tracking-wide flex items-center gap-2 ${
+                                isCurrent ? "text-cyan-300" : isDone ? "text-white" : "text-slate-500"
+                              }`}
+                            >
+                              <span>{s.title}</span>
+                            </div>
+                            <div className="text-[11px] text-slate-400 font-sans mt-0.5">{s.desc}</div>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          {isCurrent ? (
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold animate-pulse">
+                              ACTIVE
+                            </span>
+                          ) : isDone ? (
+                            <span className="text-[10px] font-mono text-emerald-400/80">VERIFIED</span>
+                          ) : (
+                            <span className="text-[10px] font-mono text-slate-500">{s.metric}</span>
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Explicit Downward Connector Arrow (↓) */}
+                      {idx < SIMULATION_STAGES.length - 1 && (
+                        <div className="flex items-center justify-center py-0.5">
+                          <div
+                            className={`flex items-center gap-1 text-[11px] font-mono transition-colors ${
+                              currentStep > s.step
+                                ? "text-emerald-400/60"
+                                : currentStep === s.step
+                                  ? "text-cyan-400 animate-pulse font-bold"
+                                  : "text-slate-700"
+                            }`}
+                          >
+                            <span>↓</span>
+                          </div>
+                        </div>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </div>
 
               {/* Live Step Telemetry Stream Terminal */}
               <div className="mt-5 p-3.5 rounded-xl bg-black/60 border border-white/10 font-mono text-xs">
-                <div className="flex items-center justify-between text-[10px] text-slate-500 uppercase pb-1 mb-1 border-b border-white/5">
+                <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase pb-1 mb-1 border-b border-white/5">
                   <span className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                    LIVE COGNITIVE LOGPAYLOAD
+                    LIVE PIPELINE TELEMETRY STREAM
                   </span>
                   <span className="text-cyan-400">{activeStage.metric}</span>
                 </div>
                 <div className="text-cyan-300 text-[11px] leading-relaxed break-all">
-                  <code>{activeStage.codeSnippet}</code>
+                  <code>
+                    {userFileName && currentStep === 1
+                      ? `OCR_STREAM: Ingested ${userFileName} [${userFileSize}, SHA-256 verified]`
+                      : activeStage.codeSnippet}
+                  </code>
                 </div>
               </div>
             </div>
