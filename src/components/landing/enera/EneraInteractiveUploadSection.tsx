@@ -215,6 +215,7 @@ export function EneraInteractiveUploadSection() {
                 ref={fileInputRef}
                 type="file"
                 accept=".pdf,.csv,.xlsx"
+                aria-label="Upload an Eskom or municipal electricity invoice (PDF, CSV, XLSX)"
                 className="hidden"
                 onChange={(e) => {
                   const files = e.target.files;
@@ -227,6 +228,12 @@ export function EneraInteractiveUploadSection() {
               {/* Interactive Drag & Drop Area */}
               <div
                 onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
                 onDragOver={(e) => {
                   e.preventDefault();
                   setIsDragOver(true);
@@ -240,14 +247,14 @@ export function EneraInteractiveUploadSection() {
                     handleDemoFileSelection(files[0]);
                   }
                 }}
-                className={`mt-6 border-2 border-dashed rounded-2xl p-7 sm:p-9 text-center cursor-pointer transition-all ${
+                className={`mt-6 border-2 border-dashed rounded-2xl p-7 sm:p-9 text-center cursor-pointer transition-all focus-ring-enera ${
                   isDragOver
                     ? "border-cyan-400 bg-cyan-950/40 scale-[1.02]"
                     : "border-cyan-500/30 bg-cyan-950/10 hover:bg-cyan-950/20 hover:border-cyan-400/60"
                 }`}
                 role="button"
                 tabIndex={0}
-                aria-label="Drop an Eskom or municipal invoice here"
+                aria-label="Drop an Eskom or municipal invoice here. Press Enter or Space to choose a file."
               >
                 <div className="w-14 h-14 mx-auto rounded-2xl bg-[#0d1117] border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-3.5 shadow-[0_0_25px_rgba(6,182,212,0.25)] group-hover:scale-105 transition-transform">
                   <FileText className="h-6 w-6" />
@@ -291,31 +298,37 @@ export function EneraInteractiveUploadSection() {
                   <span>PRE-LOADED DEMONSTRATION BILLS</span>
                   <span className="text-cyan-400">CLICK TO SIMULATE</span>
                 </div>
-                <div className="space-y-1.5">
-                  {SAMPLE_INVOICES.map((sample, idx) => (
-                    <button
-                      key={sample.code}
-                      onClick={() => {
-                        setSelectedSample(idx);
-                        setUserFileName(null);
-                        setCurrentStep(1);
-                        setIsRunning(true);
-                      }}
-                      className={`w-full text-left p-2.5 rounded-xl text-xs font-mono transition-all flex items-center justify-between border ${
-                        selectedSample === idx && !userFileName
-                          ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-200 font-semibold shadow-[0_0_15px_rgba(6,182,212,0.15)]"
-                          : "bg-white/[0.02] border-white/5 text-slate-400 hover:text-white hover:bg-white/[0.05]"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="px-1.5 py-0.5 rounded bg-white/10 text-[9px] font-bold text-slate-300">
-                          {sample.type}
-                        </span>
-                        <span className="truncate">{sample.name}</span>
-                      </div>
-                      <span className="text-[10px] text-slate-500 shrink-0">{sample.size}</span>
-                    </button>
-                  ))}
+                <div className="space-y-1.5" role="group" aria-label="Pre-loaded demonstration bills">
+                  {SAMPLE_INVOICES.map((sample, idx) => {
+                    const isSelected = selectedSample === idx && !userFileName;
+                    return (
+                      <button
+                        key={sample.code}
+                        type="button"
+                        aria-pressed={isSelected}
+                        aria-label={`Simulate demo invoice: ${sample.name}, ${sample.type}, ${sample.size}`}
+                        onClick={() => {
+                          setSelectedSample(idx);
+                          setUserFileName(null);
+                          setCurrentStep(1);
+                          setIsRunning(true);
+                        }}
+                        className={`w-full text-left p-2.5 rounded-xl text-xs font-mono transition-all flex items-center justify-between border focus-ring-enera ${
+                          isSelected
+                            ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-200 font-semibold shadow-[0_0_15px_rgba(6,182,212,0.15)]"
+                            : "bg-white/[0.02] border-white/5 text-slate-300 hover:text-white hover:bg-white/[0.05]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="px-1.5 py-0.5 rounded bg-white/10 text-[9px] font-bold text-slate-300">
+                            {sample.type}
+                          </span>
+                          <span className="truncate">{sample.name}</span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 shrink-0">{sample.size}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -329,7 +342,7 @@ export function EneraInteractiveUploadSection() {
 
               <Link
                 to="/upload"
-                className="w-full flex items-center justify-center gap-2 py-3 px-5 rounded-xl font-bold text-xs text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_25px_rgba(6,182,212,0.3)] font-mono group"
+                className="w-full flex items-center justify-center gap-2 py-3 px-5 rounded-xl font-bold text-xs text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_25px_rgba(6,182,212,0.3)] font-mono group focus-ring-enera"
               >
                 <span>LAUNCH PRODUCTION UPLOAD GATEWAY</span>
                 <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
@@ -352,8 +365,10 @@ export function EneraInteractiveUploadSection() {
                 <div className="flex items-center gap-2 text-xs font-mono">
                   <span className="text-slate-400">STEP {currentStep} OF 7</span>
                   <button
+                    type="button"
                     onClick={() => setIsRunning(!isRunning)}
-                    className="px-2 py-0.5 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 transition-colors flex items-center gap-1 text-[11px]"
+                    aria-label={isRunning ? "Pause cognitive processing pipeline simulation" : "Resume cognitive processing pipeline simulation"}
+                    className="px-2 py-0.5 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 transition-colors flex items-center gap-1 text-[11px] focus-ring-enera"
                   >
                     {isRunning ? (
                       <>
@@ -368,11 +383,13 @@ export function EneraInteractiveUploadSection() {
                     )}
                   </button>
                   <button
+                    type="button"
                     onClick={() => {
                       setCurrentStep(1);
                       setIsRunning(true);
                     }}
-                    className="p-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                    className="p-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors focus-ring-enera"
+                    aria-label="Restart simulation from stage 1"
                     title="Restart Simulation"
                   >
                     <RotateCcw className="h-3 w-3" />
@@ -381,7 +398,7 @@ export function EneraInteractiveUploadSection() {
               </div>
 
               {/* 7-Step Pipeline with Downward Transition Arrows (↓) */}
-              <div className="mt-5 space-y-1.5">
+              <div className="mt-5 space-y-1.5" role="list" aria-label="Cognitive audit processing steps">
                 {SIMULATION_STAGES.map((s, idx) => {
                   const isDone = currentStep > s.step;
                   const isCurrent = currentStep === s.step;
@@ -389,13 +406,16 @@ export function EneraInteractiveUploadSection() {
                   return (
                     <React.Fragment key={s.step}>
                       <button
+                        type="button"
                         onClick={() => setCurrentStep(s.step)}
-                        className={`w-full text-left p-3 rounded-xl transition-all border flex items-center justify-between gap-3 ${
+                        aria-current={isCurrent ? "step" : undefined}
+                        aria-label={`Step ${s.step}: ${s.title}. ${isCurrent ? "Currently active." : isDone ? "Completed." : "Pending."} ${s.desc}`}
+                        className={`w-full text-left p-3 rounded-xl transition-all border flex items-center justify-between gap-3 focus-ring-enera ${
                           isCurrent
                             ? "bg-gradient-to-r from-cyan-950/60 to-transparent border-cyan-500/60 shadow-[0_0_20px_rgba(6,182,212,0.25)]"
                             : isDone
                               ? "bg-white/[0.02] border-emerald-500/20 text-slate-300 hover:bg-white/[0.04]"
-                              : "bg-white/[0.01] border-transparent text-slate-500 hover:text-slate-400 hover:bg-white/[0.02]"
+                              : "bg-white/[0.01] border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -405,7 +425,7 @@ export function EneraInteractiveUploadSection() {
                                 ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                                 : isCurrent
                                   ? "bg-cyan-500 text-slate-950 shadow-[0_0_12px_rgba(6,182,212,0.6)]"
-                                  : "bg-white/[0.05] text-slate-500 border border-white/5"
+                                  : "bg-white/[0.05] text-slate-400 border border-white/5"
                             }`}
                           >
                             {isDone ? <Check className="h-3.5 w-3.5" /> : s.step}
@@ -414,7 +434,7 @@ export function EneraInteractiveUploadSection() {
                           <div>
                             <div
                               className={`text-xs font-mono font-bold tracking-wide flex items-center gap-2 ${
-                                isCurrent ? "text-cyan-300" : isDone ? "text-white" : "text-slate-500"
+                                isCurrent ? "text-cyan-300" : isDone ? "text-white" : "text-slate-300"
                               }`}
                             >
                               <span>{s.title}</span>
@@ -431,21 +451,21 @@ export function EneraInteractiveUploadSection() {
                           ) : isDone ? (
                             <span className="text-[10px] font-mono text-emerald-400/80">VERIFIED</span>
                           ) : (
-                            <span className="text-[10px] font-mono text-slate-500">{s.metric}</span>
+                            <span className="text-[10px] font-mono text-slate-400">{s.metric}</span>
                           )}
                         </div>
                       </button>
 
                       {/* Explicit Downward Connector Arrow (↓) */}
                       {idx < SIMULATION_STAGES.length - 1 && (
-                        <div className="flex items-center justify-center py-0.5">
+                        <div className="flex items-center justify-center py-0.5" aria-hidden="true">
                           <div
                             className={`flex items-center gap-1 text-[11px] font-mono transition-colors ${
                               currentStep > s.step
                                 ? "text-emerald-400/60"
                                 : currentStep === s.step
                                   ? "text-cyan-400 animate-pulse font-bold"
-                                  : "text-slate-700"
+                                  : "text-slate-600"
                             }`}
                           >
                             <span>↓</span>
@@ -458,7 +478,10 @@ export function EneraInteractiveUploadSection() {
               </div>
 
               {/* Live Step Telemetry Stream Terminal */}
-              <div className="mt-5 p-3.5 rounded-xl bg-black/60 border border-white/10 font-mono text-xs">
+              <div
+                aria-live="polite"
+                className="mt-5 p-3.5 rounded-xl bg-black/60 border border-white/10 font-mono text-xs"
+              >
                 <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase pb-1 mb-1 border-b border-white/5">
                   <span className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />

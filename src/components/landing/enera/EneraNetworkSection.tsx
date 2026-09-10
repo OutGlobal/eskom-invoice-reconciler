@@ -516,10 +516,11 @@ export function EneraNetworkSection() {
               <button
                 type="button"
                 onClick={toggleAutoEvolution}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border transition-all ${
+                aria-label={isAutoEvolving ? "Pause autonomous topology evolution" : "Resume autonomous topology evolution"}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border transition-all focus-ring-enera ${
                   isAutoEvolving
                     ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.2)]"
-                    : "bg-white/5 border-white/10 text-slate-400 hover:text-white"
+                    : "bg-white/5 border-white/10 text-slate-300 hover:text-white"
                 }`}
                 title="Toggle continuous autonomous node rotation"
               >
@@ -788,8 +789,12 @@ export function EneraNetworkSection() {
           </div>
 
           {/* Quick Node Switcher Bar (Mobile & Desktop Accessible) */}
-          <div className="flex flex-wrap items-center justify-center gap-2 p-3.5 border-t border-white/5 bg-[#050810]/80">
-            <span className="text-[11px] font-mono text-slate-500 mr-2 flex items-center gap-1">
+          <div
+            role="tablist"
+            aria-label="Energy network vertex switcher"
+            className="flex flex-wrap items-center justify-center gap-2 p-3.5 border-t border-white/5 bg-[#050810]/80"
+          >
+            <span className="text-[11px] font-mono text-slate-400 mr-2 flex items-center gap-1">
               <Compass className="h-3 w-3 text-cyan-400" />
               SELECT VERTEX:
             </span>
@@ -798,17 +803,22 @@ export function EneraNetworkSection() {
               return (
                 <button
                   key={n.id}
+                  role="tab"
+                  id={`vertex-tab-${n.id}`}
+                  aria-selected={isSelected}
+                  aria-controls="network-detail-panel"
+                  tabIndex={isSelected ? 0 : -1}
                   onClick={() => setActiveNodeId(n.id)}
                   onMouseEnter={() => handleNodeMouseEnter(n.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-mono font-semibold transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-mono font-semibold transition-all flex items-center gap-1.5 focus-ring-enera ${
                     isSelected
                       ? "bg-cyan-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)] scale-105"
-                      : "bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/10"
+                      : "bg-white/[0.03] hover:bg-white/[0.08] text-slate-300 hover:text-white border border-white/10"
                   }`}
                 >
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${
-                      isSelected ? "bg-slate-950" : "bg-slate-600"
+                      isSelected ? "bg-slate-950" : "bg-slate-500"
                     }`}
                   />
                   <span>{n.label}</span>
@@ -818,7 +828,13 @@ export function EneraNetworkSection() {
           </div>
 
           {/* Live Node Relationship & Signal Transmission Panel */}
-          <div className="p-6 sm:p-8 bg-gradient-to-r from-[#0a0f1c] via-[#0d1424] to-[#0a0f1c] border-t border-white/10 backdrop-blur-xl">
+          <div
+            role="tabpanel"
+            id="network-detail-panel"
+            aria-labelledby={`vertex-tab-${activeNodeId}`}
+            aria-live="polite"
+            className="p-6 sm:p-8 bg-gradient-to-r from-[#0a0f1c] via-[#0d1424] to-[#0a0f1c] border-t border-white/10 backdrop-blur-xl"
+          >
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               {/* Left Column: Active Node Profile & Governing Formula */}
               <div className="lg:col-span-5 space-y-3">
@@ -828,7 +844,7 @@ export function EneraNetworkSection() {
                   >
                     {activeNode.category}
                   </span>
-                  <span className="text-xs font-mono text-slate-500">
+                  <span className="text-xs font-mono text-slate-400">
                     ID: 0x{activeNode.id.toUpperCase()}
                   </span>
                 </div>
@@ -886,7 +902,8 @@ export function EneraNetworkSection() {
                       <button
                         key={rel.targetId}
                         onClick={() => setActiveNodeId(rel.targetId)}
-                        className="text-left p-3 rounded-xl bg-white/[0.03] hover:bg-cyan-950/40 border border-white/5 hover:border-cyan-500/40 transition-all flex items-start gap-2.5 group"
+                        aria-label={`Jump focus to ${targetNode.label}: ${rel.relationshipLabel}`}
+                        className="text-left p-3 rounded-xl bg-white/[0.03] hover:bg-cyan-950/40 border border-white/5 hover:border-cyan-500/40 transition-all flex items-start gap-2.5 group focus-ring-enera"
                       >
                         <div className="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 mt-0.5 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-colors shrink-0">
                           <CornerDownRight className="h-3.5 w-3.5" />

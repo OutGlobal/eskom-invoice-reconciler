@@ -193,35 +193,53 @@ export function EneraDifferenceSection() {
             When utility billing determinants meet certified meter intervals, overcharges have nowhere to hide.
           </p>
 
-          {/* Metric Selector Pills */}
-          <div className="mt-8 inline-flex max-w-full overflow-x-auto scrollbar-none items-center p-1 rounded-xl bg-[#0d1117]/80 border border-white/10 backdrop-blur-md">
-            {(["active", "demand", "reactive"] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveMetric(tab)}
-                className={`px-3 sm:px-4 py-1.5 text-xs font-mono rounded-lg transition-all shrink-0 ${
-                  activeMetric === tab
-                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold shadow-[0_0_12px_rgba(6,182,212,0.2)]"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                <span className="sm:hidden">
-                  {tab === "active" ? "Active" : tab === "demand" ? "Demand" : "Reactive"}
-                </span>
-                <span className="hidden sm:inline">
-                  {tab === "active"
-                    ? "Active Energy (kWh)"
-                    : tab === "demand"
-                    ? "Max Demand (kVA)"
-                    : "Reactive Energy (kVArh)"}
-                </span>
-              </button>
-            ))}
+          {/* Metric Selector Tabs */}
+          <div
+            role="tablist"
+            aria-label="Reconciliation metric comparison selector"
+            className="mt-8 inline-flex max-w-full overflow-x-auto scrollbar-none items-center p-1 rounded-xl bg-[#0d1117]/80 border border-white/10 backdrop-blur-md"
+          >
+            {(["active", "demand", "reactive"] as const).map((tab) => {
+              const isSelected = activeMetric === tab;
+              return (
+                <button
+                  key={tab}
+                  role="tab"
+                  id={`metric-tab-${tab}`}
+                  aria-selected={isSelected}
+                  aria-controls={`metric-panel-${tab}`}
+                  tabIndex={isSelected ? 0 : -1}
+                  onClick={() => setActiveMetric(tab)}
+                  className={`px-3 sm:px-4 py-1.5 text-xs font-mono rounded-lg transition-all shrink-0 focus-ring-enera ${
+                    isSelected
+                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold shadow-[0_0_12px_rgba(6,182,212,0.2)]"
+                      : "text-slate-300 hover:text-white"
+                  }`}
+                >
+                  <span className="sm:hidden">
+                    {tab === "active" ? "Active" : tab === "demand" ? "Demand" : "Reactive"}
+                  </span>
+                  <span className="hidden sm:inline">
+                    {tab === "active"
+                      ? "Active Energy (kWh)"
+                      : tab === "demand"
+                      ? "Max Demand (kVA)"
+                      : "Reactive Energy (kVArh)"}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* 1. Two Large Values: BILLED versus ACTUAL */}
-        <div className="mt-14 max-w-5xl mx-auto">
+        <div
+          role="tabpanel"
+          id={`metric-panel-${activeMetric}`}
+          aria-labelledby={`metric-tab-${activeMetric}`}
+          aria-live="polite"
+          className="mt-14 max-w-5xl mx-auto"
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-stretch relative">
             {/* BILLED Card */}
             <div className="group relative rounded-3xl bg-[#0d1117]/90 border border-white/10 p-7 sm:p-10 flex flex-col justify-between shadow-2xl enera-glass hover:border-white/20 transition-all">
@@ -244,14 +262,14 @@ export function EneraDifferenceSection() {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-slate-500">
+              <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-slate-400">
                 <span>ACCOUNT: 9021-4819-2041</span>
                 <span>RATE MULTIPLIER STATED</span>
               </div>
             </div>
 
             {/* Visual Comparison Bridge (Desktop Central Indicator) */}
-            <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-[#030712] border border-cyan-500/40 items-center justify-center shadow-[0_0_25px_rgba(6,182,212,0.4)]">
+            <div aria-hidden="true" className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-[#030712] border border-cyan-500/40 items-center justify-center shadow-[0_0_25px_rgba(6,182,212,0.4)]">
               <span className="text-xs font-mono font-extrabold text-cyan-300">VS</span>
             </div>
 
@@ -284,7 +302,7 @@ export function EneraDifferenceSection() {
           </div>
 
           {/* 2. Elegant SVG Visual Connection Between the Two Datasets */}
-          <div className="my-6 flex justify-center">
+          <div className="my-6 flex justify-center" aria-hidden="true">
             <svg
               className="w-full max-w-lg h-16 overflow-visible pointer-events-none"
               viewBox="0 0 400 60"

@@ -380,11 +380,12 @@ export function EneraCopilotSection() {
               <button
                 type="button"
                 onClick={toggleAutoPlay}
+                aria-label={isAutoPlaying ? "Pause automated query cycle" : "Resume automated query cycle"}
                 title={isAutoPlaying ? "Pause auto-rotation" : "Resume auto-rotation"}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] transition-colors ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded border text-[11px] transition-colors focus-ring-enera ${
                   isAutoPlaying
                     ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20"
-                    : "bg-white/5 border-white/10 text-slate-400 hover:text-slate-200"
+                    : "bg-white/5 border-white/10 text-slate-300 hover:text-white"
                 }`}
               >
                 {isAutoPlaying ? (
@@ -400,7 +401,7 @@ export function EneraCopilotSection() {
                 )}
               </button>
 
-              <span className="text-slate-500 hidden sm:inline">|</span>
+              <span className="text-slate-500 hidden sm:inline" aria-hidden="true">|</span>
               <span className="text-[11px] text-cyan-400/90 hidden md:inline">LATENCY: 42ms</span>
             </div>
           </div>
@@ -441,13 +442,30 @@ export function EneraCopilotSection() {
                     <button
                       key={q.question}
                       role="tab"
+                      id={`copilot-tab-${idx}`}
+                      aria-controls="copilot-panel"
                       aria-selected={isSelected}
-                      tabIndex={0}
+                      tabIndex={isSelected ? 0 : -1}
                       onClick={() => handleSelectQuery(idx)}
-                      className={`w-full text-left p-3 rounded-xl text-xs transition-all relative overflow-hidden flex flex-col gap-1.5 group ${
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+                          e.preventDefault();
+                          handleSelectQuery((idx + 1) % QUERIES.length);
+                        } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+                          e.preventDefault();
+                          handleSelectQuery((idx - 1 + QUERIES.length) % QUERIES.length);
+                        } else if (e.key === "Home") {
+                          e.preventDefault();
+                          handleSelectQuery(0);
+                        } else if (e.key === "End") {
+                          e.preventDefault();
+                          handleSelectQuery(QUERIES.length - 1);
+                        }
+                      }}
+                      className={`w-full text-left p-3 rounded-xl text-xs transition-all relative overflow-hidden flex flex-col gap-1.5 group focus-ring-enera ${
                         isSelected
                           ? "bg-gradient-to-r from-cyan-500/15 to-transparent border border-cyan-500/40 text-white shadow-[0_0_20px_rgba(6,182,212,0.15)]"
-                          : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.03] border border-transparent"
+                          : "text-slate-300 hover:text-white hover:bg-white/[0.03] border border-transparent"
                       }`}
                     >
                       {/* Active indicator border highlight */}
@@ -472,7 +490,7 @@ export function EneraCopilotSection() {
                           className={`h-3.5 w-3.5 mt-0.5 shrink-0 transition-transform ${
                             isSelected
                               ? "text-cyan-400 translate-x-0.5"
-                              : "text-slate-600 group-hover:text-slate-400"
+                              : "text-slate-500 group-hover:text-slate-300"
                           }`}
                         />
                         <span className={`leading-snug ${isSelected ? "font-medium text-slate-100" : ""}`}>
@@ -485,17 +503,26 @@ export function EneraCopilotSection() {
               </div>
 
               {/* Console Prompt Quick Hint */}
-              <div className="pt-2 px-2 text-[11px] font-mono text-slate-500 flex items-center justify-between border-t border-white/5">
-                <span>Select a query to test instant synthesis</span>
-                <span className="text-cyan-400/60 font-semibold">{selectedIdx + 1} / {QUERIES.length}</span>
+              <div className="pt-2 px-2 text-[11px] font-mono text-slate-400 flex items-center justify-between border-t border-white/5">
+                <span>Select a query or use arrow keys</span>
+                <span className="text-cyan-400/80 font-semibold">{selectedIdx + 1} / {QUERIES.length}</span>
               </div>
             </div>
 
             {/* Right Column: AI Intelligence Synthesis Engine */}
-            <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between bg-gradient-to-b from-transparent to-[#0a0e17]/80">
+            <div
+              role="tabpanel"
+              id="copilot-panel"
+              aria-labelledby={`copilot-tab-${selectedIdx}`}
+              aria-live="polite"
+              className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between bg-gradient-to-b from-transparent to-[#0a0e17]/80"
+            >
               <div>
                 {/* Active Terminal Input Line Simulation */}
-                <div className="mb-6 p-3.5 rounded-xl bg-black/40 border border-white/10 font-mono text-xs text-cyan-300 flex items-center gap-2 overflow-x-auto">
+                <div
+                  className="mb-6 p-3.5 rounded-xl bg-black/40 border border-white/10 font-mono text-xs text-cyan-300 flex items-center gap-2 overflow-x-auto"
+                  aria-label={`Prompt: ${cur.question}`}
+                >
                   <span className="text-emerald-400 font-bold select-none">&gt;</span>
                   <span className="text-slate-500 select-none">enera.ask(</span>
                   <span className="text-cyan-200 flex-1 whitespace-normal">
@@ -627,7 +654,7 @@ export function EneraCopilotSection() {
 
                 <Link
                   to="/reconciliation"
-                  className="inline-flex items-center gap-1.5 text-cyan-300 hover:text-cyan-200 bg-cyan-500/10 hover:bg-cyan-500/20 px-3 py-1.5 rounded-lg border border-cyan-500/30 transition-all font-sans font-medium text-xs group"
+                  className="inline-flex items-center gap-1.5 text-cyan-300 hover:text-cyan-200 bg-cyan-500/10 hover:bg-cyan-500/20 px-3 py-1.5 rounded-lg border border-cyan-500/30 transition-all font-sans font-medium text-xs group focus-ring-enera"
                 >
                   <span>Query In Live Portal</span>
                   <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />

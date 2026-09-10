@@ -358,7 +358,8 @@ export function EneraFinalCtaSection() {
           {/* Primary CTA: Analyse Your Energy → */}
           <Link
             to="/upload"
-            className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-3 min-h-[48px] px-8 py-3.5 sm:py-4.5 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 shadow-[0_0_40px_rgba(6,182,212,0.45)] hover:brightness-110 active:scale-[0.98] transition-all overflow-hidden font-mono"
+            aria-label="Analyse Your Energy and start reconciliation upload"
+            className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-3 min-h-[48px] px-8 py-3.5 sm:py-4.5 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 shadow-[0_0_40px_rgba(6,182,212,0.45)] hover:brightness-110 active:scale-[0.98] transition-all overflow-hidden font-mono focus-ring-enera"
           >
             <span>Analyse Your Energy</span>
             <div className="relative flex items-center justify-center">
@@ -373,12 +374,13 @@ export function EneraFinalCtaSection() {
           {/* Secondary CTA: Request a Demo → */}
           <button
             type="button"
+            aria-controls="demo-request-box"
             onClick={() => {
               setShowDemoForm(true);
               const formElement = document.getElementById("demo-request-box");
               formElement?.scrollIntoView({ behavior: "smooth" });
             }}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4.5 rounded-2xl font-semibold text-sm text-slate-200 hover:text-white border border-white/10 hover:border-cyan-400/40 bg-white/[0.04] hover:bg-white/[0.08] backdrop-blur-md transition-all font-mono group shadow-lg"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4.5 rounded-2xl font-semibold text-sm text-slate-200 hover:text-white border border-white/10 hover:border-cyan-400/40 bg-white/[0.04] hover:bg-white/[0.08] backdrop-blur-md transition-all font-mono group shadow-lg focus-ring-enera"
           >
             <Calendar className="h-4 w-4 text-cyan-400 group-hover:scale-110 transition-transform" />
             <span>Request a Demo</span>
@@ -392,51 +394,54 @@ export function EneraFinalCtaSection() {
             <div className="p-6 sm:p-8 rounded-3xl bg-[#0d1117]/90 border border-cyan-500/25 backdrop-blur-xl shadow-[0_0_60px_-15px_rgba(6,182,212,0.2)] text-left">
               <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-5">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                  <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" aria-hidden="true" />
                   <span className="text-xs font-mono uppercase text-cyan-300 font-bold tracking-wider">
                     EXECUTIVE DEMO &amp; PORTFOLIO AUDIT BRIEFING
                   </span>
                 </div>
-                <span className="text-[10px] font-mono text-slate-500">2-HR RESPONSE SLA</span>
+                <span className="text-[10px] font-mono text-slate-400">2-HR RESPONSE SLA</span>
               </div>
 
-              <form onSubmit={handleDemoSubmit} className="space-y-4">
+              <form onSubmit={handleDemoSubmit} className="space-y-4" aria-label="Executive demo request form">
                 <div>
-                  <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">
+                  <label htmlFor="demo-email" className="block text-xs font-mono text-slate-300 mb-1.5 uppercase">
                     Work Email
                   </label>
                   <input
+                    id="demo-email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="cfo@enterprise.co.za"
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-mono"
+                    className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus-ring-enera font-mono"
                     required
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">
+                    <label htmlFor="demo-company" className="block text-xs font-mono text-slate-300 mb-1.5 uppercase">
                       Company / Facility
                     </label>
                     <input
+                      id="demo-company"
                       type="text"
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
                       placeholder="e.g. Rand Mining Corp"
-                      className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-mono"
+                      className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus-ring-enera font-mono"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-mono text-slate-400 mb-1.5 uppercase">
+                    <label htmlFor="demo-spend" className="block text-xs font-mono text-slate-300 mb-1.5 uppercase">
                       Monthly Electricity Spend
                     </label>
                     <select
+                      id="demo-spend"
                       value={monthlySpend}
                       onChange={(e) => setMonthlySpend(e.target.value)}
-                      className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-cyan-500 font-mono"
+                      className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white focus-ring-enera font-mono"
                     >
                       <option value="R 500K – R 1M">R 500K – R 1M / mo</option>
                       <option value="R 1M – R 5M">R 1M – R 5M / mo</option>
@@ -448,7 +453,7 @@ export function EneraFinalCtaSection() {
 
                 <button
                   type="submit"
-                  className="w-full mt-2 py-3 px-5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono font-bold text-xs transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center justify-center gap-2 group"
+                  className="w-full mt-2 py-3 px-5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono font-bold text-xs transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center justify-center gap-2 group focus-ring-enera"
                 >
                   <span>SCHEDULE EXECUTIVE DEMONSTRATION</span>
                   <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -456,7 +461,11 @@ export function EneraFinalCtaSection() {
               </form>
             </div>
           ) : (
-            <div className="p-6 rounded-3xl bg-emerald-950/40 border border-emerald-500/40 flex items-center justify-center gap-3 text-xs font-mono text-emerald-300 shadow-[0_0_30px_rgba(16,185,129,0.25)] animate-in fade-in">
+            <div
+              role="status"
+              aria-live="polite"
+              className="p-6 rounded-3xl bg-emerald-950/40 border border-emerald-500/40 flex items-center justify-center gap-3 text-xs font-mono text-emerald-300 shadow-[0_0_30px_rgba(16,185,129,0.25)] animate-in fade-in"
+            >
               <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
               <div className="text-left">
                 <div className="font-bold text-white text-sm">Demo Request Confirmed</div>

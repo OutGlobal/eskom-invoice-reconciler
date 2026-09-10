@@ -19,7 +19,11 @@ export function EneraFooter() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-12 pb-14 border-b border-white/10 items-start">
           {/* Brand Column (4 cols) */}
           <div className="md:col-span-4 space-y-4">
-            <Link to="/" className="inline-flex items-center gap-3 group">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-3 group focus-ring-enera rounded-lg"
+              aria-label="ENERA Energy Financial Intelligence homepage"
+            >
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-950/80 border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.3)] group-hover:border-cyan-400 transition-colors">
                 <span className="font-mono text-sm font-bold text-cyan-400">E</span>
               </div>
@@ -32,87 +36,87 @@ export function EneraFooter() {
               Energy Financial Intelligence
             </div>
 
-            <p className="text-xs text-slate-400 max-w-sm leading-relaxed font-sans">
+            <p className="text-xs text-slate-300 max-w-sm leading-relaxed font-sans">
               Autonomous electricity invoice reconciliation and deterministic energy financial
               governance for commercial and industrial enterprises.
             </p>
 
             <div className="pt-1 flex items-center gap-2 text-[11px] font-mono text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />
               <span>SANS 474 &amp; 2024/2025 NERSA Tariffs Active</span>
             </div>
           </div>
 
           {/* Navigation Column (2 cols) */}
-          <div className="md:col-span-2 space-y-3">
-            <span className="text-xs font-mono uppercase text-slate-300 tracking-wider font-semibold block">
+          <nav className="md:col-span-2 space-y-3" aria-label="Footer Platform Navigation">
+            <span className="text-xs font-mono uppercase text-slate-200 tracking-wider font-semibold block">
               Navigation
             </span>
-            <ul className="space-y-2.5 text-xs text-slate-400 font-sans">
+            <ul className="space-y-2.5 text-xs text-slate-300 font-sans">
               <li>
-                <a href="#platform" className="hover:text-cyan-300 transition-colors">
+                <a href="#platform" className="hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Platform
                 </a>
               </li>
               <li>
-                <a href="#intelligence" className="hover:text-cyan-300 transition-colors">
+                <a href="#intelligence" className="hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Intelligence
                 </a>
               </li>
               <li>
-                <a href="#reconciliation" className="hover:text-cyan-300 transition-colors">
+                <a href="#reconciliation" className="hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Reconciliation
                 </a>
               </li>
               <li>
-                <a href="#insights" className="hover:text-cyan-300 transition-colors">
+                <a href="#insights" className="hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Insights
                 </a>
               </li>
               <li>
-                <a href="#security" className="hover:text-cyan-300 transition-colors">
+                <a href="#security" className="hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Security
                 </a>
               </li>
             </ul>
-          </div>
+          </nav>
 
           {/* Company Column (2 cols) */}
-          <div className="md:col-span-2 space-y-3">
-            <span className="text-xs font-mono uppercase text-slate-300 tracking-wider font-semibold block">
+          <nav className="md:col-span-2 space-y-3" aria-label="Footer Company Navigation">
+            <span className="text-xs font-mono uppercase text-slate-200 tracking-wider font-semibold block">
               Company
             </span>
-            <ul className="space-y-2.5 text-xs text-slate-400 font-sans">
+            <ul className="space-y-2.5 text-xs text-slate-300 font-sans">
               <li>
-                <a href="#ecosystem" className="hover:text-cyan-300 transition-colors">
+                <a href="#ecosystem" className="hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   About
                 </a>
               </li>
               <li>
-                <a href="#contact" className="hover:text-cyan-300 transition-colors">
+                <a href="#contact" className="hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Contact
                 </a>
               </li>
               <li>
-                <span className="hover:text-slate-300 cursor-pointer transition-colors">
+                <a href="#privacy" className="hover:text-slate-200 transition-colors focus-ring-enera rounded">
                   Privacy
-                </span>
+                </a>
               </li>
               <li>
-                <span className="hover:text-slate-300 cursor-pointer transition-colors">
+                <a href="#terms" className="hover:text-slate-200 transition-colors focus-ring-enera rounded">
                   Terms
-                </span>
+                </a>
               </li>
             </ul>
-          </div>
+          </nav>
 
           {/* Primary CTA Column (4 cols) */}
           <div className="md:col-span-4 space-y-4 rounded-2xl bg-white/[0.02] border border-white/5 p-6 backdrop-blur-sm">
             <div className="space-y-1">
-              <span className="text-xs font-mono uppercase text-slate-300 tracking-wider font-semibold block">
+              <span className="text-xs font-mono uppercase text-slate-200 tracking-wider font-semibold block">
                 Instant Verification
               </span>
-              <p className="text-xs text-slate-400 font-sans">
+              <p className="text-xs text-slate-300 font-sans">
                 Audit your facility&rsquo;s latest Eskom or municipal electricity statement.
               </p>
             </div>
@@ -121,7 +125,7 @@ export function EneraFooter() {
               {/* Primary CTA: Analyse a Bill → */}
               <Link
                 to="/upload"
-                className="w-full inline-flex items-center justify-center gap-2 py-3 px-5 rounded-xl font-bold text-xs text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 shadow-[0_0_25px_rgba(6,182,212,0.35)] hover:brightness-110 active:scale-[0.98] transition-all font-mono group"
+                className="w-full inline-flex items-center justify-center gap-2 py-3 px-5 rounded-xl font-bold text-xs text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 shadow-[0_0_25px_rgba(6,182,212,0.35)] hover:brightness-110 active:scale-[0.98] transition-all font-mono group focus-ring-enera"
               >
                 <span>Analyse a Bill</span>
                 <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
@@ -130,7 +134,7 @@ export function EneraFooter() {
               <div className="text-center pt-1">
                 <Link
                   to="/login"
-                  className="inline-flex items-center gap-1.5 text-[11px] font-mono text-slate-400 hover:text-cyan-300 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-mono text-slate-300 hover:text-cyan-300 transition-colors focus-ring-enera rounded px-1.5 py-0.5"
                 >
                   <ShieldCheck className="h-3 w-3 text-cyan-400" />
                   <span>Authorized Portal Sign In →</span>
@@ -141,15 +145,15 @@ export function EneraFooter() {
         </div>
 
         {/* Minimal Bottom Bar */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-500">
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-400">
           <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span className="text-slate-400">ENERA OPERATIONAL · 42ms LATENCY</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
+            <span className="text-slate-300">ENERA OPERATIONAL · 42ms LATENCY</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-4 text-slate-400">
             <span>&copy; {new Date().getFullYear()} ENERA. All rights reserved.</span>
-            <span>&middot;</span>
+            <span aria-hidden="true">&middot;</span>
             <span>POPIA &amp; ISO 27001 Compliant</span>
           </div>
         </div>

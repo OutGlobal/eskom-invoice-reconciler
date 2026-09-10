@@ -274,20 +274,25 @@ export function EneraImpactSection() {
             </div>
 
             {/* Benchmark Spend Presets */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              {PRESETS.map((p) => (
-                <button
-                  key={p.value}
-                  onClick={() => setMonthlySpend(p.value)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all ${
-                    monthlySpend === p.value
-                      ? "bg-cyan-500 text-slate-950 font-bold shadow-[0_0_15px_rgba(6,182,212,0.4)]"
-                      : "bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Spend benchmark presets">
+              {PRESETS.map((p) => {
+                const isActive = monthlySpend === p.value;
+                return (
+                  <button
+                    key={p.value}
+                    type="button"
+                    aria-pressed={isActive}
+                    onClick={() => setMonthlySpend(p.value)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all focus-ring-enera ${
+                      isActive
+                        ? "bg-cyan-500 text-slate-950 font-bold shadow-[0_0_15px_rgba(6,182,212,0.4)]"
+                        : "bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -296,22 +301,31 @@ export function EneraImpactSection() {
             <div className="lg:col-span-6 space-y-5">
               <div>
                 <div className="flex items-center justify-between text-xs font-mono text-slate-400 mb-2">
-                  <span>SAMPLE MONTHLY UTILITY SPEND</span>
-                  <span className="text-cyan-400 font-bold text-sm">{formatZar(monthlySpend)} / mo</span>
+                  <label htmlFor="spend-slider" id="spend-slider-label">
+                    SAMPLE MONTHLY UTILITY SPEND
+                  </label>
+                  <span className="text-cyan-400 font-bold text-sm" aria-live="polite">
+                    {formatZar(monthlySpend)} / mo
+                  </span>
                 </div>
 
                 <input
+                  id="spend-slider"
                   type="range"
                   min={500_000}
                   max={25_000_000}
                   step={250_000}
                   value={monthlySpend}
+                  aria-labelledby="spend-slider-label"
+                  aria-valuenow={monthlySpend}
+                  aria-valuemin={500_000}
+                  aria-valuemax={25_000_000}
+                  aria-valuetext={`${formatZar(monthlySpend)} per month`}
                   onChange={(e) => setMonthlySpend(Number(e.target.value))}
-                  className="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
-                  aria-label="Monthly spend simulation slider"
+                  className="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 focus-ring-enera"
                 />
 
-                <div className="flex justify-between text-[10px] font-mono text-slate-500 mt-1.5">
+                <div className="flex justify-between text-[10px] font-mono text-slate-400 mt-1.5" aria-hidden="true">
                   <span>R 500K</span>
                   <span>R 10M</span>
                   <span>R 25M+</span>
@@ -336,7 +350,10 @@ export function EneraImpactSection() {
             </div>
 
             {/* Right Column: Estimated Recovery Breakdown */}
-            <div className="lg:col-span-6 p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-emerald-950/30 via-[#0b1319] to-cyan-950/20 border border-emerald-500/30 space-y-5">
+            <div
+              aria-live="polite"
+              className="lg:col-span-6 p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-emerald-950/30 via-[#0b1319] to-cyan-950/20 border border-emerald-500/30 space-y-5"
+            >
               <div>
                 <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-semibold block">
                   PROJECTED ANNUAL RECOVERY (5.1% BENCHMARK SAMPLE)
@@ -379,7 +396,7 @@ export function EneraImpactSection() {
               <div className="pt-2">
                 <Link
                   to="/upload"
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-bold text-xs font-mono flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(16,185,129,0.3)] transition-all group"
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-bold text-xs font-mono flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(16,185,129,0.3)] transition-all group focus-ring-enera"
                 >
                   <Sparkles className="h-4 w-4" />
                   <span>AUDIT YOUR FIRST REAL INVOICE WITH ENERA</span>
@@ -391,7 +408,7 @@ export function EneraImpactSection() {
         </div>
 
         {/* Clear Legal / Demo Footnote */}
-        <div className="mt-8 text-center text-xs font-mono text-slate-500 max-w-2xl mx-auto leading-relaxed">
+        <div className="mt-8 text-center text-xs font-mono text-slate-400 max-w-2xl mx-auto leading-relaxed">
           * Disclaimer: The statistics above reflect sample demonstration values based on an illustrative benchmark dataset modeled from South African C&I manufacturing, cold-chain, and mining profiles. They do not claim to represent any specific real customer confidential data.
         </div>
       </div>

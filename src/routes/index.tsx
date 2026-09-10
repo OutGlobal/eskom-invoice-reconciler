@@ -78,11 +78,19 @@ export const Route = createFileRoute("/")({
 function EneraLandingPage() {
   return (
     <div className="min-h-screen bg-[#030712] text-white selection:bg-cyan-500/30 selection:text-cyan-200 font-sans antialiased overflow-x-hidden">
+      {/* Keyboard Accessibility Skip Link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:top-4 focus:left-4 focus:z-[100] focus:bg-cyan-400 focus:text-slate-950 focus:font-mono focus:font-bold focus:rounded-lg focus:shadow-2xl focus:border focus:border-cyan-300 focus:ring-4 focus:ring-cyan-500/40"
+      >
+        Skip to main content
+      </a>
+
       {/* 1. Transparent-to-blur Sticky Navigation */}
       <EneraNav />
 
       {/* 2. Main Narrative Progression */}
-      <main>
+      <main id="main-content" tabIndex={-1} className="outline-none" aria-label="ENERA Platform Narrative">
         {/* Stage 3-7: Cinematic Hero with Canvas Particle Engine & Controlled Scene Loop */}
         <EneraHeroSection />
 

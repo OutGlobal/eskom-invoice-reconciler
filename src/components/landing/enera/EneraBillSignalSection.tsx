@@ -228,13 +228,19 @@ export function EneraBillSignalSection() {
           </div>
 
           {/* Interactive Decoding Scrubber Bar */}
-          <div className="mt-8 inline-flex max-w-full overflow-x-auto scrollbar-none items-center gap-2 sm:gap-3 p-1.5 rounded-xl bg-[#0d1117]/80 border border-white/10 backdrop-blur-md">
+          <div
+            role="tablist"
+            aria-label="Bill decoding progression stages"
+            className="mt-8 inline-flex max-w-full overflow-x-auto scrollbar-none items-center gap-2 sm:gap-3 p-1.5 rounded-xl bg-[#0d1117]/80 border border-white/10 backdrop-blur-md"
+          >
             <button
+              role="tab"
+              aria-selected={scrollProgress < 0.25}
               onClick={() => {
                 setIsManualScrub(true);
                 setScrollProgress(0.15);
               }}
-              className={`px-2.5 sm:px-3 py-1 text-xs font-mono rounded-lg transition-all shrink-0 ${
+              className={`px-2.5 sm:px-3 py-1 text-xs font-mono rounded-lg transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
                 scrollProgress < 0.25
                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold"
                   : "text-slate-400 hover:text-white"
@@ -244,11 +250,13 @@ export function EneraBillSignalSection() {
               <span className="hidden sm:inline">1. Assembled Invoice</span>
             </button>
             <button
+              role="tab"
+              aria-selected={scrollProgress >= 0.25 && scrollProgress < 0.7}
               onClick={() => {
                 setIsManualScrub(true);
                 setScrollProgress(0.55);
               }}
-              className={`px-2.5 sm:px-3 py-1 text-xs font-mono rounded-lg transition-all shrink-0 ${
+              className={`px-2.5 sm:px-3 py-1 text-xs font-mono rounded-lg transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
                 scrollProgress >= 0.25 && scrollProgress < 0.7
                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold"
                   : "text-slate-400 hover:text-white"
@@ -258,11 +266,13 @@ export function EneraBillSignalSection() {
               <span className="hidden sm:inline">2. Separating Elements</span>
             </button>
             <button
+              role="tab"
+              aria-selected={scrollProgress >= 0.7}
               onClick={() => {
                 setIsManualScrub(true);
                 setScrollProgress(0.85);
               }}
-              className={`px-2.5 sm:px-3 py-1 text-xs font-mono rounded-lg transition-all shrink-0 ${
+              className={`px-2.5 sm:px-3 py-1 text-xs font-mono rounded-lg transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
                 scrollProgress >= 0.7
                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold"
                   : "text-slate-400 hover:text-white"
@@ -274,7 +284,8 @@ export function EneraBillSignalSection() {
             {isManualScrub && (
               <button
                 onClick={() => setIsManualScrub(false)}
-                className="text-[10px] font-mono text-cyan-400/80 underline px-2 hover:text-cyan-300 shrink-0"
+                className="text-[10px] font-mono text-cyan-400/80 underline px-2 hover:text-cyan-300 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+                aria-label="Reset manual scrubber back to scroll-driven progression"
               >
                 Reset
               </button>
@@ -328,8 +339,18 @@ export function EneraBillSignalSection() {
                   return (
                     <div
                       key={el.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={isSelected}
+                      aria-label={`Determinant ${el.name}: ${el.invoiceValue}, category ${el.category}. Status: ${isSeparated ? "Decoded into vector" : "Attached to invoice"}`}
                       onClick={() => setSelectedElementId(el.id)}
-                      className={`group relative p-3 rounded-xl cursor-pointer transition-all duration-300 border ${
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelectedElementId(el.id);
+                        }
+                      }}
+                      className={`group relative p-3 rounded-xl cursor-pointer transition-all duration-300 border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
                         isSelected
                           ? "bg-cyan-950/40 border-cyan-500/50 shadow-[0_0_20px_-5px_rgba(6,182,212,0.3)]"
                           : isSeparated

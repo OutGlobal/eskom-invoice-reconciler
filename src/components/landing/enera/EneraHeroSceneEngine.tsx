@@ -68,9 +68,9 @@ export function EneraHeroSceneEngine() {
     return () => observer.disconnect();
   }, []);
 
-  // Controlled timed progression cycle (4-7 seconds per scene) with smooth cross-dissolve
+  // Controlled timed progression cycle (4-7 seconds per scene) with smooth cross-dissolve (Paused on reduced-motion)
   useEffect(() => {
-    if (!isAutoPlaying || !isInView) return;
+    if (!isAutoPlaying || !isInView || reducedMotion) return;
 
     const currentMeta = SCENES.find((s) => s.id === activeScene) || SCENES[0];
 
@@ -86,7 +86,7 @@ export function EneraHeroSceneEngine() {
       if (timerRef.current) clearTimeout(timerRef.current);
       if (subTimerRef.current) clearTimeout(subTimerRef.current);
     };
-  }, [activeScene, isAutoPlaying, isInView]);
+  }, [activeScene, isAutoPlaying, isInView, reducedMotion]);
 
   const handleSelectScene = (sceneId: SceneId) => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -119,14 +119,20 @@ export function EneraHeroSceneEngine() {
         </div>
 
         {/* Scene Selector Pills with Touch-Friendly Scroll */}
-        <div className="flex items-center gap-1 overflow-x-auto max-w-full py-1 scrollbar-none -mx-1 px-1">
+        <div
+          role="tablist"
+          aria-label="Demonstration scene stages"
+          className="flex items-center gap-1 overflow-x-auto max-w-full py-1 scrollbar-none -mx-1 px-1"
+        >
           {SCENES.map((scene) => {
             const isActive = activeScene === scene.id;
             return (
               <button
                 key={scene.id}
+                role="tab"
+                aria-selected={isActive}
                 onClick={() => handleSelectScene(scene.id)}
-                className={`min-h-[28px] px-2.5 py-1 text-[10px] font-mono rounded-md transition-all whitespace-nowrap active:scale-95 ${
+                className={`min-h-[28px] px-2.5 py-1 text-[10px] font-mono rounded-md transition-all whitespace-nowrap active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
                   isActive
                     ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold shadow-[0_0_12px_rgba(6,182,212,0.25)]"
                     : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]"
@@ -142,6 +148,10 @@ export function EneraHeroSceneEngine() {
 
       {/* Main Scene Presentation Chamber with Smooth Opacity Transitions */}
       <div
+        role="tabpanel"
+        aria-live="polite"
+        aria-atomic="true"
+        aria-label={`Active Scene: ${SCENES.find((s) => s.id === activeScene)?.label}`}
         className={`p-4 sm:p-6 md:p-8 min-h-[280px] sm:min-h-[310px] flex items-center justify-center transition-opacity duration-300 ${
           isTransitioning
             ? "opacity-0"

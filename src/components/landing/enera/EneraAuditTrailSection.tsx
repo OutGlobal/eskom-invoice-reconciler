@@ -242,7 +242,11 @@ export function EneraAuditTrailSection() {
           </div>
 
           {/* Desktop & Tablet Sequential Step Flow with Downward/Forward Arrows */}
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-2">
+          <div
+            role="tablist"
+            aria-label="Cryptographic lineage pipeline stages"
+            className="flex flex-col lg:flex-row items-center justify-between gap-2"
+          >
             {AUDIT_STEPS.map((s, idx) => {
               const isSelected = activeStep === s.step;
               const isPassed = activeStep > s.step;
@@ -251,8 +255,14 @@ export function EneraAuditTrailSection() {
               return (
                 <React.Fragment key={s.step}>
                   <button
+                    type="button"
+                    role="tab"
+                    id={`audit-node-${s.step}`}
+                    aria-controls="audit-node-panel"
+                    aria-selected={isSelected}
+                    tabIndex={isSelected ? 0 : -1}
                     onClick={() => setActiveStep(s.step)}
-                    className={`w-full lg:w-auto flex-1 p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+                    className={`w-full lg:w-auto flex-1 p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between focus-ring-enera ${
                       isSelected
                         ? "bg-gradient-to-b from-cyan-950/70 to-[#0d1117] border-cyan-500/70 shadow-[0_0_25px_rgba(6,182,212,0.35)] scale-[1.03]"
                         : isPassed
@@ -267,7 +277,7 @@ export function EneraAuditTrailSection() {
                             ? "text-cyan-400"
                             : isPassed
                               ? "text-emerald-400"
-                              : "text-slate-500"
+                              : "text-slate-400"
                         }`}
                       >
                         0{s.step}
@@ -275,7 +285,7 @@ export function EneraAuditTrailSection() {
                       {isPassed ? (
                         <Check className="h-3 w-3 text-emerald-400" />
                       ) : (
-                        <Icon className={`h-3 w-3 ${isSelected ? "text-cyan-400" : "text-slate-600"}`} />
+                        <Icon className={`h-3 w-3 ${isSelected ? "text-cyan-400" : "text-slate-400"}`} />
                       )}
                     </div>
 
@@ -289,16 +299,15 @@ export function EneraAuditTrailSection() {
 
                   {/* Downward/Forward Connector Arrow (↓) */}
                   {idx < AUDIT_STEPS.length - 1 && (
-                    <div className="flex items-center justify-center py-1 lg:py-0 lg:px-1">
+                    <div className="flex items-center justify-center py-1 lg:py-0 lg:px-1" aria-hidden="true">
                       <span
                         className={`text-sm font-bold font-mono transition-colors ${
                           activeStep > s.step
                             ? "text-emerald-400"
                             : activeStep === s.step
                               ? "text-cyan-400 animate-pulse"
-                              : "text-slate-700"
+                              : "text-slate-600"
                         }`}
-                        title="Lineage transition"
                       >
                         <span className="hidden lg:inline">→</span>
                         <span className="lg:hidden">↓</span>
@@ -312,7 +321,13 @@ export function EneraAuditTrailSection() {
         </div>
 
         {/* Active Node Deep-Dive Proof Console */}
-        <div className="rounded-3xl bg-[#0d1117] border border-cyan-500/30 p-6 sm:p-10 relative overflow-hidden shadow-[0_0_80px_-20px_rgba(6,182,212,0.2)]">
+        <div
+          role="tabpanel"
+          id="audit-node-panel"
+          aria-labelledby={`audit-node-${activeStep}`}
+          aria-live="polite"
+          className="rounded-3xl bg-[#0d1117] border border-cyan-500/30 p-6 sm:p-10 relative overflow-hidden shadow-[0_0_80px_-20px_rgba(6,182,212,0.2)]"
+        >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
             <div>
               <div className="flex items-center gap-2">
@@ -348,8 +363,10 @@ export function EneraAuditTrailSection() {
                   IMMUTABLE HASH CHAIN LINK (BLOCK #{cur.step})
                 </span>
                 <button
+                  type="button"
                   onClick={handleCopyHash}
-                  className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition-colors"
+                  aria-label={copiedHash ? "Hash copied to clipboard" : "Copy current cryptographic hash to clipboard"}
+                  className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition-colors focus-ring-enera px-1.5 py-0.5 rounded"
                 >
                   <Copy className="h-3 w-3" />
                   <span>{copiedHash ? "COPIED" : "COPY HASH"}</span>
@@ -358,15 +375,15 @@ export function EneraAuditTrailSection() {
 
               <div className="space-y-1.5 pt-1 text-[11px]">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-slate-400 min-w-0">
-                  <span className="text-slate-500 shrink-0 font-bold">PREVIOUS_HASH:</span>
+                  <span className="text-slate-400 shrink-0 font-bold">PREVIOUS_HASH:</span>
                   <span className="text-slate-300 break-all sm:truncate font-mono">{cur.prevHash}</span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-cyan-300 min-w-0">
-                  <span className="text-cyan-500 shrink-0 font-bold">CURRENT_HASH:</span>
+                  <span className="text-cyan-400 shrink-0 font-bold">CURRENT_HASH:</span>
                   <span className="font-bold break-all sm:truncate font-mono">{cur.currentHash}</span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-slate-400 pt-1.5 border-t border-white/5 min-w-0">
-                  <span className="text-slate-500 shrink-0 font-bold">PAYLOAD_PROOF:</span>
+                  <span className="text-slate-400 shrink-0 font-bold">PAYLOAD_PROOF:</span>
                   <span className="text-emerald-300 break-all sm:truncate font-mono">{cur.verification}</span>
                 </div>
               </div>
@@ -375,7 +392,7 @@ export function EneraAuditTrailSection() {
             {/* Governance Standard Badges */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
               <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-xs text-slate-300">
-                <span className="text-[10px] font-mono text-slate-500 uppercase block">
+                <span className="text-[10px] font-mono text-slate-400 uppercase block">
                   GOVERNANCE STANDARD
                 </span>
                 <span className="font-semibold text-white font-mono mt-1 block">
@@ -384,7 +401,7 @@ export function EneraAuditTrailSection() {
               </div>
 
               <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-xs text-slate-300">
-                <span className="text-[10px] font-mono text-slate-500 uppercase block">
+                <span className="text-[10px] font-mono text-slate-400 uppercase block">
                   STATUTORY BASIS
                 </span>
                 <span className="font-semibold text-white font-mono mt-1 block truncate">
@@ -393,7 +410,7 @@ export function EneraAuditTrailSection() {
               </div>
 
               <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-xs text-slate-300">
-                <span className="text-[10px] font-mono text-slate-500 uppercase block">
+                <span className="text-[10px] font-mono text-slate-400 uppercase block">
                   AUDIT PERSISTENCE
                 </span>
                 <span className="font-semibold text-white font-mono mt-1 block">
@@ -406,18 +423,22 @@ export function EneraAuditTrailSection() {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-5 border-t border-white/10">
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   disabled={activeStep === 1}
                   onClick={() => setActiveStep((prev) => Math.max(1, prev - 1))}
-                  className="px-3 py-1.5 rounded-lg text-xs font-mono border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center gap-1"
+                  aria-label="Navigate to previous lineage node"
+                  className="px-3 py-1.5 rounded-lg text-xs font-mono border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center gap-1 focus-ring-enera"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
                   <span>PREVIOUS NODE</span>
                 </button>
 
                 <button
+                  type="button"
                   disabled={activeStep === AUDIT_STEPS.length}
                   onClick={() => setActiveStep((prev) => Math.min(AUDIT_STEPS.length, prev + 1))}
-                  className="px-3 py-1.5 rounded-lg text-xs font-mono border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center gap-1"
+                  aria-label="Navigate to next lineage node"
+                  className="px-3 py-1.5 rounded-lg text-xs font-mono border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center gap-1 focus-ring-enera"
                 >
                   <span>NEXT NODE</span>
                   <ChevronRight className="h-3.5 w-3.5" />
@@ -426,7 +447,7 @@ export function EneraAuditTrailSection() {
 
               <Link
                 to="/reconciliation"
-                className="inline-flex items-center gap-1.5 text-xs font-mono text-cyan-300 hover:text-cyan-200"
+                className="inline-flex items-center gap-1.5 text-xs font-mono text-cyan-300 hover:text-cyan-200 focus-ring-enera px-2 py-1 rounded"
               >
                 <span>Explore Live 12-Node Evidence Chain in Portal</span>
                 <ArrowRight className="h-3 w-3" />

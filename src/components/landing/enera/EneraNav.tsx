@@ -70,12 +70,12 @@ export function EneraNav() {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1 lg:gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.07] backdrop-blur-md">
+          <nav aria-label="Primary Navigation" className="hidden md:flex items-center gap-1 lg:gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.07] backdrop-blur-md">
             {navLinks.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
-                className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white rounded-full hover:bg-white/[0.06] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+                className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white rounded-full hover:bg-white/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
               >
                 {link.label}
               </a>
@@ -86,7 +86,7 @@ export function EneraNav() {
           <div className="hidden sm:flex items-center gap-3">
             <Link
               to="/login"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-slate-300 hover:text-white border border-white/10 hover:border-white/20 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-slate-300 hover:text-white border border-white/10 hover:border-white/20 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             >
               <ShieldCheck className="h-3.5 w-3.5 text-cyan-400" />
               <span>Client Portal</span>
@@ -94,7 +94,7 @@ export function EneraNav() {
 
             <Link
               to="/upload"
-              className="group relative inline-flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_-3px_rgba(6,182,212,0.4)] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+              className="group relative inline-flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_-3px_rgba(6,182,212,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             >
               <span>Analyse a Bill</span>
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
@@ -108,14 +108,16 @@ export function EneraNav() {
           <div className="flex sm:hidden items-center gap-2">
             <Link
               to="/login"
-              className="px-2.5 py-1 text-[11px] font-medium text-slate-300 border border-white/10 rounded-md bg-white/[0.03]"
+              className="px-2.5 py-1 text-[11px] font-medium text-slate-300 border border-white/10 rounded-md bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
             >
               Portal
             </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-slate-300 hover:text-white rounded-lg bg-white/[0.04] border border-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+              className="p-2 text-slate-300 hover:text-white rounded-lg bg-white/[0.04] border border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
               aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-nav-drawer"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -125,11 +127,12 @@ export function EneraNav() {
 
       {/* Refined Mobile Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 sm:hidden">
+        <div id="mobile-nav-drawer" role="dialog" aria-modal="true" aria-label="Mobile Navigation Drawer" className="fixed inset-0 z-40 sm:hidden">
           {/* Backdrop blur overlay */}
           <div
             className="fixed inset-0 bg-[#030712]/90 backdrop-blur-2xl transition-opacity animate-in fade-in"
             onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
           />
 
           <div className="fixed top-16 inset-x-4 bottom-6 rounded-2xl bg-[#0d1117] border border-white/10 p-6 flex flex-col justify-between shadow-2xl animate-in zoom-in-95 duration-200">
@@ -147,7 +150,7 @@ export function EneraNav() {
                 </div>
               </div>
 
-              <nav className="mt-6 flex flex-col space-y-3">
+              <nav aria-label="Mobile Navigation" className="mt-6 flex flex-col space-y-3">
                 {navLinks.map((link) => (
                   <a
                     key={link.label}

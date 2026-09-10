@@ -20,6 +20,11 @@ export function EneraHeroSection() {
 
   // Headline animation sequence: SEE -> SEE BEYOND -> SEE BEYOND THE BILL.
   useEffect(() => {
+    if (reducedMotion) {
+      setHeadlineStage(3);
+      return;
+    }
+
     const t1 = setTimeout(() => setHeadlineStage(1), 300);
     const t2 = setTimeout(() => setHeadlineStage(2), 1200);
     const t3 = setTimeout(() => setHeadlineStage(3), 2200);
@@ -29,7 +34,7 @@ export function EneraHeroSection() {
       clearTimeout(t2);
       clearTimeout(t3);
     };
-  }, []);
+  }, [reducedMotion]);
 
   // Desktop mouse movement, touch, and scroll parallax listener (Subtle, non-exaggerated)
   const [scrollOffset, setScrollOffset] = useState<number>(0);
@@ -186,7 +191,7 @@ export function EneraHeroSection() {
           <div className="w-full max-w-xs mb-8">
             <Link
               to="/upload"
-              className="group relative w-full inline-flex items-center justify-center gap-2.5 min-h-[48px] py-3.5 px-6 rounded-xl font-bold text-xs sm:text-sm text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 shadow-[0_0_30px_rgba(6,182,212,0.45)] active:scale-[0.98] transition-all font-mono"
+              className="group relative w-full inline-flex items-center justify-center gap-2.5 min-h-[48px] py-3.5 px-6 rounded-xl font-bold text-xs sm:text-sm text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 shadow-[0_0_30px_rgba(6,182,212,0.45)] active:scale-[0.98] transition-all font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             >
               <span>Analyse Your Energy</span>
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -230,7 +235,10 @@ export function EneraHeroSection() {
 
           {/* Cinematic Headline with Opacity/Blur/Translate/Scale Transition (Zero typewriter effect) */}
           <div className="min-h-[90px] sm:min-h-[130px] flex items-center justify-center">
-            <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-white leading-none">
+            <h1
+              aria-label="SEE BEYOND THE BILL."
+              className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-white leading-none"
+            >
               {headlineStage === 1 && (
                 <span
                   key="stage-1"
@@ -275,7 +283,7 @@ export function EneraHeroSection() {
             {/* Primary CTA: Analyse Your Energy → with traveling arrow pulse */}
             <Link
               to="/upload"
-              className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-3 px-7 py-3.5 rounded-xl font-semibold text-sm text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 shadow-[0_0_35px_-5px_rgba(6,182,212,0.5)] hover:shadow-[0_0_45px_-2px_rgba(6,182,212,0.7)] hover:brightness-110 active:scale-[0.98] transition-all overflow-hidden font-mono"
+              className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-3 px-7 py-3.5 rounded-xl font-semibold text-sm text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 shadow-[0_0_35px_-5px_rgba(6,182,212,0.5)] hover:shadow-[0_0_45px_-2px_rgba(6,182,212,0.7)] hover:brightness-110 active:scale-[0.98] transition-all overflow-hidden font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             >
               <span>Analyse Your Energy</span>
 
@@ -297,7 +305,7 @@ export function EneraHeroSection() {
             {/* Secondary CTA: Explore ENERA → */}
             <a
               href="#platform"
-              className="group w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-medium text-sm text-slate-300 hover:text-white border border-white/10 hover:border-cyan-500/30 bg-white/[0.02] hover:bg-white/[0.05] backdrop-blur-md transition-all shadow-[0_0_20px_-8px_transparent] hover:shadow-[0_0_20px_-5px_rgba(6,182,212,0.2)] font-mono"
+              className="group w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-medium text-sm text-slate-300 hover:text-white border border-white/10 hover:border-cyan-500/30 bg-white/[0.02] hover:bg-white/[0.05] backdrop-blur-md transition-all shadow-[0_0_20px_-8px_transparent] hover:shadow-[0_0_20px_-5px_rgba(6,182,212,0.2)] font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             >
               <span>Explore ENERA</span>
               <ArrowRight className="h-4 w-4 text-slate-400 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-cyan-300" />

@@ -252,10 +252,13 @@ export function EneraSouthAfricanContextSection() {
             </div>
 
             {/* Interactive Season Toggles */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" role="radiogroup" aria-label="Tariff Season">
               <button
+                type="button"
+                role="radio"
+                aria-checked={activeSeason === "high"}
                 onClick={() => setActiveSeason("high")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all focus-ring-enera ${
                   activeSeason === "high"
                     ? "bg-amber-500 text-slate-950 font-bold shadow-[0_0_15px_rgba(245,158,11,0.4)]"
                     : "bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10"
@@ -264,8 +267,11 @@ export function EneraSouthAfricanContextSection() {
                 HIGH SEASON (WINTER)
               </button>
               <button
+                type="button"
+                role="radio"
+                aria-checked={activeSeason === "low"}
                 onClick={() => setActiveSeason("low")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all focus-ring-enera ${
                   activeSeason === "low"
                     ? "bg-cyan-500 text-slate-950 font-bold shadow-[0_0_15px_rgba(6,182,212,0.4)]"
                     : "bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10"
@@ -278,14 +284,17 @@ export function EneraSouthAfricanContextSection() {
 
           {/* Secondary Controls: Day Type and Public Holiday Toggle */}
           <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-b border-white/5 text-xs font-mono">
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2" role="radiogroup" aria-label="Day Profile">
               <span className="text-slate-400">DAY PROFILE:</span>
               <button
+                type="button"
+                role="radio"
+                aria-checked={activeDay === "weekday" && !isPublicHoliday}
                 onClick={() => {
                   setActiveDay("weekday");
                   setIsPublicHoliday(false);
                 }}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
+                className={`px-2.5 py-1 rounded-lg transition-all focus-ring-enera ${
                   activeDay === "weekday" && !isPublicHoliday
                     ? "bg-white/15 text-white font-bold border border-white/20"
                     : "text-slate-400 hover:text-white"
@@ -294,11 +303,14 @@ export function EneraSouthAfricanContextSection() {
                 Monday – Friday
               </button>
               <button
+                type="button"
+                role="radio"
+                aria-checked={activeDay === "saturday" && !isPublicHoliday}
                 onClick={() => {
                   setActiveDay("saturday");
                   setIsPublicHoliday(false);
                 }}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
+                className={`px-2.5 py-1 rounded-lg transition-all focus-ring-enera ${
                   activeDay === "saturday" && !isPublicHoliday
                     ? "bg-white/15 text-white font-bold border border-white/20"
                     : "text-slate-400 hover:text-white"
@@ -307,11 +319,14 @@ export function EneraSouthAfricanContextSection() {
                 Saturday
               </button>
               <button
+                type="button"
+                role="radio"
+                aria-checked={activeDay === "sunday" && !isPublicHoliday}
                 onClick={() => {
                   setActiveDay("sunday");
                   setIsPublicHoliday(false);
                 }}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
+                className={`px-2.5 py-1 rounded-lg transition-all focus-ring-enera ${
                   activeDay === "sunday" && !isPublicHoliday
                     ? "bg-white/15 text-white font-bold border border-white/20"
                     : "text-slate-400 hover:text-white"
@@ -323,8 +338,10 @@ export function EneraSouthAfricanContextSection() {
 
             {/* Public Holiday Exemption Switch */}
             <button
+              type="button"
+              aria-pressed={isPublicHoliday}
               onClick={() => setIsPublicHoliday(!isPublicHoliday)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs transition-all ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs transition-all focus-ring-enera ${
                 isPublicHoliday
                   ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)] font-semibold"
                   : "bg-white/5 border-white/10 text-slate-400 hover:text-white"
@@ -336,20 +353,25 @@ export function EneraSouthAfricanContextSection() {
           </div>
 
           {/* 24-Hour Timeline Block Visualizer */}
-          <div className="mt-8 space-y-3">
+          <div
+            role="region"
+            aria-label="24-hour Time-of-Use schedule visualizer"
+            aria-live="polite"
+            className="mt-8 space-y-3"
+          >
             <div className="flex items-center justify-between text-xs font-mono text-slate-400">
               <span>24-HOUR TIME-OF-USE ALLOCATION (SAST)</span>
               <div className="flex items-center gap-4 text-[11px]">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
+                  <span className="w-2.5 h-2.5 rounded bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]" aria-hidden="true" />
                   <span className="text-white font-bold">Peak ({peakHours}h)</span>
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
+                  <span className="w-2.5 h-2.5 rounded bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]" aria-hidden="true" />
                   <span className="text-white font-bold">Standard ({standardHours}h)</span>
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded bg-slate-600" />
+                  <span className="w-2.5 h-2.5 rounded bg-slate-600" aria-hidden="true" />
                   <span className="text-slate-300">Off-Peak ({offPeakHours}h)</span>
                 </span>
               </div>
@@ -376,6 +398,7 @@ export function EneraSouthAfricanContextSection() {
                     key={block.hour}
                     className={`h-14 rounded-lg flex flex-col items-center justify-between p-1 transition-all ${bgClass}`}
                     title={`${String(block.hour).padStart(2, "0")}:00 – ${block.period}`}
+                    aria-label={`${String(block.hour).padStart(2, "0")}:00 to ${String((block.hour + 1) % 24).padStart(2, "0")}:00: ${block.period}`}
                   >
                     <span className="text-[9px] font-mono leading-none">
                       {String(block.hour).padStart(2, "0")}
@@ -388,7 +411,7 @@ export function EneraSouthAfricanContextSection() {
               })}
               </div>
             </div>
-            <div className="flex justify-between text-[10px] font-mono text-slate-500 px-1">
+            <div className="flex justify-between text-[10px] font-mono text-slate-400 px-1" aria-hidden="true">
               <span>00:00 (Midnight)</span>
               <span>06:00 (Morning)</span>
               <span>12:00 (Noon)</span>
@@ -438,7 +461,7 @@ export function EneraSouthAfricanContextSection() {
 
             <Link
               to="/reconciliation"
-              className="py-2.5 px-5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs font-mono flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all group"
+              className="py-2.5 px-5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs font-mono flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all group focus-ring-enera"
             >
               <span>EXPLORE LIVE RECONCILIATION COCKPIT</span>
               <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
