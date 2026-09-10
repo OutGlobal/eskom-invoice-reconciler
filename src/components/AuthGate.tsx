@@ -49,10 +49,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen bg-background p-6">
         <div className="mx-auto max-w-6xl space-y-6">
           <div className="flex items-center gap-2 text-primary">
-            <ShieldCheck className="h-5 w-5" />
-            <span className="text-sm font-semibold">Eskom Meter Data Reconciliation</span>
+            <ShieldCheck className="h-5 w-5 text-cyan-400" />
+            <span className="text-sm font-semibold tracking-wide font-mono">ENERA Energy Financial Intelligence</span>
             <Loader2 className="ml-1 h-4 w-4 animate-spin text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Verifying your secure session…</span>
+            <span className="text-xs text-muted-foreground">Verifying secure session…</span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
             <div className="h-full w-1/3 animate-pulse rounded-full bg-primary" />
@@ -193,16 +193,16 @@ export function SignInScreen({ onBypass }: { onBypass?: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg space-y-4">
         <div>
-          <div className="flex items-center gap-2 text-primary">
-            <ShieldCheck className="h-5 w-5" />
-            <span className="text-sm font-semibold">Secure Access</span>
+          <div className="flex items-center gap-2 text-cyan-400">
+            <ShieldCheck className="h-5 w-5 text-cyan-400" />
+            <span className="text-xs font-mono font-semibold tracking-wider uppercase">ENERA SECURE ACCESS</span>
           </div>
-          <h1 className="mt-2 text-lg font-semibold text-foreground">
-            Eskom Meter Data Reconciliation
+          <h1 className="mt-2 text-lg font-bold text-foreground font-mono tracking-tight">
+            ENERA — Energy Financial Intelligence
           </h1>
           <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-            Commercial billing, reconciliation and recovery data is restricted. Sign in to your
-            account or continue in demo mode.
+            Commercial utility billing, reconciliation and dispute recovery data is restricted. Sign in to your
+            enterprise account or continue in demonstration mode.
           </p>
         </div>
 
