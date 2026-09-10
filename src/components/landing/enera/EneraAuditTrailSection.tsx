@@ -190,7 +190,7 @@ export function EneraAuditTrailSection() {
         aria-hidden="true"
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-xs font-mono mb-5 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
@@ -357,17 +357,17 @@ export function EneraAuditTrailSection() {
               </div>
 
               <div className="space-y-1.5 pt-1 text-[11px]">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-slate-400">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-slate-400 min-w-0">
                   <span className="text-slate-500 shrink-0 font-bold">PREVIOUS_HASH:</span>
-                  <span className="text-slate-300 truncate font-mono">{cur.prevHash}</span>
+                  <span className="text-slate-300 break-all sm:truncate font-mono">{cur.prevHash}</span>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-cyan-300">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-cyan-300 min-w-0">
                   <span className="text-cyan-500 shrink-0 font-bold">CURRENT_HASH:</span>
-                  <span className="font-bold truncate font-mono">{cur.currentHash}</span>
+                  <span className="font-bold break-all sm:truncate font-mono">{cur.currentHash}</span>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-slate-400 pt-1.5 border-t border-white/5">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-slate-400 pt-1.5 border-t border-white/5 min-w-0">
                   <span className="text-slate-500 shrink-0 font-bold">PAYLOAD_PROOF:</span>
-                  <span className="text-emerald-300 truncate font-mono">{cur.verification}</span>
+                  <span className="text-emerald-300 break-all sm:truncate font-mono">{cur.verification}</span>
                 </div>
               </div>
             </div>

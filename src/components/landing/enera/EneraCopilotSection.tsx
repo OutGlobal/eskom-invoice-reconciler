@@ -327,7 +327,7 @@ export function EneraCopilotSection() {
         aria-hidden="true"
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-xs font-mono mb-5 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
@@ -542,7 +542,7 @@ export function EneraCopilotSection() {
                   </div>
 
                   {/* Telemetry Metrics Grid (4 Cards) */}
-                  <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     {/* Variance Metric Card */}
                     <div className={`p-3.5 rounded-xl border ${varianceColors.bg} ${varianceColors.border}`}>
                       <div className="flex items-center justify-between">

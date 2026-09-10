@@ -107,7 +107,7 @@ export function EneraSouthAfricanContextSection() {
         aria-hidden="true"
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-xs font-mono mb-5 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
@@ -278,7 +278,7 @@ export function EneraSouthAfricanContextSection() {
 
           {/* Secondary Controls: Day Type and Public Holiday Toggle */}
           <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-b border-white/5 text-xs font-mono">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <span className="text-slate-400">DAY PROFILE:</span>
               <button
                 onClick={() => {

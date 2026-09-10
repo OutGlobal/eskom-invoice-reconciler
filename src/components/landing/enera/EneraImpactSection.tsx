@@ -190,7 +190,7 @@ export function EneraImpactSection() {
         aria-hidden="true"
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-mono mb-5 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
@@ -274,7 +274,7 @@ export function EneraImpactSection() {
             </div>
 
             {/* Benchmark Spend Presets */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {PRESETS.map((p) => (
                 <button
                   key={p.value}

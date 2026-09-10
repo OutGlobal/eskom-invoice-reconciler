@@ -174,7 +174,7 @@ export function EneraDifferenceSection() {
       <div className="absolute top-1/3 left-1/3 w-[650px] h-[650px] rounded-full bg-cyan-500/[0.04] blur-[160px] pointer-events-none" />
       <div className="absolute bottom-1/3 right-1/3 w-[650px] h-[650px] rounded-full bg-amber-500/[0.03] blur-[160px] pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-mono mb-5 shadow-[0_0_15px_-3px_rgba(6,182,212,0.2)]">
@@ -194,22 +194,27 @@ export function EneraDifferenceSection() {
           </p>
 
           {/* Metric Selector Pills */}
-          <div className="mt-8 inline-flex items-center p-1 rounded-xl bg-[#0d1117]/80 border border-white/10 backdrop-blur-md">
+          <div className="mt-8 inline-flex max-w-full overflow-x-auto scrollbar-none items-center p-1 rounded-xl bg-[#0d1117]/80 border border-white/10 backdrop-blur-md">
             {(["active", "demand", "reactive"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveMetric(tab)}
-                className={`px-4 py-1.5 text-xs font-mono rounded-lg transition-all ${
+                className={`px-3 sm:px-4 py-1.5 text-xs font-mono rounded-lg transition-all shrink-0 ${
                   activeMetric === tab
                     ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold shadow-[0_0_12px_rgba(6,182,212,0.2)]"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                {tab === "active"
-                  ? "Active Energy (kWh)"
-                  : tab === "demand"
-                  ? "Max Demand (kVA)"
-                  : "Reactive Energy (kVArh)"}
+                <span className="sm:hidden">
+                  {tab === "active" ? "Active" : tab === "demand" ? "Demand" : "Reactive"}
+                </span>
+                <span className="hidden sm:inline">
+                  {tab === "active"
+                    ? "Active Energy (kWh)"
+                    : tab === "demand"
+                    ? "Max Demand (kVA)"
+                    : "Reactive Energy (kVArh)"}
+                </span>
               </button>
             ))}
           </div>

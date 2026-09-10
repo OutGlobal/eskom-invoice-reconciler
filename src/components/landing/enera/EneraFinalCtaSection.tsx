@@ -94,8 +94,8 @@ export function EneraFinalCtaSection() {
 
     window.addEventListener("resize", handleResize, { passive: true });
 
-    // Generate constellation of energy network nodes echoing Hero telemetry
-    const nodeCount = Math.min(32, Math.max(18, Math.floor(width / 45)));
+    // Generate constellation of energy network nodes echoing Hero telemetry (Scaled for mobile)
+    const nodeCount = width < 430 ? 12 : width < 768 ? 16 : Math.min(32, Math.max(18, Math.floor(width / 45)));
     const nodes: NetworkNode[] = [];
     const colors = ["#06b6d4", "#22d3ee", "#10b981", "#8b5cf6"];
     const labels = ["MTR-01", "GRID-α", "SUB-04", "FEED-02", "TX-07", "AMR-99", "RECON-01", "SYNC-β"];
@@ -320,11 +320,11 @@ export function EneraFinalCtaSection() {
 
       {/* Atmospheric Central Glow Layers */}
       <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[750px] h-[450px] rounded-full bg-cyan-500/10 blur-[160px] pointer-events-none -z-10"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] sm:w-[550px] md:w-[750px] h-[240px] sm:h-[350px] md:h-[450px] rounded-full bg-cyan-500/10 blur-[50px] md:blur-[160px] pointer-events-none -z-10"
         aria-hidden="true"
       />
       <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[350px] rounded-full bg-emerald-500/10 blur-[130px] pointer-events-none -z-10"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[260px] sm:w-[400px] md:w-[550px] h-[180px] sm:h-[280px] md:h-[350px] rounded-full bg-emerald-500/10 blur-[40px] md:blur-[130px] pointer-events-none -z-10"
         aria-hidden="true"
       />
 
@@ -334,31 +334,31 @@ export function EneraFinalCtaSection() {
         aria-hidden="true"
       />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+      <div className="max-w-5xl mx-auto px-3.5 sm:px-6 lg:px-8 relative z-10 text-center">
         {/* Eyebrow Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-xs font-mono mb-8 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+        <div className="inline-flex items-center gap-2 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-[10px] sm:text-xs font-mono mb-6 sm:mb-8 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
           <Zap className="h-3.5 w-3.5 animate-pulse text-cyan-400" />
           <span className="tracking-wide">STAGE 16 // ENERGY FINANCIAL INTELLIGENCE</span>
         </div>
 
         {/* Core Headline matching exact prompt */}
-        <h2 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight enera-text-gradient leading-tight">
+        <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tight enera-text-gradient leading-tight">
           YOUR NEXT BILL
           <br />
           SHOULDN&apos;T BE A SURPRISE.
         </h2>
 
         {/* Supporting Text matching exact prompt */}
-        <p className="mt-6 text-xl sm:text-2xl md:text-3xl text-slate-300 font-light max-w-2xl mx-auto leading-relaxed">
+        <p className="mt-4 sm:mt-6 text-base sm:text-xl md:text-2xl lg:text-3xl text-slate-300 font-light max-w-2xl mx-auto leading-relaxed">
           &ldquo;Let intelligence check it before you pay it.&rdquo;
         </p>
 
         {/* Primary and Secondary Action CTAs */}
-        <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 max-w-lg mx-auto">
+        <div className="mt-8 sm:mt-12 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-lg mx-auto">
           {/* Primary CTA: Analyse Your Energy → */}
           <Link
             to="/upload"
-            className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-3 px-9 py-4.5 rounded-2xl font-bold text-sm text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 shadow-[0_0_40px_rgba(6,182,212,0.45)] hover:brightness-110 active:scale-[0.98] transition-all overflow-hidden font-mono"
+            className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-3 min-h-[48px] px-8 py-3.5 sm:py-4.5 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 shadow-[0_0_40px_rgba(6,182,212,0.45)] hover:brightness-110 active:scale-[0.98] transition-all overflow-hidden font-mono"
           >
             <span>Analyse Your Energy</span>
             <div className="relative flex items-center justify-center">

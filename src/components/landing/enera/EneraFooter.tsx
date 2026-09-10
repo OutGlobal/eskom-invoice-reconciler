@@ -14,7 +14,7 @@ export function EneraFooter() {
         aria-hidden="true"
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Main Minimal Grid: Brand + Navigation + Company + Primary CTA */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-12 pb-14 border-b border-white/10 items-start">
           {/* Brand Column (4 cols) */}
@@ -23,7 +23,7 @@ export function EneraFooter() {
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-950/80 border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.3)] group-hover:border-cyan-400 transition-colors">
                 <span className="font-mono text-sm font-bold text-cyan-400">E</span>
               </div>
-              <span className="font-mono text-xl font-bold tracking-[0.28em] text-white">
+              <span className="font-mono text-xl font-bold tracking-[0.2em] sm:tracking-[0.28em] text-white">
                 E N E R A
               </span>
             </Link>

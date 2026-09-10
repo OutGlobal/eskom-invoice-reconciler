@@ -42,28 +42,28 @@ export function EneraNav() {
             : "bg-transparent py-5 border-b border-transparent"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between">
           {/* Brand Logo Lockup */}
           <Link
             to="/"
-            className="group flex items-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-md py-1"
+            className="group flex items-center gap-2.5 sm:gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-md py-1"
             aria-label="ENERA Energy Financial Intelligence Home"
           >
-            <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-950 via-[#0d1117] to-slate-900 border border-cyan-500/30 group-hover:border-cyan-400 transition-colors shadow-[0_0_15px_-3px_rgba(6,182,212,0.3)]">
-              <span className="font-mono text-sm font-bold tracking-widest text-cyan-400">E</span>
+            <div className="relative flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-cyan-950 via-[#0d1117] to-slate-900 border border-cyan-500/30 group-hover:border-cyan-400 transition-colors shadow-[0_0_15px_-3px_rgba(6,182,212,0.3)]">
+              <span className="font-mono text-xs sm:text-sm font-bold tracking-widest text-cyan-400">E</span>
               <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-cyan-400 animate-ping opacity-75" />
               <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-cyan-400" />
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
-                <span className="text-base sm:text-lg font-semibold tracking-[0.25em] text-white font-mono">
+                <span className="text-sm sm:text-base lg:text-lg font-semibold tracking-[0.2em] sm:tracking-[0.25em] text-white font-mono">
                   E N E R A
                 </span>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-semibold tracking-wide">
+                <span className="hidden xs:inline text-[9px] sm:text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-semibold tracking-wide">
                   2025/26
                 </span>
               </div>
-              <span className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-medium">
+              <span className="hidden xs:block text-[8px] sm:text-[9px] uppercase tracking-[0.2em] text-slate-400 font-medium">
                 Energy Financial Intelligence
               </span>
             </div>

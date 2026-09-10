@@ -206,7 +206,7 @@ export function EneraBillSignalSection() {
       <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full bg-cyan-500/[0.03] blur-[150px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full bg-emerald-500/[0.03] blur-[130px] pointer-events-none" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* 1. Large Editorial Typography */}
         <div className="text-center max-w-4xl mx-auto mb-14 sm:mb-20">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-mono mb-6 shadow-[0_0_20px_-3px_rgba(6,182,212,0.25)]">
@@ -228,52 +228,55 @@ export function EneraBillSignalSection() {
           </div>
 
           {/* Interactive Decoding Scrubber Bar */}
-          <div className="mt-8 inline-flex items-center gap-3 p-1.5 rounded-xl bg-[#0d1117]/80 border border-white/10 backdrop-blur-md">
+          <div className="mt-8 inline-flex max-w-full overflow-x-auto scrollbar-none items-center gap-2 sm:gap-3 p-1.5 rounded-xl bg-[#0d1117]/80 border border-white/10 backdrop-blur-md">
             <button
               onClick={() => {
                 setIsManualScrub(true);
                 setScrollProgress(0.15);
               }}
-              className={`px-3 py-1 text-xs font-mono rounded-lg transition-all ${
+              className={`px-2.5 sm:px-3 py-1 text-xs font-mono rounded-lg transition-all shrink-0 ${
                 scrollProgress < 0.25
                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold"
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              1. Assembled Invoice
+              <span className="sm:hidden">1. Invoice</span>
+              <span className="hidden sm:inline">1. Assembled Invoice</span>
             </button>
             <button
               onClick={() => {
                 setIsManualScrub(true);
                 setScrollProgress(0.55);
               }}
-              className={`px-3 py-1 text-xs font-mono rounded-lg transition-all ${
+              className={`px-2.5 sm:px-3 py-1 text-xs font-mono rounded-lg transition-all shrink-0 ${
                 scrollProgress >= 0.25 && scrollProgress < 0.7
                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold"
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              2. Separating Elements
+              <span className="sm:hidden">2. Elements</span>
+              <span className="hidden sm:inline">2. Separating Elements</span>
             </button>
             <button
               onClick={() => {
                 setIsManualScrub(true);
                 setScrollProgress(0.85);
               }}
-              className={`px-3 py-1 text-xs font-mono rounded-lg transition-all ${
+              className={`px-2.5 sm:px-3 py-1 text-xs font-mono rounded-lg transition-all shrink-0 ${
                 scrollProgress >= 0.7
                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold"
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              3. Connected Network
+              <span className="sm:hidden">3. Network</span>
+              <span className="hidden sm:inline">3. Connected Network</span>
             </button>
             {isManualScrub && (
               <button
                 onClick={() => setIsManualScrub(false)}
-                className="text-[10px] font-mono text-cyan-400/80 underline px-2 hover:text-cyan-300"
+                className="text-[10px] font-mono text-cyan-400/80 underline px-2 hover:text-cyan-300 shrink-0"
               >
-                Reset to Scroll
+                Reset
               </button>
             )}
           </div>

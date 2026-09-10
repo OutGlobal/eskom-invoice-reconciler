@@ -105,23 +105,28 @@ export function EneraHeroSceneEngine() {
       className="relative w-full max-w-4xl mx-auto mt-6 rounded-2xl bg-[#0d1117]/90 border border-white/10 backdrop-blur-2xl shadow-[0_0_50px_-10px_rgba(6,182,212,0.15)] overflow-hidden transition-all"
     >
       {/* Top Scene Progress Rail */}
-      <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/10 bg-white/[0.02]">
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping" />
-          <span className="text-[11px] font-mono font-semibold tracking-wider text-cyan-300 uppercase">
-            ENERA VISUAL STATE ENGINE
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3.5 sm:px-6 py-2.5 sm:py-3 border-b border-white/10 bg-white/[0.02]">
+        <div className="flex items-center justify-between sm:justify-start gap-2">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping" />
+            <span className="text-[10px] sm:text-[11px] font-mono font-semibold tracking-wider text-cyan-300 uppercase">
+              ENERA VISUAL STATE ENGINE
+            </span>
+          </div>
+          <span className="text-[9px] font-mono text-slate-500 sm:hidden">
+            {activeScene} / 7
           </span>
         </div>
 
-        {/* Scene Selector Pills */}
-        <div className="flex items-center gap-1 overflow-x-auto max-w-full py-1">
+        {/* Scene Selector Pills with Touch-Friendly Scroll */}
+        <div className="flex items-center gap-1 overflow-x-auto max-w-full py-1 scrollbar-none -mx-1 px-1">
           {SCENES.map((scene) => {
             const isActive = activeScene === scene.id;
             return (
               <button
                 key={scene.id}
                 onClick={() => handleSelectScene(scene.id)}
-                className={`px-2.5 py-1 text-[10px] font-mono rounded-md transition-all whitespace-nowrap ${
+                className={`min-h-[28px] px-2.5 py-1 text-[10px] font-mono rounded-md transition-all whitespace-nowrap active:scale-95 ${
                   isActive
                     ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold shadow-[0_0_12px_rgba(6,182,212,0.25)]"
                     : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]"
@@ -137,7 +142,7 @@ export function EneraHeroSceneEngine() {
 
       {/* Main Scene Presentation Chamber with Smooth Opacity Transitions */}
       <div
-        className={`p-6 sm:p-8 min-h-[310px] flex items-center justify-center transition-opacity duration-300 ${
+        className={`p-4 sm:p-6 md:p-8 min-h-[280px] sm:min-h-[310px] flex items-center justify-center transition-opacity duration-300 ${
           isTransitioning
             ? "opacity-0"
             : "opacity-100"

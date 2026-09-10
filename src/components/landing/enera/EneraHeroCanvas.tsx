@@ -178,8 +178,16 @@ export function EneraHeroCanvas() {
       { text: "VAT", x: width * 0.52, y: height * 0.86, vx: 0.08, vy: -0.13, alpha: 0.35, color: "#94a3b8" },
     ];
 
-    // Ambient Energy Particle Pool
-    const particleCount = reducedMotion ? 24 : width < 768 ? 40 : 85;
+    // Ambient Energy Particle Pool - Scaled intentionally across 320px, 375px, 390px, 430px, 768px, 1024px+
+    const particleCount = reducedMotion
+      ? 16
+      : width < 390
+      ? 16
+      : width < 768
+      ? 22
+      : width < 1024
+      ? 45
+      : 85;
     const particles: Particle[] = [];
     const colors = ["#22d3ee", "#06b6d4", "#10b981", "#8b5cf6", "#e2e8f0"];
 
@@ -215,8 +223,8 @@ export function EneraHeroCanvas() {
       { id: "n7", label: "GRID-C", x: width * 0.5, y: height * 0.18, baseRadius: 4, color: "#22d3ee", illumination: 0, pulsePhase: 6 },
     ];
 
-    // Luminous Electrical Data Streams converging toward the centre
-    const streamCount = reducedMotion ? 4 : 8;
+    // Luminous Electrical Data Streams converging toward the centre (Scaled for mobile)
+    const streamCount = reducedMotion ? 3 : width < 430 ? 3 : width < 768 ? 4 : width < 1024 ? 6 : 8;
     const streams: StreamLine[] = [];
 
     for (let s = 0; s < streamCount; s++) {
@@ -226,7 +234,7 @@ export function EneraHeroCanvas() {
       const startY = centerY + Math.sin(angle) * radius;
 
       const points = [];
-      const steps = 7;
+      const steps = width < 768 ? 4 : 7;
       for (let j = 0; j <= steps; j++) {
         const t = j / steps;
         const px = startX + (centerX - startX) * t + (Math.random() - 0.5) * 35;
@@ -471,11 +479,11 @@ export function EneraHeroCanvas() {
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
       {/* 2. Atmospheric Core Glow */}
-      <div className="absolute top-[28%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] sm:w-[650px] h-[350px] rounded-full bg-cyan-500/10 blur-[130px] pointer-events-none" />
-      <div className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[240px] rounded-full bg-emerald-500/10 blur-[100px] pointer-events-none" />
+      <div className="absolute top-[28%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] sm:w-[450px] md:w-[650px] h-[220px] sm:h-[350px] rounded-full bg-cyan-500/10 blur-[50px] md:blur-[130px] pointer-events-none" />
+      <div className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] sm:w-[320px] h-[160px] sm:h-[240px] rounded-full bg-emerald-500/10 blur-[40px] md:blur-[100px] pointer-events-none" />
 
-      {/* 3. The Living ENERA Energy Logo Construction (E -> EN -> ENE -> ENER -> ENERA) */}
-      <div className="absolute top-[22%] sm:top-[24%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-auto">
+      {/* 3. The Living ENERA Energy Logo Construction (Desktop only; mobile uses intentional flow hierarchy) */}
+      <div className="hidden md:block absolute top-[22%] sm:top-[24%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-auto">
         <div className="inline-flex flex-col items-center">
           <div className="relative mb-2 px-6 sm:px-8 py-2.5 rounded-2xl bg-[#0d1117]/80 border border-cyan-500/30 backdrop-blur-xl shadow-[0_0_45px_-5px_rgba(6,182,212,0.35)]">
             <span className="font-mono text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-[0.35em] text-white drop-shadow-[0_0_25px_rgba(34,211,238,0.7)]">
