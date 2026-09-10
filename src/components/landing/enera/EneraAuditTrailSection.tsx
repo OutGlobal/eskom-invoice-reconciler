@@ -1,78 +1,159 @@
 import React, { useState } from "react";
-import { ShieldCheck, FileCheck, CheckCircle2, Lock, ArrowRight, Layers, FileCode } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import {
+  ShieldCheck,
+  FileCheck,
+  CheckCircle2,
+  Lock,
+  ArrowRight,
+  Layers,
+  FileCode,
+  Check,
+  ExternalLink,
+  ChevronRight,
+  ChevronLeft,
+  Copy,
+  Terminal,
+} from "lucide-react";
 
 interface AuditStep {
   step: number;
   label: string;
   sub: string;
+  category: string;
   detail: string;
   verification: string;
+  prevHash: string;
+  currentHash: string;
+  governance: string;
+  statute: string;
+  retention: string;
 }
 
 const AUDIT_STEPS: AuditStep[] = [
   {
     step: 1,
     label: "SOURCE DOCUMENT",
-    sub: "SHA-256 Immutable Hash",
-    detail: "Original Eskom PDF preserved in write-once cryptographic ledger with source timestamp.",
-    verification: "hash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    sub: "Cryptographic File Ingestion",
+    category: "Ingestion Root",
+    detail: "Original Eskom utility PDF preserved in an immutable, write-once cryptographic ledger with timestamped cryptographic seal.",
+    verification: "hash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 · Bytes: 2,481,902",
+    prevHash: "GENESIS_ROOT_00000000000000000000000000000000000000000000000000000000",
+    currentHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    governance: "ISO 27001 / WORM Storage",
+    statute: "Electronic Communications and Transactions Act 25",
+    retention: "7-Year Statutory Fiscal Ledger",
   },
   {
     step: 2,
     label: "EXTRACTED DATA",
-    sub: "Bounding Box Coordinates",
-    detail: "Every numeric determinant mapped with page number, spatial coordinate, and confidence score.",
-    verification: "Confidence: 99.4% · Spatial Box [x: 142, y: 388, w: 94, h: 18]",
+    sub: "Spatial Bounding Box Geometry",
+    category: "Extraction Layer",
+    detail: "Every numeric determinant mapped with PDF page number, spatial pixel bounding coordinates, and confidence score vector.",
+    verification: "Confidence: 99.8% · Determinants Extracted: 8 · Geometry: [x: 142, y: 388, w: 94, h: 18, p: 2]",
+    prevHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    currentHash: "7a89bc213ef091a823cd110992384a77bc124982cba128941098492837bcda11",
+    governance: "OCR Ground Truth Validation",
+    statute: "Tax Administration Act 28 (Section 29)",
+    retention: "Pixel-Coordinate Matrix Attached",
   },
   {
     step: 3,
     label: "CALCULATION",
     sub: "Decimal.js-light Precision",
-    detail: "Zero floating-point arithmetic errors. Strict Decimal arithmetic matching statutory billing formulas.",
-    verification: "Rounding: ROUND_HALF_UP · Precision: 20 decimal places",
+    category: "Deterministic Arithmetic",
+    detail: "Zero floating-point rounding drifts. Exact Decimal arithmetic matching statutory South African utility billing formulas.",
+    verification: "Rounding: ROUND_HALF_UP · Precision: 20 Decimals · IEEE 754 Drift: Eliminated",
+    prevHash: "7a89bc213ef091a823cd110992384a77bc124982cba128941098492837bcda11",
+    currentHash: "3f9801ac8849b28394019283eacb920194829384729183940192839485761029",
+    governance: "High-Precision Monetary Math",
+    statute: "Public Finance Management Act (PFMA)",
+    retention: "Bit-level Calculation Traces",
   },
   {
     step: 4,
     label: "RULE APPLIED",
-    sub: "NERSA Gazette Reference",
-    detail: "Versioned tariff logic citing official government gazette clause, effective dates, and season boundary.",
-    verification: "Tariff Book: 2025/2026 Schedule 4 · Version 2025.1",
+    sub: "Gazetted NERSA Clause Citing",
+    category: "Regulatory Verification",
+    detail: "Versioned tariff schedule logic citing official government gazette clauses, seasonal boundary dates, and SAST calendar rules.",
+    verification: "Tariff Book: NERSA Schedule 2 (Megaflex High Season) · Section 8.4 Public Holiday TOU Rule",
+    prevHash: "3f9801ac8849b28394019283eacb920194829384729183940192839485761029",
+    currentHash: "1192830495867182930495867182930495867182930495867182930495867182",
+    governance: "NERSA Electricity Act 41",
+    statute: "Electricity Regulation Act 4 of 2006",
+    retention: "Indexed Tariff Schedule Snapshot",
   },
   {
     step: 5,
     label: "FINDING",
-    sub: "Deterministic Classification",
-    detail: "Discrepancy isolated into specific categorisation: Peak TOU Overcharge, Multiplier Error, or NMD Spike.",
-    verification: "Classification: MATERIAL_DISCREPANCY (Confidence: 98.7%)",
+    sub: "Categorical Determinant Isolation",
+    category: "Discrepancy Analysis",
+    detail: "Discrepancy isolated into deterministic classifications: Peak TOU Overcharge, Multiplier Ratio Drift, or NMD Demand Spike.",
+    verification: "Classification: MATERIAL_DISCREPANCY · Confidence: 99.2% · Delta: R 51,227.00 Potential Overcharge",
+    prevHash: "1192830495867182930495867182930495867182930495867182930495867182",
+    currentHash: "99887766554433221100aabbccddeeff99887766554433221100aabbccddeeff",
+    governance: "Audit Anomaly Threshold",
+    statute: "SANS 474 Code of Practice for Metering",
+    retention: "Discrepancy Signature Recorded",
   },
   {
     step: 6,
     label: "EVIDENCE",
-    sub: "30-Min Interval Telemetry Log",
-    detail: "Meter serial number, channel ID, raw pulse value, CT/VT multiplier, and timestamp lineage.",
-    verification: "Revenue AMR Meter #021-MS-90412 · SANS 474 Class 0.2s Certified",
+    sub: "30-Min Telemetry Lineage",
+    category: "Hardware Pulse Ground Truth",
+    detail: "Revenue check meter serial number, channel ID, raw pulse log, CT/VT multiplier verification, and physical timestamp lineage.",
+    verification: "Revenue AMR Meter #021-MS-90412 · CT Ratio 400:5 · SANS 474 Class 0.2S Certified Physical Pulses",
+    prevHash: "99887766554433221100aabbccddeeff99887766554433221100aabbccddeeff",
+    currentHash: "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
+    governance: "SABS / SANS 474 Metering Spec",
+    statute: "NRS 057 Code of Practice for Metering",
+    retention: "Physical Hardware Calibration Chain",
   },
   {
     step: 7,
     label: "REPORT",
     sub: "Section 21 Dispute Package",
-    detail: "Court-ready, NERSA-compliant statutory dispute dossier ready for submission to utility billing authorities.",
-    verification: "Audit Trail: 100% Cryptographically Reproducible",
+    category: "Statutory Resolution",
+    detail: "Court-ready, NERSA-compliant statutory dispute dossier ready for formal submission to Eskom executive billing resolution committees.",
+    verification: "Audit Trail: 100% Cryptographically Reproducible · Form 102 Line-Item Annexures Auto-Generated",
+    prevHash: "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
+    currentHash: "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+    governance: "Section 21 Regulatory Dispute Pack",
+    statute: "NERSA Dispute Resolution Rules",
+    retention: "Permanent Legal Dispute Repository",
   },
 ];
 
 export function EneraAuditTrailSection() {
   const [activeStep, setActiveStep] = useState<number>(1);
+  const [copiedHash, setCopiedHash] = useState<boolean>(false);
 
   const cur = AUDIT_STEPS.find((s) => s.step === activeStep) || AUDIT_STEPS[0];
 
+  const handleCopyHash = () => {
+    navigator.clipboard.writeText(cur.currentHash);
+    setCopiedHash(true);
+    setTimeout(() => setCopiedHash(false), 2000);
+  };
+
   return (
-    <section id="security" className="relative py-28 bg-[#030712] text-white">
+    <section
+      id="security"
+      className="relative py-28 sm:py-32 bg-[#030712] text-white overflow-hidden"
+      aria-label="Audit Trail and Cryptographic Proof"
+    >
+      {/* Background ambient lighting */}
+      <div
+        className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[700px] h-[500px] bg-cyan-500/5 rounded-full blur-[160px] pointer-events-none -z-10"
+        aria-hidden="true"
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-mono mb-4">
-            <Lock className="h-3 w-3" />
-            <span>FINANCIAL INTEGRITY & AUDIT TRAIL</span>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-xs font-mono mb-5 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
+            <Lock className="h-3.5 w-3.5 text-cyan-400" />
+            <span className="tracking-wide">FINANCIAL INTEGRITY // 7-NODE AUDIT CHAIN</span>
           </div>
 
           <h2 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight enera-text-gradient">
@@ -80,96 +161,177 @@ export function EneraAuditTrailSection() {
           </h2>
 
           <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed">
-            Nothing disappears into a black box. Every calculation can be traced. Every finding has
-            supporting evidence. Every action is logged.
+            Nothing disappears into a black box. Every calculation can be mathematically traced.
+            Every finding has cryptographic supporting evidence. Every reconciliation is 100% reproducible.
           </p>
         </div>
 
-        {/* 7-Step Interactive Lineage Chain */}
-        <div className="max-w-5xl mx-auto">
-          {/* Horizontal Progress Timeline */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+        {/* 7-Step Interactive Lineage Chain Navigator */}
+        <div className="max-w-6xl mx-auto">
+          {/* Horizontal Progress Timeline with Conduits */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
             {AUDIT_STEPS.map((s) => {
               const isSelected = activeStep === s.step;
+              const isPassed = activeStep > s.step;
+
               return (
                 <button
                   key={s.step}
                   onClick={() => setActiveStep(s.step)}
-                  className={`p-3 rounded-xl border text-left transition-all ${
+                  className={`p-3 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
                     isSelected
-                      ? "bg-cyan-950/60 border-cyan-500/60 shadow-[0_0_20px_rgba(6,182,212,0.3)]"
-                      : "bg-[#0d1117]/60 border-white/5 hover:border-white/20 hover:bg-[#161b22]"
+                      ? "bg-gradient-to-b from-cyan-950/60 to-[#0d1117] border-cyan-500/60 shadow-[0_0_25px_rgba(6,182,212,0.3)] scale-[1.02]"
+                      : isPassed
+                        ? "bg-[#0d1117]/80 border-emerald-500/20 text-slate-300 hover:border-emerald-500/40"
+                        : "bg-[#0d1117]/50 border-white/5 hover:border-white/20 text-slate-400 hover:text-white"
                   }`}
                 >
-                  <span
-                    className={`text-[10px] font-mono font-bold block ${
-                      isSelected ? "text-cyan-400" : "text-slate-500"
-                    }`}
-                  >
-                    STEP 0{s.step}
-                  </span>
-                  <div className="text-xs font-semibold text-white mt-1 leading-snug">
+                  <div className="flex items-center justify-between w-full">
+                    <span
+                      className={`text-[10px] font-mono font-bold ${
+                        isSelected
+                          ? "text-cyan-400"
+                          : isPassed
+                            ? "text-emerald-400"
+                            : "text-slate-500"
+                      }`}
+                    >
+                      NODE 0{s.step}
+                    </span>
+                    {isPassed && <Check className="h-3 w-3 text-emerald-400" />}
+                  </div>
+
+                  <div className="text-xs font-semibold text-white mt-2 leading-snug font-mono">
                     {s.label}
                   </div>
+                  <span className="text-[10px] text-slate-400 truncate block mt-0.5">
+                    {s.sub}
+                  </span>
                 </button>
               );
             })}
           </div>
 
           {/* Active Evidence Inspection Card */}
-          <div className="mt-8 enera-glass rounded-3xl p-6 sm:p-10 border-cyan-500/30 relative overflow-hidden shadow-2xl">
+          <div className="mt-8 rounded-3xl bg-[#0d1117] border border-cyan-500/30 p-6 sm:p-10 relative overflow-hidden shadow-[0_0_80px_-20px_rgba(6,182,212,0.2)]">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
               <div>
-                <span className="text-xs font-mono uppercase text-cyan-400 font-bold tracking-wider">
-                  LINEAGE NODE 0{cur.step} OF 07
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono uppercase text-cyan-400 font-bold tracking-wider">
+                    LINEAGE NODE 0{cur.step} OF 07
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                    {cur.category}
+                  </span>
+                </div>
                 <h3 className="text-2xl sm:text-3xl font-extrabold text-white mt-1 font-mono">
                   {cur.label}
                 </h3>
                 <span className="text-xs text-slate-400 font-mono mt-0.5 block">{cur.sub}</span>
               </div>
 
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono self-start sm:self-auto">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono self-start sm:self-auto shadow-[0_0_15px_rgba(16,185,129,0.2)]">
                 <CheckCircle2 className="h-4 w-4 text-emerald-400" />
                 <span>CRYPTOGRAPHICALLY VERIFIED</span>
               </div>
             </div>
 
             <div className="mt-6 space-y-6">
-              <p className="text-sm sm:text-base text-slate-200 leading-relaxed">{cur.detail}</p>
+              <p className="text-sm sm:text-base text-slate-200 leading-relaxed font-sans">
+                {cur.detail}
+              </p>
 
-              {/* Technical Proof Verification Block */}
-              <div className="p-4 rounded-xl bg-black/60 border border-white/10 font-mono text-xs text-cyan-300 flex items-start gap-3">
-                <FileCode className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
-                <div className="overflow-x-auto">
-                  <span className="text-slate-500 text-[10px] uppercase block mb-1">
-                    VERIFICATION PAYLOAD PROOF
+              {/* Cryptographic SHA-256 Hash Chaining Block */}
+              <div className="p-4 rounded-xl bg-black/60 border border-white/10 font-mono text-xs text-cyan-300 space-y-2">
+                <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase border-b border-white/5 pb-1">
+                  <span className="flex items-center gap-1.5">
+                    <Terminal className="h-3 w-3 text-cyan-400" />
+                    IMMUTABLE HASH CHAIN LINK (BLOCK #{cur.step})
                   </span>
-                  <span className="text-white/90">{cur.verification}</span>
+                  <button
+                    onClick={handleCopyHash}
+                    className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition-colors"
+                  >
+                    <Copy className="h-2.5 w-2.5" />
+                    <span>{copiedHash ? "COPIED" : "COPY HASH"}</span>
+                  </button>
+                </div>
+
+                <div className="space-y-1 pt-1 text-[11px]">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-slate-400">
+                    <span className="text-slate-500 shrink-0">PREVIOUS_HASH:</span>
+                    <span className="text-slate-300 truncate">{cur.prevHash}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-cyan-300">
+                    <span className="text-cyan-500 shrink-0">CURRENT_HASH:</span>
+                    <span className="font-bold truncate">{cur.currentHash}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-slate-400 pt-1 border-t border-white/5">
+                    <span className="text-slate-500 shrink-0">PAYLOAD_PROOF:</span>
+                    <span className="text-emerald-300 truncate">{cur.verification}</span>
+                  </div>
                 </div>
               </div>
 
+              {/* Governance Standard Badges */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-slate-300">
+                <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-slate-300">
                   <span className="text-[10px] font-mono text-slate-500 uppercase block">
                     GOVERNANCE STANDARD
                   </span>
-                  <span className="font-semibold text-white">SANS 474 / NRS 057</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-slate-300">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase block">
-                    REGULATORY JURISDICTION
+                  <span className="font-semibold text-white font-mono mt-0.5 block">
+                    {cur.governance}
                   </span>
-                  <span className="font-semibold text-white">NERSA Electricity Act</span>
                 </div>
 
-                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-slate-300">
+                <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-slate-300">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase block">
+                    STATUTORY BASIS
+                  </span>
+                  <span className="font-semibold text-white font-mono mt-0.5 block truncate">
+                    {cur.statute}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-slate-300">
                   <span className="text-[10px] font-mono text-slate-500 uppercase block">
                     AUDIT PERSISTENCE
                   </span>
-                  <span className="font-semibold text-white">7-Year Statutory Ledger</span>
+                  <span className="font-semibold text-white font-mono mt-0.5 block">
+                    {cur.retention}
+                  </span>
                 </div>
+              </div>
+
+              {/* Navigation Steppers & Portal Link */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-white/10">
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={activeStep === 1}
+                    onClick={() => setActiveStep((prev) => Math.max(1, prev - 1))}
+                    className="px-3 py-1.5 rounded-lg text-xs font-mono border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center gap-1"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    <span>PREVIOUS NODE</span>
+                  </button>
+
+                  <button
+                    disabled={activeStep === AUDIT_STEPS.length}
+                    onClick={() => setActiveStep((prev) => Math.min(AUDIT_STEPS.length, prev + 1))}
+                    className="px-3 py-1.5 rounded-lg text-xs font-mono border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center gap-1"
+                  >
+                    <span>NEXT NODE</span>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <Link
+                  to="/reconciliation"
+                  className="inline-flex items-center gap-1.5 text-xs font-mono text-cyan-300 hover:text-cyan-200"
+                >
+                  <span>Explore Live 12-Node Evidence Chain in Portal</span>
+                  <ArrowRight className="h-3 w-3" />
+                </Link>
               </div>
             </div>
           </div>
