@@ -529,6 +529,11 @@ export function EneraFinalCtaSection() {
                   <span>SCHEDULE EXECUTIVE DEMONSTRATION</span>
                   <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
                 </button>
+
+                <div className="pt-2 flex items-center justify-center gap-2 text-[10px] font-mono text-slate-400">
+                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                  <span>STRICT MUTUAL NDA PROTECTED · ZERO DISCLOSURE ASSURANCE</span>
+                </div>
               </form>
             </div>
           ) : (

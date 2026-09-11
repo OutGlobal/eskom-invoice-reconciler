@@ -212,19 +212,19 @@ export function EneraHeroSection() {
           {/* Compact Mobile Intelligence Metrics */}
           <div className="w-full grid grid-cols-3 gap-2 mt-6 text-left">
             <div className="enera-glass rounded-xl p-3 border border-white/10">
-              <span className="text-[9px] font-mono text-slate-400 uppercase block">SPEND</span>
+              <span className="text-[9px] font-mono text-slate-400 uppercase block">LIABILITY</span>
               <span className="text-xs sm:text-sm font-bold text-white font-mono">R 8.42M</span>
               <span className="text-[9px] font-mono text-cyan-400 block mt-0.5">ZAR</span>
             </div>
             <div className="enera-glass rounded-xl p-3 border border-amber-500/20 bg-amber-950/10">
-              <span className="text-[9px] font-mono text-slate-400 uppercase block">LEAKAGE</span>
+              <span className="text-[9px] font-mono text-slate-400 uppercase block">VARIANCE</span>
               <span className="text-xs sm:text-sm font-bold text-amber-300 font-mono">
                 R 51,227
               </span>
               <span className="text-[9px] font-mono text-amber-400 block mt-0.5">98% conf</span>
             </div>
             <div className="enera-glass rounded-xl p-3 border border-emerald-500/20 bg-emerald-950/10">
-              <span className="text-[9px] font-mono text-slate-400 uppercase block">DELIVERED</span>
+              <span className="text-[9px] font-mono text-slate-400 uppercase block">THROUGHPUT</span>
               <span className="text-xs sm:text-sm font-bold text-emerald-300 font-mono">
                 4.21 GWh
               </span>
@@ -284,8 +284,8 @@ export function EneraHeroSection() {
 
           {/* Supporting Statement */}
           <p className="mt-4 sm:mt-6 text-sm sm:text-base md:text-lg text-slate-300/90 max-w-2xl mx-auto font-normal leading-relaxed">
-            Cross-examining half-hourly revenue meter telemetry against gazetted utility tariffs
-            to expose mathematical drift, uncredited holidays, and reclaim unearned energy overcharges.
+            Cross-examining revenue-meter interval telemetry against gazetted utility tariffs
+            to isolate mathematical drift, uncredited holidays, and reclaim unearned energy capital.
           </p>
 
           {/* Action Button Row */}
@@ -324,7 +324,7 @@ export function EneraHeroSection() {
 
           {/* 3. Floating Glassmorphic Intelligence Cards (Float gently, subtle parallax, glassmorphism, subtle glow) */}
           <div className="w-full max-w-5xl mt-12 grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
-            {/* Card 1: Energy Spend */}
+            {/* Card 1: Energy Liability */}
             <div className={reducedMotion ? "w-full" : "w-full animate-enera-float-1"}>
               <div
                 className="group relative enera-glass rounded-2xl p-5 transition-all duration-300 hover:border-cyan-500/40 shadow-[0_0_30px_-8px_rgba(6,182,212,0.18)] hover:shadow-[0_0_35px_-4px_rgba(6,182,212,0.3)] flex items-start justify-between overflow-hidden"
@@ -338,14 +338,14 @@ export function EneraHeroSection() {
 
                 <div>
                   <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase">
-                    ENERGY SPEND
+                    ENERGY LIABILITY
                   </span>
                   <div className="text-2xl font-bold text-white font-mono mt-1 tracking-tight">
                     R 8.42M
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-rose-400 font-mono mt-1 font-medium">
                     <TrendingUp className="h-3.5 w-3.5" />
-                    <span>↑ 4.8%</span>
+                    <span>↑ 4.8% billed drift</span>
                   </div>
                 </div>
                 <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]">
@@ -354,7 +354,7 @@ export function EneraHeroSection() {
               </div>
             </div>
 
-            {/* Card 2: AI Anomaly */}
+            {/* Card 2: Quarantined Variance */}
             <div className={reducedMotion ? "w-full" : "w-full animate-enera-float-2"}>
               <div
                 className="group relative enera-glass rounded-2xl p-5 transition-all duration-300 hover:border-amber-500/40 shadow-[0_0_30px_-8px_rgba(245,158,11,0.18)] hover:shadow-[0_0_35px_-4px_rgba(245,158,11,0.3)] flex items-start justify-between overflow-hidden"
@@ -368,14 +368,14 @@ export function EneraHeroSection() {
 
                 <div>
                   <span className="text-[10px] font-mono tracking-widest text-amber-400 uppercase font-semibold">
-                    DETECTED LEAKAGE
+                    QUARANTINED VARIANCE
                   </span>
                   <div className="text-2xl font-bold text-amber-300 font-mono mt-1 tracking-tight">
                     R 51,227
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-amber-400/90 font-mono mt-1">
                     <AlertCircle className="h-3.5 w-3.5" />
-                    <span>Recoverable variance</span>
+                    <span>Recoverable determinant delta</span>
                   </div>
                 </div>
                 <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
@@ -384,7 +384,7 @@ export function EneraHeroSection() {
               </div>
             </div>
 
-            {/* Card 3: Consumption */}
+            {/* Card 3: Certified Throughput */}
             <div className={reducedMotion ? "w-full" : "w-full animate-enera-float-3"}>
               <div
                 className="group relative enera-glass rounded-2xl p-5 transition-all duration-300 hover:border-emerald-500/40 shadow-[0_0_30px_-8px_rgba(16,185,129,0.18)] hover:shadow-[0_0_35px_-4px_rgba(16,185,129,0.3)] flex items-start justify-between overflow-hidden"
@@ -398,14 +398,14 @@ export function EneraHeroSection() {
 
                 <div>
                   <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase">
-                    CONSUMPTION
+                    CERTIFIED THROUGHPUT
                   </span>
                   <div className="text-2xl font-bold text-emerald-300 font-mono mt-1 tracking-tight">
                     4.21 GWh
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-mono mt-1">
                     <CheckCircle className="h-3.5 w-3.5" />
-                    <span>97.8% confidence</span>
+                    <span>SANS 474 AMR ground truth</span>
                   </div>
                 </div>
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]">

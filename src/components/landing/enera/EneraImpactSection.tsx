@@ -184,7 +184,7 @@ export function EneraImpactSection() {
   return (
     <section
       ref={sectionRef}
-      id="insights"
+      id="impact"
       className="relative py-28 sm:py-36 bg-[#030712] text-white border-y border-white/5 overflow-hidden"
       aria-label="Financial Impact and Benchmark Statistics"
     >

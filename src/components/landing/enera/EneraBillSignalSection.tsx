@@ -200,7 +200,7 @@ export function EneraBillSignalSection() {
   return (
     <section
       ref={sectionRef}
-      id="platform"
+      id="capabilities"
       className="relative py-28 bg-[#030712] text-white border-t border-white/5 overflow-hidden"
     >
       {/* Background radial ambient lights */}
@@ -223,7 +223,7 @@ export function EneraBillSignalSection() {
           <div className="mt-6 text-lg sm:text-2xl md:text-3xl text-slate-300 font-light leading-relaxed max-w-2xl mx-auto space-y-2">
             <p className="text-slate-400">Most organisations see an invoice.</p>
             <p className="text-white font-medium drop-shadow-[0_0_25px_rgba(255,255,255,0.25)]">
-              ENERA sees thousands of data points.
+              ENERA reconstructs every billing determinant.
             </p>
           </div>
 

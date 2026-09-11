@@ -616,7 +616,7 @@ export function EneraNetworkSection() {
   return (
     <section
       ref={sectionRef}
-      id="platform"
+      id="topology"
       className="relative py-28 sm:py-36 bg-[#030712] text-white overflow-hidden border-t border-white/5"
       aria-label="Energy Platform Topology Visualizer"
     >

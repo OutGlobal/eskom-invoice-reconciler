@@ -157,7 +157,7 @@ export function EneraInteractiveUploadSection() {
   return (
     <section
       ref={sectionRef}
-      id="use-cases"
+      id="verification"
       className="relative py-28 sm:py-36 bg-[#0a0e17] text-white overflow-hidden border-t border-white/5"
       aria-label="Interactive Bill Upload and Cognitive Pipeline"
     >
@@ -191,7 +191,7 @@ export function EneraInteractiveUploadSection() {
           <div className="mt-5 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-mono text-slate-400">
             <Info className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
             <span>
-              INTERACTIVE DEMONSTRATION STATE · CONNECT TO PRODUCTION GATEWAY FOR LIVE INGESTION
+              INTERACTIVE DEMONSTRATION STATE · ZERO DATA PERSISTED · PURE IN-BROWSER SIMULATION
             </span>
           </div>
         </div>
@@ -204,7 +204,7 @@ export function EneraInteractiveUploadSection() {
               {/* Header with Format Support Badges */}
               <div className="flex items-center justify-between pb-3.5 border-b border-white/10">
                 <span className="text-xs font-mono text-slate-300 uppercase tracking-wider font-semibold">
-                  UPLOAD COMPONENT
+                  INGESTION ENGINE · CLIENT-SIDE ENCRYPTION
                 </span>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] font-mono text-slate-400 mr-1">Supported:</span>
@@ -538,6 +538,27 @@ export function EneraInteractiveUploadSection() {
               <span className="text-cyan-400">ZERO DATA LEAKAGE</span>
             </div>
           </div>
+        </div>
+
+        {/* Production Gateway Bridge */}
+        <div className="mt-12 max-w-3xl mx-auto text-center p-6 sm:p-8 rounded-3xl bg-[#030712]/90 border border-white/10 backdrop-blur-md shadow-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-[11px] font-mono text-cyan-300 font-semibold mb-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            <span>PRODUCTION AUDIT PIPELINE</span>
+          </div>
+          <h3 className="text-lg sm:text-xl font-bold text-white font-mono mb-2">
+            Ready to Reconcile Your Active Commercial Portfolio?
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-400 font-light max-w-xl mx-auto mb-5 leading-relaxed">
+            Ingest production electricity bills directly into the full deterministic engine to verify 30-minute AMR interval telemetry against gazetted NERSA schedules.
+          </p>
+          <Link
+            to="/upload"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 text-slate-950 font-mono font-bold text-xs shadow-[0_0_25px_rgba(6,182,212,0.35)] hover:brightness-110 active:scale-[0.98] transition-all"
+          >
+            <span>Launch Live Ingestion Engine</span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </div>
     </section>

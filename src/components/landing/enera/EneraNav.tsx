@@ -27,12 +27,12 @@ export function EneraNav() {
   }, []);
 
   const navLinks = [
-    { label: "Platform", href: "#platform" },
+    { label: "Capabilities", href: "#capabilities" },
     { label: "Intelligence", href: "#intelligence" },
+    { label: "Topology", href: "#topology" },
     { label: "Reconciliation", href: "#reconciliation" },
-    { label: "Insights", href: "#insights" },
-    { label: "Use Cases", href: "#use-cases" },
-    { label: "Security", href: "#security" },
+    { label: "Statutory Audit", href: "#security" },
+    { label: "Financial Impact", href: "#impact" },
   ];
 
   return (
