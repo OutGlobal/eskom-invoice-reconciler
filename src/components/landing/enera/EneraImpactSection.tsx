@@ -265,8 +265,8 @@ export function EneraImpactSection() {
           })}
         </div>
 
-        {/* WHO IS ENERA FOR? — Target Personas Domain */}
-        <div className="mt-16 pt-14 border-t border-white/5">
+        {/* WHO IS ENERA FOR? — Target Personas Domain (Use Cases) */}
+        <div id="use-cases" className="mt-16 pt-14 border-t border-white/5 scroll-mt-24">
           <div className="text-center max-w-2xl mx-auto mb-10">
             <span className="text-xs font-mono uppercase tracking-widest text-cyan-400 font-semibold">
               TARGET PROFILES

@@ -147,10 +147,13 @@ export function EneraAuditTrailSection() {
 
   return (
     <section
-      id="security"
-      className="relative py-28 sm:py-36 bg-[#030712] text-white overflow-hidden border-t border-white/5"
-      aria-label="Trust, Governance and Statutory Auditability"
+      id="resources"
+      className="relative py-28 sm:py-36 bg-[#030712] text-white overflow-hidden border-t border-white/5 scroll-mt-12"
+      aria-label="Trust, Governance, Statutory Resources & Auditability"
     >
+      {/* Backwards-compatible anchor */}
+      <div id="security" className="sr-only" aria-hidden="true" />
+
       {/* Background ambient lighting */}
       <div
         className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[750px] h-[550px] bg-cyan-500/5 rounded-full blur-[170px] pointer-events-none -z-10"

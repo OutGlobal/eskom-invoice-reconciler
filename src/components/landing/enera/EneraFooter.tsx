@@ -58,6 +58,14 @@ export function EneraFooter() {
             <ul className="space-y-2.5 text-xs text-slate-300 font-sans">
               <li>
                 <a
+                  href="#platform"
+                  className="hover:text-cyan-300 transition-colors focus-ring-enera rounded"
+                >
+                  Platform
+                </a>
+              </li>
+              <li>
+                <a
                   href="#capabilities"
                   className="hover:text-cyan-300 transition-colors focus-ring-enera rounded"
                 >
@@ -74,26 +82,26 @@ export function EneraFooter() {
               </li>
               <li>
                 <a
-                  href="#reconciliation"
+                  href="#use-cases"
                   className="hover:text-cyan-300 transition-colors focus-ring-enera rounded"
                 >
-                  Reconciliation
+                  Use Cases
                 </a>
               </li>
               <li>
                 <a
-                  href="#impact"
+                  href="#resources"
                   className="hover:text-cyan-300 transition-colors focus-ring-enera rounded"
                 >
-                  Financial Impact
+                  Resources
                 </a>
               </li>
               <li>
                 <a
-                  href="#security"
+                  href="#about"
                   className="hover:text-cyan-300 transition-colors focus-ring-enera rounded"
                 >
-                  Security
+                  About
                 </a>
               </li>
             </ul>

@@ -200,9 +200,13 @@ export function EneraBillSignalSection() {
   return (
     <section
       ref={sectionRef}
-      id="signal"
-      className="relative py-28 bg-[#030712] text-white border-t border-white/5 overflow-hidden"
+      id="platform"
+      className="relative py-28 bg-[#030712] text-white border-t border-white/5 overflow-hidden scroll-mt-12"
+      aria-label="ENERA Platform Signal Architecture"
     >
+      {/* Backwards-compatible anchor */}
+      <div id="signal" className="sr-only" aria-hidden="true" />
+
       {/* Background radial ambient lights */}
       <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full bg-cyan-500/[0.03] blur-[150px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full bg-emerald-500/[0.03] blur-[130px] pointer-events-none" />

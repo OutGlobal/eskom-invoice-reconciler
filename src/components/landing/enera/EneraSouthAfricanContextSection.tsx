@@ -94,10 +94,13 @@ export function EneraSouthAfricanContextSection() {
 
   return (
     <section
-      id="ecosystem"
-      className="relative py-28 sm:py-36 bg-[#030712] text-white overflow-hidden border-t border-white/5"
-      aria-label="South African Energy Intelligence Context"
+      id="about"
+      className="relative py-28 sm:py-36 bg-[#030712] text-white overflow-hidden border-t border-white/5 scroll-mt-12"
+      aria-label="About ENERA South African Energy Intelligence Context"
     >
+      {/* Backwards-compatible anchor */}
+      <div id="ecosystem" className="sr-only" aria-hidden="true" />
+
       {/* Background ambient lighting */}
       <div
         className="absolute top-1/3 right-1/4 w-[750px] h-[500px] bg-cyan-500/10 rounded-full blur-[160px] pointer-events-none -z-10"

@@ -334,20 +334,20 @@ export function EneraCapabilitiesSection() {
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-slate-300 font-semibold">
-              SAFE MARKETING CLASSIFICATION · ZERO PROPRIETARY LEAKS
+              ENTERPRISE FINANCIAL INTELLIGENCE · ISO 27001 &amp; POPIA ALIGNED
             </span>
           </div>
 
           <div className="flex items-center gap-4">
             <span className="text-slate-400">
-              Need technical or API integration details?
+              Interested in enterprise capabilities or custom deployment?
             </span>
-            <Link
-              to="/upload"
+            <a
+              href="#demo-request-box"
               className="text-cyan-400 hover:text-cyan-300 font-bold underline underline-offset-4"
             >
-              Analyse a Sample Bill &rarr;
-            </Link>
+              Request an Executive Briefing &rarr;
+            </a>
           </div>
         </div>
       </div>
