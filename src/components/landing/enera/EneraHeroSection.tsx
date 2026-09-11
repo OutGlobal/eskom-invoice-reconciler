@@ -168,20 +168,15 @@ export function EneraHeroSection() {
       <div className="relative z-10 max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 w-full">
         {/* MOBILE HERO: Intentional Composition for 320px, 375px, 390px, 430px */}
         <div className="w-full flex flex-col items-center text-center md:hidden pt-2 pb-6 px-1">
-          {/* 1. ENERA */}
-          <div className="relative mb-2 px-6 py-2.5 rounded-xl bg-[#0d1117]/90 border border-cyan-500/30 backdrop-blur-md shadow-[0_0_25px_-5px_rgba(6,182,212,0.35)]">
-            <span className="font-mono text-2xl sm:text-3xl font-extrabold tracking-[0.4em] text-white drop-shadow-[0_0_15px_rgba(34,211,238,0.7)] pl-[0.4em]">
-              E N E R A
+          {/* Clean Category Pill */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-xs font-mono mb-4 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" aria-hidden="true" />
+            <span className="text-cyan-400 font-bold tracking-wider uppercase">
+              PHASE 01 · ENERGY
             </span>
-            <div className="absolute -bottom-px left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_8px_#22d3ee]" />
           </div>
 
-          {/* 2. Energy Financial Intelligence */}
-          <div className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.25em] text-cyan-400 font-semibold mb-4">
-            ENERGY FINANCIAL INTELLIGENCE
-          </div>
-
-          {/* 3. SEE BEYOND THE BILL. */}
+          {/* Headline */}
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight enera-text-gradient mb-4">
             SEE BEYOND THE BILL.
           </h1>
@@ -191,7 +186,7 @@ export function EneraHeroSection() {
             mathematical drift, ratchet penalties, and reclaim lost corporate capital.
           </p>
 
-          {/* 4. Action CTAs: Analyse Your Energy → & Explore ENERA */}
+          {/* Action CTAs: Analyse Your Energy → & Explore ENERA */}
           <div className="w-full max-w-xs mb-8 flex flex-col gap-2.5">
             <Link
               to="/upload"
@@ -209,12 +204,12 @@ export function EneraHeroSection() {
             </Link>
           </div>
 
-          {/* 5. Then the animation */}
+          {/* Animation Scene Engine */}
           <div className="w-full">
             <EneraHeroSceneEngine />
           </div>
 
-          {/* 6. Compact Mobile Intelligence Metrics */}
+          {/* Compact Mobile Intelligence Metrics */}
           <div className="w-full grid grid-cols-3 gap-2 mt-6 text-left">
             <div className="enera-glass rounded-xl p-3 border border-white/10">
               <span className="text-[9px] font-mono text-slate-400 uppercase block">SPEND</span>
@@ -240,15 +235,11 @@ export function EneraHeroSection() {
 
         {/* DESKTOP & TABLET HERO (768px, 1024px, 1280px, 1440px, 1920px) */}
         <div className="hidden md:flex md:flex-col md:items-center text-center">
-          {/* Subtle Category Pill */}
-          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.04] border border-cyan-500/30 backdrop-blur-md mb-6 shadow-[0_0_20px_-3px_rgba(6,182,212,0.3)]">
+          {/* Neat, Clean Category Pill */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-xs font-mono mb-6 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" aria-hidden="true" />
-            <span className="text-[11px] font-mono text-cyan-300 font-bold tracking-widest uppercase">
+            <span className="text-cyan-400 font-bold tracking-wider uppercase">
               PHASE 01 · ENERGY
-            </span>
-            <span className="text-slate-600">|</span>
-            <span className="text-[11px] font-mono text-slate-300 font-medium tracking-wide uppercase">
-              THE FRONT DOOR TO AN ENERGY INTELLIGENCE ENGINE
             </span>
           </div>
 

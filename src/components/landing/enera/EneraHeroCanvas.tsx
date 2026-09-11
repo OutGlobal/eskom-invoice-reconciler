@@ -55,38 +55,7 @@ export function EneraHeroCanvas() {
   // Phase 2: Flowing luminous data streams enter toward center (2.8s - 4.5s)
   // Phase 3: Streams construct E -> EN -> ENE -> ENER -> ENERA (4.5s - 10s)
   // Phase 4: Energy transitions into data (floating units appear)
-  // Phase 5: "Every bill contains a signal." -> Pause -> "ENERA finds it."
-  const [logoState, setLogoState] = useState<string>("E");
-  const [taglineStage, setTaglineStage] = useState<number>(0); // 0: hidden, 1: "Every bill contains a signal.", 2: "ENERA finds it."
   const [reducedMotion, setReducedMotion] = useState<boolean>(false);
-
-  // Logo construction sequence: E -> EN -> ENE -> ENER -> ENERA
-  useEffect(() => {
-    const letters = ["E", "E N", "E N E", "E N E R", "E N E R A"];
-    let step = 0;
-
-    const interval = setInterval(() => {
-      step = (step + 1) % (letters.length + 4); // Pause 4 ticks on full ENERA
-      if (step < letters.length) {
-        setLogoState(letters[step]);
-      } else {
-        setLogoState("E N E R A");
-      }
-    }, 1300);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Tagline reveal cycle: "Every bill contains a signal." -> Pause -> "ENERA finds it."
-  useEffect(() => {
-    let state = 1;
-    const tagTimer = setInterval(() => {
-      state = (state + 1) % 3;
-      setTaglineStage(state);
-    }, 3800);
-
-    return () => clearInterval(tagTimer);
-  }, []);
 
   // Reduced motion detection
   useEffect(() => {
@@ -640,37 +609,6 @@ export function EneraHeroCanvas() {
       {/* 2. Atmospheric Core Glow */}
       <div className="absolute top-[28%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] sm:w-[450px] md:w-[650px] h-[220px] sm:h-[350px] rounded-full bg-cyan-500/10 blur-[50px] md:blur-[130px] pointer-events-none" />
       <div className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] sm:w-[320px] h-[160px] sm:h-[240px] rounded-full bg-emerald-500/10 blur-[40px] md:blur-[100px] pointer-events-none" />
-
-      {/* 3. The Living ENERA Energy Logo Construction (Desktop only; mobile uses intentional flow hierarchy) */}
-      <div className="hidden md:block absolute top-[22%] sm:top-[24%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-auto">
-        <div className="inline-flex flex-col items-center">
-          <div className="relative mb-2 px-6 sm:px-8 py-2.5 rounded-2xl bg-[#0d1117]/80 border border-cyan-500/30 backdrop-blur-xl shadow-[0_0_45px_-5px_rgba(6,182,212,0.35)]">
-            <span className="font-mono text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-[0.35em] text-white drop-shadow-[0_0_25px_rgba(34,211,238,0.7)]">
-              {logoState}
-            </span>
-            {/* Luminous energy baseline */}
-            <div className="absolute -bottom-px left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_12px_#22d3ee]" />
-          </div>
-
-          <div className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.3em] text-cyan-400/90 font-medium">
-            ENERGY FINANCIAL INTELLIGENCE
-          </div>
-        </div>
-
-        {/* 4. Sequential Signal Reveal: "Every bill contains a signal." -> Pause -> "ENERA finds it." */}
-        <div className="h-8 mt-3 flex items-center justify-center">
-          {taglineStage === 1 && (
-            <p className="text-xs sm:text-sm font-mono text-slate-400 tracking-wide animate-in fade-in duration-700">
-              Every bill contains a signal.
-            </p>
-          )}
-          {taglineStage === 2 && (
-            <p className="text-xs sm:text-sm font-mono text-cyan-300 font-semibold tracking-wide animate-in fade-in duration-700 drop-shadow-[0_0_12px_rgba(34,211,238,0.6)]">
-              ENERA finds it.
-            </p>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
