@@ -566,7 +566,7 @@ export function EneraFinalCtaSection() {
           </div>
           <div className="flex items-center gap-2">
             <Lock className="h-4 w-4 text-cyan-400" />
-            <span>POPIA &amp; ISO 27001 Cryptographic Enclave</span>
+            <span>POPIA &amp; ISO 27001 Data Governance</span>
           </div>
         </div>
       </div>

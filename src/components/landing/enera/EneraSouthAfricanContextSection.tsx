@@ -125,8 +125,8 @@ export function EneraSouthAfricanContextSection() {
 
           <p className="mt-5 text-base sm:text-lg text-slate-400 font-light leading-relaxed">
             South Africa&rsquo;s power economics are uniquely demanding. ENERA speaks fluent Eskom,
-            Megaflex, and Municipal billing — pairing localized regulatory depth with institutional
-            Silicon Valley financial algorithms.
+            Megaflex, and Municipal billing — pairing localized regulatory depth with
+            global quantitative financial precision.
           </p>
 
           {/* Independence & International Positioning Badge */}
