@@ -288,7 +288,7 @@ export function EneraHeroSceneEngine() {
           </div>
         )}
 
-        {/* SCENE 05 — ANOMALY: Anomaly Detected, Potential Variance R 51,227, AI Confidence 97.8% */}
+        {/* SCENE 05 — ANOMALY: Anomaly Detected, Potential Variance R 51,227, Statutory Assurance */}
         {activeScene === 5 && (
           <div className="w-full max-w-xl animate-in fade-in duration-500">
             <div className="flex items-center gap-2 mb-3">
@@ -317,9 +317,11 @@ export function EneraHeroSceneEngine() {
                 </div>
                 <div>
                   <span className="text-[10px] font-mono text-slate-400 uppercase">
-                    AI CONFIDENCE:
+                    ASSURANCE LEVEL:
                   </span>
-                  <div className="text-2xl font-bold font-mono text-emerald-400 mt-0.5">97.8%</div>
+                  <div className="text-base sm:text-lg font-bold font-mono text-emerald-400 mt-1">
+                    STATUTORY VERIFIED
+                  </div>
                 </div>
               </div>
             </div>

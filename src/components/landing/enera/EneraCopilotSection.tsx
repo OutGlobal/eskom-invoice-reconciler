@@ -29,7 +29,7 @@ interface AiQuery {
     body: string;
     variance: string;
     varianceType: "overcharge" | "increase" | "savings" | "recovery";
-    confidence: string;
+    assurance: string;
     citation: string;
     evidence: string;
     action: string;
@@ -48,7 +48,7 @@ const QUERIES: AiQuery[] = [
       body: "High-season Megaflex tariffs took effect on June 1 (+58% peak energy rate adjustment). Concurrently, Site 04 recorded an unscheduled simultaneous maximum demand of 9,120 kVA during evening peak hours on June 12.",
       variance: "+R 184,300.00",
       varianceType: "increase",
-      confidence: "98.4%",
+      assurance: "STATUTORY VERIFIED",
       citation: "NERSA Schedule 2, Clause 8.4",
       evidence: "2,880 AMR Intervals Verified",
       action:
@@ -66,7 +66,7 @@ const QUERIES: AiQuery[] = [
       body: "Site 04 exhibits a 22.7% billed demand overstatement compared to AMR 30-minute interval telemetry. The utility billed 9,450 kVA against an actual verified physical meter peak of 7,705 kVA.",
       variance: "R 18,420.00 Overcharge",
       varianceType: "overcharge",
-      confidence: "99.2%",
+      assurance: "TELEMETRY VERIFIED",
       citation: "Eskom NRS 048-4 / Meter Spec CT-400",
       evidence: "Hardware Pulse Log Synchronised",
       action:
@@ -84,7 +84,7 @@ const QUERIES: AiQuery[] = [
       body: "Identified 2 incorrect public holiday substitutions (Worker's Day and Youth Day billed at peak weekday rates instead of Sunday off-peak rates) plus 1 meter multiplier misconfiguration following CT ratio upgrade.",
       variance: "R 421,890.00 Recoverable",
       varianceType: "recovery",
-      confidence: "99.7%",
+      assurance: "AUDIT CERTIFIED",
       citation: "NERSA Tariff Book 2024/25, Rule 4.3",
       evidence: "Revenue Check Meter Synchronized",
       action:
@@ -108,7 +108,7 @@ const QUERIES: AiQuery[] = [
       body: "Due to your high load factor (>78%) and on-site solar PV peak shaving between 11:00 and 15:00, staying on Megaflex saves R 68,400/month compared to standard Miniflex, despite higher network access charges.",
       variance: "R 820,800.00 Annual Savings",
       varianceType: "savings",
-      confidence: "96.8%",
+      assurance: "RATE OPTIMIZED",
       citation: "Eskom Schedule of Standard Prices 2024",
       evidence: "8,760 Hourly Profile Modelled",
       action:
@@ -118,15 +118,15 @@ const QUERIES: AiQuery[] = [
     },
   },
   {
-    question: "Find all anomalies above R10,000 in the latest cycle.",
-    category: "Threshold Anomaly",
+    question: "Find material billing discrepancies in the latest billing cycle.",
+    category: "Material Discrepancies",
     tag: "4 High-Impact Isolations",
     response: {
-      title: "4 High-Impact Line-Item Anomalies Isolated",
+      title: "4 High-Impact Line-Item Discrepancies Isolated",
       body: "1. Peak demand mismatch at Durban plant (R 46,176). 2. Low power factor surcharge miscalculation (R 28,757). 3. Mid-month seasonal rate transition pro-rata error (R 18,420). 4. Unbilled ancillary service charge dispute (R 12,300).",
       variance: "R 105,653.00 Net Impact",
       varianceType: "recovery",
-      confidence: "97.5%",
+      assurance: "AUDIT READY",
       citation: "Eskom Distribution Code Sec 6.2",
       evidence: "4 Discrepancy Vectors Isolated",
       action:
@@ -144,7 +144,7 @@ const QUERIES: AiQuery[] = [
       body: "Under Eskom Megaflex regulations, recognized public holidays must be billed at Sunday off-peak time-of-use tariffs. Human Rights Day and Freedom Day were improperly billed as normal high-tariff weekdays on Meter ESK-9921.",
       variance: "R 73,410.00 Overbilled",
       varianceType: "overcharge",
-      confidence: "99.9%",
+      assurance: "GAZETTE CONFIRMED",
       citation: "Public Holidays Act 36 of 1994 & NERSA TOU",
       evidence: "Official Calendar Gazette Verified",
       action:
@@ -540,20 +540,18 @@ export function EneraCopilotSection() {
               className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between bg-gradient-to-b from-transparent to-[#0a0e17]/80"
             >
               <div>
-                {/* Active Terminal Input Line Simulation */}
+                {/* Active Natural Language Query Input */}
                 <div
                   className="mb-6 p-3.5 rounded-xl bg-black/40 border border-white/10 font-mono text-xs text-cyan-300 flex items-center gap-2 overflow-x-auto"
-                  aria-label={`Prompt: ${cur.question}`}
+                  aria-label={`Query: ${cur.question}`}
                 >
-                  <span className="text-emerald-400 font-bold select-none">&gt;</span>
-                  <span className="text-slate-500 select-none">enera.ask(</span>
-                  <span className="text-cyan-200 flex-1 whitespace-normal">
+                  <span className="text-cyan-400 font-bold select-none">Q:</span>
+                  <span className="text-cyan-100 flex-1 whitespace-normal font-sans font-medium text-xs sm:text-sm">
                     &ldquo;{typedPrompt}&rdquo;
                     {isTyping && (
                       <span className="inline-block w-2 h-3.5 ml-1 bg-cyan-400 animate-pulse align-middle" />
                     )}
                   </span>
-                  <span className="text-slate-500 select-none">)</span>
                 </div>
 
                 {/* Synthesis Header Bar */}
@@ -568,7 +566,7 @@ export function EneraCopilotSection() {
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold flex items-center gap-1">
                       <ShieldCheck className="h-3 w-3 text-emerald-400" />
-                      {cur.response.confidence} CONFIDENCE
+                      {cur.response.assurance}
                     </span>
                   </div>
                 </div>

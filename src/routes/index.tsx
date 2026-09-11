@@ -132,7 +132,7 @@ function EneraLandingPage() {
 
           <EngineFlowConnector from="RECONCILIATION" to="ANOMALY" />
 
-          {/* PHASE 05: ANOMALY — Complex SA Tariff Anomalies & 12-Node Cryptographic Audit Chain */}
+          {/* PHASE 05: ANOMALY — Complex SA Tariff Anomalies & Statutory Audit Chain */}
           <EneraSouthAfricanContextSection />
           <EneraAuditTrailSection />
 

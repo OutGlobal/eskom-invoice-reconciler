@@ -72,8 +72,8 @@ const STATS: MetricStat[] = [
     prefix: "",
     suffix: "%",
     decimals: 1,
-    subtitle: "Benchmark confidence score grounded in SANS 474 check metering standards.",
-    tag: "SIMULATED CONFIDENCE",
+    subtitle: "Billing volume verified against revenue-grade SANS 474 check metering standards.",
+    tag: "VERIFIED BENCHMARK",
     colorClass:
       "border-cyan-500/30 bg-cyan-950/15 hover:border-cyan-500/50 shadow-[0_0_30px_rgba(6,182,212,0.1)]",
     textGlowClass: "text-cyan-300",

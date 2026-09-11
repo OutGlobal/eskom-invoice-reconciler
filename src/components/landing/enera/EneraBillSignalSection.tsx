@@ -24,7 +24,7 @@ export interface DecodedElement {
   invoiceValue: string;
   decodedVector: string;
   networkTarget: string;
-  separationThreshold: number; // 0.0 to 1.0 progress when it detaches
+  separationPoint: number; // 0.0 to 1.0 progress when it detaches
   color: string;
   icon: React.ComponentType<{ className?: string }>;
 }
@@ -37,7 +37,7 @@ const DECODED_ELEMENTS: DecodedElement[] = [
     invoiceValue: "R 842,431.00",
     decodedVector: "Active energy rate table multiplier decomposed into Peak/Std/Off-Peak",
     networkTarget: "Tariff Rate Verification Engine",
-    separationThreshold: 0.25,
+    separationPoint: 0.25,
     color: "#22d3ee",
     icon: DollarSign,
   },
@@ -48,7 +48,7 @@ const DECODED_ELEMENTS: DecodedElement[] = [
     invoiceValue: "4,218,441 kWh",
     decodedVector: "1,488 half-hour AMR intervals integrated across TOU blocks",
     networkTarget: "AMR Telemetry Ground Truth Bus",
-    separationThreshold: 0.32,
+    separationPoint: 0.32,
     color: "#10b981",
     icon: Zap,
   },
@@ -59,7 +59,7 @@ const DECODED_ELEMENTS: DecodedElement[] = [
     invoiceValue: "8,421 kVA",
     decodedVector: "Simultaneous registered half-hour maximum demand at 18:30 on 14 July",
     networkTarget: "Maximum Demand Load Peak Auditor",
-    separationThreshold: 0.38,
+    separationPoint: 0.38,
     color: "#f59e0b",
     icon: Gauge,
   },
@@ -70,7 +70,7 @@ const DECODED_ELEMENTS: DecodedElement[] = [
     invoiceValue: "MEGAFLEX Transmission >66kV",
     decodedVector: "NERSA 2025/26 approved multi-season gazette rule definitions",
     networkTarget: "NERSA Regulatory Gazette Matrix",
-    separationThreshold: 0.44,
+    separationPoint: 0.44,
     color: "#8b5cf6",
     icon: Sliders,
   },
@@ -81,7 +81,7 @@ const DECODED_ELEMENTS: DecodedElement[] = [
     invoiceValue: "2025/07/01 – 2025/07/31 (31 Days)",
     decodedVector: "744 statutory hours mapped to SAST calendar & public holiday substitution",
     networkTarget: "Astronomical Calendar Validator",
-    separationThreshold: 0.5,
+    separationPoint: 0.5,
     color: "#38bdf8",
     icon: Calendar,
   },
@@ -92,7 +92,7 @@ const DECODED_ELEMENTS: DecodedElement[] = [
     invoiceValue: "Prev: 42,108,920 → Pres: 46,327,361",
     decodedVector: "CT/VT multiplied register delta checked for rollover and counter resets",
     networkTarget: "Revenue Meter Ground Truth Telemetry",
-    separationThreshold: 0.56,
+    separationPoint: 0.56,
     color: "#06b6d4",
     icon: Activity,
   },
@@ -103,7 +103,7 @@ const DECODED_ELEMENTS: DecodedElement[] = [
     invoiceValue: "R 18,420.00 Surcharge",
     decodedVector: "342,100 kVArh reactive power assessed against statutory power factor standard",
     networkTarget: "Reactive Energy Determinant Verification",
-    separationThreshold: 0.62,
+    separationPoint: 0.62,
     color: "#f43f5e",
     icon: Layers,
   },
@@ -114,7 +114,7 @@ const DECODED_ELEMENTS: DecodedElement[] = [
     invoiceValue: "R 128,432.00 (15%)",
     decodedVector: "Statutory South African Revenue Service exact fiscal tax reconciliation",
     networkTarget: "Fiscal Compliance Engine",
-    separationThreshold: 0.68,
+    separationPoint: 0.68,
     color: "#e2e8f0",
     icon: FileCheck,
   },
@@ -333,7 +333,7 @@ export function EneraBillSignalSection() {
               {/* The 8 Progressive Bill Determinants */}
               <div className="space-y-2.5">
                 {DECODED_ELEMENTS.map((el, idx) => {
-                  const isSeparated = scrollProgress >= el.separationThreshold;
+                  const isSeparated = scrollProgress >= el.separationPoint;
                   const isSelected = selectedElementId === el.id;
 
                   return (
@@ -431,7 +431,7 @@ export function EneraBillSignalSection() {
             {/* Network Vector Cluster */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {DECODED_ELEMENTS.map((el) => {
-                const isSeparated = scrollProgress >= el.separationThreshold;
+                const isSeparated = scrollProgress >= el.separationPoint;
                 const isSelected = selectedElementId === el.id;
                 const IconComponent = el.icon;
 

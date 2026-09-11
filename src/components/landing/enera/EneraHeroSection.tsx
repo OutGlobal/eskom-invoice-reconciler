@@ -221,7 +221,7 @@ export function EneraHeroSection() {
               <span className="text-xs sm:text-sm font-bold text-amber-300 font-mono">
                 R 51,227
               </span>
-              <span className="text-[9px] font-mono text-amber-400 block mt-0.5">98% conf</span>
+              <span className="text-[9px] font-mono text-amber-400 block mt-0.5">ISOLATED</span>
             </div>
             <div className="enera-glass rounded-xl p-3 border border-emerald-500/20 bg-emerald-950/10">
               <span className="text-[9px] font-mono text-slate-400 uppercase block">THROUGHPUT</span>
@@ -378,8 +378,8 @@ export function EneraHeroSection() {
                     <span>Recoverable determinant delta</span>
                   </div>
                 </div>
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
-                  <span className="text-[10px] font-mono font-bold">98%</span>
+                <div className="w-auto px-2 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+                  <span className="text-[10px] font-mono font-bold">DELTA</span>
                 </div>
               </div>
             </div>
