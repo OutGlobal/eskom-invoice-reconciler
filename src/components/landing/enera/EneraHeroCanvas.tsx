@@ -1,64 +1,50 @@
 import React, { useRef, useEffect, useState } from "react";
 
+// The 6 carefully selected signals representing the complete energy-to-financial lifecycle
+type SignalType = "kWh" | "kVA" | "TARIFF" | "DEMAND" | "COST" | "VARIANCE";
+
+interface EnergySignal {
+  id: string;
+  label: SignalType;
+  sub: string;
+  baseRelX: number; // 0 to 1
+  baseRelY: number; // 0 to 1
+  x: number;
+  y: number;
+  color: string;
+  glowColor: string;
+}
+
 interface Particle {
   x: number;
   y: number;
-  baseX: number;
-  baseY: number;
   vx: number;
   vy: number;
   size: number;
   alpha: number;
-  maxAlpha: number;
   color: string;
-  pulseSpeed: number;
   phase: number;
 }
 
 interface StreamLine {
   startX: number;
   startY: number;
-  points: { x: number; y: number }[];
+  controlX1: number;
+  controlY1: number;
+  controlX2: number;
+  controlY2: number;
+  endX: number;
+  endY: number;
+  color: string;
   speed: number;
-  color: string;
-  width: number;
-  glow: number;
-}
-
-interface EnergyNode {
-  id: string;
-  label: string;
-  x: number;
-  y: number;
-  baseRadius: number;
-  color: string;
-  illumination: number; // 0 to 1
-  pulsePhase: number;
-}
-
-interface FloatingDataUnit {
-  text: string;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  alpha: number;
-  color: string;
 }
 
 export function EneraHeroCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  // Cinematic Choreography Phases:
-  // Phase 0: Near darkness (0-1.2s)
-  // Phase 1: Energy particles ignite (1.2s - 2.8s)
-  // Phase 2: Flowing luminous data streams enter toward center (2.8s - 4.5s)
-  // Phase 3: Streams construct E -> EN -> ENE -> ENER -> ENERA (4.5s - 10s)
-  // Phase 4: Energy transitions into data (floating units appear)
   const [reducedMotion, setReducedMotion] = useState<boolean>(false);
 
-  // Reduced motion detection
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReducedMotion(mediaQuery.matches);
     const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
@@ -66,7 +52,6 @@ export function EneraHeroCanvas() {
     return () => mediaQuery.removeEventListener("change", handler);
   }, []);
 
-  // High-performance canvas animation loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -94,453 +79,445 @@ export function EneraHeroCanvas() {
       if (!canvas) return;
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
+      updateSignalCoordinates();
     };
     window.addEventListener("resize", handleResize, { passive: true });
 
-    // Mouse and Touch coordinates for gentle, non-exaggerated deflection
+    // Interactive mouse / touch coordinates
     let mouseX = width / 2;
-    let mouseY = height * 0.38;
+    let mouseY = height / 2;
     let targetMouseX = width / 2;
-    let targetMouseY = height * 0.38;
+    let targetMouseY = height / 2;
 
     const handleMouseMove = (e: MouseEvent) => {
       targetMouseX = e.clientX;
       targetMouseY = e.clientY;
     };
-
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 0) {
         targetMouseX = e.touches[0].clientX;
         targetMouseY = e.touches[0].clientY;
       }
     };
-
     const handleTouchEnd = () => {
-      // Smoothly return towards natural center equilibrium
       targetMouseX = width / 2;
-      targetMouseY = height * 0.38;
-    };
-
-    const handleScroll = () => {
-      const scrollY = window.scrollY || window.pageYOffset;
-      // Very gentle vertical stream focal drift with scroll
-      targetMouseY = height * 0.38 + Math.min(scrollY * 0.08, 60);
+      targetMouseY = height / 2;
     };
 
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
     window.addEventListener("touchmove", handleTouchMove, { passive: true });
     window.addEventListener("touchend", handleTouchEnd, { passive: true });
-    window.addEventListener("scroll", handleScroll, { passive: true });
 
-    // Floating Engineering Units (All 11 required: kWh, kVA, kVAh, kVArh, R/kWh, PEAK, STANDARD, OFF-PEAK, DEMAND, TARIFF, VAT)
-    const dataUnits: FloatingDataUnit[] = [
+    // The 6 carefully selected signals - framed around the central reading column
+    const signals: EnergySignal[] = [
       {
-        text: "kWh",
+        id: "s1",
+        label: "kWh",
+        sub: "ACTIVE TELEMETRY",
+        baseRelX: 0.16,
+        baseRelY: 0.28,
         x: width * 0.16,
-        y: height * 0.22,
-        vx: 0.16,
-        vy: -0.12,
-        alpha: 0.45,
+        y: height * 0.28,
         color: "#22d3ee",
+        glowColor: "rgba(34, 211, 238, 0.4)",
       },
       {
-        text: "kVA",
-        x: width * 0.82,
-        y: height * 0.26,
-        vx: -0.14,
-        vy: 0.15,
-        alpha: 0.5,
+        id: "s2",
+        label: "kVA",
+        sub: "APPARENT DEMAND",
+        baseRelX: 0.84,
+        baseRelY: 0.28,
+        x: width * 0.84,
+        y: height * 0.28,
         color: "#10b981",
+        glowColor: "rgba(16, 185, 129, 0.4)",
       },
       {
-        text: "kVAh",
+        id: "s3",
+        label: "TARIFF",
+        sub: "STATUTORY SCHEDULE",
+        baseRelX: 0.12,
+        baseRelY: 0.54,
         x: width * 0.12,
-        y: height * 0.65,
-        vx: 0.12,
-        vy: 0.14,
-        alpha: 0.35,
-        color: "#8b5cf6",
+        y: height * 0.54,
+        color: "#a78bfa",
+        glowColor: "rgba(167, 139, 250, 0.4)",
       },
       {
-        text: "kVArh",
-        x: width * 0.86,
-        y: height * 0.62,
-        vx: -0.15,
-        vy: -0.12,
-        alpha: 0.4,
-        color: "#22d3ee",
+        id: "s4",
+        label: "DEMAND",
+        sub: "PEAK DETERMINANT",
+        baseRelX: 0.88,
+        baseRelY: 0.54,
+        x: width * 0.88,
+        y: height * 0.54,
+        color: "#f59e0b",
+        glowColor: "rgba(245, 158, 11, 0.4)",
       },
       {
-        text: "R/kWh",
-        x: width * 0.26,
-        y: height * 0.82,
-        vx: 0.11,
-        vy: -0.14,
-        alpha: 0.38,
-        color: "#10b981",
-      },
-      {
-        text: "PEAK",
-        x: width * 0.76,
-        y: height * 0.42,
-        vx: -0.12,
-        vy: 0.16,
-        alpha: 0.42,
-        color: "#f43f5e",
-      },
-      {
-        text: "STANDARD",
-        x: width * 0.18,
-        y: height * 0.44,
-        vx: 0.15,
-        vy: -0.1,
-        alpha: 0.38,
+        id: "s5",
+        label: "COST",
+        sub: "BILLED LIABILITY",
+        baseRelX: 0.22,
+        baseRelY: 0.78,
+        x: width * 0.22,
+        y: height * 0.78,
         color: "#38bdf8",
+        glowColor: "rgba(56, 189, 248, 0.4)",
       },
       {
-        text: "OFF-PEAK",
-        x: width * 0.68,
-        y: height * 0.84,
-        vx: -0.13,
-        vy: -0.12,
-        alpha: 0.35,
-        color: "#10b981",
-      },
-      {
-        text: "DEMAND",
-        x: width * 0.34,
-        y: height * 0.16,
-        vx: 0.14,
-        vy: 0.12,
-        alpha: 0.4,
-        color: "#22d3ee",
-      },
-      {
-        text: "TARIFF",
-        x: width * 0.64,
-        y: height * 0.18,
-        vx: -0.15,
-        vy: 0.11,
-        alpha: 0.45,
-        color: "#8b5cf6",
-      },
-      {
-        text: "VAT",
-        x: width * 0.52,
-        y: height * 0.86,
-        vx: 0.08,
-        vy: -0.13,
-        alpha: 0.35,
-        color: "#94a3b8",
+        id: "s6",
+        label: "VARIANCE",
+        sub: "ISOLATED DELTA",
+        baseRelX: 0.78,
+        baseRelY: 0.78,
+        x: width * 0.78,
+        y: height * 0.78,
+        color: "#f43f5e",
+        glowColor: "rgba(244, 63, 94, 0.4)",
       },
     ];
 
-    // Ambient Energy Particle Pool - Scaled intentionally across 320px, 375px, 390px, 430px, 768px, 1024px+
-    const particleCount = reducedMotion
-      ? 16
-      : width < 390
-        ? 16
-        : width < 768
-          ? 22
-          : width < 1024
-            ? 45
-            : 85;
+    const updateSignalCoordinates = () => {
+      const isMobile = width < 768;
+      signals.forEach((s) => {
+        const relX = isMobile
+          ? s.baseRelX < 0.5
+            ? Math.max(0.12, s.baseRelX * 0.85)
+            : Math.min(0.88, 1 - (1 - s.baseRelX) * 0.85)
+          : s.baseRelX;
+        s.x = width * relX;
+        s.y = height * s.baseRelY;
+      });
+    };
+    updateSignalCoordinates();
+
+    // Ambient particles (reduced count, subtle, never competing with headline)
+    const particleCount = reducedMotion ? 12 : width < 768 ? 20 : 40;
     const particles: Particle[] = [];
-    const colors = ["#22d3ee", "#06b6d4", "#10b981", "#8b5cf6", "#e2e8f0"];
+    const colors = ["#22d3ee", "#10b981", "#a78bfa", "#f59e0b", "#38bdf8"];
 
     for (let i = 0; i < particleCount; i++) {
-      const rx = Math.random() * width;
-      const ry = Math.random() * height;
       particles.push({
-        x: rx,
-        y: ry,
-        baseX: rx,
-        baseY: ry,
-        vx: (Math.random() - 0.5) * 0.4,
-        vy: (Math.random() - 0.5) * 0.4,
-        size: Math.random() * 2 + 1,
-        alpha: Math.random() * 0.35 + 0.1,
-        maxAlpha: Math.random() * 0.45 + 0.35,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        pulseSpeed: 0.015 + Math.random() * 0.02,
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        size: Math.random() * 1.5 + 0.8,
+        alpha: Math.random() * 0.25 + 0.1,
+        color: colors[i % colors.length],
         phase: Math.random() * Math.PI * 2,
       });
     }
 
-    // Telemetry Grid Energy Nodes (Nodes illuminate on proximity or packet transit)
-    const centerX = width / 2;
-    const centerY = height * 0.38;
-    const nodes: EnergyNode[] = [
+    // Converging and circulating energy streams
+    const streams: StreamLine[] = [
+      // Left energy stream feeding into kWh & TARIFF
       {
-        id: "n1",
-        label: "MTR-01",
-        x: width * 0.22,
-        y: height * 0.28,
-        baseRadius: 3.5,
+        startX: 0,
+        startY: height * 0.2,
+        controlX1: width * 0.08,
+        controlY1: height * 0.24,
+        controlX2: width * 0.12,
+        controlY2: height * 0.26,
+        endX: width * 0.16,
+        endY: height * 0.28,
         color: "#22d3ee",
-        illumination: 0,
-        pulsePhase: 0,
+        speed: 0.008,
       },
+      // Right energy stream feeding into kVA & DEMAND
       {
-        id: "n2",
-        label: "SUB-04",
-        x: width * 0.78,
-        y: height * 0.32,
-        baseRadius: 4,
+        startX: width,
+        startY: height * 0.22,
+        controlX1: width * 0.92,
+        controlY1: height * 0.25,
+        controlX2: width * 0.88,
+        controlY2: height * 0.27,
+        endX: width * 0.84,
+        endY: height * 0.28,
         color: "#10b981",
-        illumination: 0,
-        pulsePhase: 1,
+        speed: 0.009,
       },
+      // Lower-left stream into TARIFF & COST
       {
-        id: "n3",
-        label: "NODE-α",
-        x: width * 0.32,
-        y: height * 0.58,
-        baseRadius: 3,
-        color: "#8b5cf6",
-        illumination: 0,
-        pulsePhase: 2,
+        startX: 0,
+        startY: height * 0.65,
+        controlX1: width * 0.06,
+        controlY1: height * 0.58,
+        controlX2: width * 0.09,
+        controlY2: height * 0.55,
+        endX: width * 0.12,
+        endY: height * 0.54,
+        color: "#a78bfa",
+        speed: 0.007,
       },
+      // Lower-right stream into DEMAND & VARIANCE
       {
-        id: "n4",
-        label: "FEED-02",
-        x: width * 0.68,
-        y: height * 0.56,
-        baseRadius: 3.5,
-        color: "#22d3ee",
-        illumination: 0,
-        pulsePhase: 3,
-      },
-      {
-        id: "n5",
-        label: "TX-07",
-        x: width * 0.18,
-        y: height * 0.72,
-        baseRadius: 3,
-        color: "#38bdf8",
-        illumination: 0,
-        pulsePhase: 4,
-      },
-      {
-        id: "n6",
-        label: "SYNC-03",
-        x: width * 0.82,
-        y: height * 0.74,
-        baseRadius: 3.5,
-        color: "#10b981",
-        illumination: 0,
-        pulsePhase: 5,
-      },
-      {
-        id: "n7",
-        label: "GRID-C",
-        x: width * 0.5,
-        y: height * 0.18,
-        baseRadius: 4,
-        color: "#22d3ee",
-        illumination: 0,
-        pulsePhase: 6,
+        startX: width,
+        startY: height * 0.68,
+        controlX1: width * 0.94,
+        controlY1: height * 0.6,
+        controlX2: width * 0.91,
+        controlY2: height * 0.56,
+        endX: width * 0.88,
+        endY: height * 0.54,
+        color: "#f59e0b",
+        speed: 0.008,
       },
     ];
 
-    // Luminous Electrical Data Streams converging toward the centre (Scaled for mobile)
-    const streamCount = reducedMotion
-      ? 3
-      : width < 430
-        ? 3
-        : width < 768
-          ? 4
-          : width < 1024
-            ? 6
-            : 8;
-    const streams: StreamLine[] = [];
-
-    for (let s = 0; s < streamCount; s++) {
-      const angle = (s / streamCount) * Math.PI * 2;
-      const radius = Math.min(width, height) * 0.48;
-      const startX = centerX + Math.cos(angle) * radius;
-      const startY = centerY + Math.sin(angle) * radius;
-
-      const points = [];
-      const steps = width < 768 ? 4 : 7;
-      for (let j = 0; j <= steps; j++) {
-        const t = j / steps;
-        const px = startX + (centerX - startX) * t + (Math.random() - 0.5) * 35;
-        const py = startY + (centerY - startY) * t + (Math.random() - 0.5) * 35;
-        points.push({ x: px, y: py });
-      }
-
-      streams.push({
-        startX,
-        startY,
-        points,
-        speed: 0.02 + Math.random() * 0.018,
-        color: s % 3 === 0 ? "#10b981" : s % 2 === 0 ? "#22d3ee" : "#8b5cf6",
-        width: Math.random() * 1.5 + 0.8,
-        glow: Math.random() * 12 + 6,
-      });
-    }
-
+    // Total Continuous Evolutionary Cycle: 24 seconds
+    // 0s - 6s:   ENERGY (Pure flowing energy currents and traveling particles)
+    // 6s - 12s:  DATA (The 6 signals crystallize, illuminate, and beacon)
+    // 12s - 18s: INTELLIGENCE (Structured vectors connect the signals into an intelligence matrix)
+    // 18s - 22s: INSIGHT (Vectors converge, VARIANCE is isolated with resolution beacon)
+    // 22s - 24s: RESET (Structured intelligence dissolves back into pure energy streams)
+    const CYCLE_DURATION = 24;
     let time = 0;
 
     const render = () => {
       time += 0.016;
-      // Smooth damped lerp toward target (prevents sudden jumping)
-      mouseX += (targetMouseX - mouseX) * 0.045;
-      mouseY += (targetMouseY - mouseY) * 0.045;
+      const cycleTime = time % CYCLE_DURATION;
+      const progress = cycleTime / CYCLE_DURATION; // 0.0 to 1.0
 
-      // Deep graphite clear
-      ctx.fillStyle = "rgba(3, 7, 18, 0.28)";
+      let dataAlpha = 0;
+      let lineAlpha = 0;
+      let insightAlpha = 0;
+
+      if (progress < 0.25) {
+        // ENERGY PHASE (0.0 to 0.25)
+        const t = progress / 0.25;
+        dataAlpha = 0.2 * t; // signals start very faint
+        lineAlpha = 0;
+        insightAlpha = 0;
+      } else if (progress < 0.5) {
+        // DATA PHASE (0.25 to 0.50)
+        const t = (progress - 0.25) / 0.25;
+        dataAlpha = 0.2 + 0.65 * t; // signals illuminate
+        lineAlpha = 0.2 * t; // connections begin to trace
+        insightAlpha = 0;
+      } else if (progress < 0.75) {
+        // INTELLIGENCE PHASE (0.50 to 0.75)
+        const t = (progress - 0.5) / 0.25;
+        dataAlpha = 0.85;
+        lineAlpha = 0.2 + 0.65 * t; // network lines fully visible
+        insightAlpha = 0.3 * t;
+      } else if (progress < 0.9) {
+        // INSIGHT PHASE (0.75 to 0.90)
+        const t = (progress - 0.75) / 0.15;
+        dataAlpha = 0.85;
+        lineAlpha = 0.85 - 0.2 * t;
+        insightAlpha = 0.4 + 0.6 * Math.sin(t * Math.PI); // pulsing insight beacon
+      } else {
+        // RESET PHASE (0.90 to 1.0)
+        const t = (progress - 0.9) / 0.1;
+        dataAlpha = 0.85 * (1 - t);
+        lineAlpha = 0.65 * (1 - t);
+        insightAlpha = 0.4 * (1 - t);
+      }
+
+      // Smooth mouse damping
+      mouseX += (targetMouseX - mouseX) * 0.04;
+      mouseY += (targetMouseY - mouseY) * 0.04;
+
+      // Soft clear with slight persistence for motion fluidity
+      ctx.fillStyle = "rgba(3, 7, 18, 0.26)";
       ctx.fillRect(0, 0, width, height);
 
-      // 1. Subtle Background Grid (Shifts very slightly with mouse/touch)
-      const gridShiftX = reducedMotion ? 0 : (mouseX - width / 2) * 0.012;
-      const gridShiftY = reducedMotion ? 0 : (mouseY - height / 2) * 0.012;
+      // Central Headline Clearance Calculation (Ensuring animation NEVER competes with headline)
+      const centerX = width / 2;
+      const centerY = height * 0.42;
+      const clearanceRadius = Math.min(width * 0.38, 320);
 
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.02)";
-      ctx.lineWidth = 1;
-      const gridSize = 64;
-      for (let x = gridShiftX % gridSize; x < width; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-      }
-      for (let y = gridShiftY % gridSize; y < height; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-      }
-
-      // 2. Converging Luminous Streams (Digital Electricity)
-      // Streams bend subtly without exaggerated distortion
-      streams.forEach((stream, idx) => {
+      // 1. Draw Energy Streams (Atmospheric flowing energy lines)
+      streams.forEach((stream, sIdx) => {
         ctx.save();
+        const streamAlpha = reducedMotion ? 0.12 : 0.18 + 0.08 * Math.sin(time * 2 + sIdx);
         ctx.strokeStyle = stream.color;
-        ctx.lineWidth = stream.width;
+        ctx.lineWidth = 1.2;
         ctx.shadowColor = stream.color;
-        ctx.shadowBlur = stream.glow;
-
-        const pulseOffset = Math.sin(time * 3 + idx) * 0.35 + 0.65;
-        ctx.globalAlpha = 0.3 * pulseOffset;
+        ctx.shadowBlur = 8;
+        ctx.globalAlpha = streamAlpha;
 
         ctx.beginPath();
         ctx.moveTo(stream.startX, stream.startY);
-
-        const dx = mouseX - centerX;
-        const dy = mouseY - centerY;
-        // Subtle bend calculation: constrained and proportional
-        const bendFactor = reducedMotion ? 0 : 0.045;
-        const bendX = (dx * bendFactor * (idx + 1)) / streamCount;
-        const bendY = (dy * bendFactor * (idx + 1)) / streamCount;
-
-        for (let p = 1; p < stream.points.length; p++) {
-          const pt = stream.points[p];
-          const prevPt = stream.points[p - 1];
-          const midX = (prevPt.x + pt.x) / 2 + bendX;
-          const midY = (prevPt.y + pt.y) / 2 + bendY;
-          ctx.quadraticCurveTo(prevPt.x + bendX, prevPt.y + bendY, midX, midY);
-        }
+        ctx.bezierCurveTo(
+          stream.controlX1,
+          stream.controlY1,
+          stream.controlX2,
+          stream.controlY2,
+          stream.endX,
+          stream.endY,
+        );
         ctx.stroke();
 
-        // High-velocity digital data packet traveling along electrical stream
+        // Traveling energy photon along the stream
         if (!reducedMotion) {
-          const progress = (time * stream.speed * 4) % 1;
-          const packetIdx = Math.floor(progress * (stream.points.length - 1));
-          const currentPt = stream.points[packetIdx];
-          const nextPt = stream.points[Math.min(packetIdx + 1, stream.points.length - 1)];
+          const streamProgress = (time * stream.speed * 8 + sIdx * 0.25) % 1;
+          const u = streamProgress;
+          const u2 = u * u;
+          const u3 = u2 * u;
+          const t = 1 - u;
+          const t2 = t * t;
+          const t3 = t2 * t;
 
-          if (currentPt && nextPt) {
-            const subProgress = (progress * (stream.points.length - 1)) % 1;
-            const px = currentPt.x + (nextPt.x - currentPt.x) * subProgress + bendX;
-            const py = currentPt.y + (nextPt.y - currentPt.y) * subProgress + bendY;
+          // Cubic bezier point
+          const px =
+            t3 * stream.startX +
+            3 * t2 * u * stream.controlX1 +
+            3 * t * u2 * stream.controlX2 +
+            u3 * stream.endX;
+          const py =
+            t3 * stream.startY +
+            3 * t2 * u * stream.controlY1 +
+            3 * t * u2 * stream.controlY2 +
+            u3 * stream.endY;
 
-            ctx.fillStyle = "#ffffff";
-            ctx.shadowColor = stream.color;
-            ctx.shadowBlur = 14;
+          // Center dimming check so photons never distract from headline
+          const distToCenter = Math.hypot(px - centerX, py - centerY);
+          const centerDim = distToCenter < clearanceRadius ? Math.max(0.1, distToCenter / clearanceRadius) : 1;
+
+          ctx.fillStyle = "#ffffff";
+          ctx.shadowColor = stream.color;
+          ctx.shadowBlur = 12;
+          ctx.globalAlpha = streamAlpha * 2 * centerDim;
+          ctx.beginPath();
+          ctx.arc(px, py, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      });
+
+      // 2. Structured Intelligence Vectors (Connecting the 6 signals during Intelligence/Insight phase)
+      if (lineAlpha > 0.02) {
+        const connections: [number, number][] = [
+          [0, 2], // kWh -> TARIFF
+          [2, 4], // TARIFF -> COST
+          [1, 3], // kVA -> DEMAND
+          [3, 5], // DEMAND -> VARIANCE
+          [4, 5], // COST -> VARIANCE (Reconciliation & Recovery)
+          [0, 1], // kWh -> kVA (Dual Energy Vector)
+        ];
+
+        connections.forEach(([fromIdx, toIdx], cIdx) => {
+          const from = signals[fromIdx];
+          const to = signals[toIdx];
+          if (!from || !to) return;
+
+          ctx.save();
+          const isRecoveryVector = cIdx === 4;
+          ctx.strokeStyle = isRecoveryVector ? "#f43f5e" : "rgba(34, 211, 238, 0.35)";
+          ctx.lineWidth = isRecoveryVector ? 1.5 : 1;
+          ctx.shadowColor = isRecoveryVector ? "#f43f5e" : "#22d3ee";
+          ctx.shadowBlur = isRecoveryVector ? 10 : 6;
+          ctx.globalAlpha = (isRecoveryVector ? lineAlpha * 1.2 : lineAlpha * 0.6) * (0.7 + 0.3 * Math.sin(time * 3 + cIdx));
+
+          // Dashed line pattern for digital telemetry aesthetic
+          ctx.setLineDash([4, 6]);
+          ctx.lineDashOffset = -time * 15;
+
+          ctx.beginPath();
+          ctx.moveTo(from.x, from.y);
+          ctx.lineTo(to.x, to.y);
+          ctx.stroke();
+          ctx.setLineDash([]); // Reset line dash
+
+          // Traveling intelligence packet along connection line
+          if (!reducedMotion && lineAlpha > 0.25) {
+            const lineProgress = (time * 0.4 + cIdx * 0.2) % 1;
+            const lx = from.x + (to.x - from.x) * lineProgress;
+            const ly = from.y + (to.y - from.y) * lineProgress;
+
+            const distToCenter = Math.hypot(lx - centerX, ly - centerY);
+            const centerDim = distToCenter < clearanceRadius ? Math.max(0.1, distToCenter / clearanceRadius) : 1;
+
+            ctx.fillStyle = isRecoveryVector ? "#fb7185" : "#ffffff";
+            ctx.shadowColor = isRecoveryVector ? "#f43f5e" : "#22d3ee";
+            ctx.shadowBlur = 10;
+            ctx.globalAlpha = lineAlpha * centerDim;
             ctx.beginPath();
-            ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+            ctx.arc(lx, ly, isRecoveryVector ? 2.5 : 1.8, 0, Math.PI * 2);
             ctx.fill();
           }
-        }
 
-        ctx.restore();
-      });
+          ctx.restore();
+        });
+      }
 
-      // 3. Telemetry Grid Energy Nodes (Nodes illuminate on cursor/touch proximity)
-      nodes.forEach((node) => {
-        const dx = node.x - mouseX;
-        const dy = node.y - mouseY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+      // 3. Draw The 6 Carefully Selected Signals (kWh, kVA, TARIFF, DEMAND, COST, VARIANCE)
+      signals.forEach((signal, idx) => {
+        // Subtle organic float around base anchor
+        const floatOffset = reducedMotion ? 0 : Math.sin(time * 1.8 + idx * 1.2) * 4;
+        const sigX = signal.x + (reducedMotion ? 0 : (mouseX - centerX) * 0.015);
+        const sigY = signal.y + floatOffset + (reducedMotion ? 0 : (mouseY - centerY) * 0.015);
 
-        if (!reducedMotion) {
-          // Calculate proximity illumination: within 140px, node illuminates
-          const targetIllumination = dist < 140 ? Math.max(0, (140 - dist) / 140) : 0;
-          node.illumination += (targetIllumination - node.illumination) * 0.12;
-        } else {
-          // Graceful reduced motion: gentle ambient breathing without cursor tracking
-          node.illumination = 0.25 + 0.15 * Math.sin(time * 1.5 + node.pulsePhase);
-        }
+        // Compute gentle proximity illumination if cursor moves near signal
+        const distToMouse = Math.hypot(sigX - mouseX, sigY - mouseY);
+        const mouseProximity = distToMouse < 110 ? (110 - distToMouse) / 110 : 0;
+
+        const effectiveAlpha = Math.max(0.08, Math.min(0.85, dataAlpha + mouseProximity * 0.2));
 
         ctx.save();
-        const glowRadius = node.baseRadius + node.illumination * 2.5;
-        const totalAlpha = 0.35 + node.illumination * 0.6;
+        ctx.globalAlpha = effectiveAlpha;
 
-        // Outer glow halo when illuminated
-        if (node.illumination > 0.05) {
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, glowRadius + node.illumination * 8, 0, Math.PI * 2);
-          ctx.fillStyle = node.color;
-          ctx.globalAlpha = node.illumination * 0.25;
-          ctx.shadowColor = node.color;
-          ctx.shadowBlur = 20 * node.illumination;
-          ctx.fill();
+        // Is this the VARIANCE node during the INSIGHT phase?
+        const isInsightTarget = signal.label === "VARIANCE" && insightAlpha > 0.05;
 
-          // Radar pulse ring
+        // Outer glow halo around the signal node
+        ctx.beginPath();
+        const haloRadius = isInsightTarget ? 18 + insightAlpha * 8 : 12;
+        ctx.arc(sigX, sigY, haloRadius, 0, Math.PI * 2);
+        ctx.fillStyle = signal.glowColor;
+        ctx.shadowColor = signal.color;
+        ctx.shadowBlur = isInsightTarget ? 25 : 14;
+        ctx.fill();
+
+        // Insight harmonic ripple ring around VARIANCE
+        if (isInsightTarget) {
           ctx.beginPath();
-          ctx.arc(node.x, node.y, glowRadius + node.illumination * 14, 0, Math.PI * 2);
-          ctx.strokeStyle = node.color;
-          ctx.lineWidth = 1;
-          ctx.globalAlpha = node.illumination * 0.4;
+          ctx.arc(sigX, sigY, haloRadius + 10 * Math.sin(time * 4), 0, Math.PI * 2);
+          ctx.strokeStyle = signal.color;
+          ctx.lineWidth = 1.2;
+          ctx.globalAlpha = insightAlpha * 0.6;
           ctx.stroke();
-
-          // Monospace telemetry coordinate tag
-          ctx.font = "600 9px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
-          ctx.fillStyle = "#e2e8f0";
-          ctx.globalAlpha = Math.min(1, node.illumination * 1.2);
-          ctx.fillText(node.label, node.x + 10, node.y + 3);
         }
 
-        // Core Node Body
+        // Signal Node Core Beacon
         ctx.beginPath();
-        ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
-        ctx.fillStyle = node.illumination > 0.4 ? "#ffffff" : node.color;
-        ctx.globalAlpha = totalAlpha;
-        ctx.shadowColor = node.color;
-        ctx.shadowBlur = 10 + node.illumination * 15;
+        ctx.arc(sigX, sigY, isInsightTarget ? 4.5 : 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = isInsightTarget ? "#ffffff" : signal.color;
+        ctx.shadowColor = signal.color;
+        ctx.shadowBlur = 12;
         ctx.fill();
+
+        // Elegant Signal Text Lockup (Clean, restrained monospace font)
+        const isLeftSide = signal.baseRelX < 0.5;
+        const textAnchorX = isLeftSide ? sigX + 10 : sigX - 10;
+        ctx.textAlign = isLeftSide ? "left" : "right";
+
+        // Signal Primary Label (kWh, kVA, TARIFF, etc.)
+        ctx.font = "700 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+        ctx.fillStyle = isInsightTarget ? "#ffffff" : signal.color;
+        ctx.shadowColor = signal.color;
+        ctx.shadowBlur = 8;
+        ctx.fillText(signal.label, textAnchorX, sigY + 3.5);
+
+        // Signal Subtext (Only displayed on tablet/desktop for ultra-clarity)
+        if (width >= 640 && effectiveAlpha > 0.25) {
+          ctx.font = "500 8px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+          ctx.fillStyle = "rgba(148, 163, 184, 0.75)";
+          ctx.shadowBlur = 0;
+          ctx.fillText(signal.sub, textAnchorX, sigY + 14);
+        }
 
         ctx.restore();
       });
 
-      // 4. Ambient Energy Particles (React to mouse, calm constellation on reduced motion)
+      // 4. Ambient Energy Particles (Soft drifting stardust, reduced near center)
       particles.forEach((p) => {
-        p.phase += p.pulseSpeed;
-        const currentAlpha = p.alpha + Math.sin(p.phase) * (p.maxAlpha - p.alpha);
-
+        p.phase += 0.02;
         if (!reducedMotion) {
-          // Particles react subtly to mouse cursor without jarring deflection
-          const dx = p.x - mouseX;
-          const dy = p.y - mouseY;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 120 && dist > 0) {
-            const force = (120 - dist) / 120;
-            // Gentle repulsive spring
-            p.x += (dx / dist) * force * 1.2;
-            p.y += (dy / dist) * force * 1.2;
-          }
-
           p.x += p.vx;
           p.y += p.vy;
 
@@ -550,42 +527,24 @@ export function EneraHeroCanvas() {
           if (p.y > height) p.y = 0;
         }
 
+        const distToCenter = Math.hypot(p.x - centerX, p.y - centerY);
+        const centerDim = distToCenter < clearanceRadius ? Math.max(0.12, distToCenter / clearanceRadius) : 1;
+
         ctx.save();
         ctx.fillStyle = p.color;
-        ctx.globalAlpha = Math.max(0.05, Math.min(0.85, currentAlpha));
         ctx.shadowColor = p.color;
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 6;
+        ctx.globalAlpha = p.alpha * centerDim * (0.7 + 0.3 * Math.sin(p.phase));
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       });
 
-      // 5. Floating Engineering Data Values (Transition from Energy to Data)
-      ctx.save();
-      ctx.font = "600 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
-
-      dataUnits.forEach((u) => {
-        if (!reducedMotion) {
-          u.x += u.vx;
-          u.y += u.vy;
-
-          if (u.x < 20 || u.x > width - 50) u.vx *= -1;
-          if (u.y < 40 || u.y > height - 40) u.vy *= -1;
-        }
-
-        ctx.fillStyle = u.color;
-        ctx.globalAlpha = u.alpha * (0.8 + Math.sin(time * 2 + u.x) * 0.2);
-        ctx.shadowColor = u.color;
-        ctx.shadowBlur = 10;
-        ctx.fillText(u.text, u.x, u.y);
-      });
-      ctx.restore();
-
-      if (!isVisible) {
-        return;
+      // Loop request
+      if (isVisible) {
+        animationFrameId = requestAnimationFrame(render);
       }
-      animationFrameId = requestAnimationFrame(render);
     };
 
     render();
@@ -597,7 +556,6 @@ export function EneraHeroCanvas() {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleTouchEnd);
-      window.removeEventListener("scroll", handleScroll);
     };
   }, [reducedMotion]);
 
@@ -606,7 +564,7 @@ export function EneraHeroCanvas() {
       {/* 1. Cinematic Background Canvas */}
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
-      {/* 2. Atmospheric Core Glow */}
+      {/* 2. Atmospheric Core Glow (Soft background depth, non-distracting) */}
       <div className="absolute top-[28%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] sm:w-[450px] md:w-[650px] h-[220px] sm:h-[350px] rounded-full bg-cyan-500/10 blur-[50px] md:blur-[130px] pointer-events-none" />
       <div className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] sm:w-[320px] h-[160px] sm:h-[240px] rounded-full bg-emerald-500/10 blur-[40px] md:blur-[100px] pointer-events-none" />
     </div>
