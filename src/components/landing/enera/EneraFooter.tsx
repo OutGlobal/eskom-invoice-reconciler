@@ -58,10 +58,10 @@ export function EneraFooter() {
             <ul className="space-y-2.5 text-xs text-slate-300 font-sans">
               <li>
                 <a
-                  href="#platform"
+                  href="#capabilities"
                   className="hover:text-cyan-300 transition-colors focus-ring-enera rounded"
                 >
-                  Platform
+                  Capabilities
                 </a>
               </li>
               <li>
@@ -82,10 +82,10 @@ export function EneraFooter() {
               </li>
               <li>
                 <a
-                  href="#insights"
+                  href="#impact"
                   className="hover:text-cyan-300 transition-colors focus-ring-enera rounded"
                 >
-                  Insights
+                  Financial Impact
                 </a>
               </li>
               <li>

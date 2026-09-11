@@ -6,6 +6,11 @@ import { EneraBillSignalSection } from "@/components/landing/enera/EneraBillSign
 import { EngineFlowConnector } from "@/components/landing/enera/EneraBrandPrimitives";
 
 // Lazy-load below-the-fold sections for optimal bundle splitting and initial load performance
+const EneraCapabilitiesSection = lazy(() =>
+  import("@/components/landing/enera/EneraCapabilitiesSection").then((m) => ({
+    default: m.EneraCapabilitiesSection,
+  })),
+);
 const EneraDifferenceSection = lazy(() =>
   import("@/components/landing/enera/EneraDifferenceSection").then((m) => ({
     default: m.EneraDifferenceSection,
@@ -102,6 +107,11 @@ function EneraLandingPage() {
       >
         {/* PHASE 01: ENERGY — The Front Door to an Energy Intelligence Engine */}
         <EneraHeroSection />
+
+        <Suspense fallback={<SectionFallback />}>
+          {/* LEVEL 1 PUBLIC CAPABILITIES: Ten Pillars of Energy Financial Intelligence */}
+          <EneraCapabilitiesSection />
+        </Suspense>
 
         <EngineFlowConnector from="ENERGY" to="DATA" />
 

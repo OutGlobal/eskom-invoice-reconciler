@@ -200,7 +200,7 @@ export function EneraBillSignalSection() {
   return (
     <section
       ref={sectionRef}
-      id="capabilities"
+      id="signal"
       className="relative py-28 bg-[#030712] text-white border-t border-white/5 overflow-hidden"
     >
       {/* Background radial ambient lights */}
