@@ -353,9 +353,9 @@ export function EneraCopilotSection() {
           </h2>
 
           <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed">
-            No complex SQL or manual spreadsheet pivot tables. Ask in plain English and let ENERA
-            reconcile your interval telemetry, NERSA tariff books, and municipal billing vectors in
-            real time.
+            AI-assisted analysis helps users investigate complex energy information faster. Ask in
+            plain English to analyze billing and consumption signals, surface unusual patterns, and
+            identify material differences in real time.
           </p>
         </div>
 

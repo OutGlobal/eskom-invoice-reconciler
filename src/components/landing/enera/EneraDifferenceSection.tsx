@@ -200,8 +200,8 @@ export function EneraDifferenceSection() {
           </h2>
 
           <p className="mt-5 text-base sm:text-xl text-slate-400 font-light max-w-xl mx-auto">
-            When utility billing determinants meet certified meter intervals, overcharges have
-            nowhere to hide.
+            ENERA compares relevant billing and consumption information to identify material
+            differences and surface unusual patterns before invoices are settled.
           </p>
 
           {/* Metric Selector Tabs */}

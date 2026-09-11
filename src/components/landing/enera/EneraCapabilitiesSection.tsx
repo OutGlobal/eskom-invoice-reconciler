@@ -41,7 +41,7 @@ export const LEVEL_1_CAPABILITIES: CapabilityItem[] = [
     categoryLabel: "FINANCIAL GOVERNANCE",
     tagline: "Deterministic Line-Item Verification",
     description:
-      "Automated cross-examination of utility electricity statements against revenue-meter interval telemetry and gazetted tariff rate schedules to eliminate billing variances.",
+      "ENERA compares relevant billing and consumption information to identify material differences and eliminate unearned utility charges.",
     executiveOutcome: "Recovers 3% to 7% of unearned energy spend before invoice settlement",
     icon: Scale,
     accentColor: "from-cyan-500/20 via-cyan-500/5 to-transparent",
@@ -69,7 +69,7 @@ export const LEVEL_1_CAPABILITIES: CapabilityItem[] = [
     categoryLabel: "FINANCIAL GOVERNANCE",
     tagline: "Autonomous Variance Isolation",
     description:
-      "Instant detection of tariff misclassifications, uncredited statutory public holidays, incorrect seasonal transitions, and utility meter roll-over errors.",
+      "ENERA analyses billing and consumption signals to surface unusual patterns and potential discrepancies across tariffs, public holidays, and seasonal boundaries.",
     executiveOutcome: "Prevents silent monthly balance sheet leakage and compound utility overcharges",
     icon: AlertTriangle,
     accentColor: "from-amber-500/20 via-amber-500/5 to-transparent",
@@ -167,7 +167,7 @@ export const LEVEL_1_CAPABILITIES: CapabilityItem[] = [
     categoryLabel: "OPERATIONAL INTELLIGENCE",
     tagline: "Autonomous Natural Language Copilot",
     description:
-      "Context-aware energy intelligence copilot that interrogates complex billing determinants, interprets municipal bylaws, and answers executive energy queries in seconds.",
+      "AI-assisted analysis helps users investigate complex energy information faster, answering high-impact financial questions and evaluating tariffs in seconds.",
     executiveOutcome: "Reduces complex multi-week engineering billing reviews to immediate answers",
     icon: Bot,
     accentColor: "from-cyan-400/20 via-emerald-500/5 to-transparent",

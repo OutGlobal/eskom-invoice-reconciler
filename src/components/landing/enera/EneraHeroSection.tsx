@@ -182,8 +182,8 @@ export function EneraHeroSection() {
           </h1>
 
           <p className="text-xs sm:text-sm text-slate-300/90 font-normal leading-relaxed max-w-sm mb-6">
-            Reconstructing raw AMR telemetry against gazetted utility tariffs to detect
-            mathematical drift, ratchet penalties, and reclaim lost corporate capital.
+            Analysing billing and consumption signals to surface unusual patterns,
+            identify material differences, and reclaim unearned energy capital.
           </p>
 
           {/* Action CTAs: Analyse Your Energy → & Explore ENERA */}
@@ -284,8 +284,8 @@ export function EneraHeroSection() {
 
           {/* Supporting Statement */}
           <p className="mt-4 sm:mt-6 text-sm sm:text-base md:text-lg text-slate-300/90 max-w-2xl mx-auto font-normal leading-relaxed">
-            Cross-examining revenue-meter interval telemetry against gazetted utility tariffs
-            to isolate mathematical drift, uncredited holidays, and reclaim unearned energy capital.
+            Compares relevant billing and consumption information against gazetted tariffs to surface
+            unusual patterns, identify material differences, and reclaim unearned energy capital.
           </p>
 
           {/* Action Button Row */}

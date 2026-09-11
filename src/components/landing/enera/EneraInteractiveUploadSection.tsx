@@ -66,19 +66,19 @@ const SIMULATION_STAGES: SimulationStep[] = [
   },
   {
     step: 5,
-    title: "RECONCILING CHARGES",
-    desc: "Executing statutory accounting precision against verified physical power delivery.",
+    title: "IDENTIFYING MATERIAL DIFFERENCES",
+    desc: "Compares relevant billing and consumption information to identify material discrepancies.",
     metric: "Δ 131,227 kWh Variance",
     statusSummary:
-      "Billed determinants cross-examined against physical meter ground truth. Variance isolated.",
+      "Billed information compared with actual consumption data to surface unusual patterns and isolate material discrepancies.",
   },
   {
     step: 6,
-    title: "ISOLATING OVERCHARGES",
-    desc: "Identifying unapplied holiday credits, demand spikes, and multiplier errors.",
+    title: "SURFACING UNUSUAL PATTERNS",
+    desc: "Analyses billing and consumption signals to surface unusual patterns and potential overcharges.",
     metric: "R 51,227.00 Overcharge",
     statusSummary:
-      "Statutory public holiday billing error isolated. Weekday peak rate applied incorrectly instead of Sunday tariff.",
+      "Unusual billing patterns surfaced. Public holiday tariff variance isolated and quantified for recovery.",
   },
   {
     step: 7,
@@ -184,8 +184,8 @@ export function EneraInteractiveUploadSection() {
           </h2>
 
           <p className="mt-5 text-base sm:text-lg text-slate-400 font-light leading-relaxed">
-            Drop an Eskom or municipal invoice. The engine reconstructs the entire tariff hierarchy,
-            compares it against physical interval telemetry, and validates every single line item.
+            Drop an electricity statement. ENERA compares relevant billing and consumption information
+            to surface unusual patterns and identify material differences.
           </p>
 
           {/* Demonstration Notice */}

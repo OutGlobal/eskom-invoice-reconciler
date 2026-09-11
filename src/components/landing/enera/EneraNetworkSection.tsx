@@ -653,9 +653,9 @@ export function EneraNetworkSection() {
         </h2>
 
         <p className="mt-5 text-base sm:text-lg text-slate-300 font-light max-w-3xl mx-auto leading-relaxed">
-          Every billing determinant, physical meter pulse, and NERSA tariff calculation is
-          interlinked in real time. Hover any node to trace its live energy relationships as signals
-          propagate through the matrix.
+          ENERA connects relevant billing, consumption, and tariff signals across your enterprise. Hover
+          any dimension to explore how billing and consumption information interact to surface unusual
+          patterns and identify material differences.
         </p>
       </div>
 
