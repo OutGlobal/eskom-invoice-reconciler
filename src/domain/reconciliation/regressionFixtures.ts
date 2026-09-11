@@ -85,7 +85,7 @@ export const MINIFLEX_OCT_2025_FIXTURE: RegressionFixture = {
     standard_kwh: new Decimal("50000"),
     off_peak_kwh: new Decimal("30000"),
     total_kwh: new Decimal("100000"),
-    maximum_demand_kva: new Decimal("280"),
+    maximum_demand_kva: new Decimal("300"),
     ratcheted_demand_kva: new Decimal("300"),
     reactive_energy_kvarh: new Decimal("5000"),
     energy_charges_zar: new Decimal("147776.00"),

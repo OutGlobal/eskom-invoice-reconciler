@@ -52,7 +52,9 @@ export function EneraNav() {
             aria-label="ENERA Energy Financial Intelligence Home"
           >
             <div className="relative flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-cyan-950 via-[#0d1117] to-slate-900 border border-cyan-500/30 group-hover:border-cyan-400 transition-colors shadow-[0_0_15px_-3px_rgba(6,182,212,0.3)]">
-              <span className="font-mono text-xs sm:text-sm font-bold tracking-widest text-cyan-400">E</span>
+              <span className="font-mono text-xs sm:text-sm font-bold tracking-widest text-cyan-400">
+                E
+              </span>
               <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-cyan-400 animate-ping opacity-75" />
               <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-cyan-400" />
             </div>
@@ -72,7 +74,10 @@ export function EneraNav() {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav aria-label="Primary Navigation" className="hidden md:flex items-center gap-1 lg:gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.07] backdrop-blur-md">
+          <nav
+            aria-label="Primary Navigation"
+            className="hidden md:flex items-center gap-1 lg:gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.07] backdrop-blur-md"
+          >
             {navLinks.map((link) => (
               <a
                 key={link.label}
@@ -138,7 +143,13 @@ export function EneraNav() {
 
       {/* Refined Mobile Navigation Drawer */}
       {mobileMenuOpen && (
-        <div id="mobile-nav-drawer" role="dialog" aria-modal="true" aria-label="Mobile Navigation Drawer" className="fixed inset-0 z-40 sm:hidden">
+        <div
+          id="mobile-nav-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobile Navigation Drawer"
+          className="fixed inset-0 z-40 sm:hidden"
+        >
           {/* Backdrop blur overlay */}
           <div
             className="fixed inset-0 bg-[#030712]/90 backdrop-blur-2xl transition-opacity animate-in fade-in"

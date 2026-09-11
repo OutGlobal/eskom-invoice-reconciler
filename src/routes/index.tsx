@@ -8,52 +8,55 @@ import { EneraBillSignalSection } from "@/components/landing/enera/EneraBillSign
 const EneraDifferenceSection = lazy(() =>
   import("@/components/landing/enera/EneraDifferenceSection").then((m) => ({
     default: m.EneraDifferenceSection,
-  }))
+  })),
 );
 const EneraCopilotSection = lazy(() =>
   import("@/components/landing/enera/EneraCopilotSection").then((m) => ({
     default: m.EneraCopilotSection,
-  }))
+  })),
 );
 const EneraNetworkSection = lazy(() =>
   import("@/components/landing/enera/EneraNetworkSection").then((m) => ({
     default: m.EneraNetworkSection,
-  }))
+  })),
 );
 const EneraImpactSection = lazy(() =>
   import("@/components/landing/enera/EneraImpactSection").then((m) => ({
     default: m.EneraImpactSection,
-  }))
+  })),
 );
 const EneraInteractiveUploadSection = lazy(() =>
   import("@/components/landing/enera/EneraInteractiveUploadSection").then((m) => ({
     default: m.EneraInteractiveUploadSection,
-  }))
+  })),
 );
 const EneraSouthAfricanContextSection = lazy(() =>
   import("@/components/landing/enera/EneraSouthAfricanContextSection").then((m) => ({
     default: m.EneraSouthAfricanContextSection,
-  }))
+  })),
 );
 const EneraAuditTrailSection = lazy(() =>
   import("@/components/landing/enera/EneraAuditTrailSection").then((m) => ({
     default: m.EneraAuditTrailSection,
-  }))
+  })),
 );
 const EneraFinalCtaSection = lazy(() =>
   import("@/components/landing/enera/EneraFinalCtaSection").then((m) => ({
     default: m.EneraFinalCtaSection,
-  }))
+  })),
 );
 const EneraFooter = lazy(() =>
   import("@/components/landing/enera/EneraFooter").then((m) => ({
     default: m.EneraFooter,
-  }))
+  })),
 );
 
 function SectionFallback() {
   return (
-    <div className="w-full py-28 bg-[#030712] flex items-center justify-center min-h-[300px]" aria-hidden="true">
+    <div
+      className="w-full py-28 bg-[#030712] flex items-center justify-center min-h-[300px]"
+      aria-hidden="true"
+    >
       <div className="w-6 h-6 rounded-full border-2 border-cyan-500/20 border-t-cyan-400 animate-spin" />
     </div>
   );
@@ -90,7 +93,12 @@ function EneraLandingPage() {
       <EneraNav />
 
       {/* 2. Main Narrative Progression */}
-      <main id="main-content" tabIndex={-1} className="outline-none" aria-label="ENERA Platform Narrative">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="outline-none"
+        aria-label="ENERA Platform Narrative"
+      >
         {/* Stage 3-7: Cinematic Hero with Canvas Particle Engine & Controlled Scene Loop */}
         <EneraHeroSection />
 

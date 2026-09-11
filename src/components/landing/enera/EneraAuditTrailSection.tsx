@@ -44,8 +44,10 @@ const AUDIT_STEPS: AuditStep[] = [
     label: "SOURCE DOCUMENT",
     sub: "Cryptographic File Ingestion",
     category: "Ingestion Root",
-    detail: "Original Eskom utility PDF or municipal statement preserved in an immutable, write-once cryptographic ledger with timestamped SHA-256 seal.",
-    verification: "hash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 · Bytes: 2,481,902",
+    detail:
+      "Original Eskom utility PDF or municipal statement preserved in an immutable, write-once cryptographic ledger with timestamped SHA-256 seal.",
+    verification:
+      "hash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 · Bytes: 2,481,902",
     prevHash: "GENESIS_ROOT_00000000000000000000000000000000000000000000000000000000",
     currentHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     governance: "ISO 27001 / WORM Storage",
@@ -58,8 +60,10 @@ const AUDIT_STEPS: AuditStep[] = [
     label: "EXTRACTED DATA",
     sub: "Spatial Bounding Box Geometry",
     category: "Extraction Layer",
-    detail: "Every numeric determinant mapped with PDF page number, spatial pixel bounding coordinates, and confidence score vector.",
-    verification: "Confidence: 99.8% · Determinants Extracted: 8 · Geometry: [x: 142, y: 388, w: 94, h: 18, p: 2]",
+    detail:
+      "Every numeric determinant mapped with PDF page number, spatial pixel bounding coordinates, and confidence score vector.",
+    verification:
+      "Confidence: 99.8% · Determinants Extracted: 8 · Geometry: [x: 142, y: 388, w: 94, h: 18, p: 2]",
     prevHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     currentHash: "7a89bc213ef091a823cd110992384a77bc124982cba128941098492837bcda11",
     governance: "OCR Ground Truth Validation",
@@ -72,7 +76,8 @@ const AUDIT_STEPS: AuditStep[] = [
     label: "CALCULATION",
     sub: "Decimal.js-light Precision",
     category: "Deterministic Arithmetic",
-    detail: "Zero floating-point rounding drifts. Exact Decimal arithmetic matching statutory South African utility billing formulas.",
+    detail:
+      "Zero floating-point rounding drifts. Exact Decimal arithmetic matching statutory South African utility billing formulas.",
     verification: "Rounding: ROUND_HALF_UP · Precision: 20 Decimals · IEEE 754 Drift: Eliminated",
     prevHash: "7a89bc213ef091a823cd110992384a77bc124982cba128941098492837bcda11",
     currentHash: "3f9801ac8849b28394019283eacb920194829384729183940192839485761029",
@@ -86,8 +91,10 @@ const AUDIT_STEPS: AuditStep[] = [
     label: "RULE APPLIED",
     sub: "Gazetted NERSA Clause Citing",
     category: "Regulatory Verification",
-    detail: "Versioned tariff schedule logic citing official government gazette clauses, seasonal boundary dates, and SAST calendar rules.",
-    verification: "Tariff Book: NERSA Schedule 2 (Megaflex High Season) · Section 8.4 Public Holiday TOU Rule",
+    detail:
+      "Versioned tariff schedule logic citing official government gazette clauses, seasonal boundary dates, and SAST calendar rules.",
+    verification:
+      "Tariff Book: NERSA Schedule 2 (Megaflex High Season) · Section 8.4 Public Holiday TOU Rule",
     prevHash: "3f9801ac8849b28394019283eacb920194829384729183940192839485761029",
     currentHash: "1192830495867182930495867182930495867182930495867182930495867182",
     governance: "NERSA Electricity Act 41",
@@ -100,8 +107,10 @@ const AUDIT_STEPS: AuditStep[] = [
     label: "FINDING",
     sub: "Categorical Determinant Isolation",
     category: "Discrepancy Analysis",
-    detail: "Discrepancy isolated into deterministic classifications: Peak TOU Overcharge, Multiplier Ratio Drift, or NMD Demand Spike.",
-    verification: "Classification: MATERIAL_DISCREPANCY · Confidence: 99.2% · Delta: R 51,227.00 Potential Overcharge",
+    detail:
+      "Discrepancy isolated into deterministic classifications: Peak TOU Overcharge, Multiplier Ratio Drift, or NMD Demand Spike.",
+    verification:
+      "Classification: MATERIAL_DISCREPANCY · Confidence: 99.2% · Delta: R 51,227.00 Potential Overcharge",
     prevHash: "1192830495867182930495867182930495867182930495867182930495867182",
     currentHash: "99887766554433221100aabbccddeeff99887766554433221100aabbccddeeff",
     governance: "Audit Anomaly Threshold",
@@ -114,8 +123,10 @@ const AUDIT_STEPS: AuditStep[] = [
     label: "EVIDENCE",
     sub: "30-Min Telemetry Lineage",
     category: "Hardware Pulse Ground Truth",
-    detail: "Revenue check meter serial number, channel ID, raw pulse log, CT/VT multiplier verification, and physical timestamp lineage.",
-    verification: "Revenue AMR Meter #021-MS-90412 · CT Ratio 400:5 · SANS 474 Class 0.2S Certified Physical Pulses",
+    detail:
+      "Revenue check meter serial number, channel ID, raw pulse log, CT/VT multiplier verification, and physical timestamp lineage.",
+    verification:
+      "Revenue AMR Meter #021-MS-90412 · CT Ratio 400:5 · SANS 474 Class 0.2S Certified Physical Pulses",
     prevHash: "99887766554433221100aabbccddeeff99887766554433221100aabbccddeeff",
     currentHash: "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
     governance: "SABS / SANS 474 Metering Spec",
@@ -128,8 +139,10 @@ const AUDIT_STEPS: AuditStep[] = [
     label: "REPORT",
     sub: "Section 21 Dispute Package",
     category: "Statutory Resolution",
-    detail: "Court-ready, NERSA-compliant statutory dispute dossier ready for formal submission to Eskom executive billing resolution committees.",
-    verification: "Audit Trail: 100% Cryptographically Reproducible · Form 102 Line-Item Annexures Auto-Generated",
+    detail:
+      "Court-ready, NERSA-compliant statutory dispute dossier ready for formal submission to Eskom executive billing resolution committees.",
+    verification:
+      "Audit Trail: 100% Cryptographically Reproducible · Form 102 Line-Item Annexures Auto-Generated",
     prevHash: "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
     currentHash: "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
     governance: "Section 21 Regulatory Dispute Pack",
@@ -217,7 +230,9 @@ export function EneraAuditTrailSection() {
               className="p-6 rounded-3xl bg-[#0d1117]/90 border border-white/10 hover:border-white/20 transition-all flex flex-col justify-between shadow-xl group hover:scale-[1.01]"
             >
               <div>
-                <span className={`text-[10px] font-mono uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-white/[0.04] border ${item.colorClass}`}>
+                <span
+                  className={`text-[10px] font-mono uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-white/[0.04] border ${item.colorClass}`}
+                >
                   {item.tag}
                 </span>
                 <blockquote className="mt-4 text-lg font-bold text-white font-mono tracking-tight leading-snug">
@@ -238,7 +253,9 @@ export function EneraAuditTrailSection() {
               <Layers className="h-4 w-4 text-cyan-400" />
               <span>CRYPTOGRAPHIC LINEAGE PIPELINE (SOURCE → REPORT)</span>
             </div>
-            <span className="text-[11px] font-mono text-slate-400">CLICK ANY NODE TO INSPECT EVIDENCE</span>
+            <span className="text-[11px] font-mono text-slate-400">
+              CLICK ANY NODE TO INSPECT EVIDENCE
+            </span>
           </div>
 
           {/* Desktop & Tablet Sequential Step Flow with Downward/Forward Arrows */}
@@ -285,7 +302,9 @@ export function EneraAuditTrailSection() {
                       {isPassed ? (
                         <Check className="h-3 w-3 text-emerald-400" />
                       ) : (
-                        <Icon className={`h-3 w-3 ${isSelected ? "text-cyan-400" : "text-slate-400"}`} />
+                        <Icon
+                          className={`h-3 w-3 ${isSelected ? "text-cyan-400" : "text-slate-400"}`}
+                        />
                       )}
                     </div>
 
@@ -299,7 +318,10 @@ export function EneraAuditTrailSection() {
 
                   {/* Downward/Forward Connector Arrow (↓) */}
                   {idx < AUDIT_STEPS.length - 1 && (
-                    <div className="flex items-center justify-center py-1 lg:py-0 lg:px-1" aria-hidden="true">
+                    <div
+                      className="flex items-center justify-center py-1 lg:py-0 lg:px-1"
+                      aria-hidden="true"
+                    >
                       <span
                         className={`text-sm font-bold font-mono transition-colors ${
                           activeStep > s.step
@@ -365,7 +387,11 @@ export function EneraAuditTrailSection() {
                 <button
                   type="button"
                   onClick={handleCopyHash}
-                  aria-label={copiedHash ? "Hash copied to clipboard" : "Copy current cryptographic hash to clipboard"}
+                  aria-label={
+                    copiedHash
+                      ? "Hash copied to clipboard"
+                      : "Copy current cryptographic hash to clipboard"
+                  }
                   className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition-colors focus-ring-enera px-1.5 py-0.5 rounded"
                 >
                   <Copy className="h-3 w-3" />
@@ -376,15 +402,21 @@ export function EneraAuditTrailSection() {
               <div className="space-y-1.5 pt-1 text-[11px]">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-slate-400 min-w-0">
                   <span className="text-slate-400 shrink-0 font-bold">PREVIOUS_HASH:</span>
-                  <span className="text-slate-300 break-all sm:truncate font-mono">{cur.prevHash}</span>
+                  <span className="text-slate-300 break-all sm:truncate font-mono">
+                    {cur.prevHash}
+                  </span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-cyan-300 min-w-0">
                   <span className="text-cyan-400 shrink-0 font-bold">CURRENT_HASH:</span>
-                  <span className="font-bold break-all sm:truncate font-mono">{cur.currentHash}</span>
+                  <span className="font-bold break-all sm:truncate font-mono">
+                    {cur.currentHash}
+                  </span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-slate-400 pt-1.5 border-t border-white/5 min-w-0">
                   <span className="text-slate-400 shrink-0 font-bold">PAYLOAD_PROOF:</span>
-                  <span className="text-emerald-300 break-all sm:truncate font-mono">{cur.verification}</span>
+                  <span className="text-emerald-300 break-all sm:truncate font-mono">
+                    {cur.verification}
+                  </span>
                 </div>
               </div>
             </div>

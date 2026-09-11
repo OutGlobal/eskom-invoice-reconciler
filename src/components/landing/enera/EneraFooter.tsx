@@ -42,7 +42,10 @@ export function EneraFooter() {
             </p>
 
             <div className="pt-1 flex items-center gap-2 text-[11px] font-mono text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"
+                aria-hidden="true"
+              />
               <span>SANS 474 &amp; 2024/2025 NERSA Tariffs Active</span>
             </div>
           </div>
@@ -54,27 +57,42 @@ export function EneraFooter() {
             </span>
             <ul className="space-y-2.5 text-xs text-slate-300 font-sans">
               <li>
-                <a href="#platform" className="hover:text-cyan-300 transition-colors focus-ring-enera rounded">
+                <a
+                  href="#platform"
+                  className="hover:text-cyan-300 transition-colors focus-ring-enera rounded"
+                >
                   Platform
                 </a>
               </li>
               <li>
-                <a href="#intelligence" className="hover:text-cyan-300 transition-colors focus-ring-enera rounded">
+                <a
+                  href="#intelligence"
+                  className="hover:text-cyan-300 transition-colors focus-ring-enera rounded"
+                >
                   Intelligence
                 </a>
               </li>
               <li>
-                <a href="#reconciliation" className="hover:text-cyan-300 transition-colors focus-ring-enera rounded">
+                <a
+                  href="#reconciliation"
+                  className="hover:text-cyan-300 transition-colors focus-ring-enera rounded"
+                >
                   Reconciliation
                 </a>
               </li>
               <li>
-                <a href="#insights" className="hover:text-cyan-300 transition-colors focus-ring-enera rounded">
+                <a
+                  href="#insights"
+                  className="hover:text-cyan-300 transition-colors focus-ring-enera rounded"
+                >
                   Insights
                 </a>
               </li>
               <li>
-                <a href="#security" className="hover:text-cyan-300 transition-colors focus-ring-enera rounded">
+                <a
+                  href="#security"
+                  className="hover:text-cyan-300 transition-colors focus-ring-enera rounded"
+                >
                   Security
                 </a>
               </li>
@@ -88,22 +106,34 @@ export function EneraFooter() {
             </span>
             <ul className="space-y-2.5 text-xs text-slate-300 font-sans">
               <li>
-                <a href="#ecosystem" className="hover:text-cyan-300 transition-colors focus-ring-enera rounded">
+                <a
+                  href="#ecosystem"
+                  className="hover:text-cyan-300 transition-colors focus-ring-enera rounded"
+                >
                   About
                 </a>
               </li>
               <li>
-                <a href="#contact" className="hover:text-cyan-300 transition-colors focus-ring-enera rounded">
+                <a
+                  href="#contact"
+                  className="hover:text-cyan-300 transition-colors focus-ring-enera rounded"
+                >
                   Contact
                 </a>
               </li>
               <li>
-                <a href="#privacy" className="hover:text-slate-200 transition-colors focus-ring-enera rounded">
+                <a
+                  href="#privacy"
+                  className="hover:text-slate-200 transition-colors focus-ring-enera rounded"
+                >
                   Privacy
                 </a>
               </li>
               <li>
-                <a href="#terms" className="hover:text-slate-200 transition-colors focus-ring-enera rounded">
+                <a
+                  href="#terms"
+                  className="hover:text-slate-200 transition-colors focus-ring-enera rounded"
+                >
                   Terms
                 </a>
               </li>

@@ -62,7 +62,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         <div className="mx-auto max-w-6xl space-y-6">
           <div className="flex items-center gap-2 text-primary">
             <ShieldCheck className="h-5 w-5 text-cyan-400" />
-            <span className="text-sm font-semibold tracking-wide font-mono">ENERA Energy Financial Intelligence</span>
+            <span className="text-sm font-semibold tracking-wide font-mono">
+              ENERA Energy Financial Intelligence
+            </span>
             <Loader2 className="ml-1 h-4 w-4 animate-spin text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Verifying secure session…</span>
           </div>
@@ -207,14 +209,16 @@ export function SignInScreen({ onBypass }: { onBypass?: () => void }) {
         <div>
           <div className="flex items-center gap-2 text-cyan-400">
             <ShieldCheck className="h-5 w-5 text-cyan-400" />
-            <span className="text-xs font-mono font-semibold tracking-wider uppercase">ENERA SECURE ACCESS</span>
+            <span className="text-xs font-mono font-semibold tracking-wider uppercase">
+              ENERA SECURE ACCESS
+            </span>
           </div>
           <h1 className="mt-2 text-lg font-bold text-foreground font-mono tracking-tight">
             ENERA — Energy Financial Intelligence
           </h1>
           <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-            Commercial utility billing, reconciliation and dispute recovery data is restricted. Sign in to your
-            enterprise account or continue in demonstration mode.
+            Commercial utility billing, reconciliation and dispute recovery data is restricted. Sign
+            in to your enterprise account or continue in demonstration mode.
           </p>
         </div>
 

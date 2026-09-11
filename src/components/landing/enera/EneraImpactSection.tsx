@@ -47,7 +47,8 @@ const STATS: MetricStat[] = [
     decimals: 0,
     subtitle: "Modeled verifiable overcharge recovery identified per fiscal quarter.",
     tag: "DEMO PROJECTION",
-    colorClass: "border-emerald-500/30 bg-emerald-950/15 hover:border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.1)]",
+    colorClass:
+      "border-emerald-500/30 bg-emerald-950/15 hover:border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.1)]",
     textGlowClass: "text-emerald-300",
     icon: TrendingUp,
   },
@@ -59,7 +60,8 @@ const STATS: MetricStat[] = [
     decimals: 0,
     subtitle: "Sample determinant discrepancies quarantined for regulatory review.",
     tag: "SYNTHETIC EXCEPTIONS",
-    colorClass: "border-amber-500/30 bg-amber-950/15 hover:border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.1)]",
+    colorClass:
+      "border-amber-500/30 bg-amber-950/15 hover:border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.1)]",
     textGlowClass: "text-amber-300",
     icon: AlertCircle,
   },
@@ -71,7 +73,8 @@ const STATS: MetricStat[] = [
     decimals: 1,
     subtitle: "Benchmark confidence score grounded in SANS 474 check metering standards.",
     tag: "SIMULATED CONFIDENCE",
-    colorClass: "border-cyan-500/30 bg-cyan-950/15 hover:border-cyan-500/50 shadow-[0_0_30px_rgba(6,182,212,0.1)]",
+    colorClass:
+      "border-cyan-500/30 bg-cyan-950/15 hover:border-cyan-500/50 shadow-[0_0_30px_rgba(6,182,212,0.1)]",
     textGlowClass: "text-cyan-300",
     icon: ShieldCheck,
   },
@@ -109,7 +112,7 @@ export function EneraImpactSection() {
           setHasEnteredViewport(true);
         }
       },
-      { threshold: 0.15 }
+      { threshold: 0.15 },
     );
 
     if (sectionRef.current) {
@@ -203,8 +206,10 @@ export function EneraImpactSection() {
           </h2>
 
           <p className="mt-5 text-base sm:text-lg text-slate-400 font-light leading-relaxed">
-            Commercial and industrial enterprises lose an estimated <span className="text-emerald-300 font-medium">3% to 7%</span> of
-            their annual electricity budget to unverified billing determinants, tariff misclassifications, and uncredited public holidays.
+            Commercial and industrial enterprises lose an estimated{" "}
+            <span className="text-emerald-300 font-medium">3% to 7%</span> of their annual
+            electricity budget to unverified billing determinants, tariff misclassifications, and
+            uncredited public holidays.
           </p>
 
           {/* Explicit Demonstration Notice Badge */}
@@ -235,7 +240,9 @@ export function EneraImpactSection() {
                   </div>
 
                   {/* Prominent Large Number (Count-Up) */}
-                  <div className={`text-4xl sm:text-5xl font-black font-mono tracking-tight mt-5 ${stat.textGlowClass}`}>
+                  <div
+                    className={`text-4xl sm:text-5xl font-black font-mono tracking-tight mt-5 ${stat.textGlowClass}`}
+                  >
                     <span>{stat.prefix}</span>
                     <span>{animatedValue}</span>
                     <span>{stat.suffix}</span>
@@ -268,13 +275,18 @@ export function EneraImpactSection() {
                   ENTERPRISE AUDIT ESTIMATOR (SIMULATION MODEL)
                 </h3>
                 <p className="text-xs text-slate-400 font-sans">
-                  Calculate projected overcharge recoveries based on sample commercial electricity tariffs.
+                  Calculate projected overcharge recoveries based on sample commercial electricity
+                  tariffs.
                 </p>
               </div>
             </div>
 
             {/* Benchmark Spend Presets */}
-            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Spend benchmark presets">
+            <div
+              className="flex flex-wrap items-center gap-1.5"
+              role="group"
+              aria-label="Spend benchmark presets"
+            >
               {PRESETS.map((p) => {
                 const isActive = monthlySpend === p.value;
                 return (
@@ -325,7 +337,10 @@ export function EneraImpactSection() {
                   className="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 focus-ring-enera"
                 />
 
-                <div className="flex justify-between text-[10px] font-mono text-slate-400 mt-1.5" aria-hidden="true">
+                <div
+                  className="flex justify-between text-[10px] font-mono text-slate-400 mt-1.5"
+                  aria-hidden="true"
+                >
                   <span>R 500K</span>
                   <span>R 10M</span>
                   <span>R 25M+</span>
@@ -375,19 +390,27 @@ export function EneraImpactSection() {
                 <div className="grid grid-cols-2 gap-2 text-xs font-mono">
                   <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
                     <span className="text-slate-400 text-[10px] block">DEMAND SPIKES</span>
-                    <span className="text-white font-semibold">{formatZar(breakdown.demandRatchet)}</span>
+                    <span className="text-white font-semibold">
+                      {formatZar(breakdown.demandRatchet)}
+                    </span>
                   </div>
                   <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
                     <span className="text-slate-400 text-[10px] block">PUBLIC HOLIDAYS</span>
-                    <span className="text-white font-semibold">{formatZar(breakdown.publicHoliday)}</span>
+                    <span className="text-white font-semibold">
+                      {formatZar(breakdown.publicHoliday)}
+                    </span>
                   </div>
                   <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
                     <span className="text-slate-400 text-[10px] block">CT / MULTIPLIER DRIFT</span>
-                    <span className="text-white font-semibold">{formatZar(breakdown.multiplierError)}</span>
+                    <span className="text-white font-semibold">
+                      {formatZar(breakdown.multiplierError)}
+                    </span>
                   </div>
                   <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
                     <span className="text-slate-400 text-[10px] block">POWER FACTOR SURCHARGE</span>
-                    <span className="text-white font-semibold">{formatZar(breakdown.powerFactor)}</span>
+                    <span className="text-white font-semibold">
+                      {formatZar(breakdown.powerFactor)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -409,7 +432,10 @@ export function EneraImpactSection() {
 
         {/* Clear Legal / Demo Footnote */}
         <div className="mt-8 text-center text-xs font-mono text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          * Disclaimer: The statistics above reflect sample demonstration values based on an illustrative benchmark dataset modeled from South African C&I manufacturing, cold-chain, and mining profiles. They do not claim to represent any specific real customer confidential data.
+          * Disclaimer: The statistics above reflect sample demonstration values based on an
+          illustrative benchmark dataset modeled from South African C&I manufacturing, cold-chain,
+          and mining profiles. They do not claim to represent any specific real customer
+          confidential data.
         </div>
       </div>
     </section>

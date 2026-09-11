@@ -63,7 +63,8 @@ function LoginPage() {
 
       {/* Trust Footer */}
       <footer className="p-4 text-center text-xs text-muted-foreground/60 border-t border-border/40">
-        Enterprise access is provisioned by organization administrators. Inquiries: security@outglobal.co.za
+        Enterprise access is provisioned by organization administrators. Inquiries:
+        security@outglobal.co.za
       </footer>
     </div>
   );

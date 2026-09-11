@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
-import { Scale, ArrowRight, TrendingDown, DollarSign, CheckCircle, AlertTriangle, Sparkles } from "lucide-react";
+import {
+  Scale,
+  ArrowRight,
+  TrendingDown,
+  DollarSign,
+  CheckCircle,
+  AlertTriangle,
+  Sparkles,
+} from "lucide-react";
 
 export function EneraDifferenceSection() {
   const sectionRef = useRef<HTMLElement | null>(null);
@@ -28,7 +36,7 @@ export function EneraDifferenceSection() {
           setIsVisible(true);
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
 
     observer.observe(el);
@@ -138,7 +146,8 @@ export function EneraDifferenceSection() {
 
             // Sequence: Then Potential Financial Impact reveals
             let fStart: number | null = null;
-            const targetMoney = activeMetric === "active" ? 51227 : activeMetric === "demand" ? 46176 : 28758;
+            const targetMoney =
+              activeMetric === "active" ? 51227 : activeMetric === "demand" ? 46176 : 28758;
             const fStep = (fTimestamp: number) => {
               if (!fStart) fStart = fTimestamp;
               const fElapsed = fTimestamp - fStart;
@@ -163,7 +172,7 @@ export function EneraDifferenceSection() {
     return () => {
       if (activeRafId) cancelAnimationFrame(activeRafId);
     };
-  }, [isVisible, activeMetric, reducedMotion]);
+  }, [isVisible, activeMetric, reducedMotion, cur.actualVal, cur.billedVal, cur.varianceVal]);
 
   return (
     <section
@@ -191,7 +200,8 @@ export function EneraDifferenceSection() {
           </h2>
 
           <p className="mt-5 text-base sm:text-xl text-slate-400 font-light max-w-xl mx-auto">
-            When utility billing determinants meet certified meter intervals, overcharges have nowhere to hide.
+            When utility billing determinants meet certified meter intervals, overcharges have
+            nowhere to hide.
           </p>
 
           {/* Metric Selector Tabs */}
@@ -224,8 +234,8 @@ export function EneraDifferenceSection() {
                     {tab === "active"
                       ? "Active Energy (kWh)"
                       : tab === "demand"
-                      ? "Max Demand (kVA)"
-                      : "Reactive Energy (kVArh)"}
+                        ? "Max Demand (kVA)"
+                        : "Reactive Energy (kVArh)"}
                   </span>
                 </button>
               );
@@ -270,7 +280,10 @@ export function EneraDifferenceSection() {
             </div>
 
             {/* Visual Comparison Bridge (Desktop Central Indicator) */}
-            <div aria-hidden="true" className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-[#030712] border border-cyan-500/40 items-center justify-center shadow-[0_0_25px_rgba(6,182,212,0.4)]">
+            <div
+              aria-hidden="true"
+              className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-[#030712] border border-cyan-500/40 items-center justify-center shadow-[0_0_25px_rgba(6,182,212,0.4)]"
+            >
               <span className="text-xs font-mono font-extrabold text-cyan-300">VS</span>
             </div>
 
@@ -343,7 +356,14 @@ export function EneraDifferenceSection() {
 
               {/* Central Differential Node */}
               <circle cx="200" cy="55" r="5" fill="#f59e0b" filter="url(#laserGlow)" />
-              <circle cx="200" cy="55" r="10" stroke="#f59e0b" strokeWidth="1" className="animate-ping opacity-75" />
+              <circle
+                cx="200"
+                cy="55"
+                r="10"
+                stroke="#f59e0b"
+                strokeWidth="1"
+                className="animate-ping opacity-75"
+              />
             </svg>
           </div>
 
@@ -364,7 +384,8 @@ export function EneraDifferenceSection() {
 
               {/* The Discrepancy Number */}
               <div className="text-4xl sm:text-5xl md:text-6xl font-extrabold font-mono text-amber-300 tracking-tight leading-none drop-shadow-[0_0_20px_rgba(245,158,11,0.5)]">
-                {varianceCounter.toLocaleString()} <span className="text-2xl sm:text-3xl text-amber-400/80">{cur.unit}</span>
+                {varianceCounter.toLocaleString()}{" "}
+                <span className="text-2xl sm:text-3xl text-amber-400/80">{cur.unit}</span>
               </div>
 
               <div className="text-sm sm:text-base font-mono uppercase tracking-[0.3em] text-amber-400 font-bold pt-1">
@@ -383,7 +404,9 @@ export function EneraDifferenceSection() {
               </span>
 
               <div className="text-3xl sm:text-4xl md:text-5xl font-extrabold font-mono text-emerald-300 mt-1.5 drop-shadow-[0_0_20px_rgba(16,185,129,0.5)]">
-                {activeMetric === "active" ? `R ${impactCounter.toLocaleString()}` : cur.financialImpact}
+                {activeMetric === "active"
+                  ? `R ${impactCounter.toLocaleString()}`
+                  : cur.financialImpact}
               </div>
 
               <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 font-semibold">
@@ -409,4 +432,3 @@ export function EneraDifferenceSection() {
     </section>
   );
 }
-

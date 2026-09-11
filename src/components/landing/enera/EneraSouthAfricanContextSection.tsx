@@ -122,15 +122,17 @@ export function EneraSouthAfricanContextSection() {
           </h2>
 
           <p className="mt-5 text-base sm:text-lg text-slate-400 font-light leading-relaxed">
-            South Africa&rsquo;s power economics are uniquely demanding. ENERA speaks fluent
-            Eskom, Megaflex, and Municipal billing — pairing localized regulatory depth with
-            institutional Silicon Valley financial algorithms.
+            South Africa&rsquo;s power economics are uniquely demanding. ENERA speaks fluent Eskom,
+            Megaflex, and Municipal billing — pairing localized regulatory depth with institutional
+            Silicon Valley financial algorithms.
           </p>
 
           {/* Independence & International Positioning Badge */}
           <div className="mt-5 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-mono text-slate-400">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-            <span>INDEPENDENT PRIVATE INTELLIGENCE PLATFORM · ZERO STATE OR UTILITY AFFILIATION</span>
+            <span>
+              INDEPENDENT PRIVATE INTELLIGENCE PLATFORM · ZERO STATE OR UTILITY AFFILIATION
+            </span>
           </div>
         </div>
 
@@ -145,12 +147,11 @@ export function EneraSouthAfricanContextSection() {
               <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider font-semibold">
                 BULK TRANSMISSION TARIFFS
               </span>
-              <h3 className="text-lg font-bold text-white font-mono mt-1">
-                Eskom &amp; Megaflex
-              </h3>
+              <h3 className="text-lg font-bold text-white font-mono mt-1">Eskom &amp; Megaflex</h3>
               <p className="text-xs text-slate-400 mt-2.5 leading-relaxed">
-                Full-spectrum modeling of high-voltage transmission supply: High/Low season TOU multipliers,
-                voltage classifications (&gt;66kV to &lt;500V), transmission loss factors, and Notified Maximum Demand (NMD) rules.
+                Full-spectrum modeling of high-voltage transmission supply: High/Low season TOU
+                multipliers, voltage classifications (&gt;66kV to &lt;500V), transmission loss
+                factors, and Notified Maximum Demand (NMD) rules.
               </p>
             </div>
             <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
@@ -168,12 +169,11 @@ export function EneraSouthAfricanContextSection() {
               <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-semibold">
                 MULTI-METRO INTEGRATION
               </span>
-              <h3 className="text-lg font-bold text-white font-mono mt-1">
-                Municipal Billing
-              </h3>
+              <h3 className="text-lg font-bold text-white font-mono mt-1">Municipal Billing</h3>
               <p className="text-xs text-slate-400 mt-2.5 leading-relaxed">
-                Seamless reconciliation across City Power (JHB), eThekwini, City of Cape Town, Ekurhuleni,
-                and Tshwane. Manages municipal wheeling credits and the pro-rata split between Eskom&rsquo;s April 1 and Municipal July 1 fiscal tariff cycles.
+                Seamless reconciliation across City Power (JHB), eThekwini, City of Cape Town,
+                Ekurhuleni, and Tshwane. Manages municipal wheeling credits and the pro-rata split
+                between Eskom&rsquo;s April 1 and Municipal July 1 fiscal tariff cycles.
               </p>
             </div>
             <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
@@ -191,12 +191,11 @@ export function EneraSouthAfricanContextSection() {
               <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider font-semibold">
                 INTERVAL TELEMETRY
               </span>
-              <h3 className="text-lg font-bold text-white font-mono mt-1">
-                AMR Ground Truth
-              </h3>
+              <h3 className="text-lg font-bold text-white font-mono mt-1">AMR Ground Truth</h3>
               <p className="text-xs text-slate-400 mt-2.5 leading-relaxed">
-                Automated Meter Reading (AMR) streaming at 30-minute intervals (48 readings/day, 1,488/month).
-                Correlates Class 0.2S optical and GSM data-logger pulses with CT/VT multiplier verification.
+                Automated Meter Reading (AMR) streaming at 30-minute intervals (48 readings/day,
+                1,488/month). Correlates Class 0.2S optical and GSM data-logger pulses with CT/VT
+                multiplier verification.
               </p>
             </div>
             <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
@@ -214,13 +213,12 @@ export function EneraSouthAfricanContextSection() {
               <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-semibold">
                 TRILATERAL DETERMINANTS
               </span>
-              <h3 className="text-lg font-bold text-white font-mono mt-1">
-                kWh · kVA · kVArh
-              </h3>
+              <h3 className="text-lg font-bold text-white font-mono mt-1">kWh · kVA · kVArh</h3>
               <p className="text-xs text-slate-400 mt-2.5 leading-relaxed">
-                Vector disaggregation of active energy (<strong className="text-white">kWh</strong>),
-                maximum demand (<strong className="text-white">kVA</strong>), and reactive power
-                (<strong className="text-white">kVArh</strong>) under the 0.96 lagging power factor threshold during Peak &amp; Standard periods.
+                Vector disaggregation of active energy (<strong className="text-white">kWh</strong>
+                ), maximum demand (<strong className="text-white">kVA</strong>), and reactive power
+                (<strong className="text-white">kVArh</strong>) under the 0.96 lagging power factor
+                threshold during Peak &amp; Standard periods.
               </p>
             </div>
             <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
@@ -246,7 +244,8 @@ export function EneraSouthAfricanContextSection() {
                   </span>
                 </h3>
                 <p className="text-xs text-slate-400 font-sans">
-                  Inspect how active kWh and reactive kVArh map across Peak, Standard, and Off-Peak temporal buckets.
+                  Inspect how active kWh and reactive kVArh map across Peak, Standard, and Off-Peak
+                  temporal buckets.
                 </p>
               </div>
             </div>
@@ -284,7 +283,11 @@ export function EneraSouthAfricanContextSection() {
 
           {/* Secondary Controls: Day Type and Public Holiday Toggle */}
           <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-b border-white/5 text-xs font-mono">
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2" role="radiogroup" aria-label="Day Profile">
+            <div
+              className="flex flex-wrap items-center gap-1.5 sm:gap-2"
+              role="radiogroup"
+              aria-label="Day Profile"
+            >
               <span className="text-slate-400">DAY PROFILE:</span>
               <button
                 type="button"
@@ -348,7 +351,10 @@ export function EneraSouthAfricanContextSection() {
               }`}
             >
               <Calendar className="h-3.5 w-3.5" />
-              <span>PUBLIC HOLIDAY ACT 36 RULE ({isPublicHoliday ? "ACTIVE: 100% OFF-PEAK" : "DISABLED"})</span>
+              <span>
+                PUBLIC HOLIDAY ACT 36 RULE ({isPublicHoliday ? "ACTIVE: 100% OFF-PEAK" : "DISABLED"}
+                )
+              </span>
             </button>
           </div>
 
@@ -363,11 +369,17 @@ export function EneraSouthAfricanContextSection() {
               <span>24-HOUR TIME-OF-USE ALLOCATION (SAST)</span>
               <div className="flex items-center gap-4 text-[11px]">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]" aria-hidden="true" />
+                  <span
+                    className="w-2.5 h-2.5 rounded bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"
+                    aria-hidden="true"
+                  />
                   <span className="text-white font-bold">Peak ({peakHours}h)</span>
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]" aria-hidden="true" />
+                  <span
+                    className="w-2.5 h-2.5 rounded bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]"
+                    aria-hidden="true"
+                  />
                   <span className="text-white font-bold">Standard ({standardHours}h)</span>
                 </span>
                 <span className="flex items-center gap-1.5">
@@ -384,34 +396,37 @@ export function EneraSouthAfricanContextSection() {
                   const isPeak = block.period === "Peak";
                   const isStandard = block.period === "Standard";
 
-                let bgClass = "bg-slate-800 text-slate-400 hover:bg-slate-700";
-                if (isPeak) {
-                  bgClass =
-                    "bg-gradient-to-t from-rose-600 to-rose-400 text-slate-950 font-black shadow-[0_0_12px_rgba(244,63,94,0.5)]";
-                } else if (isStandard) {
-                  bgClass =
-                    "bg-gradient-to-t from-cyan-600 to-cyan-400 text-slate-950 font-black shadow-[0_0_12px_rgba(6,182,212,0.4)]";
-                }
+                  let bgClass = "bg-slate-800 text-slate-400 hover:bg-slate-700";
+                  if (isPeak) {
+                    bgClass =
+                      "bg-gradient-to-t from-rose-600 to-rose-400 text-slate-950 font-black shadow-[0_0_12px_rgba(244,63,94,0.5)]";
+                  } else if (isStandard) {
+                    bgClass =
+                      "bg-gradient-to-t from-cyan-600 to-cyan-400 text-slate-950 font-black shadow-[0_0_12px_rgba(6,182,212,0.4)]";
+                  }
 
-                return (
-                  <div
-                    key={block.hour}
-                    className={`h-14 rounded-lg flex flex-col items-center justify-between p-1 transition-all ${bgClass}`}
-                    title={`${String(block.hour).padStart(2, "0")}:00 – ${block.period}`}
-                    aria-label={`${String(block.hour).padStart(2, "0")}:00 to ${String((block.hour + 1) % 24).padStart(2, "0")}:00: ${block.period}`}
-                  >
-                    <span className="text-[9px] font-mono leading-none">
-                      {String(block.hour).padStart(2, "0")}
-                    </span>
-                    <span className="text-[8px] font-mono uppercase font-bold tracking-tighter">
-                      {block.period === "Peak" ? "P" : block.period === "Standard" ? "S" : "OP"}
-                    </span>
-                  </div>
-                );
-              })}
+                  return (
+                    <div
+                      key={block.hour}
+                      className={`h-14 rounded-lg flex flex-col items-center justify-between p-1 transition-all ${bgClass}`}
+                      title={`${String(block.hour).padStart(2, "0")}:00 – ${block.period}`}
+                      aria-label={`${String(block.hour).padStart(2, "0")}:00 to ${String((block.hour + 1) % 24).padStart(2, "0")}:00: ${block.period}`}
+                    >
+                      <span className="text-[9px] font-mono leading-none">
+                        {String(block.hour).padStart(2, "0")}
+                      </span>
+                      <span className="text-[8px] font-mono uppercase font-bold tracking-tighter">
+                        {block.period === "Peak" ? "P" : block.period === "Standard" ? "S" : "OP"}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <div className="flex justify-between text-[10px] font-mono text-slate-400 px-1" aria-hidden="true">
+            <div
+              className="flex justify-between text-[10px] font-mono text-slate-400 px-1"
+              aria-hidden="true"
+            >
               <span>00:00 (Midnight)</span>
               <span>06:00 (Morning)</span>
               <span>12:00 (Noon)</span>
@@ -428,7 +443,8 @@ export function EneraSouthAfricanContextSection() {
               </span>
               <div className="text-white font-bold">Public Holiday Peak Misbilling</div>
               <p className="text-slate-400 text-[11px] font-sans leading-relaxed">
-                When Human Rights Day or Youth Day falls on a weekday, Eskom billing systems occasionally apply weekday Peak rates instead of mandatory Sunday Off-Peak tariffs.
+                When Human Rights Day or Youth Day falls on a weekday, Eskom billing systems
+                occasionally apply weekday Peak rates instead of mandatory Sunday Off-Peak tariffs.
               </p>
             </div>
 
@@ -438,7 +454,8 @@ export function EneraSouthAfricanContextSection() {
               </span>
               <div className="text-white font-bold">kVA Maximum Demand Ratchets</div>
               <p className="text-slate-400 text-[11px] font-sans leading-relaxed">
-                30-minute AMR interval telemetry validates whether registered peak kVA was an unnotified transmission spike or a legitimate operational peak under Megaflex rules.
+                30-minute AMR interval telemetry validates whether registered peak kVA was an
+                unnotified transmission spike or a legitimate operational peak under Megaflex rules.
               </p>
             </div>
 
@@ -448,7 +465,8 @@ export function EneraSouthAfricanContextSection() {
               </span>
               <div className="text-white font-bold">kVArh Vector Auditing</div>
               <p className="text-slate-400 text-[11px] font-sans leading-relaxed">
-                Lagging power factor surcharges are restricted exclusively to Peak &amp; Standard periods during High Season. Off-Peak reactive energy is non-billable by law.
+                Lagging power factor surcharges are restricted exclusively to Peak &amp; Standard
+                periods during High Season. Off-Peak reactive energy is non-billable by law.
               </p>
             </div>
           </div>
@@ -456,7 +474,8 @@ export function EneraSouthAfricanContextSection() {
           {/* Action Gateway */}
           <div className="mt-8 pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
             <div className="text-xs text-slate-400 font-sans">
-              Compatible with all 2024/2025 NERSA gazetted rate schedules for Eskom Direct &amp; Municipal Distributors.
+              Compatible with all 2024/2025 NERSA gazetted rate schedules for Eskom Direct &amp;
+              Municipal Distributors.
             </div>
 
             <Link

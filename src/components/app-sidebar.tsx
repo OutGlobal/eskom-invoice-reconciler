@@ -46,16 +46,36 @@ const navSections: NavSection[] = [
     items: [
       { title: "Command Centre", url: "/dashboard", icon: LayoutDashboard },
       { title: "Upload & Ingest", url: "/upload", icon: Upload },
-      { title: "Reconciliation & Audits", url: "/reconciliation", icon: Scale, matchUrls: ["/reconciliation", "/anomalies", "/audit"] },
+      {
+        title: "Reconciliation & Audits",
+        url: "/reconciliation",
+        icon: Scale,
+        matchUrls: ["/reconciliation", "/anomalies", "/audit"],
+      },
       { title: "Invoice Workspace", url: "/invoices", icon: FileText },
-      { title: "AMR Telemetry & Metering", url: "/telemetry", icon: Activity, matchUrls: ["/telemetry", "/meters", "/energy", "/demand"] },
-      { title: "Dispute Packs & Reports", url: "/reports", icon: FileBarChart, matchUrls: ["/reports", "/trends"] },
+      {
+        title: "AMR Telemetry & Metering",
+        url: "/telemetry",
+        icon: Activity,
+        matchUrls: ["/telemetry", "/meters", "/energy", "/demand"],
+      },
+      {
+        title: "Dispute Packs & Reports",
+        url: "/reports",
+        icon: FileBarChart,
+        matchUrls: ["/reports", "/trends"],
+      },
     ],
   },
   {
     label: "Regulatory & Compliance",
     items: [
-      { title: "Tariffs & Regulations", url: "/tariff", icon: ReceiptText, matchUrls: ["/tariff", "/calendar"] },
+      {
+        title: "Tariffs & Regulations",
+        url: "/tariff",
+        icon: ReceiptText,
+        matchUrls: ["/tariff", "/calendar"],
+      },
       { title: "Data Governance & Quality", url: "/quality", icon: ShieldCheck },
       { title: "Municipal Statements", url: "/municipal", icon: Building2 },
     ],
@@ -91,9 +111,7 @@ export function AppSidebar() {
                 <div className="text-sm font-semibold leading-tight truncate group-hover:text-primary transition-colors flex items-center gap-1.5 font-mono">
                   <span>ENERA Recon</span>
                 </div>
-                <div className="text-[10px] text-muted-foreground truncate">
-                  Platform Landing ↗
-                </div>
+                <div className="text-[10px] text-muted-foreground truncate">Platform Landing ↗</div>
               </div>
             )}
           </Link>

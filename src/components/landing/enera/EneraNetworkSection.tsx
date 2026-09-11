@@ -56,15 +56,36 @@ const NODES: NetworkNode[] = [
     categoryColor: "text-sky-400 bg-sky-500/10 border-sky-500/30",
     accentColor: "#38bdf8",
     subtitle: "Eskom & Municipal Monthly Invoices",
-    description: "Multipage PDF & EDI billing documents ingested across high-voltage delivery points with automated determinant parsing.",
+    description:
+      "Multipage PDF & EDI billing documents ingested across high-voltage delivery points with automated determinant parsing.",
     telemetry: "1,248 Statements · 8 Determinants Extracted",
     formula: "Billed = Σ(TOU kWh × Tariff) + Demand Charges + Fixed Levies + VAT",
     relationships: [
-      { targetId: "tariffs", relationshipLabel: "Tariff Rate Verification", flowDirection: "bidirectional" },
-      { targetId: "meters", relationshipLabel: "Physical Check Metering", flowDirection: "incoming" },
-      { targetId: "consumption", relationshipLabel: "Active Energy Reconciliation", flowDirection: "outgoing" },
-      { targetId: "demand", relationshipLabel: "Capacity & Maximum Demand", flowDirection: "outgoing" },
-      { targetId: "cost", relationshipLabel: "Billed Liability Assessment", flowDirection: "outgoing" },
+      {
+        targetId: "tariffs",
+        relationshipLabel: "Tariff Rate Verification",
+        flowDirection: "bidirectional",
+      },
+      {
+        targetId: "meters",
+        relationshipLabel: "Physical Check Metering",
+        flowDirection: "incoming",
+      },
+      {
+        targetId: "consumption",
+        relationshipLabel: "Active Energy Reconciliation",
+        flowDirection: "outgoing",
+      },
+      {
+        targetId: "demand",
+        relationshipLabel: "Capacity & Maximum Demand",
+        flowDirection: "outgoing",
+      },
+      {
+        targetId: "cost",
+        relationshipLabel: "Billed Liability Assessment",
+        flowDirection: "outgoing",
+      },
       { targetId: "anomalies", relationshipLabel: "Billing Variance", flowDirection: "outgoing" },
     ],
     baseX: 180,
@@ -82,14 +103,31 @@ const NODES: NetworkNode[] = [
     categoryColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30",
     accentColor: "#34d399",
     subtitle: "Revenue-Grade AMR Check Meters",
-    description: "Class 0.2S high-precision pulse recorders, CT/VT ratio multipliers, and physical check metering infrastructure.",
+    description:
+      "Class 0.2S high-precision pulse recorders, CT/VT ratio multipliers, and physical check metering infrastructure.",
     telemetry: "400:5 CT Multiplier · Pulse Register Verified",
     formula: "Delivered kWh = Raw Pulses × (CT_ratio × VT_ratio) × Constant",
     relationships: [
-      { targetId: "invoices", relationshipLabel: "Check Meter Reconciliation", flowDirection: "outgoing" },
-      { targetId: "consumption", relationshipLabel: "Half-Hour Interval Pulse Stream", flowDirection: "outgoing" },
-      { targetId: "demand", relationshipLabel: "Rolling 30-Min kVA Peak Pulse", flowDirection: "outgoing" },
-      { targetId: "tariffs", relationshipLabel: "Voltage Supply Specification", flowDirection: "bidirectional" },
+      {
+        targetId: "invoices",
+        relationshipLabel: "Check Meter Reconciliation",
+        flowDirection: "outgoing",
+      },
+      {
+        targetId: "consumption",
+        relationshipLabel: "Half-Hour Interval Pulse Stream",
+        flowDirection: "outgoing",
+      },
+      {
+        targetId: "demand",
+        relationshipLabel: "Rolling 30-Min kVA Peak Pulse",
+        flowDirection: "outgoing",
+      },
+      {
+        targetId: "tariffs",
+        relationshipLabel: "Voltage Supply Specification",
+        flowDirection: "bidirectional",
+      },
     ],
     baseX: 180,
     baseY: 510,
@@ -106,19 +144,40 @@ const NODES: NetworkNode[] = [
     categoryColor: "text-amber-400 bg-amber-500/10 border-amber-500/30",
     accentColor: "#fbbf24",
     subtitle: "Gazetted NERSA Rate Schedules",
-    description: "Multi-year Eskom Megaflex, Miniflex, and municipal schedules indexed with seasonal peak/standard/off-peak price structures.",
+    description:
+      "Multi-year Eskom Megaflex, Miniflex, and municipal schedules indexed with seasonal peak/standard/off-peak price structures.",
     telemetry: "Megaflex High Season (Jun–Aug) · 2024/25 Gazette",
     formula: "Rate(t) = TOU_Table(Season, SAST_Day, Hour) × Gazetted_Index",
     relationships: [
-      { targetId: "invoices", relationshipLabel: "Invoice Tariff Lookup & Compliance", flowDirection: "outgoing" },
-      { targetId: "consumption", relationshipLabel: "Time-of-Use Temporal Buckets", flowDirection: "outgoing" },
-      { targetId: "demand", relationshipLabel: "Capacity & Transmission Charges", flowDirection: "outgoing" },
-      { targetId: "cost", relationshipLabel: "True Financial Rate Liability", flowDirection: "outgoing" },
-      { targetId: "meters", relationshipLabel: "Voltage Level Categorization", flowDirection: "bidirectional" },
+      {
+        targetId: "invoices",
+        relationshipLabel: "Invoice Tariff Lookup & Compliance",
+        flowDirection: "outgoing",
+      },
+      {
+        targetId: "consumption",
+        relationshipLabel: "Time-of-Use Temporal Buckets",
+        flowDirection: "outgoing",
+      },
+      {
+        targetId: "demand",
+        relationshipLabel: "Capacity & Transmission Charges",
+        flowDirection: "outgoing",
+      },
+      {
+        targetId: "cost",
+        relationshipLabel: "True Financial Rate Liability",
+        flowDirection: "outgoing",
+      },
+      {
+        targetId: "meters",
+        relationshipLabel: "Voltage Level Categorization",
+        flowDirection: "bidirectional",
+      },
     ],
     baseX: 470,
     baseY: 170,
-    driftSpeedX: 0.0010,
+    driftSpeedX: 0.001,
     driftSpeedY: 0.0007,
     driftAmpX: 10,
     driftAmpY: 14,
@@ -131,16 +190,41 @@ const NODES: NetworkNode[] = [
     categoryColor: "text-cyan-400 bg-cyan-500/10 border-cyan-500/30",
     accentColor: "#22d3ee",
     subtitle: "30-Minute Interval Telemetry Hub",
-    description: "Continuously recorded 30-minute interval profile vectors disaggregated into peak, standard, and off-peak temporal buckets.",
+    description:
+      "Continuously recorded 30-minute interval profile vectors disaggregated into peak, standard, and off-peak temporal buckets.",
     telemetry: "2,880 Intervals/Mo · Zero Dropouts Detected",
     formula: "E_total = Σ(Peak_kWh) + Σ(Standard_kWh) + Σ(OffPeak_kWh)",
     relationships: [
-      { targetId: "invoices", relationshipLabel: "Billed vs Physical Interval Variance", flowDirection: "bidirectional" },
-      { targetId: "meters", relationshipLabel: "Hardware Interval Pulse Sync", flowDirection: "incoming" },
-      { targetId: "tariffs", relationshipLabel: "TOU Time-Bracket Allocation", flowDirection: "incoming" },
-      { targetId: "demand", relationshipLabel: "Coincident Load Profile", flowDirection: "bidirectional" },
-      { targetId: "cost", relationshipLabel: "Active Energy Financial Valuation", flowDirection: "outgoing" },
-      { targetId: "anomalies", relationshipLabel: "Unusual Consumption Detection", flowDirection: "outgoing" },
+      {
+        targetId: "invoices",
+        relationshipLabel: "Billed vs Physical Interval Variance",
+        flowDirection: "bidirectional",
+      },
+      {
+        targetId: "meters",
+        relationshipLabel: "Hardware Interval Pulse Sync",
+        flowDirection: "incoming",
+      },
+      {
+        targetId: "tariffs",
+        relationshipLabel: "TOU Time-Bracket Allocation",
+        flowDirection: "incoming",
+      },
+      {
+        targetId: "demand",
+        relationshipLabel: "Coincident Load Profile",
+        flowDirection: "bidirectional",
+      },
+      {
+        targetId: "cost",
+        relationshipLabel: "Active Energy Financial Valuation",
+        flowDirection: "outgoing",
+      },
+      {
+        targetId: "anomalies",
+        relationshipLabel: "Unusual Consumption Detection",
+        flowDirection: "outgoing",
+      },
     ],
     baseX: 640,
     baseY: 360,
@@ -157,20 +241,41 @@ const NODES: NetworkNode[] = [
     categoryColor: "text-orange-400 bg-orange-500/10 border-orange-500/30",
     accentColor: "#fb923c",
     subtitle: "Peak Apparent Power & Notified Capacity",
-    description: "Simultaneous 30-minute rolling kVA demand peaks, power factor integration, and notified maximum demand (NMD) monitoring.",
+    description:
+      "Simultaneous 30-minute rolling kVA demand peaks, power factor integration, and notified maximum demand (NMD) monitoring.",
     telemetry: "7,705 kVA Recorded Peak vs 9,450 kVA Billed",
     formula: "kVA = √(kW² + kVAR²) over 30-min Window",
     relationships: [
-      { targetId: "meters", relationshipLabel: "Class 0.2S Peak Pulse Capture", flowDirection: "incoming" },
-      { targetId: "tariffs", relationshipLabel: "NAC & NMD Capacity Rate Tables", flowDirection: "incoming" },
-      { targetId: "consumption", relationshipLabel: "Peak Coincident Demand Mapping", flowDirection: "bidirectional" },
-      { targetId: "cost", relationshipLabel: "Demand Levy & Capacity Cost", flowDirection: "outgoing" },
-      { targetId: "anomalies", relationshipLabel: "Unnotified Peak Overrun Flags", flowDirection: "outgoing" },
+      {
+        targetId: "meters",
+        relationshipLabel: "Class 0.2S Peak Pulse Capture",
+        flowDirection: "incoming",
+      },
+      {
+        targetId: "tariffs",
+        relationshipLabel: "NAC & NMD Capacity Rate Tables",
+        flowDirection: "incoming",
+      },
+      {
+        targetId: "consumption",
+        relationshipLabel: "Peak Coincident Demand Mapping",
+        flowDirection: "bidirectional",
+      },
+      {
+        targetId: "cost",
+        relationshipLabel: "Demand Levy & Capacity Cost",
+        flowDirection: "outgoing",
+      },
+      {
+        targetId: "anomalies",
+        relationshipLabel: "Unnotified Peak Overrun Flags",
+        flowDirection: "outgoing",
+      },
     ],
     baseX: 470,
     baseY: 550,
     driftSpeedX: 0.0009,
-    driftSpeedY: 0.0010,
+    driftSpeedY: 0.001,
     driftAmpX: 12,
     driftAmpY: 9,
     icon: Activity,
@@ -182,16 +287,41 @@ const NODES: NetworkNode[] = [
     categoryColor: "text-indigo-400 bg-indigo-500/10 border-indigo-500/30",
     accentColor: "#818cf8",
     subtitle: "Reconciled Energy Expense Valuation",
-    description: "True delivered energy liability calculated with Decimal.js high-precision arithmetic against verified physical intervals.",
+    description:
+      "True delivered energy liability calculated with Decimal.js high-precision arithmetic against verified physical intervals.",
     telemetry: "R 8,421,890.00 Reconciled Spend Model",
     formula: "ReconciledCost = Σ(Interval_kWh × Exact_Rate) + DemandLevy + Fixed",
     relationships: [
-      { targetId: "invoices", relationshipLabel: "True vs Billed Cost Delta", flowDirection: "bidirectional" },
-      { targetId: "tariffs", relationshipLabel: "Statutory Rate Application", flowDirection: "incoming" },
-      { targetId: "consumption", relationshipLabel: "Active Energy Spend", flowDirection: "incoming" },
-      { targetId: "demand", relationshipLabel: "Demand & Capacity Charge Spend", flowDirection: "incoming" },
-      { targetId: "anomalies", relationshipLabel: "Monetary Discrepancy Isolation", flowDirection: "bidirectional" },
-      { targetId: "recovery", relationshipLabel: "Net Recoverable Overcharge Total", flowDirection: "outgoing" },
+      {
+        targetId: "invoices",
+        relationshipLabel: "True vs Billed Cost Delta",
+        flowDirection: "bidirectional",
+      },
+      {
+        targetId: "tariffs",
+        relationshipLabel: "Statutory Rate Application",
+        flowDirection: "incoming",
+      },
+      {
+        targetId: "consumption",
+        relationshipLabel: "Active Energy Spend",
+        flowDirection: "incoming",
+      },
+      {
+        targetId: "demand",
+        relationshipLabel: "Demand & Capacity Charge Spend",
+        flowDirection: "incoming",
+      },
+      {
+        targetId: "anomalies",
+        relationshipLabel: "Monetary Discrepancy Isolation",
+        flowDirection: "bidirectional",
+      },
+      {
+        targetId: "recovery",
+        relationshipLabel: "Net Recoverable Overcharge Total",
+        flowDirection: "outgoing",
+      },
     ],
     baseX: 950,
     baseY: 190,
@@ -208,15 +338,36 @@ const NODES: NetworkNode[] = [
     categoryColor: "text-rose-400 bg-rose-500/10 border-rose-500/30",
     accentColor: "#f43f5e",
     subtitle: "Deterministic Discrepancy Isolation",
-    description: "Automated identification of meter multiplier misconfigurations, unapplied public holidays, and tariff season boundary errors.",
+    description:
+      "Automated identification of meter multiplier misconfigurations, unapplied public holidays, and tariff season boundary errors.",
     telemetry: "17 Active Anomalies Isolated · R 421,890 Total Delta",
     formula: "Variance = |Billed_Determinant - Reconciled_Determinant|",
     relationships: [
-      { targetId: "consumption", relationshipLabel: "Unusual Consumption Detection", flowDirection: "incoming" },
-      { targetId: "invoices", relationshipLabel: "Billing Variance & Multiplier Drifts", flowDirection: "incoming" },
-      { targetId: "demand", relationshipLabel: "Unnotified Demand Spikes", flowDirection: "incoming" },
-      { targetId: "cost", relationshipLabel: "Financial Impact Quantified", flowDirection: "incoming" },
-      { targetId: "recovery", relationshipLabel: "Dispute Claim Dossier Compilation", flowDirection: "outgoing" },
+      {
+        targetId: "consumption",
+        relationshipLabel: "Unusual Consumption Detection",
+        flowDirection: "incoming",
+      },
+      {
+        targetId: "invoices",
+        relationshipLabel: "Billing Variance & Multiplier Drifts",
+        flowDirection: "incoming",
+      },
+      {
+        targetId: "demand",
+        relationshipLabel: "Unnotified Demand Spikes",
+        flowDirection: "incoming",
+      },
+      {
+        targetId: "cost",
+        relationshipLabel: "Financial Impact Quantified",
+        flowDirection: "incoming",
+      },
+      {
+        targetId: "recovery",
+        relationshipLabel: "Dispute Claim Dossier Compilation",
+        flowDirection: "outgoing",
+      },
     ],
     baseX: 950,
     baseY: 530,
@@ -233,18 +384,31 @@ const NODES: NetworkNode[] = [
     categoryColor: "text-teal-400 bg-teal-500/10 border-teal-500/30",
     accentColor: "#2dd4bf",
     subtitle: "Section 21 Dispute Package Dossiers",
-    description: "Audit-ready credit claim packages generated with 12-node cryptographic verification chains for utility dispute settlement.",
+    description:
+      "Audit-ready credit claim packages generated with 12-node cryptographic verification chains for utility dispute settlement.",
     telemetry: "R 421,890.00 Claim Form 102 Generated",
     formula: "Credit_Due = Billed_Amount - Reconciled_Physical_Amount",
     relationships: [
-      { targetId: "anomalies", relationshipLabel: "Discrepancy Proof Chain", flowDirection: "incoming" },
-      { targetId: "cost", relationshipLabel: "Overbilled Capital Recovery", flowDirection: "incoming" },
-      { targetId: "invoices", relationshipLabel: "Credit Note Requisition Issuance", flowDirection: "outgoing" },
+      {
+        targetId: "anomalies",
+        relationshipLabel: "Discrepancy Proof Chain",
+        flowDirection: "incoming",
+      },
+      {
+        targetId: "cost",
+        relationshipLabel: "Overbilled Capital Recovery",
+        flowDirection: "incoming",
+      },
+      {
+        targetId: "invoices",
+        relationshipLabel: "Credit Note Requisition Issuance",
+        flowDirection: "outgoing",
+      },
     ],
     baseX: 1220,
     baseY: 360,
     driftSpeedX: 0.0006,
-    driftSpeedY: 0.0010,
+    driftSpeedY: 0.001,
     driftAmpX: 8,
     driftAmpY: 10,
     icon: ShieldCheck,
@@ -298,7 +462,7 @@ export function EneraNetworkSection() {
       ([entry]) => {
         setIsInView(entry.isIntersecting);
       },
-      { threshold: 0.05 }
+      { threshold: 0.05 },
     );
 
     observer.observe(el);
@@ -389,8 +553,8 @@ export function EneraNetworkSection() {
 
       // 2 packets per active path at different phases
       for (let p = 0; p < 2; p++) {
-        const offsetPhase = (p * 0.5 + i * 0.15);
-        const cycleProgress = ((elapsedTime * 0.00045 + offsetPhase) % 1);
+        const offsetPhase = p * 0.5 + i * 0.15;
+        const cycleProgress = (elapsedTime * 0.00045 + offsetPhase) % 1;
         generated.push({
           id: packetId++,
           fromId: rel.flowDirection === "incoming" ? rel.targetId : activeNode.id,
@@ -413,7 +577,7 @@ export function EneraNetworkSection() {
 
     ambientEdges.forEach((edge, idx) => {
       if (edge.from !== activeNodeId && edge.to !== activeNodeId) {
-        const cycleProgress = ((elapsedTime * 0.0003 + idx * 0.25) % 1);
+        const cycleProgress = (elapsedTime * 0.0003 + idx * 0.25) % 1;
         generated.push({
           id: packetId++,
           fromId: edge.from,
@@ -432,7 +596,7 @@ export function EneraNetworkSection() {
   const activeNode = NODES.find((n) => n.id === activeNodeId) || NODES[0];
   const relatedTargetIds = useMemo(
     () => new Set(activeNode.relationships.map((r) => r.targetId)),
-    [activeNode]
+    [activeNode],
   );
 
   const handleNodeMouseEnter = (id: string) => {
@@ -479,8 +643,9 @@ export function EneraNetworkSection() {
         </h2>
 
         <p className="mt-5 text-base sm:text-lg text-slate-300 font-light max-w-3xl mx-auto leading-relaxed">
-          Every billing determinant, physical meter pulse, and NERSA tariff calculation is interlinked in real time.
-          Hover any node to trace its live energy relationships as signals propagate through the matrix.
+          Every billing determinant, physical meter pulse, and NERSA tariff calculation is
+          interlinked in real time. Hover any node to trace its live energy relationships as signals
+          propagate through the matrix.
         </p>
       </div>
 
@@ -497,11 +662,14 @@ export function EneraNetworkSection() {
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
                 <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 -ml-4.5" />
-                <span className="font-bold text-white tracking-wider">CONTINUOUS TOPOLOGY FLUX</span>
+                <span className="font-bold text-white tracking-wider">
+                  CONTINUOUS TOPOLOGY FLUX
+                </span>
               </div>
               <span className="text-slate-600 hidden sm:inline">|</span>
               <span className="text-slate-400 hidden sm:inline">
-                ACTIVE FOCUS: <strong className="text-cyan-300 font-semibold">{activeNode.label}</strong>
+                ACTIVE FOCUS:{" "}
+                <strong className="text-cyan-300 font-semibold">{activeNode.label}</strong>
               </span>
             </div>
 
@@ -516,7 +684,11 @@ export function EneraNetworkSection() {
               <button
                 type="button"
                 onClick={toggleAutoEvolution}
-                aria-label={isAutoEvolving ? "Pause autonomous topology evolution" : "Resume autonomous topology evolution"}
+                aria-label={
+                  isAutoEvolving
+                    ? "Pause autonomous topology evolution"
+                    : "Resume autonomous topology evolution"
+                }
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border transition-all focus-ring-enera ${
                   isAutoEvolving
                     ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.2)]"
@@ -611,17 +783,11 @@ export function EneraNetworkSection() {
                         x2={targetPos.x}
                         y2={targetPos.y}
                         stroke={
-                          isConnectedToActive
-                            ? activeNode.accentColor
-                            : "rgba(255, 255, 255, 0.08)"
+                          isConnectedToActive ? activeNode.accentColor : "rgba(255, 255, 255, 0.08)"
                         }
                         strokeWidth={isConnectedToActive ? "2.5" : "1"}
                         strokeDasharray={
-                          isConnectedToActive
-                            ? prefersReducedMotion
-                              ? "none"
-                              : "6 4"
-                            : "3 5"
+                          isConnectedToActive ? (prefersReducedMotion ? "none" : "6 4") : "3 5"
                         }
                         className={
                           isConnectedToActive && !prefersReducedMotion
@@ -656,12 +822,7 @@ export function EneraNetworkSection() {
                         filter="url(#eneraNetworkGlow)"
                       />
                       {/* Crisp core photon */}
-                      <circle
-                        cx={currentX}
-                        cy={currentY}
-                        r={pkt.size}
-                        fill="#ffffff"
-                      />
+                      <circle cx={currentX} cy={currentY} r={pkt.size} fill="#ffffff" />
                     </g>
                   );
                 })}
@@ -743,7 +904,9 @@ export function EneraNetworkSection() {
                     {/* Inner Center Core */}
                     <circle
                       r={isSelected ? "8" : "5"}
-                      fill={isSelected ? "#030712" : isDirectlyRelated ? node.accentColor : "#94a3b8"}
+                      fill={
+                        isSelected ? "#030712" : isDirectlyRelated ? node.accentColor : "#94a3b8"
+                      }
                       className="transition-all duration-300"
                     />
 
@@ -885,7 +1048,8 @@ export function EneraNetworkSection() {
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-cyan-400" />
                     <span className="text-xs font-mono uppercase text-white font-bold tracking-wider">
-                      SIGNAL RELATIONSHIPS: {activeNode.label} ({activeNode.relationships.length} CONDUITS)
+                      SIGNAL RELATIONSHIPS: {activeNode.label} ({activeNode.relationships.length}{" "}
+                      CONDUITS)
                     </span>
                   </div>
                   <span className="text-[10px] font-mono text-cyan-400">
@@ -931,9 +1095,10 @@ export function EneraNetworkSection() {
                 <div className="mt-3 p-3 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-xs font-mono text-slate-300 flex items-start gap-2">
                   <Info className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
                   <div className="leading-relaxed">
-                    <strong className="text-white">Active Signal Routing:</strong> Hovering or selecting{" "}
-                    <span className="text-cyan-300">{activeNode.label}</span> illuminates all dependent
-                    physical and financial vectors with accelerated particle energy streams.
+                    <strong className="text-white">Active Signal Routing:</strong> Hovering or
+                    selecting <span className="text-cyan-300">{activeNode.label}</span> illuminates
+                    all dependent physical and financial vectors with accelerated particle energy
+                    streams.
                   </div>
                 </div>
               </div>

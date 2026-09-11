@@ -28,7 +28,7 @@ export interface DecodedElement {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-export const DECODED_ELEMENTS: DecodedElement[] = [
+const DECODED_ELEMENTS: DecodedElement[] = [
   {
     id: "charges",
     name: "charges",
@@ -80,7 +80,7 @@ export const DECODED_ELEMENTS: DecodedElement[] = [
     invoiceValue: "2025/07/01 – 2025/07/31 (31 Days)",
     decodedVector: "744 statutory hours mapped to SAST calendar & public holiday substitution",
     networkTarget: "Astronomical Calendar Validator",
-    separationThreshold: 0.50,
+    separationThreshold: 0.5,
     color: "#38bdf8",
     icon: Calendar,
   },
@@ -180,7 +180,7 @@ export function EneraBillSignalSection() {
           }
         }
       },
-      { threshold: 0.05 }
+      { threshold: 0.05 },
     );
 
     observer.observe(el);
@@ -306,8 +306,8 @@ export function EneraBillSignalSection() {
                 {scrollProgress < 0.25
                   ? "INTACT BILL"
                   : scrollProgress >= 0.7
-                  ? "DECODED (8 VECTORS DETACHED)"
-                  : "SEPARATING IN PROGRESS..."}
+                    ? "DECODED (8 VECTORS DETACHED)"
+                    : "SEPARATING IN PROGRESS..."}
               </span>
             </div>
 
@@ -354,8 +354,8 @@ export function EneraBillSignalSection() {
                         isSelected
                           ? "bg-cyan-950/40 border-cyan-500/50 shadow-[0_0_20px_-5px_rgba(6,182,212,0.3)]"
                           : isSeparated
-                          ? "bg-[#0d1117]/80 border-cyan-500/20 hover:border-cyan-500/40"
-                          : "bg-white/[0.02] border-white/5 hover:border-white/20"
+                            ? "bg-[#0d1117]/80 border-cyan-500/20 hover:border-cyan-500/40"
+                            : "bg-white/[0.02] border-white/5 hover:border-white/20"
                       }`}
                       style={{
                         transform:
@@ -443,8 +443,8 @@ export function EneraBillSignalSection() {
                       isSelected
                         ? "bg-cyan-950/40 border-cyan-500/60 shadow-[0_0_30px_-5px_rgba(6,182,212,0.35)] scale-[1.02]"
                         : isSeparated
-                        ? "enera-glass hover:border-cyan-500/30 hover:bg-[#161b22]/90"
-                        : "opacity-40 bg-[#090d14] border-white/5"
+                          ? "enera-glass hover:border-cyan-500/30 hover:bg-[#161b22]/90"
+                          : "opacity-40 bg-[#090d14] border-white/5"
                     }`}
                   >
                     <div className="flex items-start justify-between">
@@ -463,9 +463,7 @@ export function EneraBillSignalSection() {
                           <div className="text-xs font-mono font-bold uppercase tracking-wider text-white">
                             {el.name}
                           </div>
-                          <div className="text-[10px] font-mono text-slate-400">
-                            {el.category}
-                          </div>
+                          <div className="text-[10px] font-mono text-slate-400">{el.category}</div>
                         </div>
                       </div>
 
@@ -540,4 +538,3 @@ export function EneraBillSignalSection() {
     </section>
   );
 }
-

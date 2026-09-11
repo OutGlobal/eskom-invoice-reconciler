@@ -61,7 +61,7 @@ export function EneraHeroSceneEngine() {
       ([entry]) => {
         setIsInView(entry.isIntersecting);
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(el);
@@ -113,9 +113,7 @@ export function EneraHeroSceneEngine() {
               ENERA VISUAL STATE ENGINE
             </span>
           </div>
-          <span className="text-[9px] font-mono text-slate-500 sm:hidden">
-            {activeScene} / 7
-          </span>
+          <span className="text-[9px] font-mono text-slate-500 sm:hidden">{activeScene} / 7</span>
         </div>
 
         {/* Scene Selector Pills with Touch-Friendly Scroll */}
@@ -153,9 +151,7 @@ export function EneraHeroSceneEngine() {
         aria-atomic="true"
         aria-label={`Active Scene: ${SCENES.find((s) => s.id === activeScene)?.label}`}
         className={`p-4 sm:p-6 md:p-8 min-h-[280px] sm:min-h-[310px] flex items-center justify-center transition-opacity duration-300 ${
-          isTransitioning
-            ? "opacity-0"
-            : "opacity-100"
+          isTransitioning ? "opacity-0" : "opacity-100"
         } ${!reducedMotion && isTransitioning ? "scale-[0.99] blur-[1px]" : ""}`}
       >
         {/* SCENE 01 — ENERGY: Flowing Energy Particles */}
@@ -199,7 +195,9 @@ export function EneraHeroSceneEngine() {
                   SCENE 02 — BILL
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-slate-400">DIGITAL UTILITY INVOICE EMERGES</span>
+              <span className="text-[10px] font-mono text-slate-400">
+                DIGITAL UTILITY INVOICE EMERGES
+              </span>
             </div>
 
             <div className="rounded-xl bg-[#161b22] border border-white/10 p-5 space-y-3 font-mono shadow-inner">
@@ -227,14 +225,15 @@ export function EneraHeroSceneEngine() {
         {activeScene === 3 && (
           <div className="w-full flex flex-col items-center text-center animate-in fade-in duration-500">
             <div className="w-14 h-14 rounded-2xl bg-violet-950/60 border border-violet-500/30 flex items-center justify-center mb-3 shadow-[0_0_25px_rgba(139,92,246,0.25)]">
-              <Cpu className="h-7 w-7 text-violet-400 animate-spin" style={{ animationDuration: "12s" }} />
+              <Cpu
+                className="h-7 w-7 text-violet-400 animate-spin"
+                style={{ animationDuration: "12s" }}
+              />
             </div>
             <span className="text-xs font-mono text-violet-400 uppercase tracking-widest mb-1">
               SCENE 03 — ANALYSIS
             </span>
-            <h3 className="text-xl font-bold text-white font-sans">
-              Invoice Fragments into Data
-            </h3>
+            <h3 className="text-xl font-bold text-white font-sans">Invoice Fragments into Data</h3>
             <p className="mt-1 text-xs sm:text-sm text-slate-400 max-w-md">
               Data points travel directly into the ENERA deterministic calculation engine.
             </p>
@@ -282,9 +281,7 @@ export function EneraHeroSceneEngine() {
                 <span className="text-[10px] font-mono text-amber-400 uppercase font-bold tracking-wider">
                   VARIANCE REVEALED
                 </span>
-                <div className="text-lg font-bold font-mono text-amber-300 mt-0.5">
-                  131,227 kWh
-                </div>
+                <div className="text-lg font-bold font-mono text-amber-300 mt-0.5">131,227 kWh</div>
               </div>
               <TrendingDown className="h-6 w-6 text-amber-400" />
             </div>
@@ -316,17 +313,13 @@ export function EneraHeroSceneEngine() {
                   <span className="text-[10px] font-mono text-slate-400 uppercase">
                     POTENTIAL VARIANCE:
                   </span>
-                  <div className="text-2xl font-bold font-mono text-rose-400 mt-0.5">
-                    R 51,227
-                  </div>
+                  <div className="text-2xl font-bold font-mono text-rose-400 mt-0.5">R 51,227</div>
                 </div>
                 <div>
                   <span className="text-[10px] font-mono text-slate-400 uppercase">
                     AI CONFIDENCE:
                   </span>
-                  <div className="text-2xl font-bold font-mono text-emerald-400 mt-0.5">
-                    97.8%
-                  </div>
+                  <div className="text-2xl font-bold font-mono text-emerald-400 mt-0.5">97.8%</div>
                 </div>
               </div>
             </div>
@@ -343,7 +336,9 @@ export function EneraHeroSceneEngine() {
                   SCENE 06 — INTELLIGENCE
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-slate-400">FINANCIAL CONTROL INTERFACE</span>
+              <span className="text-[10px] font-mono text-slate-400">
+                FINANCIAL CONTROL INTERFACE
+              </span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -378,7 +373,10 @@ export function EneraHeroSceneEngine() {
         {activeScene === 7 && (
           <div className="w-full flex flex-col items-center text-center animate-in fade-in duration-500">
             <div className="w-14 h-14 rounded-2xl bg-cyan-950/60 border border-cyan-500/30 flex items-center justify-center mb-3 shadow-[0_0_25px_rgba(6,182,212,0.3)]">
-              <RotateCcw className="h-6 w-6 text-cyan-400 animate-spin" style={{ animationDuration: "3s" }} />
+              <RotateCcw
+                className="h-6 w-6 text-cyan-400 animate-spin"
+                style={{ animationDuration: "3s" }}
+              />
             </div>
             <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest mb-1">
               SCENE 07 — RESET

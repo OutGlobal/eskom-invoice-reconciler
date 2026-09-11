@@ -52,7 +52,8 @@ const QUERIES: AiQuery[] = [
       citation: "NERSA Schedule 2, Clause 8.4",
       evidence: "2,880 AMR Intervals Verified",
       sha256: "e8b24f91...7a03",
-      action: "Trigger automatic load-shifting protocol for 17:00–19:00 peak hours. Dispute 120 kVA transient peak caused by upstream sub-station transformer switching fault.",
+      action:
+        "Trigger automatic load-shifting protocol for 17:00–19:00 peak hours. Dispute 120 kVA transient peak caused by upstream sub-station transformer switching fault.",
       disputeForm: "Eskom Billing Query (Form 102)",
       highlightTerms: ["June 1", "+58%", "Site 04", "9,120 kVA", "June 12"],
     },
@@ -70,7 +71,8 @@ const QUERIES: AiQuery[] = [
       citation: "Eskom NRS 048-4 / Meter Spec CT-400",
       evidence: "Hardware Pulse Log Synchronised",
       sha256: "7d1a93c4...bc88",
-      action: "Issue formal Section 21 Eskom billing query accompanied by cryptographic interval log chain and signed calibration certificate.",
+      action:
+        "Issue formal Section 21 Eskom billing query accompanied by cryptographic interval log chain and signed calibration certificate.",
       disputeForm: "Section 21 Formal Demand Dispute",
       highlightTerms: ["Site 04", "22.7%", "9,450 kVA", "7,705 kVA", "Section 21"],
     },
@@ -88,9 +90,16 @@ const QUERIES: AiQuery[] = [
       citation: "NERSA Tariff Book 2024/25, Rule 4.3",
       evidence: "12-Node Cryptographic Chain",
       sha256: "3c90a11b...5910",
-      action: "Dispute dossier auto-compiled into formal NERSA regulatory dispute package with line-item credit note requisitions.",
+      action:
+        "Dispute dossier auto-compiled into formal NERSA regulatory dispute package with line-item credit note requisitions.",
       disputeForm: "Credit Note Requisition Dossier",
-      highlightTerms: ["Worker's Day", "Youth Day", "Sunday off-peak", "CT ratio upgrade", "R 421,890.00"],
+      highlightTerms: [
+        "Worker's Day",
+        "Youth Day",
+        "Sunday off-peak",
+        "CT ratio upgrade",
+        "R 421,890.00",
+      ],
     },
   },
   {
@@ -106,7 +115,8 @@ const QUERIES: AiQuery[] = [
       citation: "Eskom Schedule of Standard Prices 2024",
       evidence: "8,760 Hourly Profile Modelled",
       sha256: "f42190ce...66d1",
-      action: "Maintain current Megaflex transmission connection agreement. Evaluate BESS battery storage arbitrage for 07:00 morning peak.",
+      action:
+        "Maintain current Megaflex transmission connection agreement. Evaluate BESS battery storage arbitrage for 07:00 morning peak.",
       disputeForm: "Tariff Migration Evaluation Rep",
       highlightTerms: [">78%", "11:00 and 15:00", "R 68,400/month", "Megaflex"],
     },
@@ -124,7 +134,8 @@ const QUERIES: AiQuery[] = [
       citation: "Eskom Distribution Code Sec 6.2",
       evidence: "4 Discrepancy Vectors Isolated",
       sha256: "19bce5a7...33fa",
-      action: "All 4 claims auto-formatted into Eskom Billing Resolution Form 102 with line-item mathematical breakdown and meter interval logs.",
+      action:
+        "All 4 claims auto-formatted into Eskom Billing Resolution Form 102 with line-item mathematical breakdown and meter interval logs.",
       disputeForm: "Form 102 Regulatory Pack",
       highlightTerms: ["R 46,176", "R 28,757", "R 18,420", "R 12,300", "Form 102"],
     },
@@ -142,9 +153,16 @@ const QUERIES: AiQuery[] = [
       citation: "Public Holidays Act 36 of 1994 & NERSA TOU",
       evidence: "Calibrated Astronomical Calendar Sync",
       sha256: "55da2408...44e1",
-      action: "Immediate credit note request submitted via Eskom Customer Executive portal with calendar reconciliation annexure.",
+      action:
+        "Immediate credit note request submitted via Eskom Customer Executive portal with calendar reconciliation annexure.",
       disputeForm: "NERSA TOU Non-Compliance Notice",
-      highlightTerms: ["Sunday off-peak", "Human Rights Day", "Freedom Day", "ESK-9921", "R 73,410.00"],
+      highlightTerms: [
+        "Sunday off-peak",
+        "Human Rights Day",
+        "Freedom Day",
+        "ESK-9921",
+        "R 73,410.00",
+      ],
     },
   },
 ];
@@ -186,7 +204,7 @@ export function EneraCopilotSection() {
       ([entry]) => {
         setIsInView(entry.isIntersecting);
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(el);
@@ -340,8 +358,9 @@ export function EneraCopilotSection() {
           </h2>
 
           <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed">
-            No complex SQL or manual spreadsheet pivot tables. Ask in plain English and let ENERA reconcile
-            your interval telemetry, NERSA tariff books, and municipal billing vectors in real time.
+            No complex SQL or manual spreadsheet pivot tables. Ask in plain English and let ENERA
+            reconcile your interval telemetry, NERSA tariff books, and municipal billing vectors in
+            real time.
           </p>
         </div>
 
@@ -380,7 +399,9 @@ export function EneraCopilotSection() {
               <button
                 type="button"
                 onClick={toggleAutoPlay}
-                aria-label={isAutoPlaying ? "Pause automated query cycle" : "Resume automated query cycle"}
+                aria-label={
+                  isAutoPlaying ? "Pause automated query cycle" : "Resume automated query cycle"
+                }
                 title={isAutoPlaying ? "Pause auto-rotation" : "Resume auto-rotation"}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded border text-[11px] transition-colors focus-ring-enera ${
                   isAutoPlaying
@@ -401,7 +422,9 @@ export function EneraCopilotSection() {
                 )}
               </button>
 
-              <span className="text-slate-500 hidden sm:inline" aria-hidden="true">|</span>
+              <span className="text-slate-500 hidden sm:inline" aria-hidden="true">
+                |
+              </span>
               <span className="text-[11px] text-cyan-400/90 hidden md:inline">LATENCY: 42ms</span>
             </div>
           </div>
@@ -493,7 +516,9 @@ export function EneraCopilotSection() {
                               : "text-slate-500 group-hover:text-slate-300"
                           }`}
                         />
-                        <span className={`leading-snug ${isSelected ? "font-medium text-slate-100" : ""}`}>
+                        <span
+                          className={`leading-snug ${isSelected ? "font-medium text-slate-100" : ""}`}
+                        >
                           &ldquo;{q.question}&rdquo;
                         </span>
                       </div>
@@ -505,7 +530,9 @@ export function EneraCopilotSection() {
               {/* Console Prompt Quick Hint */}
               <div className="pt-2 px-2 text-[11px] font-mono text-slate-400 flex items-center justify-between border-t border-white/5">
                 <span>Select a query or use arrow keys</span>
-                <span className="text-cyan-400/80 font-semibold">{selectedIdx + 1} / {QUERIES.length}</span>
+                <span className="text-cyan-400/80 font-semibold">
+                  {selectedIdx + 1} / {QUERIES.length}
+                </span>
               </div>
             </div>
 
@@ -571,14 +598,18 @@ export function EneraCopilotSection() {
                   {/* Telemetry Metrics Grid (4 Cards) */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     {/* Variance Metric Card */}
-                    <div className={`p-3.5 rounded-xl border ${varianceColors.bg} ${varianceColors.border}`}>
+                    <div
+                      className={`p-3.5 rounded-xl border ${varianceColors.bg} ${varianceColors.border}`}
+                    >
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wide">
                           FINANCIAL VARIANCE
                         </span>
                         <TrendingUp className={`h-3 w-3 ${varianceColors.text}`} />
                       </div>
-                      <div className={`text-base sm:text-lg font-bold font-mono mt-1 ${varianceColors.text}`}>
+                      <div
+                        className={`text-base sm:text-lg font-bold font-mono mt-1 ${varianceColors.text}`}
+                      >
                         {cur.response.variance}
                       </div>
                     </div>

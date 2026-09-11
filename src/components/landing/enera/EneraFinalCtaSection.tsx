@@ -47,7 +47,11 @@ export function EneraFinalCtaSection() {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const sectionRef = useRef<HTMLElement | null>(null);
-  const mouseRef = useRef<{ x: number; y: number; active: boolean }>({ x: -1000, y: -1000, active: false });
+  const mouseRef = useRef<{ x: number; y: number; active: boolean }>({
+    x: -1000,
+    y: -1000,
+    active: false,
+  });
 
   // Handle prefers-reduced-motion
   useEffect(() => {
@@ -82,7 +86,7 @@ export function EneraFinalCtaSection() {
           cancelAnimationFrame(animationFrameId);
         }
       },
-      { threshold: 0.05 }
+      { threshold: 0.05 },
     );
     observer.observe(canvas);
 
@@ -95,10 +99,20 @@ export function EneraFinalCtaSection() {
     window.addEventListener("resize", handleResize, { passive: true });
 
     // Generate constellation of energy network nodes echoing Hero telemetry (Scaled for mobile)
-    const nodeCount = width < 430 ? 12 : width < 768 ? 16 : Math.min(32, Math.max(18, Math.floor(width / 45)));
+    const nodeCount =
+      width < 430 ? 12 : width < 768 ? 16 : Math.min(32, Math.max(18, Math.floor(width / 45)));
     const nodes: NetworkNode[] = [];
     const colors = ["#06b6d4", "#22d3ee", "#10b981", "#8b5cf6"];
-    const labels = ["MTR-01", "GRID-α", "SUB-04", "FEED-02", "TX-07", "AMR-99", "RECON-01", "SYNC-β"];
+    const labels = [
+      "MTR-01",
+      "GRID-α",
+      "SUB-04",
+      "FEED-02",
+      "TX-07",
+      "AMR-99",
+      "RECON-01",
+      "SYNC-β",
+    ];
 
     for (let i = 0; i < nodeCount; i++) {
       const x = Math.random() * width;
@@ -160,7 +174,7 @@ export function EneraFinalCtaSection() {
         50,
         width / 2,
         height / 2,
-        Math.max(width, height) / 1.5
+        Math.max(width, height) / 1.5,
       );
       gradient.addColorStop(0, "rgba(6, 182, 212, 0.04)");
       gradient.addColorStop(0.5, "rgba(16, 185, 129, 0.02)");
@@ -366,7 +380,10 @@ export function EneraFinalCtaSection() {
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               <span className="absolute -left-1 w-2 h-2 rounded-full bg-white/60 blur-[1px] group-hover:animate-ping" />
             </div>
-            <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none" aria-hidden="true">
+            <div
+              className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none"
+              aria-hidden="true"
+            >
               <div className="w-1/2 h-full bg-white/25 skew-x-12 animate-enera-pulse" />
             </div>
           </Link>
@@ -394,7 +411,10 @@ export function EneraFinalCtaSection() {
             <div className="p-6 sm:p-8 rounded-3xl bg-[#0d1117]/90 border border-cyan-500/25 backdrop-blur-xl shadow-[0_0_60px_-15px_rgba(6,182,212,0.2)] text-left">
               <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-5">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" aria-hidden="true" />
+                  <div
+                    className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"
+                    aria-hidden="true"
+                  />
                   <span className="text-xs font-mono uppercase text-cyan-300 font-bold tracking-wider">
                     EXECUTIVE DEMO &amp; PORTFOLIO AUDIT BRIEFING
                   </span>
@@ -402,9 +422,16 @@ export function EneraFinalCtaSection() {
                 <span className="text-[10px] font-mono text-slate-400">2-HR RESPONSE SLA</span>
               </div>
 
-              <form onSubmit={handleDemoSubmit} className="space-y-4" aria-label="Executive demo request form">
+              <form
+                onSubmit={handleDemoSubmit}
+                className="space-y-4"
+                aria-label="Executive demo request form"
+              >
                 <div>
-                  <label htmlFor="demo-email" className="block text-xs font-mono text-slate-300 mb-1.5 uppercase">
+                  <label
+                    htmlFor="demo-email"
+                    className="block text-xs font-mono text-slate-300 mb-1.5 uppercase"
+                  >
                     Work Email
                   </label>
                   <input
@@ -420,7 +447,10 @@ export function EneraFinalCtaSection() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor="demo-company" className="block text-xs font-mono text-slate-300 mb-1.5 uppercase">
+                    <label
+                      htmlFor="demo-company"
+                      className="block text-xs font-mono text-slate-300 mb-1.5 uppercase"
+                    >
                       Company / Facility
                     </label>
                     <input
@@ -434,7 +464,10 @@ export function EneraFinalCtaSection() {
                   </div>
 
                   <div>
-                    <label htmlFor="demo-spend" className="block text-xs font-mono text-slate-300 mb-1.5 uppercase">
+                    <label
+                      htmlFor="demo-spend"
+                      className="block text-xs font-mono text-slate-300 mb-1.5 uppercase"
+                    >
                       Monthly Electricity Spend
                     </label>
                     <select
@@ -470,7 +503,8 @@ export function EneraFinalCtaSection() {
               <div className="text-left">
                 <div className="font-bold text-white text-sm">Demo Request Confirmed</div>
                 <div className="text-slate-300 mt-0.5">
-                  An ENERA Energy Financial Engineer will connect with <strong className="text-emerald-300">{email}</strong> within 2 business hours.
+                  An ENERA Energy Financial Engineer will connect with{" "}
+                  <strong className="text-emerald-300">{email}</strong> within 2 business hours.
                 </div>
               </div>
             </div>

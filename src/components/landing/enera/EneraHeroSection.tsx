@@ -117,7 +117,7 @@ export function EneraHeroSection() {
           rafId = requestAnimationFrame(updateParallax);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     const sectionEl = document.getElementById("hero");
@@ -139,7 +139,10 @@ export function EneraHeroSection() {
   }, [reducedMotion]);
 
   return (
-    <section id="hero" className="relative min-h-screen pt-32 pb-20 overflow-hidden flex flex-col justify-between bg-[#030712] text-white">
+    <section
+      id="hero"
+      className="relative min-h-screen pt-32 pb-20 overflow-hidden flex flex-col justify-between bg-[#030712] text-white"
+    >
       {/* 1. Cinematic Canvas Particle & Electrical Stream Engine */}
       <EneraHeroCanvas />
 
@@ -184,7 +187,8 @@ export function EneraHeroSection() {
           </h1>
 
           <p className="text-xs sm:text-sm text-slate-300/90 font-normal leading-relaxed max-w-sm mb-6">
-            AI-powered energy intelligence that reconciles every charge, detects hidden anomalies and shows where your energy money goes.
+            AI-powered energy intelligence that reconciles every charge, detects hidden anomalies
+            and shows where your energy money goes.
           </p>
 
           {/* 4. Action CTAs: Analyse Your Energy → & Explore ENERA */}
@@ -219,12 +223,16 @@ export function EneraHeroSection() {
             </div>
             <div className="enera-glass rounded-xl p-3 border border-amber-500/20 bg-amber-950/10">
               <span className="text-[9px] font-mono text-slate-400 uppercase block">ANOMALY</span>
-              <span className="text-xs sm:text-sm font-bold text-amber-300 font-mono">R 51,227</span>
+              <span className="text-xs sm:text-sm font-bold text-amber-300 font-mono">
+                R 51,227
+              </span>
               <span className="text-[9px] font-mono text-amber-400 block mt-0.5">98% conf</span>
             </div>
             <div className="enera-glass rounded-xl p-3 border border-emerald-500/20 bg-emerald-950/10">
               <span className="text-[9px] font-mono text-slate-400 uppercase block">DELIVERED</span>
-              <span className="text-xs sm:text-sm font-bold text-emerald-300 font-mono">4.21 GWh</span>
+              <span className="text-xs sm:text-sm font-bold text-emerald-300 font-mono">
+                4.21 GWh
+              </span>
               <span className="text-[9px] font-mono text-emerald-400 block mt-0.5">AMR sync</span>
             </div>
           </div>
@@ -281,8 +289,8 @@ export function EneraHeroSection() {
 
           {/* Supporting Statement */}
           <p className="mt-4 sm:mt-6 text-sm sm:text-base md:text-lg text-slate-300/90 max-w-2xl mx-auto font-normal leading-relaxed">
-            AI-powered energy intelligence that reconciles every charge, detects hidden anomalies and
-            shows where your energy money is going.
+            AI-powered energy intelligence that reconciles every charge, detects hidden anomalies
+            and shows where your energy money is going.
           </p>
 
           {/* Action Button Row */}

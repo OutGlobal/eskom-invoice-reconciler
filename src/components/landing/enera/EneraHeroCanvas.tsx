@@ -117,7 +117,7 @@ export function EneraHeroCanvas() {
           animationFrameId = requestAnimationFrame(render);
         }
       },
-      { threshold: 0.05 }
+      { threshold: 0.05 },
     );
     observer.observe(canvas);
 
@@ -165,29 +165,117 @@ export function EneraHeroCanvas() {
 
     // Floating Engineering Units (All 11 required: kWh, kVA, kVAh, kVArh, R/kWh, PEAK, STANDARD, OFF-PEAK, DEMAND, TARIFF, VAT)
     const dataUnits: FloatingDataUnit[] = [
-      { text: "kWh", x: width * 0.16, y: height * 0.22, vx: 0.16, vy: -0.12, alpha: 0.45, color: "#22d3ee" },
-      { text: "kVA", x: width * 0.82, y: height * 0.26, vx: -0.14, vy: 0.15, alpha: 0.5, color: "#10b981" },
-      { text: "kVAh", x: width * 0.12, y: height * 0.65, vx: 0.12, vy: 0.14, alpha: 0.35, color: "#8b5cf6" },
-      { text: "kVArh", x: width * 0.86, y: height * 0.62, vx: -0.15, vy: -0.12, alpha: 0.4, color: "#22d3ee" },
-      { text: "R/kWh", x: width * 0.26, y: height * 0.82, vx: 0.11, vy: -0.14, alpha: 0.38, color: "#10b981" },
-      { text: "PEAK", x: width * 0.76, y: height * 0.42, vx: -0.12, vy: 0.16, alpha: 0.42, color: "#f43f5e" },
-      { text: "STANDARD", x: width * 0.18, y: height * 0.44, vx: 0.15, vy: -0.1, alpha: 0.38, color: "#38bdf8" },
-      { text: "OFF-PEAK", x: width * 0.68, y: height * 0.84, vx: -0.13, vy: -0.12, alpha: 0.35, color: "#10b981" },
-      { text: "DEMAND", x: width * 0.34, y: height * 0.16, vx: 0.14, vy: 0.12, alpha: 0.4, color: "#22d3ee" },
-      { text: "TARIFF", x: width * 0.64, y: height * 0.18, vx: -0.15, vy: 0.11, alpha: 0.45, color: "#8b5cf6" },
-      { text: "VAT", x: width * 0.52, y: height * 0.86, vx: 0.08, vy: -0.13, alpha: 0.35, color: "#94a3b8" },
+      {
+        text: "kWh",
+        x: width * 0.16,
+        y: height * 0.22,
+        vx: 0.16,
+        vy: -0.12,
+        alpha: 0.45,
+        color: "#22d3ee",
+      },
+      {
+        text: "kVA",
+        x: width * 0.82,
+        y: height * 0.26,
+        vx: -0.14,
+        vy: 0.15,
+        alpha: 0.5,
+        color: "#10b981",
+      },
+      {
+        text: "kVAh",
+        x: width * 0.12,
+        y: height * 0.65,
+        vx: 0.12,
+        vy: 0.14,
+        alpha: 0.35,
+        color: "#8b5cf6",
+      },
+      {
+        text: "kVArh",
+        x: width * 0.86,
+        y: height * 0.62,
+        vx: -0.15,
+        vy: -0.12,
+        alpha: 0.4,
+        color: "#22d3ee",
+      },
+      {
+        text: "R/kWh",
+        x: width * 0.26,
+        y: height * 0.82,
+        vx: 0.11,
+        vy: -0.14,
+        alpha: 0.38,
+        color: "#10b981",
+      },
+      {
+        text: "PEAK",
+        x: width * 0.76,
+        y: height * 0.42,
+        vx: -0.12,
+        vy: 0.16,
+        alpha: 0.42,
+        color: "#f43f5e",
+      },
+      {
+        text: "STANDARD",
+        x: width * 0.18,
+        y: height * 0.44,
+        vx: 0.15,
+        vy: -0.1,
+        alpha: 0.38,
+        color: "#38bdf8",
+      },
+      {
+        text: "OFF-PEAK",
+        x: width * 0.68,
+        y: height * 0.84,
+        vx: -0.13,
+        vy: -0.12,
+        alpha: 0.35,
+        color: "#10b981",
+      },
+      {
+        text: "DEMAND",
+        x: width * 0.34,
+        y: height * 0.16,
+        vx: 0.14,
+        vy: 0.12,
+        alpha: 0.4,
+        color: "#22d3ee",
+      },
+      {
+        text: "TARIFF",
+        x: width * 0.64,
+        y: height * 0.18,
+        vx: -0.15,
+        vy: 0.11,
+        alpha: 0.45,
+        color: "#8b5cf6",
+      },
+      {
+        text: "VAT",
+        x: width * 0.52,
+        y: height * 0.86,
+        vx: 0.08,
+        vy: -0.13,
+        alpha: 0.35,
+        color: "#94a3b8",
+      },
     ];
 
     // Ambient Energy Particle Pool - Scaled intentionally across 320px, 375px, 390px, 430px, 768px, 1024px+
     const particleCount = reducedMotion
       ? 16
       : width < 390
-      ? 16
-      : width < 768
-      ? 22
-      : width < 1024
-      ? 45
-      : 85;
+        ? 16
+        : width < 768
+          ? 22
+          : width < 1024
+            ? 45
+            : 85;
     const particles: Particle[] = [];
     const colors = ["#22d3ee", "#06b6d4", "#10b981", "#8b5cf6", "#e2e8f0"];
 
@@ -214,17 +302,88 @@ export function EneraHeroCanvas() {
     const centerX = width / 2;
     const centerY = height * 0.38;
     const nodes: EnergyNode[] = [
-      { id: "n1", label: "MTR-01", x: width * 0.22, y: height * 0.28, baseRadius: 3.5, color: "#22d3ee", illumination: 0, pulsePhase: 0 },
-      { id: "n2", label: "SUB-04", x: width * 0.78, y: height * 0.32, baseRadius: 4, color: "#10b981", illumination: 0, pulsePhase: 1 },
-      { id: "n3", label: "NODE-α", x: width * 0.32, y: height * 0.58, baseRadius: 3, color: "#8b5cf6", illumination: 0, pulsePhase: 2 },
-      { id: "n4", label: "FEED-02", x: width * 0.68, y: height * 0.56, baseRadius: 3.5, color: "#22d3ee", illumination: 0, pulsePhase: 3 },
-      { id: "n5", label: "TX-07", x: width * 0.18, y: height * 0.72, baseRadius: 3, color: "#38bdf8", illumination: 0, pulsePhase: 4 },
-      { id: "n6", label: "SYNC-03", x: width * 0.82, y: height * 0.74, baseRadius: 3.5, color: "#10b981", illumination: 0, pulsePhase: 5 },
-      { id: "n7", label: "GRID-C", x: width * 0.5, y: height * 0.18, baseRadius: 4, color: "#22d3ee", illumination: 0, pulsePhase: 6 },
+      {
+        id: "n1",
+        label: "MTR-01",
+        x: width * 0.22,
+        y: height * 0.28,
+        baseRadius: 3.5,
+        color: "#22d3ee",
+        illumination: 0,
+        pulsePhase: 0,
+      },
+      {
+        id: "n2",
+        label: "SUB-04",
+        x: width * 0.78,
+        y: height * 0.32,
+        baseRadius: 4,
+        color: "#10b981",
+        illumination: 0,
+        pulsePhase: 1,
+      },
+      {
+        id: "n3",
+        label: "NODE-α",
+        x: width * 0.32,
+        y: height * 0.58,
+        baseRadius: 3,
+        color: "#8b5cf6",
+        illumination: 0,
+        pulsePhase: 2,
+      },
+      {
+        id: "n4",
+        label: "FEED-02",
+        x: width * 0.68,
+        y: height * 0.56,
+        baseRadius: 3.5,
+        color: "#22d3ee",
+        illumination: 0,
+        pulsePhase: 3,
+      },
+      {
+        id: "n5",
+        label: "TX-07",
+        x: width * 0.18,
+        y: height * 0.72,
+        baseRadius: 3,
+        color: "#38bdf8",
+        illumination: 0,
+        pulsePhase: 4,
+      },
+      {
+        id: "n6",
+        label: "SYNC-03",
+        x: width * 0.82,
+        y: height * 0.74,
+        baseRadius: 3.5,
+        color: "#10b981",
+        illumination: 0,
+        pulsePhase: 5,
+      },
+      {
+        id: "n7",
+        label: "GRID-C",
+        x: width * 0.5,
+        y: height * 0.18,
+        baseRadius: 4,
+        color: "#22d3ee",
+        illumination: 0,
+        pulsePhase: 6,
+      },
     ];
 
     // Luminous Electrical Data Streams converging toward the centre (Scaled for mobile)
-    const streamCount = reducedMotion ? 3 : width < 430 ? 3 : width < 768 ? 4 : width < 1024 ? 6 : 8;
+    const streamCount = reducedMotion
+      ? 3
+      : width < 430
+        ? 3
+        : width < 768
+          ? 4
+          : width < 1024
+            ? 6
+            : 8;
     const streams: StreamLine[] = [];
 
     for (let s = 0; s < streamCount; s++) {
@@ -356,13 +515,13 @@ export function EneraHeroCanvas() {
         }
 
         ctx.save();
-        const glowRadius = node.baseRadius + (node.illumination * 2.5);
-        const totalAlpha = 0.35 + (node.illumination * 0.6);
+        const glowRadius = node.baseRadius + node.illumination * 2.5;
+        const totalAlpha = 0.35 + node.illumination * 0.6;
 
         // Outer glow halo when illuminated
         if (node.illumination > 0.05) {
           ctx.beginPath();
-          ctx.arc(node.x, node.y, glowRadius + (node.illumination * 8), 0, Math.PI * 2);
+          ctx.arc(node.x, node.y, glowRadius + node.illumination * 8, 0, Math.PI * 2);
           ctx.fillStyle = node.color;
           ctx.globalAlpha = node.illumination * 0.25;
           ctx.shadowColor = node.color;
@@ -371,7 +530,7 @@ export function EneraHeroCanvas() {
 
           // Radar pulse ring
           ctx.beginPath();
-          ctx.arc(node.x, node.y, glowRadius + (node.illumination * 14), 0, Math.PI * 2);
+          ctx.arc(node.x, node.y, glowRadius + node.illumination * 14, 0, Math.PI * 2);
           ctx.strokeStyle = node.color;
           ctx.lineWidth = 1;
           ctx.globalAlpha = node.illumination * 0.4;
@@ -390,7 +549,7 @@ export function EneraHeroCanvas() {
         ctx.fillStyle = node.illumination > 0.4 ? "#ffffff" : node.color;
         ctx.globalAlpha = totalAlpha;
         ctx.shadowColor = node.color;
-        ctx.shadowBlur = 10 + (node.illumination * 15);
+        ctx.shadowBlur = 10 + node.illumination * 15;
         ctx.fill();
 
         ctx.restore();

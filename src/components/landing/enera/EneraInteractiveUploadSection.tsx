@@ -36,7 +36,8 @@ const SIMULATION_STAGES: SimulationStep[] = [
     title: "READING DOCUMENT",
     desc: "OCR text layer rasterization & multi-page PDF structure parsing.",
     metric: "99.8% OCR Quality",
-    codeSnippet: "OCR_STREAM: Ingested Eskom_Megaflex_Statement_9921402.pdf [5 pages, SHA-256: 4f1a...]",
+    codeSnippet:
+      "OCR_STREAM: Ingested Eskom_Megaflex_Statement_9921402.pdf [5 pages, SHA-256: 4f1a...]",
   },
   {
     step: 2,
@@ -50,35 +51,40 @@ const SIMULATION_STAGES: SimulationStep[] = [
     title: "UNDERSTANDING TARIFF",
     desc: "Mapping Megaflex / Miniflex 2024/2025 NERSA gazetted rate schedules.",
     metric: "High Season Peak Confirmed",
-    codeSnippet: "TARIFF_RULE: NERSA Schedule 2 | Megaflex High Season (Jun–Aug) | Peak TOU Rate: R 4.2811/kWh",
+    codeSnippet:
+      "TARIFF_RULE: NERSA Schedule 2 | Megaflex High Season (Jun–Aug) | Peak TOU Rate: R 4.2811/kWh",
   },
   {
     step: 4,
     title: "CHECKING CONSUMPTION",
     desc: "Cross-referencing 2,880 half-hour AMR interval telemetry pulse points.",
     metric: "2,880 Intervals (100% Sync)",
-    codeSnippet: "AMR_SYNC: Correlating Class 0.2S interval recorder logs | Missing: 0 | Duplicates: 0",
+    codeSnippet:
+      "AMR_SYNC: Correlating Class 0.2S interval recorder logs | Missing: 0 | Duplicates: 0",
   },
   {
     step: 5,
     title: "RECONCILING",
     desc: "Executing Decimal.js high-precision calculation against delivered physical power.",
     metric: "Δ 131,227 kWh Variance",
-    codeSnippet: "RECON: Billed 4,218,441 kWh vs Actual 4,087,214 kWh | Variance Delta: -131,227 kWh",
+    codeSnippet:
+      "RECON: Billed 4,218,441 kWh vs Actual 4,087,214 kWh | Variance Delta: -131,227 kWh",
   },
   {
     step: 6,
     title: "DETECTING ANOMALIES",
     desc: "Flagging uncredited public holidays, demand ratchets, and multiplier drift.",
     metric: "R 51,227.00 Overcharge",
-    codeSnippet: "ANOMALY_FLAG: Youth Day billed at weekday peak rate instead of Sunday off-peak (-R 18,420)",
+    codeSnippet:
+      "ANOMALY_FLAG: Youth Day billed at weekday peak rate instead of Sunday off-peak (-R 18,420)",
   },
   {
     step: 7,
     title: "GENERATING INSIGHT",
     desc: "Compiling Section 21 dispute package and executive audit certificate.",
     metric: "Dossier Ready for Claim",
-    codeSnippet: "OUTPUT: Form 102 Regulatory Dispute Dossier Compiled | Audit Trail Hash Chain Verified",
+    codeSnippet:
+      "OUTPUT: Form 102 Regulatory Dispute Dossier Compiled | Audit Trail Hash Chain Verified",
   },
 ];
 
@@ -120,7 +126,7 @@ export function EneraInteractiveUploadSection() {
       ([entry]) => {
         setIsInView(entry.isIntersecting);
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(el);
@@ -182,7 +188,9 @@ export function EneraInteractiveUploadSection() {
           {/* Demonstration Notice */}
           <div className="mt-5 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-mono text-slate-400">
             <Info className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
-            <span>INTERACTIVE DEMONSTRATION STATE · CONNECT TO PRODUCTION GATEWAY FOR LIVE INGESTION</span>
+            <span>
+              INTERACTIVE DEMONSTRATION STATE · CONNECT TO PRODUCTION GATEWAY FOR LIVE INGESTION
+            </span>
           </div>
         </div>
 
@@ -298,7 +306,11 @@ export function EneraInteractiveUploadSection() {
                   <span>PRE-LOADED DEMONSTRATION BILLS</span>
                   <span className="text-cyan-400">CLICK TO SIMULATE</span>
                 </div>
-                <div className="space-y-1.5" role="group" aria-label="Pre-loaded demonstration bills">
+                <div
+                  className="space-y-1.5"
+                  role="group"
+                  aria-label="Pre-loaded demonstration bills"
+                >
                   {SAMPLE_INVOICES.map((sample, idx) => {
                     const isSelected = selectedSample === idx && !userFileName;
                     return (
@@ -367,7 +379,11 @@ export function EneraInteractiveUploadSection() {
                   <button
                     type="button"
                     onClick={() => setIsRunning(!isRunning)}
-                    aria-label={isRunning ? "Pause cognitive processing pipeline simulation" : "Resume cognitive processing pipeline simulation"}
+                    aria-label={
+                      isRunning
+                        ? "Pause cognitive processing pipeline simulation"
+                        : "Resume cognitive processing pipeline simulation"
+                    }
                     className="px-2 py-0.5 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 transition-colors flex items-center gap-1 text-[11px] focus-ring-enera"
                   >
                     {isRunning ? (
@@ -398,7 +414,11 @@ export function EneraInteractiveUploadSection() {
               </div>
 
               {/* 7-Step Pipeline with Downward Transition Arrows (↓) */}
-              <div className="mt-5 space-y-1.5" role="list" aria-label="Cognitive audit processing steps">
+              <div
+                className="mt-5 space-y-1.5"
+                role="list"
+                aria-label="Cognitive audit processing steps"
+              >
                 {SIMULATION_STAGES.map((s, idx) => {
                   const isDone = currentStep > s.step;
                   const isCurrent = currentStep === s.step;
@@ -434,12 +454,18 @@ export function EneraInteractiveUploadSection() {
                           <div>
                             <div
                               className={`text-xs font-mono font-bold tracking-wide flex items-center gap-2 ${
-                                isCurrent ? "text-cyan-300" : isDone ? "text-white" : "text-slate-300"
+                                isCurrent
+                                  ? "text-cyan-300"
+                                  : isDone
+                                    ? "text-white"
+                                    : "text-slate-300"
                               }`}
                             >
                               <span>{s.title}</span>
                             </div>
-                            <div className="text-[11px] text-slate-400 font-sans mt-0.5">{s.desc}</div>
+                            <div className="text-[11px] text-slate-400 font-sans mt-0.5">
+                              {s.desc}
+                            </div>
                           </div>
                         </div>
 
@@ -449,7 +475,9 @@ export function EneraInteractiveUploadSection() {
                               ACTIVE
                             </span>
                           ) : isDone ? (
-                            <span className="text-[10px] font-mono text-emerald-400/80">VERIFIED</span>
+                            <span className="text-[10px] font-mono text-emerald-400/80">
+                              VERIFIED
+                            </span>
                           ) : (
                             <span className="text-[10px] font-mono text-slate-400">{s.metric}</span>
                           )}

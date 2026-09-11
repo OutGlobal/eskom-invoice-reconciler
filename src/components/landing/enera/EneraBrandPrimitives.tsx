@@ -4,7 +4,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 
 /**
  * ENERA Brand Design Tokens
- * 
+ *
  * Color Palette:
  * - Near-Black:   #030712
  * - Graphite:     #0d1117
@@ -57,15 +57,15 @@ export function EneraBrandMark({
 
       <div className="flex flex-col">
         <div className="flex items-center gap-2">
-          <span className={`font-mono font-bold text-white ${sizeClasses.logo}`}>
-            E N E R A
-          </span>
+          <span className={`font-mono font-bold text-white ${sizeClasses.logo}`}>E N E R A</span>
           <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-semibold">
             2025/26
           </span>
         </div>
         {showDescriptor && (
-          <span className={`uppercase text-slate-400 font-medium font-mono ${sizeClasses.descriptor}`}>
+          <span
+            className={`uppercase text-slate-400 font-medium font-mono ${sizeClasses.descriptor}`}
+          >
             Energy Financial Intelligence
           </span>
         )}
@@ -86,14 +86,12 @@ export function EneraCard({
   ...props
 }: EneraCardProps) {
   const variantStyles = {
-    default:
-      "enera-glass hover:border-white/20 transition-all shadow-[0_4px_30px_rgba(0,0,0,0.5)]",
+    default: "enera-glass hover:border-white/20 transition-all shadow-[0_4px_30px_rgba(0,0,0,0.5)]",
     "glow-cyan":
       "enera-glass border-cyan-500/30 shadow-[0_0_35px_-5px_rgba(6,182,212,0.2)] hover:border-cyan-400/50 transition-all",
     "glow-emerald":
       "enera-glass border-emerald-500/30 shadow-[0_0_35px_-5px_rgba(16,185,129,0.2)] hover:border-emerald-400/50 transition-all",
-    subtle:
-      "bg-[#0d1117]/60 border border-white/5 hover:border-white/15 transition-all",
+    subtle: "bg-[#0d1117]/60 border border-white/5 hover:border-white/15 transition-all",
   }[variant];
 
   return (
@@ -109,11 +107,7 @@ export interface EneraBadgeProps {
   className?: string;
 }
 
-export function EneraBadge({
-  children,
-  variant = "cyan",
-  className = "",
-}: EneraBadgeProps) {
+export function EneraBadge({ children, variant = "cyan", className = "" }: EneraBadgeProps) {
   const variantStyles = {
     cyan: "bg-cyan-500/10 border-cyan-500/30 text-cyan-300",
     emerald: "bg-emerald-500/10 border-emerald-500/30 text-emerald-300",
