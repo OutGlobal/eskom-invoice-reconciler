@@ -352,7 +352,7 @@ export function EneraFinalCtaSection() {
         {/* Eyebrow Badge */}
         <div className="inline-flex items-center gap-2 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-[10px] sm:text-xs font-mono mb-6 sm:mb-8 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
           <Zap className="h-3.5 w-3.5 animate-pulse text-cyan-400" />
-          <span className="tracking-wide">STAGE 16 // ENERGY FINANCIAL INTELLIGENCE</span>
+          <span className="tracking-wide uppercase">ENTERPRISE DEPLOYMENT · ZERO-RISK VERIFICATION</span>
         </div>
 
         {/* Core Headline matching exact prompt */}

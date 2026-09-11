@@ -198,7 +198,7 @@ export function EneraImpactSection() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-mono mb-5 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
             <DollarSign className="h-3.5 w-3.5 text-emerald-400" />
-            <span className="tracking-wide">STAGE 12 // FINANCIAL IMPACT</span>
+            <span className="tracking-wide uppercase">FINANCIAL IMPACT · RECOVERABLE ENTERPRISE LEAKAGE</span>
           </div>
 
           <h2 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight enera-text-gradient leading-tight">

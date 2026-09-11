@@ -187,8 +187,8 @@ export function EneraHeroSection() {
           </h1>
 
           <p className="text-xs sm:text-sm text-slate-300/90 font-normal leading-relaxed max-w-sm mb-6">
-            AI-powered energy intelligence that reconciles every charge, detects hidden anomalies
-            and shows where your energy money goes.
+            Reconstructing raw AMR telemetry against gazetted utility tariffs to detect
+            mathematical drift, ratchet penalties, and reclaim lost corporate capital.
           </p>
 
           {/* 4. Action CTAs: Analyse Your Energy → & Explore ENERA */}
@@ -222,7 +222,7 @@ export function EneraHeroSection() {
               <span className="text-[9px] font-mono text-cyan-400 block mt-0.5">ZAR</span>
             </div>
             <div className="enera-glass rounded-xl p-3 border border-amber-500/20 bg-amber-950/10">
-              <span className="text-[9px] font-mono text-slate-400 uppercase block">ANOMALY</span>
+              <span className="text-[9px] font-mono text-slate-400 uppercase block">LEAKAGE</span>
               <span className="text-xs sm:text-sm font-bold text-amber-300 font-mono">
                 R 51,227
               </span>
@@ -241,10 +241,10 @@ export function EneraHeroSection() {
         {/* DESKTOP & TABLET HERO (768px, 1024px, 1280px, 1440px, 1920px) */}
         <div className="hidden md:flex md:flex-col md:items-center text-center">
           {/* Subtle Category Pill */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-cyan-500/20 backdrop-blur-md mb-6 shadow-[0_0_15px_-3px_rgba(6,182,212,0.2)]">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.04] border border-cyan-500/20 backdrop-blur-md mb-6 shadow-[0_0_15px_-3px_rgba(6,182,212,0.2)]">
             <Sparkles className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
             <span className="text-[11px] font-mono text-cyan-300 font-medium tracking-wider uppercase">
-              AUTONOMOUS REVENUE METER RECONCILIATION
+              ENERGY FINANCIAL INTELLIGENCE · UNCOVER HIDDEN TARIFF LEAKAGE
             </span>
           </div>
 
@@ -289,8 +289,8 @@ export function EneraHeroSection() {
 
           {/* Supporting Statement */}
           <p className="mt-4 sm:mt-6 text-sm sm:text-base md:text-lg text-slate-300/90 max-w-2xl mx-auto font-normal leading-relaxed">
-            AI-powered energy intelligence that reconciles every charge, detects hidden anomalies
-            and shows where your energy money is going.
+            Cross-examining half-hourly revenue meter telemetry against gazetted utility tariffs
+            to expose mathematical drift, uncredited holidays, and reclaim unearned energy overcharges.
           </p>
 
           {/* Action Button Row */}
@@ -373,14 +373,14 @@ export function EneraHeroSection() {
 
                 <div>
                   <span className="text-[10px] font-mono tracking-widest text-amber-400 uppercase font-semibold">
-                    AI ANOMALY
+                    DETECTED LEAKAGE
                   </span>
                   <div className="text-2xl font-bold text-amber-300 font-mono mt-1 tracking-tight">
                     R 51,227
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-amber-400/90 font-mono mt-1">
                     <AlertCircle className="h-3.5 w-3.5" />
-                    <span>Potential variance</span>
+                    <span>Recoverable variance</span>
                   </div>
                 </div>
                 <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
