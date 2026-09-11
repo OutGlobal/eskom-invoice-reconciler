@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   RotateCw,
 } from "lucide-react";
+import { EnginePhaseTag } from "./EneraBrandPrimitives";
 
 interface AiQuery {
   question: string;
@@ -348,10 +349,11 @@ export function EneraCopilotSection() {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-xs font-mono mb-5 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
-            <Sparkles className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
-            <span className="tracking-wide uppercase">AUTONOMOUS COGNITION · NATURAL LANGUAGE ENERGY AUDITING</span>
-          </div>
+          <EnginePhaseTag
+            phase="03"
+            name="UNDERSTANDING"
+            sub="COGNITIVE GRID SYNTHESIS"
+          />
 
           <h2 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight enera-text-gradient">
             ASK YOUR ENERGY DATA.

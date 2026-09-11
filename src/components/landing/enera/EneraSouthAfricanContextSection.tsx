@@ -19,6 +19,7 @@ import {
   Sparkles,
   Info,
 } from "lucide-react";
+import { EnginePhaseTag } from "./EneraBrandPrimitives";
 
 // Time-of-Use Schedule Definition for South African High vs Low Season
 // High Season (Winter: June - August)
@@ -110,10 +111,11 @@ export function EneraSouthAfricanContextSection() {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-xs font-mono mb-5 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
-            <Globe2 className="h-3.5 w-3.5 text-cyan-400" />
-            <span className="tracking-wide uppercase">REGULATORY GROUND TRUTH · ESKOM &amp; MUNICIPAL TARIFF MATRICES</span>
-          </div>
+          <EnginePhaseTag
+            phase="05"
+            name="ANOMALY"
+            sub="REGULATORY TARIFF & SURCHARGE ISOLATION"
+          />
 
           <h2 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight enera-text-gradient leading-tight">
             NATIVE TO SOUTH AFRICA&rsquo;S GRID.

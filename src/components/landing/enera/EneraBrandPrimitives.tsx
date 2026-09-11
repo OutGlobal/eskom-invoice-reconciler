@@ -180,3 +180,76 @@ export function EneraButton({
     </button>
   );
 }
+
+/**
+ * Continuous 7-Phase Intelligence Engine Flow Badges & Connectors
+ */
+export interface EnginePhaseTagProps {
+  phase: "01" | "02" | "03" | "04" | "05" | "06" | "07";
+  name:
+    | "ENERGY"
+    | "DATA"
+    | "UNDERSTANDING"
+    | "RECONCILIATION"
+    | "ANOMALY"
+    | "INSIGHT"
+    | "RECOVERY";
+  sub?: string;
+  className?: string;
+}
+
+export function EnginePhaseTag({
+  phase,
+  name,
+  sub,
+  className = "",
+}: EnginePhaseTagProps) {
+  return (
+    <div
+      className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-xs font-mono mb-5 shadow-[0_0_20px_rgba(6,182,212,0.15)] ${className}`}
+    >
+      <span
+        className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"
+        aria-hidden="true"
+      />
+      <span className="text-cyan-400 font-bold tracking-wider uppercase">
+        PHASE {phase} · {name}
+      </span>
+      {sub && (
+        <>
+          <span className="text-slate-600 hidden sm:inline">|</span>
+          <span className="text-slate-300 font-medium hidden sm:inline">
+            {sub}
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function EngineFlowConnector({
+  from,
+  to,
+  className = "",
+}: {
+  from: string;
+  to: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`w-full flex flex-col items-center justify-center py-6 sm:py-10 relative pointer-events-none ${className}`}
+      aria-hidden="true"
+    >
+      <div className="w-px h-8 sm:h-12 bg-gradient-to-b from-transparent via-cyan-400/50 to-transparent shadow-[0_0_10px_rgba(34,211,238,0.6)]" />
+      <div className="my-1.5 px-3.5 py-1 rounded-full bg-[#030712] border border-cyan-500/30 text-[10px] font-mono tracking-widest text-cyan-300 font-semibold uppercase shadow-[0_0_15px_rgba(6,182,212,0.2)] flex items-center gap-1.5">
+        <span className="w-1 h-1 rounded-full bg-cyan-400 animate-ping" />
+        <span>
+          {from} → {to}
+        </span>
+      </div>
+      <div className="w-px h-8 sm:h-12 bg-gradient-to-b from-transparent via-cyan-400/50 to-transparent shadow-[0_0_10px_rgba(34,211,238,0.6)]" />
+    </div>
+  );
+}
+

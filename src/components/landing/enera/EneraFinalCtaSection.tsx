@@ -15,6 +15,8 @@ import {
   ChevronRight,
   Globe2,
 } from "lucide-react";
+import { EneraHeroCanvas } from "./EneraHeroCanvas";
+import { EnginePhaseTag } from "./EneraBrandPrimitives";
 
 interface NetworkNode {
   x: number;
@@ -325,6 +327,11 @@ export function EneraFinalCtaSection() {
       className="relative py-32 sm:py-40 bg-[#030712] text-white overflow-hidden border-t border-white/5"
       aria-label="Final Cinematic Call to Action"
     >
+      {/* 1. VISUAL RETURN OF OPENING HERO ENERGY ANIMATION (The journey comes full circle) */}
+      <div className="absolute inset-0 pointer-events-none opacity-50 mix-blend-screen overflow-hidden -z-10">
+        <EneraHeroCanvas />
+      </div>
+
       {/* Background Animated Energy Network Canvas echoing Opening Hero */}
       <canvas
         ref={canvasRef}
@@ -349,10 +356,29 @@ export function EneraFinalCtaSection() {
       />
 
       <div className="max-w-5xl mx-auto px-3.5 sm:px-6 lg:px-8 relative z-10 text-center">
-        {/* Eyebrow Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-[10px] sm:text-xs font-mono mb-6 sm:mb-8 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
-          <Zap className="h-3.5 w-3.5 animate-pulse text-cyan-400" />
-          <span className="tracking-wide uppercase">ENTERPRISE DEPLOYMENT · ZERO-RISK VERIFICATION</span>
+        {/* Phase 07 Indicator */}
+        <div className="mb-4">
+          <EnginePhaseTag
+            phase="07"
+            name="RECOVERY"
+            sub="AUTONOMOUS VERIFICATION & LIBERATED CAPITAL"
+          />
+        </div>
+
+        {/* Master Brand Lockup */}
+        <div className="mb-8 flex flex-col items-center justify-center">
+          <div className="relative mb-3 px-6 py-2 rounded-2xl bg-[#0d1117]/90 border border-cyan-500/30 backdrop-blur-md shadow-[0_0_35px_-5px_rgba(6,182,212,0.4)]">
+            <span className="font-mono text-xl sm:text-3xl font-extrabold tracking-[0.4em] text-white drop-shadow-[0_0_20px_rgba(34,211,238,0.8)] pl-[0.4em]">
+              E N E R A
+            </span>
+            <div className="absolute -bottom-px left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_8px_#22d3ee]" />
+          </div>
+          <span className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.25em] text-cyan-400 font-semibold mb-1">
+            ENERGY FINANCIAL INTELLIGENCE
+          </span>
+          <span className="text-xs sm:text-sm font-mono tracking-[0.2em] text-slate-400 uppercase font-medium">
+            SEE BEYOND THE BILL.
+          </span>
         </div>
 
         {/* Core Headline matching exact prompt */}
@@ -362,13 +388,25 @@ export function EneraFinalCtaSection() {
           SHOULDN&apos;T BE A SURPRISE.
         </h2>
 
-        {/* Supporting Text matching exact prompt */}
-        <p className="mt-4 sm:mt-6 text-base sm:text-xl md:text-2xl lg:text-3xl text-slate-300 font-light max-w-2xl mx-auto leading-relaxed">
+        {/* Supporting Text */}
+        <p className="mt-4 sm:mt-6 text-base sm:text-xl md:text-2xl text-slate-300 font-light max-w-2xl mx-auto leading-relaxed">
           &ldquo;Let intelligence check it before you pay it.&rdquo;
         </p>
 
+        {/* Final Emotional Message */}
+        <div className="my-10 sm:my-14 max-w-3xl mx-auto text-center px-4">
+          <blockquote className="border-y border-white/10 py-8 sm:py-10 bg-white/[0.01] backdrop-blur-sm rounded-3xl shadow-[0_0_50px_-10px_rgba(6,182,212,0.15)]">
+            <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-light text-slate-200 tracking-tight leading-relaxed">
+              &ldquo;Your energy data is already speaking.
+            </p>
+            <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-cyan-200 to-emerald-300 tracking-tight leading-relaxed mt-2 drop-shadow-[0_0_35px_rgba(34,211,238,0.4)]">
+              ENERA helps you hear it.&rdquo;
+            </p>
+          </blockquote>
+        </div>
+
         {/* Primary and Secondary Action CTAs */}
-        <div className="mt-8 sm:mt-12 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-lg mx-auto">
+        <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-lg mx-auto">
           {/* Primary CTA: Analyse Your Energy → */}
           <Link
             to="/upload"

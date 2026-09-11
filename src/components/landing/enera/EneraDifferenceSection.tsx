@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Sparkles,
 } from "lucide-react";
+import { EnginePhaseTag } from "./EneraBrandPrimitives";
 
 export function EneraDifferenceSection() {
   const sectionRef = useRef<HTMLElement | null>(null);
@@ -187,12 +188,11 @@ export function EneraDifferenceSection() {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-mono mb-5 shadow-[0_0_15px_-3px_rgba(6,182,212,0.2)]">
-            <Scale className="h-3.5 w-3.5" />
-            <span className="tracking-widest uppercase font-semibold">
-              DETERMINISTIC GROUND TRUTH · BILLED VS CONSUMED
-            </span>
-          </div>
+          <EnginePhaseTag
+            phase="04"
+            name="RECONCILIATION"
+            sub="GROUND TRUTH VERIFICATION"
+          />
 
           {/* Title: FIND THE DIFFERENCE. */}
           <h2 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-none font-sans">

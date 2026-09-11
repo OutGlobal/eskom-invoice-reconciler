@@ -21,6 +21,7 @@ import {
   CornerDownRight,
   Info,
 } from "lucide-react";
+import { EnginePhaseTag } from "./EneraBrandPrimitives";
 
 interface NodeRelationship {
   targetId: string;
@@ -631,10 +632,11 @@ export function EneraNetworkSection() {
 
       {/* Section Header */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 text-center mb-12">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-xs font-mono mb-6 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
-          <Network className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
-          <span className="tracking-wide uppercase">HIGH-VOLTAGE TOPOLOGY · LIVE GRID INTELLIGENCE</span>
-        </div>
+        <EnginePhaseTag
+          phase="03"
+          name="UNDERSTANDING"
+          sub="LIVE GRID TOPOLOGY MATRIX"
+        />
 
         <h2 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight enera-text-gradient leading-tight">
           ONE PLATFORM.

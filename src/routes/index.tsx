@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { EneraNav } from "@/components/landing/enera/EneraNav";
 import { EneraHeroSection } from "@/components/landing/enera/EneraHeroSection";
 import { EneraBillSignalSection } from "@/components/landing/enera/EneraBillSignalSection";
+import { EngineFlowConnector } from "@/components/landing/enera/EneraBrandPrimitives";
 
 // Lazy-load below-the-fold sections for optimal bundle splitting and initial load performance
 const EneraDifferenceSection = lazy(() =>
@@ -99,35 +100,41 @@ function EneraLandingPage() {
         className="outline-none"
         aria-label="ENERA Platform Narrative"
       >
-        {/* Stage 3-7: Cinematic Hero with Canvas Particle Engine & Controlled Scene Loop */}
+        {/* PHASE 01: ENERGY — The Front Door to an Energy Intelligence Engine */}
         <EneraHeroSection />
 
-        {/* Stage 8: "EVERY BILL HAS A SIGNAL" — Progressive Deconstruction */}
+        <EngineFlowConnector from="ENERGY" to="DATA" />
+
+        {/* PHASE 02: DATA — "EVERY BILL HAS A SIGNAL" Progressive Deconstruction */}
         <EneraBillSignalSection />
 
+        <EngineFlowConnector from="DATA" to="UNDERSTANDING" />
+
         <Suspense fallback={<SectionFallback />}>
-          {/* Stage 9: "FIND THE DIFFERENCE" — Billed vs Actual Ground Truth */}
-          <EneraDifferenceSection />
-
-          {/* Stage 10: "ASK YOUR ENERGY DATA" — AI Energy Copilot */}
+          {/* PHASE 03: UNDERSTANDING — "ASK YOUR ENERGY DATA" & "ONE PLATFORM. EVERY ENERGY SIGNAL" */}
           <EneraCopilotSection />
-
-          {/* Stage 11: "ONE PLATFORM. EVERY ENERGY SIGNAL" — Interactive Topology Network */}
           <EneraNetworkSection />
 
-          {/* Stage 12: "TURN ENERGY DATA INTO ADVANTAGE" — Executive ROI Impact */}
-          <EneraImpactSection />
+          <EngineFlowConnector from="UNDERSTANDING" to="RECONCILIATION" />
 
-          {/* Stage 13: "DROP A BILL. WATCH ENERA THINK" — Interactive Upload Simulator & /upload Gateway */}
-          <EneraInteractiveUploadSection />
+          {/* PHASE 04: RECONCILIATION — "FIND THE DIFFERENCE" Billed vs Consumed Ground Truth */}
+          <EneraDifferenceSection />
 
-          {/* Stage 14: SOUTH AFRICAN ENERGY CONTEXT — Eskom, Megaflex, Municipal Billing, AMR, TOU Determinants */}
+          <EngineFlowConnector from="RECONCILIATION" to="ANOMALY" />
+
+          {/* PHASE 05: ANOMALY — Complex SA Tariff Anomalies & 12-Node Cryptographic Audit Chain */}
           <EneraSouthAfricanContextSection />
-
-          {/* Stage 15: "EVERY NUMBER HAS A TRAIL" — 7-Node Cryptographic Audit Chain */}
           <EneraAuditTrailSection />
 
-          {/* Stage 16: "YOUR NEXT BILL SHOULDN'T BE A SURPRISE" — Cinematic Echo Final CTA */}
+          <EngineFlowConnector from="ANOMALY" to="INSIGHT" />
+
+          {/* PHASE 06: INSIGHT — "TURN ENERGY DATA INTO ADVANTAGE" Executive Balance Sheet Advantage */}
+          <EneraImpactSection />
+
+          <EngineFlowConnector from="INSIGHT" to="RECOVERY" />
+
+          {/* PHASE 07: RECOVERY — "DROP A BILL. WATCH ENERA THINK" & Returning Energy Climax */}
+          <EneraInteractiveUploadSection />
           <EneraFinalCtaSection />
         </Suspense>
       </main>

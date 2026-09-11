@@ -15,6 +15,7 @@ import {
   FileCheck,
   Network,
 } from "lucide-react";
+import { EnginePhaseTag } from "./EneraBrandPrimitives";
 
 export interface DecodedElement {
   id: string;
@@ -209,12 +210,11 @@ export function EneraBillSignalSection() {
       <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* 1. Large Editorial Typography */}
         <div className="text-center max-w-4xl mx-auto mb-14 sm:mb-20">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-mono mb-6 shadow-[0_0_20px_-3px_rgba(6,182,212,0.25)]">
-            <Sparkles className="h-3.5 w-3.5 animate-pulse" />
-            <span className="tracking-widest uppercase font-semibold">
-              AUTONOMOUS BILL DECONSTRUCTION
-            </span>
-          </div>
+          <EnginePhaseTag
+            phase="02"
+            name="DATA"
+            sub="DETERMINANT SIGNAL DECOMPOSITION"
+          />
 
           <h2 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-tight font-sans">
             EVERY BILL HAS A SIGNAL.

@@ -22,6 +22,7 @@ import {
   Eye,
   BadgeCheck,
 } from "lucide-react";
+import { EnginePhaseTag } from "./EneraBrandPrimitives";
 
 interface AuditStep {
   step: number;
@@ -206,10 +207,11 @@ export function EneraAuditTrailSection() {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-xs font-mono mb-5 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
-            <Lock className="h-3.5 w-3.5 text-cyan-400" />
-            <span className="tracking-wide uppercase">EVIDENTIARY INTEGRITY · 12-NODE CRYPTOGRAPHIC AUDIT TRAIL</span>
-          </div>
+          <EnginePhaseTag
+            phase="05"
+            name="ANOMALY"
+            sub="CRYPTOGRAPHIC EVIDENCE & AUDIT CHAIN"
+          />
 
           <h2 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight enera-text-gradient leading-tight">
             EVERY NUMBER HAS A TRAIL.
