@@ -32,7 +32,6 @@ interface AiQuery {
     confidence: string;
     citation: string;
     evidence: string;
-    sha256: string;
     action: string;
     disputeForm: string;
     highlightTerms: string[];
@@ -52,7 +51,6 @@ const QUERIES: AiQuery[] = [
       confidence: "98.4%",
       citation: "NERSA Schedule 2, Clause 8.4",
       evidence: "2,880 AMR Intervals Verified",
-      sha256: "e8b24f91...7a03",
       action:
         "Trigger automatic load-shifting protocol for 17:00–19:00 peak hours. Dispute 120 kVA transient peak caused by upstream sub-station transformer switching fault.",
       disputeForm: "Eskom Billing Query (Form 102)",
@@ -71,9 +69,8 @@ const QUERIES: AiQuery[] = [
       confidence: "99.2%",
       citation: "Eskom NRS 048-4 / Meter Spec CT-400",
       evidence: "Hardware Pulse Log Synchronised",
-      sha256: "7d1a93c4...bc88",
       action:
-        "Issue formal Section 21 Eskom billing query accompanied by cryptographic interval log chain and signed calibration certificate.",
+        "Issue formal Section 21 Eskom billing query accompanied by verified interval log evidence and signed calibration certificate.",
       disputeForm: "Section 21 Formal Demand Dispute",
       highlightTerms: ["Site 04", "22.7%", "9,450 kVA", "7,705 kVA", "Section 21"],
     },
@@ -89,8 +86,7 @@ const QUERIES: AiQuery[] = [
       varianceType: "recovery",
       confidence: "99.7%",
       citation: "NERSA Tariff Book 2024/25, Rule 4.3",
-      evidence: "12-Node Cryptographic Chain",
-      sha256: "3c90a11b...5910",
+      evidence: "Revenue Check Meter Synchronized",
       action:
         "Dispute dossier auto-compiled into formal NERSA regulatory dispute package with line-item credit note requisitions.",
       disputeForm: "Credit Note Requisition Dossier",
@@ -115,7 +111,6 @@ const QUERIES: AiQuery[] = [
       confidence: "96.8%",
       citation: "Eskom Schedule of Standard Prices 2024",
       evidence: "8,760 Hourly Profile Modelled",
-      sha256: "f42190ce...66d1",
       action:
         "Maintain current Megaflex transmission connection agreement. Evaluate BESS battery storage arbitrage for 07:00 morning peak.",
       disputeForm: "Tariff Migration Evaluation Rep",
@@ -134,7 +129,6 @@ const QUERIES: AiQuery[] = [
       confidence: "97.5%",
       citation: "Eskom Distribution Code Sec 6.2",
       evidence: "4 Discrepancy Vectors Isolated",
-      sha256: "19bce5a7...33fa",
       action:
         "All 4 claims auto-formatted into Eskom Billing Resolution Form 102 with line-item mathematical breakdown and meter interval logs.",
       disputeForm: "Form 102 Regulatory Pack",
@@ -152,8 +146,7 @@ const QUERIES: AiQuery[] = [
       varianceType: "overcharge",
       confidence: "99.9%",
       citation: "Public Holidays Act 36 of 1994 & NERSA TOU",
-      evidence: "Calibrated Astronomical Calendar Sync",
-      sha256: "55da2408...44e1",
+      evidence: "Official Calendar Gazette Verified",
       action:
         "Immediate credit note request submitted via Eskom Customer Executive portal with calendar reconciliation annexure.",
       disputeForm: "NERSA TOU Non-Compliance Notice",
@@ -642,16 +635,16 @@ export function EneraCopilotSection() {
                       </div>
                     </div>
 
-                    {/* Cryptographic SHA-256 Card */}
+                    {/* Statutory Claim Status Card */}
                     <div className="p-3.5 rounded-xl bg-slate-900/40 border border-white/10">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wide">
-                          PROOF CHAIN
+                          STATUTORY CLAIM
                         </span>
-                        <ShieldCheck className="h-3 w-3 text-slate-400" />
+                        <ShieldCheck className="h-3 w-3 text-emerald-400" />
                       </div>
-                      <div className="text-xs sm:text-sm font-mono text-slate-300 mt-1 font-semibold truncate">
-                        {cur.response.sha256}
+                      <div className="text-xs sm:text-sm font-mono text-emerald-300 mt-1 font-semibold truncate">
+                        {cur.response.disputeForm}
                       </div>
                     </div>
                   </div>

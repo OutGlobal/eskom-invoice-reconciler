@@ -265,6 +265,99 @@ export function EneraImpactSection() {
           })}
         </div>
 
+        {/* WHO IS ENERA FOR? — Target Personas Domain */}
+        <div className="mt-16 pt-14 border-t border-white/5">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <span className="text-xs font-mono uppercase tracking-widest text-cyan-400 font-semibold">
+              TARGET PROFILES
+            </span>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-1">
+              BUILT FOR ENTERPRISE LEADERS
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-400 font-light mt-2 leading-relaxed">
+              ENERA serves commercial and industrial organizations with monthly electricity liabilities exceeding R500,000 across South Africa.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {/* Persona 1: CFOs */}
+            <div className="rounded-2xl p-5 sm:p-6 bg-[#0d1117] border border-white/10 hover:border-cyan-500/30 transition-all flex flex-col justify-between shadow-lg">
+              <div>
+                <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-3.5">
+                  <DollarSign className="h-4.5 w-4.5" />
+                </div>
+                <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider font-semibold">
+                  EXECUTIVE FINANCE
+                </span>
+                <h4 className="text-base font-bold text-white font-mono mt-1">CFOs &amp; Treasury</h4>
+                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                  Eliminate unverified utility liabilities from the corporate balance sheet and automate multi-million rand monthly statement approvals.
+                </p>
+              </div>
+              <div className="mt-5 pt-3 border-t border-white/5 text-[11px] font-mono text-emerald-400 font-medium">
+                Direct Margin Protection
+              </div>
+            </div>
+
+            {/* Persona 2: Energy & Facility Managers */}
+            <div className="rounded-2xl p-5 sm:p-6 bg-[#0d1117] border border-white/10 hover:border-emerald-500/30 transition-all flex flex-col justify-between shadow-lg">
+              <div>
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-3.5">
+                  <Zap className="h-4.5 w-4.5" />
+                </div>
+                <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-semibold">
+                  OPERATIONS &amp; TECH
+                </span>
+                <h4 className="text-base font-bold text-white font-mono mt-1">Energy Directors</h4>
+                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                  Cross-examine Class 0.2S AMR smart meter interval logs against complex time-of-use tariffs to eliminate peak demand ratchets.
+                </p>
+              </div>
+              <div className="mt-5 pt-3 border-t border-white/5 text-[11px] font-mono text-emerald-400 font-medium">
+                Hardware Meter Truth
+              </div>
+            </div>
+
+            {/* Persona 3: REITs & Commercial Property */}
+            <div className="rounded-2xl p-5 sm:p-6 bg-[#0d1117] border border-white/10 hover:border-amber-500/30 transition-all flex flex-col justify-between shadow-lg">
+              <div>
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-3.5">
+                  <ShieldCheck className="h-4.5 w-4.5" />
+                </div>
+                <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-semibold">
+                  PROPERTY PORTFOLIOS
+                </span>
+                <h4 className="text-base font-bold text-white font-mono mt-1">Property Funds</h4>
+                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                  Ensure 100% tenant cost-recovery precision, reconcile municipal bulk wheeling credits, and eliminate utility council deficits.
+                </p>
+              </div>
+              <div className="mt-5 pt-3 border-t border-white/5 text-[11px] font-mono text-amber-400 font-medium">
+                Tenant Recovery Integrity
+              </div>
+            </div>
+
+            {/* Persona 4: Mining & Heavy Industry */}
+            <div className="rounded-2xl p-5 sm:p-6 bg-[#0d1117] border border-white/10 hover:border-purple-500/30 transition-all flex flex-col justify-between shadow-lg">
+              <div>
+                <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-3.5">
+                  <TrendingUp className="h-4.5 w-4.5" />
+                </div>
+                <span className="text-[10px] font-mono text-purple-400 uppercase tracking-wider font-semibold">
+                  HEAVY INDUSTRY
+                </span>
+                <h4 className="text-base font-bold text-white font-mono mt-1">Mining &amp; Smelting</h4>
+                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                  Protect multi-megawatt Megaflex transmission contracts from unnotified maximum demand (NMD) penalties and seasonal boundary drifts.
+                </p>
+              </div>
+              <div className="mt-5 pt-3 border-t border-white/5 text-[11px] font-mono text-purple-400 font-medium">
+                Multi-MW Contract Audit
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Interactive Demonstration ROI Calculator Widget */}
         <div className="mt-16 max-w-5xl mx-auto rounded-3xl bg-gradient-to-b from-[#0d1117] to-[#070b12] border border-cyan-500/25 p-6 sm:p-10 shadow-[0_0_80px_-20px_rgba(6,182,212,0.2)]">
           <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/10">

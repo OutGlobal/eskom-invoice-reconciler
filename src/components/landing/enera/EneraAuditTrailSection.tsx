@@ -7,15 +7,11 @@ import {
   Lock,
   ArrowRight,
   Layers,
-  FileCode,
   Check,
   ExternalLink,
   ChevronRight,
   ChevronLeft,
-  Copy,
-  Terminal,
   FileText,
-  Binary,
   Scale,
   Activity,
   ArrowDown,
@@ -30,125 +26,95 @@ interface AuditStep {
   sub: string;
   category: string;
   detail: string;
-  verification: string;
-  prevHash: string;
-  currentHash: string;
-  governance: string;
+  trustPillar: string;
   statute: string;
-  retention: string;
+  assurance: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
 const AUDIT_STEPS: AuditStep[] = [
   {
     step: 1,
-    label: "SOURCE DOCUMENT",
-    sub: "Cryptographic File Ingestion",
-    category: "Ingestion Root",
+    label: "SOURCE INVOICE",
+    sub: "Document Sovereign Ingestion",
+    category: "Document Integrity",
     detail:
-      "Original Eskom utility PDF or municipal statement preserved in an immutable, write-once cryptographic ledger with timestamped SHA-256 seal.",
-    verification:
-      "hash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 · Bytes: 2,481,902",
-    prevHash: "GENESIS_ROOT_00000000000000000000000000000000000000000000000000000000",
-    currentHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    governance: "ISO 27001 / WORM Storage",
-    statute: "Electronic Communications and Transactions Act 25",
-    retention: "7-Year Statutory Fiscal Ledger",
+      "Original Eskom utility statements or municipal bills are ingested within a client-isolated security boundary, preserving full sovereign ownership and zero external sharing.",
+    trustPillar: "Data Sovereignty Standard",
+    statute: "Electronic Communications & Transactions Act 25",
+    assurance: "Zero Client Data Shared with Third Parties",
     icon: FileText,
   },
   {
     step: 2,
-    label: "EXTRACTED DATA",
-    sub: "Spatial Bounding Box Geometry",
-    category: "Extraction Layer",
+    label: "DETERMINANT AUDIT",
+    sub: "Line-Item Determinant Mapping",
+    category: "Extraction Integrity",
     detail:
-      "Every numeric determinant mapped with PDF page number, spatial pixel bounding coordinates, and confidence score vector.",
-    verification:
-      "Confidence: 99.8% · Determinants Extracted: 8 · Geometry: [x: 142, y: 388, w: 94, h: 18, p: 2]",
-    prevHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    currentHash: "7a89bc213ef091a823cd110992384a77bc124982cba128941098492837bcda11",
-    governance: "OCR Ground Truth Validation",
+      "Every numerical determinant—active energy kWh, maximum demand kVA, and reactive power—is systematically decomposed and linked to physical connection points.",
+    trustPillar: "Determinant Traceability",
     statute: "Tax Administration Act 28 (Section 29)",
-    retention: "Pixel-Coordinate Matrix Attached",
-    icon: Binary,
-  },
-  {
-    step: 3,
-    label: "CALCULATION",
-    sub: "Decimal.js-light Precision",
-    category: "Deterministic Arithmetic",
-    detail:
-      "Zero floating-point rounding drifts. Exact Decimal arithmetic matching statutory South African utility billing formulas.",
-    verification: "Rounding: ROUND_HALF_UP · Precision: 20 Decimals · IEEE 754 Drift: Eliminated",
-    prevHash: "7a89bc213ef091a823cd110992384a77bc124982cba128941098492837bcda11",
-    currentHash: "3f9801ac8849b28394019283eacb920194829384729183940192839485761029",
-    governance: "High-Precision Monetary Math",
-    statute: "Public Finance Management Act (PFMA)",
-    retention: "Bit-level Calculation Traces",
+    assurance: "100% Line-Item Determinant Provenance",
     icon: Layers,
   },
   {
-    step: 4,
-    label: "RULE APPLIED",
-    sub: "Gazetted NERSA Clause Citing",
-    category: "Regulatory Verification",
+    step: 3,
+    label: "FISCAL ACCURACY",
+    sub: "Statutory Accounting Precision",
+    category: "Computational Standard",
     detail:
-      "Versioned tariff schedule logic citing official government gazette clauses, seasonal boundary dates, and SAST calendar rules.",
-    verification:
-      "Tariff Book: NERSA Schedule 2 (Megaflex High Season) · Section 8.4 Public Holiday TOU Rule",
-    prevHash: "3f9801ac8849b28394019283eacb920194829384729183940192839485761029",
-    currentHash: "1192830495867182930495867182930495867182930495867182930495867182",
-    governance: "NERSA Electricity Act 41",
+      "Calculations are performed strictly to statutory South African revenue accounting precision, eliminating utility rounding discrepancies and cumulative billing drift.",
+    trustPillar: "Exact Fiscal Calculation",
+    statute: "Public Finance Management Act (PFMA)",
+    assurance: "Zero Floating-Point Drift Tolerated",
+    icon: Scale,
+  },
+  {
+    step: 4,
+    label: "GAZETTE GOVERNANCE",
+    sub: "Official NERSA Tariff Book",
+    category: "Regulatory Authority",
+    detail:
+      "Every tariff component is cross-referenced against the legally gazetted NERSA schedule, seasonal boundary rules (Winter vs Summer), and official SAST calendar dates.",
+    trustPillar: "NERSA Schedule Compliance",
     statute: "Electricity Regulation Act 4 of 2006",
-    retention: "Indexed Tariff Schedule Snapshot",
+    assurance: "Grounded in Legally Gazetted Tariff Books",
     icon: Scale,
   },
   {
     step: 5,
-    label: "FINDING",
-    sub: "Categorical Determinant Isolation",
+    label: "VARIANCE ISOLATION",
+    sub: "Deterministic Overcharge Classification",
     category: "Discrepancy Analysis",
     detail:
-      "Discrepancy isolated into deterministic classifications: Peak TOU Overcharge, Multiplier Ratio Drift, or NMD Demand Spike.",
-    verification:
-      "Classification: MATERIAL_DISCREPANCY · Confidence: 99.2% · Delta: R 51,227.00 Potential Overcharge",
-    prevHash: "1192830495867182930495867182930495867182930495867182930495867182",
-    currentHash: "99887766554433221100aabbccddeeff99887766554433221100aabbccddeeff",
-    governance: "Audit Anomaly Threshold",
+      "Discrepancies are isolated into definitive commercial categories: Peak TOU Overcharges, Demand Ratchet Penalties, or Uncredited Public Holiday Credits.",
+    trustPillar: "Independent Fiduciary Verification",
     statute: "SANS 474 Code of Practice for Metering",
-    retention: "Discrepancy Signature Recorded",
+    assurance: "Substantiated Capital Overpayment Identified",
     icon: Activity,
   },
   {
     step: 6,
-    label: "EVIDENCE",
-    sub: "30-Min Telemetry Lineage",
-    category: "Hardware Pulse Ground Truth",
+    label: "METER GROUND TRUTH",
+    sub: "Revenue-Grade Check Telemetry",
+    category: "Physical Telemetry",
     detail:
-      "Revenue check meter serial number, channel ID, raw pulse log, CT/VT multiplier verification, and physical timestamp lineage.",
-    verification:
-      "Revenue AMR Meter #021-MS-90412 · CT Ratio 400:5 · SANS 474 Class 0.2S Certified Physical Pulses",
-    prevHash: "99887766554433221100aabbccddeeff99887766554433221100aabbccddeeff",
-    currentHash: "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
-    governance: "SABS / SANS 474 Metering Spec",
+      "Direct correlation against SANS 474 and NRS 057 revenue-grade check-meter data-loggers, verifying half-hour interval pulse data against billed amounts.",
+    trustPillar: "Class 0.2S Hardware Telemetry",
     statute: "NRS 057 Code of Practice for Metering",
-    retention: "Physical Hardware Calibration Chain",
+    assurance: "Physical Hardware Consumption Proof",
     icon: FileCheck,
   },
   {
     step: 7,
-    label: "REPORT",
-    sub: "Section 21 Dispute Package",
-    category: "Statutory Resolution",
+    label: "DISPUTE DOSSIER",
+    sub: "Executive Claim Documentation",
+    category: "Regulatory Resolution",
     detail:
-      "Court-ready, NERSA-compliant statutory dispute dossier ready for formal submission to Eskom executive billing resolution committees.",
-    verification:
-      "Audit Trail: 100% Cryptographically Reproducible · Form 102 Line-Item Annexures Auto-Generated",
-    prevHash: "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
-    currentHash: "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
-    governance: "Section 21 Regulatory Dispute Pack",
-    statute: "NERSA Dispute Resolution Rules",
-    retention: "Permanent Legal Dispute Repository",
+      "Audit-ready regulatory dispute dossiers compiled for formal submission to municipal councils and Eskom customer executive billing resolution committees.",
+    trustPillar: "Form 102 Regulatory Pack",
+    statute: "NERSA Dispute Resolution Procedures",
+    assurance: "Immediate Credit Note Requisition Submission",
     icon: BadgeCheck,
   },
 ];
@@ -162,41 +128,28 @@ const SUPPORTING_STATEMENTS = [
   },
   {
     quote: "Every calculation can be traced.",
-    sub: "Bit-level arithmetic logs down to individual half-hour time-of-use tariff rate tables and statutory formulas.",
+    sub: "Rigorous statutory accounting precision down to individual half-hour time-of-use tariff rate tables.",
     tag: "MATHEMATICAL RIGOR",
     colorClass: "border-emerald-500/30 text-emerald-300",
   },
   {
     quote: "Every finding has supporting evidence.",
-    sub: "Anchored in physical Class 0.2S revenue-grade AMR telemetry, OCR coordinates, and NERSA gazettes.",
-    tag: "GROUND TRUTH",
+    sub: "Backed by revenue-grade AMR telemetry and official gazetted NERSA schedule clauses.",
+    tag: "EVIDENTIARY TRUTH",
     colorClass: "border-amber-500/30 text-amber-300",
-  },
-  {
-    quote: "Every action is logged.",
-    sub: "Permanent, immutable SHA-256 hash chaining guarantees tamper-evident dispute packages.",
-    tag: "NON-REPUDIATION",
-    colorClass: "border-purple-500/30 text-purple-300",
   },
 ];
 
 export function EneraAuditTrailSection() {
   const [activeStep, setActiveStep] = useState<number>(1);
-  const [copiedHash, setCopiedHash] = useState<boolean>(false);
 
   const cur = AUDIT_STEPS.find((s) => s.step === activeStep) || AUDIT_STEPS[0];
-
-  const handleCopyHash = () => {
-    navigator.clipboard.writeText(cur.currentHash);
-    setCopiedHash(true);
-    setTimeout(() => setCopiedHash(false), 2000);
-  };
 
   return (
     <section
       id="security"
       className="relative py-28 sm:py-36 bg-[#030712] text-white overflow-hidden border-t border-white/5"
-      aria-label="Trust, Auditability and Cryptographic Proof"
+      aria-label="Trust, Governance and Statutory Auditability"
     >
       {/* Background ambient lighting */}
       <div
@@ -370,7 +323,7 @@ export function EneraAuditTrailSection() {
 
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono self-start sm:self-auto shadow-[0_0_15px_rgba(16,185,129,0.2)]">
               <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-              <span>CRYPTOGRAPHICALLY VERIFIED &amp; TAMPER-EVIDENT</span>
+              <span>STATUTORY RECONCILIATION BENCHMARK</span>
             </div>
           </div>
 
@@ -379,45 +332,31 @@ export function EneraAuditTrailSection() {
               {cur.detail}
             </p>
 
-            {/* Cryptographic SHA-256 Hash Chaining Block */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-black/70 border border-white/10 font-mono text-xs text-cyan-300 space-y-2.5">
-              <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase border-b border-white/5 pb-1.5">
-                <span className="flex items-center gap-1.5">
-                  <Terminal className="h-3.5 w-3.5 text-cyan-400" />
-                  IMMUTABLE HASH CHAIN LINK (BLOCK #{cur.step})
+            {/* Executive Trust Proof Box */}
+            <div className="p-5 rounded-2xl bg-cyan-950/20 border border-cyan-500/20 text-xs space-y-3">
+              <div className="flex items-center justify-between text-[11px] font-mono text-cyan-400 uppercase border-b border-white/5 pb-2">
+                <span className="flex items-center gap-2 font-bold">
+                  <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                  INSTITUTIONAL TRUST CRITERIA · {cur.trustPillar}
                 </span>
-                <button
-                  type="button"
-                  onClick={handleCopyHash}
-                  aria-label={
-                    copiedHash
-                      ? "Hash copied to clipboard"
-                      : "Copy current cryptographic hash to clipboard"
-                  }
-                  className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition-colors focus-ring-enera px-1.5 py-0.5 rounded"
-                >
-                  <Copy className="h-3 w-3" />
-                  <span>{copiedHash ? "COPIED" : "COPY HASH"}</span>
-                </button>
+                <span className="text-[10px] text-slate-400">STATUTORY AUDIT GROUNDING</span>
               </div>
 
-              <div className="space-y-1.5 pt-1 text-[11px]">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-slate-400 min-w-0">
-                  <span className="text-slate-400 shrink-0 font-bold">PREVIOUS_HASH:</span>
-                  <span className="text-slate-300 break-all sm:truncate font-mono">
-                    {cur.prevHash}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-xs">
+                <div className="p-3.5 rounded-xl bg-black/40 border border-white/5">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase block mb-1 font-semibold">
+                    REGULATORY AUTHORITY
+                  </span>
+                  <span className="text-white font-medium font-sans text-xs">
+                    {cur.statute}
                   </span>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-cyan-300 min-w-0">
-                  <span className="text-cyan-400 shrink-0 font-bold">CURRENT_HASH:</span>
-                  <span className="font-bold break-all sm:truncate font-mono">
-                    {cur.currentHash}
+                <div className="p-3.5 rounded-xl bg-black/40 border border-white/5">
+                  <span className="text-[10px] font-mono text-emerald-400 uppercase block mb-1 font-semibold">
+                    ENTERPRISE ASSURANCE
                   </span>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-slate-400 pt-1.5 border-t border-white/5 min-w-0">
-                  <span className="text-slate-400 shrink-0 font-bold">PAYLOAD_PROOF:</span>
-                  <span className="text-emerald-300 break-all sm:truncate font-mono">
-                    {cur.verification}
+                  <span className="text-emerald-300 font-medium font-sans text-xs">
+                    {cur.assurance}
                   </span>
                 </div>
               </div>
@@ -427,16 +366,16 @@ export function EneraAuditTrailSection() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
               <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-xs text-slate-300">
                 <span className="text-[10px] font-mono text-slate-400 uppercase block">
-                  GOVERNANCE STANDARD
+                  GOVERNANCE CATEGORY
                 </span>
                 <span className="font-semibold text-white font-mono mt-1 block">
-                  {cur.governance}
+                  {cur.category}
                 </span>
               </div>
 
               <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-xs text-slate-300">
                 <span className="text-[10px] font-mono text-slate-400 uppercase block">
-                  STATUTORY BASIS
+                  LEGAL FRAMEWORK
                 </span>
                 <span className="font-semibold text-white font-mono mt-1 block truncate">
                   {cur.statute}
@@ -445,10 +384,10 @@ export function EneraAuditTrailSection() {
 
               <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-xs text-slate-300">
                 <span className="text-[10px] font-mono text-slate-400 uppercase block">
-                  AUDIT PERSISTENCE
+                  FIDUCIARY VALUE
                 </span>
-                <span className="font-semibold text-white font-mono mt-1 block">
-                  {cur.retention}
+                <span className="font-semibold text-cyan-300 font-mono mt-1 block">
+                  Board-Ready Evidence
                 </span>
               </div>
             </div>

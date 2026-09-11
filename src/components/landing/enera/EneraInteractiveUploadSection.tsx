@@ -28,64 +28,65 @@ interface SimulationStep {
   title: string;
   desc: string;
   metric: string;
-  codeSnippet: string;
+  statusSummary: string;
 }
 
 const SIMULATION_STAGES: SimulationStep[] = [
   {
     step: 1,
-    title: "READING DOCUMENT",
-    desc: "OCR text layer rasterization & multi-page PDF structure parsing.",
-    metric: "99.8% OCR Quality",
-    codeSnippet:
-      "OCR_STREAM: Ingested Eskom_Megaflex_Statement_9921402.pdf [5 pages, SHA-256: 4f1a...]",
+    title: "INGESTING INVOICE",
+    desc: "Multipage billing document securely processed with client-side isolation.",
+    metric: "100% Determinants Registered",
+    statusSummary:
+      "Document structure verified. Commercial account identifiers and line-item tables registered.",
   },
   {
     step: 2,
-    title: "EXTRACTING DATA",
-    desc: "Account numbers, POD ID, billing period, and 8 tariff determinant vectors.",
+    title: "EXTRACTING DETERMINANTS",
+    desc: "Active energy, maximum demand, and reactive power determinants mapped.",
     metric: "8 Vectors Extracted",
-    codeSnippet: "EXTRACT: POD: 00029410 | Period: 01 Jun - 30 Jun | Active Energy: 4,218,441 kWh",
+    statusSummary:
+      "Account POD verified. Point of Delivery, billing period, and time-of-use blocks extracted.",
   },
   {
     step: 3,
-    title: "UNDERSTANDING TARIFF",
-    desc: "Mapping Megaflex / Miniflex 2024/2025 NERSA gazetted rate schedules.",
+    title: "CORRELATING TARIFF",
+    desc: "Mapping against applicable NERSA gazetted rate schedules and seasonal rules.",
     metric: "High Season Peak Confirmed",
-    codeSnippet:
-      "TARIFF_RULE: NERSA Schedule 2 | Megaflex High Season (Jun–Aug) | Peak TOU Rate: R 4.2811/kWh",
+    statusSummary:
+      "Official NERSA Schedule 2 rate table applied. Winter peak, standard, and off-peak tariffs verified.",
   },
   {
     step: 4,
     title: "CHECKING CONSUMPTION",
     desc: "Cross-referencing 2,880 half-hour AMR interval telemetry pulse points.",
     metric: "2,880 Intervals (100% Sync)",
-    codeSnippet:
-      "AMR_SYNC: Correlating Class 0.2S interval recorder logs | Missing: 0 | Duplicates: 0",
+    statusSummary:
+      "Revenue-grade check-meter pulse logs synchronized across all 30-minute interval windows.",
   },
   {
     step: 5,
-    title: "RECONCILING",
-    desc: "Executing Decimal.js high-precision calculation against delivered physical power.",
+    title: "RECONCILING CHARGES",
+    desc: "Executing statutory accounting precision against verified physical power delivery.",
     metric: "Δ 131,227 kWh Variance",
-    codeSnippet:
-      "RECON: Billed 4,218,441 kWh vs Actual 4,087,214 kWh | Variance Delta: -131,227 kWh",
+    statusSummary:
+      "Billed determinants cross-examined against physical meter ground truth. Variance isolated.",
   },
   {
     step: 6,
-    title: "DETECTING ANOMALIES",
-    desc: "Flagging uncredited public holidays, demand ratchets, and multiplier drift.",
+    title: "ISOLATING OVERCHARGES",
+    desc: "Identifying unapplied holiday credits, demand spikes, and multiplier errors.",
     metric: "R 51,227.00 Overcharge",
-    codeSnippet:
-      "ANOMALY_FLAG: Youth Day billed at weekday peak rate instead of Sunday off-peak (-R 18,420)",
+    statusSummary:
+      "Statutory public holiday billing error isolated. Weekday peak rate applied incorrectly instead of Sunday tariff.",
   },
   {
     step: 7,
-    title: "GENERATING INSIGHT",
-    desc: "Compiling Section 21 dispute package and executive audit certificate.",
+    title: "GENERATING DOSSIER",
+    desc: "Compiling formal dispute package for utility credit note claim submission.",
     metric: "Dossier Ready for Claim",
-    codeSnippet:
-      "OUTPUT: Form 102 Regulatory Dispute Dossier Compiled | Audit Trail Hash Chain Verified",
+    statusSummary:
+      "Form 102 regulatory dispute package compiled with full evidence annexures ready for claim.",
   },
 ];
 
@@ -507,24 +508,22 @@ export function EneraInteractiveUploadSection() {
                 })}
               </div>
 
-              {/* Live Step Telemetry Stream Terminal */}
+              {/* Executive Milestone Status Card */}
               <div
                 aria-live="polite"
-                className="mt-5 p-3.5 rounded-xl bg-black/60 border border-white/10 font-mono text-xs"
+                className="mt-5 p-4 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-xs font-sans"
               >
-                <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase pb-1 mb-1 border-b border-white/5">
-                  <span className="flex items-center gap-1.5">
+                <div className="flex items-center justify-between text-[10px] font-mono text-cyan-400 uppercase pb-1.5 mb-1.5 border-b border-white/5">
+                  <span className="flex items-center gap-1.5 font-bold">
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                    LIVE PIPELINE TELEMETRY STREAM
+                    RECONCILIATION MILESTONE STATUS
                   </span>
-                  <span className="text-cyan-400">{activeStage.metric}</span>
+                  <span className="text-emerald-300 font-mono">{activeStage.metric}</span>
                 </div>
-                <div className="text-cyan-300 text-[11px] leading-relaxed break-all">
-                  <code>
-                    {userFileName && currentStep === 1
-                      ? `OCR_STREAM: Ingested ${userFileName} [${userFileSize}, SHA-256 verified]`
-                      : activeStage.codeSnippet}
-                  </code>
+                <div className="text-slate-300 text-xs leading-relaxed">
+                  {userFileName && currentStep === 1
+                    ? `Ingested ${userFileName} (${userFileSize}). Document structure and billing determinant tables verified.`
+                    : activeStage.statusSummary}
                 </div>
               </div>
             </div>
@@ -533,7 +532,7 @@ export function EneraInteractiveUploadSection() {
             <div className="mt-6 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-slate-400">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-emerald-400" />
-                <span>CRYPTOGRAPHIC AUDIT CHAIN HASH VERIFIED</span>
+                <span>INDEPENDENT STATUTORY RECONCILIATION VERIFIED</span>
               </div>
               <span className="text-cyan-400">ZERO DATA LEAKAGE</span>
             </div>

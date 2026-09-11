@@ -112,7 +112,7 @@ const DECODED_ELEMENTS: DecodedElement[] = [
     name: "VAT",
     category: "STATUTORY TAXATION",
     invoiceValue: "R 128,432.00 (15%)",
-    decodedVector: "Statutory South African Revenue Service Decimal.js exact precision split",
+    decodedVector: "Statutory South African Revenue Service exact fiscal tax reconciliation",
     networkTarget: "Fiscal Compliance Engine",
     separationThreshold: 0.68,
     color: "#e2e8f0",

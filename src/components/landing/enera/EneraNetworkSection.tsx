@@ -38,7 +38,7 @@ interface NetworkNode {
   subtitle: string;
   description: string;
   telemetry: string;
-  formula: string;
+  businessImpact: string;
   relationships: NodeRelationship[];
   baseX: number; // ViewBox coordinates (0 to 1400)
   baseY: number; // ViewBox coordinates (0 to 700)
@@ -52,15 +52,16 @@ interface NetworkNode {
 const NODES: NetworkNode[] = [
   {
     id: "invoices",
-    label: "INVOICES",
-    category: "Ingestion Vector",
+    label: "UTILITY INVOICES",
+    category: "Billing Ingestion",
     categoryColor: "text-sky-400 bg-sky-500/10 border-sky-500/30",
     accentColor: "#38bdf8",
     subtitle: "Eskom & Municipal Monthly Invoices",
     description:
-      "Multipage PDF & EDI billing documents ingested across high-voltage delivery points with automated determinant parsing.",
-    telemetry: "1,248 Statements · 8 Determinants Extracted",
-    formula: "Billed = Σ(TOU kWh × Tariff) + Demand Charges + Fixed Levies + VAT",
+      "Multipage utility billing documents ingested across commercial and industrial connection points with automated determinant decomposition.",
+    telemetry: "1,248 Statements Processed · 8 Determinants Extracted",
+    businessImpact:
+      "Eliminates manual spreadsheet processing and identifies utility billing errors across complex multi-page statements before accounts are paid.",
     relationships: [
       {
         targetId: "tariffs",
@@ -99,15 +100,16 @@ const NODES: NetworkNode[] = [
   },
   {
     id: "meters",
-    label: "METERS",
+    label: "SMART METERS",
     category: "Physical Telemetry",
     categoryColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30",
     accentColor: "#34d399",
     subtitle: "Revenue-Grade AMR Check Meters",
     description:
       "Class 0.2S high-precision pulse recorders, CT/VT ratio multipliers, and physical check metering infrastructure.",
-    telemetry: "400:5 CT Multiplier · Pulse Register Verified",
-    formula: "Delivered kWh = Raw Pulses × (CT_ratio × VT_ratio) × Constant",
+    telemetry: "Class 0.2S Optical & GSM Data-Loggers Verified",
+    businessImpact:
+      "Establishes an independent, tamper-evident physical baseline of actual consumption to counter inaccurate utility estimations and faulty multipliers.",
     relationships: [
       {
         targetId: "invoices",
@@ -140,15 +142,16 @@ const NODES: NetworkNode[] = [
   },
   {
     id: "tariffs",
-    label: "TARIFFS",
-    category: "Regulatory Engine",
+    label: "STATUTORY TARIFFS",
+    category: "Regulatory Gazette",
     categoryColor: "text-amber-400 bg-amber-500/10 border-amber-500/30",
     accentColor: "#fbbf24",
-    subtitle: "Gazetted NERSA Rate Schedules",
+    subtitle: "Official NERSA Rate Schedules",
     description:
-      "Multi-year Eskom Megaflex, Miniflex, and municipal schedules indexed with seasonal peak/standard/off-peak price structures.",
-    telemetry: "Megaflex High Season (Jun–Aug) · 2024/25 Gazette",
-    formula: "Rate(t) = TOU_Table(Season, SAST_Day, Hour) × Gazetted_Index",
+      "Multi-year Eskom Megaflex, Miniflex, and municipal schedules indexed with seasonal peak, standard, and off-peak price structures.",
+    telemetry: "Megaflex High & Low Seasons · Official NERSA Gazette",
+    businessImpact:
+      "Guarantees that every billed cent is cross-referenced against the legally gazetted tariff book for your exact connection voltage and tariff structure.",
     relationships: [
       {
         targetId: "invoices",
@@ -186,15 +189,16 @@ const NODES: NetworkNode[] = [
   },
   {
     id: "consumption",
-    label: "CONSUMPTION",
-    category: "Time-Series Stream",
+    label: "INTERVAL USAGE",
+    category: "Time-Series Profile",
     categoryColor: "text-cyan-400 bg-cyan-500/10 border-cyan-500/30",
     accentColor: "#22d3ee",
     subtitle: "30-Minute Interval Telemetry Hub",
     description:
       "Continuously recorded 30-minute interval profile vectors disaggregated into peak, standard, and off-peak temporal buckets.",
-    telemetry: "2,880 Intervals/Mo · Zero Dropouts Detected",
-    formula: "E_total = Σ(Peak_kWh) + Σ(Standard_kWh) + Σ(OffPeak_kWh)",
+    telemetry: "2,880 Half-Hour Intervals / Month Verified",
+    businessImpact:
+      "Exposes off-peak consumption misclassified as peak energy, unlocking immediate time-of-use recovery and operational load-shifting opportunities.",
     relationships: [
       {
         targetId: "invoices",
@@ -237,15 +241,16 @@ const NODES: NetworkNode[] = [
   },
   {
     id: "demand",
-    label: "DEMAND",
+    label: "CAPACITY & DEMAND",
     category: "Capacity Vector",
     categoryColor: "text-orange-400 bg-orange-500/10 border-orange-500/30",
     accentColor: "#fb923c",
     subtitle: "Peak Apparent Power & Notified Capacity",
     description:
       "Simultaneous 30-minute rolling kVA demand peaks, power factor integration, and notified maximum demand (NMD) monitoring.",
-    telemetry: "7,705 kVA Recorded Peak vs 9,450 kVA Billed",
-    formula: "kVA = √(kW² + kVAR²) over 30-min Window",
+    telemetry: "Real-Time kVA Demand Peaks vs Billed Determinants",
+    businessImpact:
+      "Protects against punitive Notified Maximum Demand (NMD) ratchet penalties and identifies transient peak demand overbilling caused by upstream grid switching.",
     relationships: [
       {
         targetId: "meters",
@@ -283,15 +288,16 @@ const NODES: NetworkNode[] = [
   },
   {
     id: "cost",
-    label: "COST",
+    label: "FINANCIAL RECONCILIATION",
     category: "Financial Valuation",
     categoryColor: "text-indigo-400 bg-indigo-500/10 border-indigo-500/30",
     accentColor: "#818cf8",
     subtitle: "Reconciled Energy Expense Valuation",
     description:
-      "True delivered energy liability calculated with Decimal.js high-precision arithmetic against verified physical intervals.",
-    telemetry: "R 8,421,890.00 Reconciled Spend Model",
-    formula: "ReconciledCost = Σ(Interval_kWh × Exact_Rate) + DemandLevy + Fixed",
+      "True delivered energy liability calculated with exact statutory precision against verified physical intervals.",
+    telemetry: "Independent Audited Energy Balance Sheet",
+    businessImpact:
+      "Provides CFOs and treasury leaders with an unassailable financial reconciliation, eliminating accounting assumptions and utility overpayment risks.",
     relationships: [
       {
         targetId: "invoices",
@@ -334,15 +340,16 @@ const NODES: NetworkNode[] = [
   },
   {
     id: "anomalies",
-    label: "ANOMALIES",
-    category: "Diagnostic Core",
+    label: "ANOMALY ISOLATION",
+    category: "Discrepancy Detection",
     categoryColor: "text-rose-400 bg-rose-500/10 border-rose-500/30",
     accentColor: "#f43f5e",
-    subtitle: "Deterministic Discrepancy Isolation",
+    subtitle: "Deterministic Overcharge Isolation",
     description:
       "Automated identification of meter multiplier misconfigurations, unapplied public holidays, and tariff season boundary errors.",
-    telemetry: "17 Active Anomalies Isolated · R 421,890 Total Delta",
-    formula: "Variance = |Billed_Determinant - Reconciled_Determinant|",
+    telemetry: "17 Active Discrepancy Categories Monitored",
+    businessImpact:
+      "Isolates systemic overbilling before invoices are approved and paid, preventing multi-million rand cash leakages from embedding in operational budgets.",
     relationships: [
       {
         targetId: "consumption",
@@ -380,15 +387,16 @@ const NODES: NetworkNode[] = [
   },
   {
     id: "recovery",
-    label: "RECOVERY",
-    category: "Resolution Vector",
+    label: "CAPITAL RECOVERY",
+    category: "Commercial Resolution",
     categoryColor: "text-teal-400 bg-teal-500/10 border-teal-500/30",
     accentColor: "#2dd4bf",
-    subtitle: "Section 21 Dispute Package Dossiers",
+    subtitle: "Audit-Ready Regulatory Dispute Packages",
     description:
-      "Audit-ready credit claim packages generated with 12-node cryptographic verification chains for utility dispute settlement.",
-    telemetry: "R 421,890.00 Claim Form 102 Generated",
-    formula: "Credit_Due = Billed_Amount - Reconciled_Physical_Amount",
+      "Comprehensive credit claim dossiers generated with formal evidence annexures formatted for utility dispute settlement committees.",
+    telemetry: "Regulatory Dispute Dossiers Ready for Claim",
+    businessImpact:
+      "Transforms identified billing errors into approved utility credit notes and cash refunds directly credited back to corporate balance sheets.",
     relationships: [
       {
         targetId: "anomalies",
@@ -1001,7 +1009,7 @@ export function EneraNetworkSection() {
             className="p-6 sm:p-8 bg-gradient-to-r from-[#0a0f1c] via-[#0d1424] to-[#0a0f1c] border-t border-white/10 backdrop-blur-xl"
           >
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* Left Column: Active Node Profile & Governing Formula */}
+              {/* Left Column: Active Node Profile & Executive Business Value */}
               <div className="lg:col-span-5 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span
@@ -1033,13 +1041,13 @@ export function EneraNetworkSection() {
                   <span>{activeNode.telemetry}</span>
                 </div>
 
-                {/* Mathematical Determinant */}
+                {/* Executive Business Value */}
                 <div className="pt-2">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
-                    GOVERNING MATHEMATICAL DETERMINANT
+                  <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider block mb-1 font-semibold">
+                    EXECUTIVE BUSINESS VALUE
                   </span>
-                  <div className="p-3 rounded-xl bg-black/50 border border-white/10 font-mono text-xs text-cyan-300 overflow-x-auto whitespace-nowrap">
-                    <code>{activeNode.formula}</code>
+                  <div className="p-3.5 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-xs text-slate-300 leading-relaxed font-sans">
+                    {activeNode.businessImpact}
                   </div>
                 </div>
               </div>

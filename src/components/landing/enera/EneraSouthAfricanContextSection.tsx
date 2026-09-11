@@ -219,13 +219,13 @@ export function EneraSouthAfricanContextSection() {
               <p className="text-xs text-slate-400 mt-2.5 leading-relaxed">
                 Vector disaggregation of active energy (<strong className="text-white">kWh</strong>
                 ), maximum demand (<strong className="text-white">kVA</strong>), and reactive power
-                (<strong className="text-white">kVArh</strong>) under the 0.96 lagging power factor
-                threshold during Peak &amp; Standard periods.
+                (<strong className="text-white">kVArh</strong>), accounting for statutory power
+                factor surcharges across Peak and Standard billing periods.
               </p>
             </div>
             <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
-              <span>Vector Math PF = kW/kVA</span>
-              <span className="text-amber-400 font-semibold">Decimal.js Exact</span>
+              <span>Power Factor Reconciliation</span>
+              <span className="text-amber-400 font-semibold">Statutory Precision</span>
             </div>
           </div>
         </div>
