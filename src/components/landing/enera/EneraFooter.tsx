@@ -172,15 +172,15 @@ export function EneraFooter() {
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-400">
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>Deterministic Engine Active · SANS 474 Class 0.2S Synchronized</span>
+            <span>Deterministic Engine Active · Client-Isolated Processing</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-4 text-slate-400">
             <span>&copy; {new Date().getFullYear()} ENERA Technologies. All rights reserved.</span>
             <span>·</span>
-            <span>POPIA Compliant</span>
+            <span>Role-Based Access</span>
             <span>·</span>
-            <span>ISO 27001 Security Controls</span>
+            <span>Audit-Ready Lineage</span>
           </div>
         </div>
       </div>

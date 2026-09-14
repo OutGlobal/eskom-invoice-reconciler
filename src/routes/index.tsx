@@ -29,9 +29,9 @@ const EneraSouthAfricanContextSection = lazy(() =>
     default: m.EneraSouthAfricanContextSection,
   })),
 );
-const EneraAuditTrailSection = lazy(() =>
-  import("@/components/landing/enera/EneraAuditTrailSection").then((m) => ({
-    default: m.EneraAuditTrailSection,
+const EneraTrustSection = lazy(() =>
+  import("@/components/landing/enera/EneraTrustSection").then((m) => ({
+    default: m.EneraTrustSection,
   })),
 );
 const EneraContactSection = lazy(() =>
@@ -124,8 +124,8 @@ function EneraLandingPage() {
           {/* 6. Intelligent Assistance: Ask Better Questions */}
           <EneraAISection />
 
-          {/* 7. About: Fiduciary Lineage & Sovereign Governance */}
-          <EneraAuditTrailSection />
+          {/* 7. Trust & Governance: Intelligence You Can Trace */}
+          <EneraTrustSection />
 
           {/* 7. Contact: Executive Demo & Briefing Request */}
           <EneraContactSection />

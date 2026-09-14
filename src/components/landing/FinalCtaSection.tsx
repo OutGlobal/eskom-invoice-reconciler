@@ -221,7 +221,7 @@ export function FinalCtaSection({ onAnalyseClick }: FinalCtaSectionProps) {
                   </a>
                 </li>
                 <li>
-                  <span className="text-muted-foreground/60">POPIA & ISO 27001</span>
+                  <span className="text-muted-foreground/60">Controlled Access Handling</span>
                 </li>
                 <li>
                   <span className="text-muted-foreground/60">NERSA Tariff Gazette</span>

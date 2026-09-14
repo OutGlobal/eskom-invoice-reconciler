@@ -214,7 +214,7 @@ export function EneraAuditTrailSection() {
 
         {/* 5. Optional supporting information & 6. Optional CTA */}
         <div className="mt-12 pt-6 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-400">
-          <span>Protected by POPIA compliance, ISO 27001 data isolation controls, and SANS 474 Class 0.2S standards.</span>
+          <span>Protected by client-isolated data perimeter, strict tenant separation, and audit-ready lineage.</span>
           <a
             href="#contact"
             className="inline-flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 font-medium transition-colors focus-ring-enera shrink-0"
