@@ -115,7 +115,7 @@ export function EneraContactSection() {
                         onChange={(e) =>
                           setFormData({ ...formData, workEmail: e.target.value })
                         }
-                        className="w-full px-3 py-2 rounded-lg bg-[#0b101b] border border-white/10 text-white placeholder-slate-500 text-xs font-mono focus:border-cyan-500 focus:outline-none focus-ring-enera"
+                        className="w-full px-3 py-2.5 min-h-[44px] rounded-lg bg-[#0b101b] border border-white/10 text-white placeholder-slate-500 text-xs font-mono focus:border-cyan-500 focus:outline-none focus-ring-enera"
                       />
                     </div>
 
@@ -135,7 +135,7 @@ export function EneraContactSection() {
                         onChange={(e) =>
                           setFormData({ ...formData, organization: e.target.value })
                         }
-                        className="w-full px-3 py-2 rounded-lg bg-[#0b101b] border border-white/10 text-white placeholder-slate-500 text-xs font-mono focus:border-cyan-500 focus:outline-none focus-ring-enera"
+                        className="w-full px-3 py-2.5 min-h-[44px] rounded-lg bg-[#0b101b] border border-white/10 text-white placeholder-slate-500 text-xs font-mono focus:border-cyan-500 focus:outline-none focus-ring-enera"
                       />
                     </div>
                   </div>
@@ -154,7 +154,7 @@ export function EneraContactSection() {
                         onChange={(e) =>
                           setFormData({ ...formData, monthlySpend: e.target.value })
                         }
-                        className="w-full px-3 py-2 rounded-lg bg-[#0b101b] border border-white/10 text-white text-xs font-mono focus:border-cyan-500 focus:outline-none focus-ring-enera"
+                        className="w-full px-3 py-2.5 min-h-[44px] rounded-lg bg-[#0b101b] border border-white/10 text-white text-xs font-mono focus:border-cyan-500 focus:outline-none focus-ring-enera"
                       >
                         <option value="R 500k – R 1M">R 500k – R 1M / mo</option>
                         <option value="R 1M – R 5M">R 1M – R 5M / mo</option>
@@ -176,7 +176,7 @@ export function EneraContactSection() {
                         onChange={(e) =>
                           setFormData({ ...formData, supplyType: e.target.value })
                         }
-                        className="w-full px-3 py-2 rounded-lg bg-[#0b101b] border border-white/10 text-white text-xs font-mono focus:border-cyan-500 focus:outline-none focus-ring-enera"
+                        className="w-full px-3 py-2.5 min-h-[44px] rounded-lg bg-[#0b101b] border border-white/10 text-white text-xs font-mono focus:border-cyan-500 focus:outline-none focus-ring-enera"
                       >
                         <option value="Eskom Direct Megaflex">Eskom Direct (Megaflex)</option>
                         <option value="Municipal Bulk (City Power / eThekwini / Cape Town)">
@@ -192,7 +192,7 @@ export function EneraContactSection() {
                   {/* 6. Optional CTA */}
                   <button
                     type="submit"
-                    className="w-full py-3 px-4 rounded-lg bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-semibold text-xs font-mono transition-colors flex items-center justify-center gap-2 focus-ring-enera"
+                    className="w-full min-h-[44px] py-3 px-4 rounded-lg bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-semibold text-xs font-mono transition-colors flex items-center justify-center gap-2 focus-ring-enera"
                   >
                     <span>REQUEST A DEMO</span>
                     <Send className="h-3.5 w-3.5" />

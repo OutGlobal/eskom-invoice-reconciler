@@ -285,6 +285,28 @@
   }
 }
 
+/* Stage 21: Mobile Responsive Safeguards & Reduced Animation (<640px) */
+@media (max-width: 640px) {
+  /* Reduce and silence non-essential background animations on mobile */
+  .enera-energy-stream,
+  .enera-pulse-subtle,
+  .animate-enera-pulse,
+  .animate-pulse {
+    animation: none !important;
+  }
+
+  /* Prevent awkward horizontal scroll expansions */
+  body, html {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Smooth mobile touch panning for horizontal scrollers */
+  .no-scrollbar {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 
 
 

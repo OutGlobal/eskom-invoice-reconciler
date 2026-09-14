@@ -313,13 +313,13 @@ export function EneraNav() {
           <div className="flex lg:hidden items-center gap-2">
             <Link
               to={session ? "/dashboard" : "/login"}
-              className="px-2.5 py-1 text-xs text-slate-300 border border-white/10 rounded font-sans"
+              className="px-2.5 min-h-[38px] flex items-center text-xs text-slate-300 border border-white/10 rounded font-sans hover:text-white transition-colors"
             >
               {session ? "Portal" : "SIGN IN"}
             </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1.5 text-slate-300 hover:text-white rounded border border-white/10"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-300 hover:text-white rounded border border-white/10 focus-ring-enera"
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -390,7 +390,7 @@ export function EneraNav() {
             <a
               href="#contact"
               onClick={(e) => handleNavClick(e, "#contact")}
-              className="w-full flex items-center justify-center gap-2 py-3 text-xs font-semibold text-slate-950 bg-cyan-400 rounded-md font-sans"
+              className="w-full flex items-center justify-center gap-2 min-h-[44px] py-3 text-xs font-semibold text-slate-950 bg-cyan-400 rounded-md font-sans focus-ring-enera"
             >
               <span>REQUEST A DEMO</span>
               <ArrowRight className="h-4 w-4" />
@@ -399,7 +399,7 @@ export function EneraNav() {
             <a
               href="#how-it-works"
               onClick={(e) => handleNavClick(e, "#how-it-works")}
-              className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-medium text-slate-200 border border-white/15 rounded-md bg-white/[0.02] font-sans"
+              className="w-full flex items-center justify-center gap-2 min-h-[44px] py-2.5 text-xs font-medium text-slate-200 border border-white/15 rounded-md bg-white/[0.02] font-sans focus-ring-enera"
             >
               <span>EXPLORE ENERA</span>
             </a>
@@ -407,7 +407,7 @@ export function EneraNav() {
             <Link
               to={session ? "/dashboard" : "/login"}
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 text-xs text-slate-300 border border-white/10 rounded-md font-sans"
+              className="w-full flex items-center justify-center gap-2 min-h-[44px] py-2.5 text-xs text-slate-300 border border-white/10 rounded-md font-sans focus-ring-enera"
             >
               <span>{session ? "CLIENT PORTAL" : "SIGN IN"}</span>
             </Link>

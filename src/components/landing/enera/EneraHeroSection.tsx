@@ -16,13 +16,13 @@ export function EneraHeroSection() {
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center">
         {/* Subtle pill positioning */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-xs text-slate-300 mb-6 font-sans shadow-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-          <span className="font-mono text-[11px] uppercase tracking-wider text-slate-400">
+        <div className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-[10px] sm:text-xs text-slate-300 mb-6 font-sans shadow-sm flex-wrap text-center max-w-full">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+          <span className="font-mono uppercase tracking-wider text-slate-400">
             Energy Financial Intelligence
           </span>
-          <span className="text-slate-600">·</span>
-          <span className="text-slate-400 font-mono text-[11px]">SANS 474 / NERSA Standard</span>
+          <span className="text-slate-600 hidden min-[360px]:inline">·</span>
+          <span className="text-slate-400 font-mono hidden min-[360px]:inline">SANS 474 / NERSA Standard</span>
         </div>
 
         {/* Primary headline (controlled, authoritative) */}
@@ -41,10 +41,10 @@ export function EneraHeroSection() {
         </p>
 
         {/* High-contrast Action Buttons */}
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md">
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full max-w-md">
           <a
             href="#contact"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-lg font-semibold text-sm text-slate-950 bg-cyan-400 hover:bg-cyan-300 transition-colors shadow-sm font-sans focus-ring-enera"
+            className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2.5 px-8 py-3 rounded-lg font-semibold text-sm text-slate-950 bg-cyan-400 hover:bg-cyan-300 transition-colors shadow-sm font-sans focus-ring-enera"
           >
             <span>REQUEST A DEMO</span>
             <ArrowRight className="h-4 w-4" />
@@ -52,7 +52,7 @@ export function EneraHeroSection() {
 
           <a
             href="#how-it-works"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-lg font-medium text-sm text-slate-200 hover:text-white border border-white/10 hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05] transition-colors font-sans focus-ring-enera"
+            className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 px-8 py-3 rounded-lg font-medium text-sm text-slate-200 hover:text-white border border-white/10 hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05] transition-colors font-sans focus-ring-enera"
           >
             <span>EXPLORE ENERA</span>
           </a>

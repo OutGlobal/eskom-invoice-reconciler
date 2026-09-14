@@ -1,13 +1,4 @@
-/**
- * Automated Verification Suite for Stage 19: Cleaner CTA Strategy
- * Verifies that all landing page components adhere strictly to the standardized CTA taxonomy:
- * - PRIMARY: "REQUEST A DEMO" -> routes to #contact or submits inquiry
- * - SECONDARY: "EXPLORE ENERA" -> routes to #how-it-works
- * - PRODUCT CTA: "EXPLORE THE PLATFORM" -> routes to #interface-previews
- * - ZERO dead buttons / unrouted actions
- * - Every anchor href resolves to a real, existing DOM element id on the landing page
- */
-
+import { describe, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -18,7 +9,7 @@ function assert(condition: boolean, message: string) {
   }
 }
 
-async function runCtaStrategyTestSuite() {
+export async function runCtaStrategyTestSuite() {
   console.log("=========================================================");
   console.log("  ENERA CLEANER CTA STRATEGY VERIFICATION SUITE");
   console.log("=========================================================\n");
@@ -141,7 +132,15 @@ async function runCtaStrategyTestSuite() {
   console.log("=========================================================");
 }
 
-runCtaStrategyTestSuite().catch((err) => {
-  console.error("CTA Strategy test suite failed:", err);
-  process.exit(1);
+describe("STAGE 19: Cleaner CTA Strategy", () => {
+  it("passes all CTA taxonomy and route integrity checks", async () => {
+    await runCtaStrategyTestSuite();
+  });
 });
+
+if (process.argv[1]?.endsWith("test_cta_strategy.test.ts")) {
+  runCtaStrategyTestSuite().catch((err) => {
+    console.error("CTA Strategy test suite failed:", err);
+    process.exit(1);
+  });
+}

@@ -20,7 +20,7 @@ export function EneraHeroCanvas() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || reducedMotion) return;
+    if (!canvas || reducedMotion || (typeof window !== "undefined" && window.innerWidth < 640)) return;
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
@@ -32,7 +32,7 @@ export function EneraHeroCanvas() {
     const observer = new IntersectionObserver(
       ([entry]) => {
         isVisible = entry.isIntersecting;
-        if (isVisible) {
+        if (isVisible && window.innerWidth >= 640) {
           animId = requestAnimationFrame(render);
         } else {
           cancelAnimationFrame(animId);
@@ -44,6 +44,10 @@ export function EneraHeroCanvas() {
 
     const handleResize = () => {
       if (!canvas) return;
+      if (window.innerWidth < 640) {
+        cancelAnimationFrame(animId);
+        return;
+      }
       w = canvas.width = canvas.offsetWidth;
       h = canvas.height = canvas.offsetHeight;
     };
@@ -146,7 +150,7 @@ export function EneraHeroCanvas() {
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+      <canvas ref={canvasRef} className="hidden sm:block absolute inset-0 w-full h-full" />
       {/* Subtle, calm atmospheric gradient centered behind content */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] rounded-full bg-cyan-950/15 blur-[120px] pointer-events-none" />
     </div>

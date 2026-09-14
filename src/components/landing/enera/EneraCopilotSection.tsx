@@ -164,7 +164,7 @@ export function EneraCopilotSection() {
           </div>
 
           {/* 6-Stage Progression Track with Energy Trace */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 relative">
+          <div className="grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 relative">
             {/* Subtle desktop energy connection line */}
             <div
               className="hidden lg:block absolute top-1/2 left-6 right-6 -translate-y-1/2 h-[2px] pointer-events-none z-0"

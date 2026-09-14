@@ -1,11 +1,4 @@
-/**
- * Automated Verification Suite for Stage 18: Public Disclosure Model
- * Verifies that all public surfaces adhere strictly to the Three-Tier Public Disclosure Standard:
- * - LEVEL 1 (PUBLIC): Safe to explain
- * - LEVEL 2 (CONTROLLED): High-level conceptual explanation only
- * - LEVEL 3 (PRIVATE): Zero exposure of internal schemas, credentials, endpoints, algorithms, or topology
- */
-
+import { describe, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -16,7 +9,7 @@ function assert(condition: boolean, message: string) {
   }
 }
 
-async function runDisclosureModelTestSuite() {
+export async function runDisclosureModelTestSuite() {
   console.log("=========================================================");
   console.log("  ENERA PUBLIC DISCLOSURE MODEL VERIFICATION SUITE");
   console.log("=========================================================\n");
@@ -102,7 +95,15 @@ async function runDisclosureModelTestSuite() {
   console.log("=========================================================");
 }
 
-runDisclosureModelTestSuite().catch(err => {
-  console.error("Disclosure model test failed:", err);
-  process.exit(1);
+describe("STAGE 18: Public Disclosure Model", () => {
+  it("passes all public disclosure validation checks", async () => {
+    await runDisclosureModelTestSuite();
+  });
 });
+
+if (process.argv[1]?.endsWith("test_public_disclosure_model.test.ts")) {
+  runDisclosureModelTestSuite().catch(err => {
+    console.error("Disclosure model test failed:", err);
+    process.exit(1);
+  });
+}

@@ -127,7 +127,7 @@ export function EneraProductInterfacePreviewSection() {
             {/* VIEW 1: DASHBOARD */}
             {activeTab === "dashboard" && (
               <div className="space-y-6">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 min-[380px]:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="p-4 rounded-xl bg-[#0b1224] border border-white/5">
                     <span className="text-[11px] font-mono text-slate-400 uppercase block mb-1">
                       Total Utility Billed
@@ -370,7 +370,7 @@ export function EneraProductInterfacePreviewSection() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 text-xs font-mono">
+                <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-3 text-xs font-mono">
                   <div className="p-3 rounded-lg bg-[#0b1224] border border-white/5">
                     <span className="text-slate-500 block text-[10px]">PEAK RATIO</span>
                     <span className="text-white font-bold">24.0%</span>
@@ -487,7 +487,7 @@ export function EneraProductInterfacePreviewSection() {
                       </a>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+                  <div className="grid grid-cols-1 min-[380px]:grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
                     <div>
                       <span className="text-slate-500 block text-[10px]">STATUTORY BASIS</span>
                       <span className="text-slate-200">NERSA Sched 2 / Megaflex</span>
