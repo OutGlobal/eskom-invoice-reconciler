@@ -5,6 +5,7 @@ import { EneraHeroSection } from "@/components/landing/enera/EneraHeroSection";
 import { EneraCapabilitiesSection } from "@/components/landing/enera/EneraCapabilitiesSection";
 import { EneraProductSignalsSection } from "@/components/landing/enera/EneraProductSignalsSection";
 import { EneraProductInterfacePreviewSection } from "@/components/landing/enera/EneraProductInterfacePreviewSection";
+import { EneraAudienceSection } from "@/components/landing/enera/EneraAudienceSection";
 import { EneraBillSignalSection } from "@/components/landing/enera/EneraBillSignalSection";
 
 // Lazy-load subsequent sections for optimal initial bundle rendering
@@ -99,8 +100,11 @@ function EneraLandingPage() {
         {/* 4. Product Interface Previews: See The Signal Behind The Number */}
         <EneraProductInterfacePreviewSection />
 
-        {/* 3. Solutions: Commercial, Mining & Municipal Grid Frameworks */}
+        {/* 5. Solutions: Commercial, Mining & Municipal Grid Frameworks */}
         <EneraSouthAfricanContextSection />
+
+        {/* 6. Stakeholders: Built For The People Who Manage Energy */}
+        <EneraAudienceSection />
 
         {/* 4. How It Works: Signal Decomposition & Deterministic Reconciliation */}
         <EneraBillSignalSection />
