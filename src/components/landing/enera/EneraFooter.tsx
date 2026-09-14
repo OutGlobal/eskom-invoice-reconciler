@@ -58,9 +58,9 @@ export function EneraFooter() {
         >
           {/* Column 1: PLATFORM */}
           <div>
-            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-200 block mb-3">
+            <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-200 block mb-3">
               PLATFORM
-            </span>
+            </h3>
             <ul className="space-y-2 text-xs font-sans">
               <li>
                 <a href="#hero" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
@@ -82,9 +82,9 @@ export function EneraFooter() {
 
           {/* Column 2: SOLUTIONS */}
           <div>
-            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-200 block mb-3">
+            <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-200 block mb-3">
               SOLUTIONS
-            </span>
+            </h3>
             <ul className="space-y-2 text-xs font-sans">
               <li>
                 <a href="#solutions" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
@@ -111,9 +111,9 @@ export function EneraFooter() {
 
           {/* Column 3: RESOURCES */}
           <div>
-            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-200 block mb-3">
+            <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-200 block mb-3">
               RESOURCES
-            </span>
+            </h3>
             <ul className="space-y-2 text-xs font-sans">
               <li>
                 <a href="#insights" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
@@ -135,9 +135,9 @@ export function EneraFooter() {
 
           {/* Column 4: COMPANY */}
           <div>
-            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-200 block mb-3">
+            <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-200 block mb-3">
               COMPANY
-            </span>
+            </h3>
             <ul className="space-y-2 text-xs font-sans">
               <li>
                 <a href="#about" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
@@ -159,9 +159,9 @@ export function EneraFooter() {
 
           {/* Column 5: LEGAL */}
           <div>
-            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-200 block mb-3">
+            <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-200 block mb-3">
               LEGAL
-            </span>
+            </h3>
             <ul className="space-y-2 text-xs font-sans">
               <li>
                 <a href="#privacy" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">

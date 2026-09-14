@@ -88,25 +88,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Dashboard — Meter Reconciliation" },
+      { title: "ENERA | Energy Financial Intelligence" },
       {
         name: "description",
         content:
-          "Eskom Megaflex 30-minute meter data classification, TOU analytics, and invoice reconciliation.",
+          "ENERA transforms complex energy and billing information into clear, actionable intelligence for better financial and operational decisions.",
       },
-      { property: "og:title", content: "Dashboard — Meter Reconciliation" },
+      { property: "og:site_name", content: "ENERA" },
+      { property: "og:title", content: "ENERA | Energy Financial Intelligence" },
       {
         property: "og:description",
         content:
-          "Eskom Megaflex 30-minute meter data classification, TOU analytics, and invoice reconciliation.",
+          "ENERA transforms complex energy and billing information into clear, actionable intelligence for better financial and operational decisions.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Dashboard — Meter Reconciliation" },
+      { name: "twitter:title", content: "ENERA | Energy Financial Intelligence" },
       {
         name: "twitter:description",
         content:
-          "Eskom Megaflex 30-minute meter data classification, TOU analytics, and invoice reconciliation.",
+          "ENERA transforms complex energy and billing information into clear, actionable intelligence for better financial and operational decisions.",
       },
       {
         property: "og:image",

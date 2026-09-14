@@ -417,9 +417,9 @@ export function EneraProductInterfacePreviewSection() {
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 font-bold">
                           CRITICAL
                         </span>
-                        <h4 className="text-sm font-bold text-white">
+                        <h3 className="text-sm font-bold text-white">
                           Statutory Public Holiday Billed as Weekday Peak
-                        </h4>
+                        </h3>
                       </div>
                       <p className="text-xs text-slate-400 font-sans leading-relaxed">
                         Youth Day (16 June) was billed at High-Season Peak weekday rates instead of statutory Sunday Off-Peak schedule under NERSA Schedule 2 rules.
@@ -439,9 +439,9 @@ export function EneraProductInterfacePreviewSection() {
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 font-bold">
                           WARNING
                         </span>
-                        <h4 className="text-sm font-bold text-white">
+                        <h3 className="text-sm font-bold text-white">
                           Maximum Demand Ratchet Overstatement
-                        </h4>
+                        </h3>
                       </div>
                       <p className="text-xs text-slate-400 font-sans leading-relaxed">
                         Utility stated peak demand at 5,100 kVA. Physical meter interval telemetry confirms maximum peak reached was 4,850 kVA at 08:30.
@@ -461,9 +461,9 @@ export function EneraProductInterfacePreviewSection() {
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 font-bold">
                           VERIFIED
                         </span>
-                        <h4 className="text-sm font-bold text-white">
+                        <h3 className="text-sm font-bold text-white">
                           Power Factor Boundary Compliant
-                        </h4>
+                        </h3>
                       </div>
                       <p className="text-xs text-slate-400 font-sans leading-relaxed">
                         Average power factor maintained at 0.96 lagging across billing cycle. Invalid reactive levy of R 27,800 reversed.
@@ -489,9 +489,9 @@ export function EneraProductInterfacePreviewSection() {
                       <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider block">
                         EXECUTIVE RECONCILIATION DOSSIER
                       </span>
-                      <h4 className="text-base font-bold text-white font-sans">
+                      <h3 className="text-base font-bold text-white font-sans">
                         Apex Precision Manufacturing — August 2026 Audit Pack
-                      </h4>
+                      </h3>
                     </div>
                       <a
                         href="#contact"

@@ -65,12 +65,52 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       {
-        title: "ENERA — Energy Financial Intelligence | SEE BEYOND THE BILL",
+        title: "ENERA | Energy Financial Intelligence",
       },
       {
         name: "description",
         content:
-          "Enterprise energy financial intelligence platform. Reconcile utility determinants, verify statutory TOU schedules, and recover unearned charges with mathematical certainty.",
+          "ENERA transforms complex energy and billing information into clear, actionable intelligence for better financial and operational decisions.",
+      },
+      {
+        property: "og:site_name",
+        content: "ENERA",
+      },
+      {
+        property: "og:title",
+        content: "ENERA | Energy Financial Intelligence",
+      },
+      {
+        property: "og:description",
+        content:
+          "ENERA transforms complex energy and billing information into clear, actionable intelligence for better financial and operational decisions.",
+      },
+      {
+        property: "og:type",
+        content: "website",
+      },
+      {
+        name: "twitter:card",
+        content: "summary_large_image",
+      },
+      {
+        name: "twitter:title",
+        content: "ENERA | Energy Financial Intelligence",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "ENERA transforms complex energy and billing information into clear, actionable intelligence for better financial and operational decisions.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/52505294-a8b7-405f-bd46-268d13880296/id-preview-99af2560--d4e14f91-1593-4534-bd09-833873bc7bd1.lovable.app-1785402555429.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/52505294-a8b7-405f-bd46-268d13880296/id-preview-99af2560--d4e14f91-1593-4534-bd09-833873bc7bd1.lovable.app-1785402555429.png",
       },
     ],
   }),
