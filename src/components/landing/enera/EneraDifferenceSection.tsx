@@ -50,8 +50,8 @@ const RECONCILIATION_DATA: Record<MetricKey, ReconciliationDataSet> = {
     actualSummary: "4,087,214",
     varianceSummary: "131,227",
     impactSummary: "R 51,227",
-    accountReference: "ACC: 9021-4819-2041",
-    meterReference: "MTR: 021-MS-90412 (1,488 Intervals)",
+    accountReference: "Synthetic Account: SYN-01",
+    meterReference: "Synthetic Interval Feed (1,488 Intervals)",
     statutoryNotice: "NERSA Megaflex Schedule 2 — High Season TOU Gazette 2025/26",
     rows: [
       {
@@ -90,8 +90,8 @@ const RECONCILIATION_DATA: Record<MetricKey, ReconciliationDataSet> = {
     actualSummary: "7,940",
     varianceSummary: "481",
     impactSummary: "R 46,176",
-    accountReference: "ACC: 9021-4819-2041",
-    meterReference: "MTR: 021-MS-90412 (Peak 14 Jul 18:30)",
+    accountReference: "Synthetic Account: SYN-01",
+    meterReference: "Synthetic Interval Feed (Peak 14 Jul 18:30)",
     statutoryNotice: "Eskom Transmission Tariff Rules — Section 4.2 Demand Assessment",
     rows: [
       {
@@ -122,8 +122,8 @@ const RECONCILIATION_DATA: Record<MetricKey, ReconciliationDataSet> = {
     actualSummary: "112,040",
     varianceSummary: "230,060",
     impactSummary: "R 28,758",
-    accountReference: "ACC: 9021-4819-2041",
-    meterReference: "MTR: 021-MS-90412 (Vector Sum)",
+    accountReference: "Synthetic Account: SYN-01",
+    meterReference: "Synthetic Interval Feed (Vector Sum)",
     statutoryNotice: "SA Grid Code v4.1 — Deterministic Power Factor Compliance",
     rows: [
       {

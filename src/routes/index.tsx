@@ -4,6 +4,7 @@ import { EneraNav } from "@/components/landing/enera/EneraNav";
 import { EneraHeroSection } from "@/components/landing/enera/EneraHeroSection";
 import { EneraCapabilitiesSection } from "@/components/landing/enera/EneraCapabilitiesSection";
 import { EneraProductSignalsSection } from "@/components/landing/enera/EneraProductSignalsSection";
+import { EneraProductInterfacePreviewSection } from "@/components/landing/enera/EneraProductInterfacePreviewSection";
 import { EneraBillSignalSection } from "@/components/landing/enera/EneraBillSignalSection";
 
 // Lazy-load subsequent sections for optimal initial bundle rendering
@@ -94,6 +95,9 @@ function EneraLandingPage() {
 
         {/* 3. Product Capabilities: One Platform. Multiple Energy Signals. */}
         <EneraProductSignalsSection />
+
+        {/* 4. Product Interface Previews: See The Signal Behind The Number */}
+        <EneraProductInterfacePreviewSection />
 
         {/* 3. Solutions: Commercial, Mining & Municipal Grid Frameworks */}
         <EneraSouthAfricanContextSection />
