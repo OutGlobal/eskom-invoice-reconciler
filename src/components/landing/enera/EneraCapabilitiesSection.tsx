@@ -64,10 +64,10 @@ export function EneraCapabilitiesSection() {
             return (
               <div
                 key={cap.title}
-                className="p-6 rounded-xl bg-slate-50 border border-slate-200/90 shadow-sm hover:border-slate-300 hover:shadow transition-all flex flex-col justify-start"
+                className="p-6 rounded-xl bg-slate-50 border border-slate-200/90 shadow-sm hover:border-cyan-300 hover:shadow-[0_4px_20px_-4px_rgba(6,182,212,0.12)] transition-all duration-300 flex flex-col justify-start group"
               >
-                {/* Simple icon */}
-                <div className="w-10 h-10 rounded-lg bg-cyan-50 border border-cyan-100 flex items-center justify-center mb-5 text-cyan-700">
+                {/* Simple icon with micro-interaction */}
+                <div className="w-10 h-10 rounded-lg bg-cyan-50 border border-cyan-100 flex items-center justify-center mb-5 text-cyan-700 transition-transform duration-200 group-hover:scale-105 group-hover:border-cyan-200">
                   <Icon className="h-5 w-5" />
                 </div>
 

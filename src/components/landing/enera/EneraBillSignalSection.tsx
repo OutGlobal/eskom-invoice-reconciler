@@ -61,8 +61,34 @@ export function EneraBillSignalSection() {
           A transparent, four-step sequence turning complex energy and tariff inputs into verified operational and financial outcomes.
         </p>
 
-        {/* 4. Visual or capability: 4-Step Horizontal Flow */}
+        {/* 4. Visual or capability: 4-Step Horizontal Flow with Energy Trace */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+          {/* Subtle desktop energy connection line spanning across the 4 steps */}
+          <div
+            className="hidden lg:block absolute top-1/2 left-8 right-8 -translate-y-1/2 h-[2px] pointer-events-none z-0"
+            aria-hidden="true"
+          >
+            <svg className="w-full h-2 overflow-visible" preserveAspectRatio="none">
+              <line
+                x1="0%"
+                y1="50%"
+                x2="100%"
+                y2="50%"
+                stroke="rgba(14, 116, 144, 0.15)"
+                strokeWidth="1"
+              />
+              <line
+                x1="0%"
+                y1="50%"
+                x2="100%"
+                y2="50%"
+                stroke="rgba(6, 182, 212, 0.35)"
+                strokeWidth="1.5"
+                className="enera-energy-stream"
+              />
+            </svg>
+          </div>
+
           {STEPS.map((step, index) => {
             const Icon = step.icon;
             const isLast = index === STEPS.length - 1;
@@ -70,7 +96,7 @@ export function EneraBillSignalSection() {
             return (
               <div
                 key={step.number}
-                className="relative p-6 rounded-xl bg-slate-50 border border-slate-200 shadow-sm hover:border-slate-300 hover:shadow transition-all flex flex-col justify-between"
+                className="relative p-6 rounded-xl bg-slate-50 border border-slate-200 shadow-sm hover:border-cyan-300 hover:shadow-[0_4px_20px_-4px_rgba(6,182,212,0.12)] transition-all duration-300 flex flex-col justify-between group z-10"
               >
                 <div>
                   {/* Step counter and icon header */}
@@ -78,7 +104,7 @@ export function EneraBillSignalSection() {
                     <span className="font-mono text-xs font-bold text-cyan-700 tracking-wider">
                       STEP {step.number}
                     </span>
-                    <div className="w-8 h-8 rounded-lg bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-700">
+                    <div className="w-8 h-8 rounded-lg bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-700 transition-transform duration-200 group-hover:scale-105 group-hover:border-cyan-300">
                       <Icon className="h-4 w-4" />
                     </div>
                   </div>

@@ -49,30 +49,41 @@ export function EneraHeroCanvas() {
     };
     window.addEventListener("resize", handleResize, { passive: true });
 
+    // Small restrained particle system (24 telemetry nodes)
+    const PARTICLE_COUNT = 24;
+    const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.25,
+      vy: (Math.random() - 0.5) * 0.25,
+      radius: 1.0 + Math.random() * 0.8,
+      baseAlpha: 0.12 + Math.random() * 0.18,
+    }));
+
     let t = 0;
 
     const render = () => {
-      t += 0.006;
+      t += 0.005;
       ctx.clearRect(0, 0, w, h);
 
-      // Subtle horizontal baseline grid lines (representing 30-min TOU interval telemetry)
+      // 1. Subtle horizontal baseline grid lines (representing 30-min TOU interval telemetry)
       const lineCount = 5;
       const spacing = h / (lineCount + 1);
 
       ctx.lineWidth = 1;
       for (let i = 1; i <= lineCount; i++) {
         const y = i * spacing;
-        const lineAlpha = 0.03 + 0.015 * Math.sin(t * 1.5 + i);
+        const lineAlpha = 0.025 + 0.01 * Math.sin(t * 1.5 + i);
         ctx.strokeStyle = `rgba(255, 255, 255, ${lineAlpha})`;
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(w, y);
         ctx.stroke();
 
-        // Slow, quiet single traveling packet along 2 of the lines
+        // Slow, quiet traveling packet along 2 lines
         if (i === 2 || i === 4) {
-          const speed = i === 2 ? 0.08 : 0.05;
-          const px = ((t * speed * w) + (i * 120)) % w;
+          const speed = i === 2 ? 0.07 : 0.045;
+          const px = (t * speed * w + i * 120) % w;
           ctx.beginPath();
           ctx.arc(px, y, 1.5, 0, Math.PI * 2);
           ctx.fillStyle = "rgba(34, 211, 238, 0.4)";
@@ -80,6 +91,42 @@ export function EneraHeroCanvas() {
           ctx.shadowBlur = 4;
           ctx.fill();
           ctx.shadowBlur = 0;
+        }
+      }
+
+      // 2. Small Particle System & Proximity Energy Trace Lines
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0) p.x = w;
+        if (p.x > w) p.x = 0;
+        if (p.y < 0) p.y = h;
+        if (p.y > h) p.y = 0;
+
+        // Draw particle dot
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(34, 211, 238, ${p.baseAlpha})`;
+        ctx.fill();
+
+        // Proximity lines between nearby nodes (evoking telemetry mesh)
+        for (let j = i + 1; j < PARTICLE_COUNT; j++) {
+          const p2 = particles[j];
+          const dx = p.x - p2.x;
+          const dy = p.y - p2.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 85) {
+            const lineAlpha = (1 - dist / 85) * 0.06;
+            ctx.strokeStyle = `rgba(34, 211, 238, ${lineAlpha})`;
+            ctx.lineWidth = 0.75;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
         }
       }
 

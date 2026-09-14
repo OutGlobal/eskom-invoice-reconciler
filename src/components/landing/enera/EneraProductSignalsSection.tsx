@@ -99,10 +99,10 @@ export function EneraProductSignalsSection() {
             return (
               <div
                 key={capability.title}
-                className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-slate-300 hover:shadow transition-all flex flex-col justify-start"
+                className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-cyan-300 hover:shadow-[0_4px_20px_-4px_rgba(6,182,212,0.1)] transition-all duration-300 flex flex-col justify-start group"
               >
-                {/* Small icon */}
-                <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200/80 flex items-center justify-center mb-4 text-slate-700">
+                {/* Small icon with micro-interaction */}
+                <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200/80 flex items-center justify-center mb-4 text-slate-700 transition-transform duration-200 group-hover:scale-105 group-hover:border-cyan-200">
                   <Icon className="h-5 w-5" />
                 </div>
 

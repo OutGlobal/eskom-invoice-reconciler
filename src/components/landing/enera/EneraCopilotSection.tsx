@@ -163,8 +163,34 @@ export function EneraCopilotSection() {
             </span>
           </div>
 
-          {/* 6-Stage Progression Track */}
+          {/* 6-Stage Progression Track with Energy Trace */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 relative">
+            {/* Subtle desktop energy connection line */}
+            <div
+              className="hidden lg:block absolute top-1/2 left-6 right-6 -translate-y-1/2 h-[2px] pointer-events-none z-0"
+              aria-hidden="true"
+            >
+              <svg className="w-full h-2 overflow-visible" preserveAspectRatio="none">
+                <line
+                  x1="0%"
+                  y1="50%"
+                  x2="100%"
+                  y2="50%"
+                  stroke="rgba(14, 116, 144, 0.12)"
+                  strokeWidth="1"
+                />
+                <line
+                  x1="0%"
+                  y1="50%"
+                  x2="100%"
+                  y2="50%"
+                  stroke="rgba(6, 182, 212, 0.3)"
+                  strokeWidth="1.5"
+                  className="enera-energy-stream"
+                />
+              </svg>
+            </div>
+
             {FLOW_STAGES.map((stage, idx) => {
               const Icon = stage.icon;
               const isSelected = activeStage === idx;
@@ -175,10 +201,10 @@ export function EneraCopilotSection() {
                   key={stage.name}
                   type="button"
                   onClick={() => setActiveStage(idx)}
-                  className={`p-4 rounded-xl text-left transition-all border relative flex flex-col justify-between focus-ring-enera ${
+                  className={`p-4 rounded-xl text-left transition-all border relative z-10 flex flex-col justify-between group focus-ring-enera ${
                     isSelected
-                      ? "bg-cyan-50/70 border-cyan-300 shadow-sm"
-                      : "bg-slate-50 border-slate-200/80 hover:border-slate-300"
+                      ? "bg-cyan-50/80 border-cyan-300 shadow-sm enera-glow-cyan"
+                      : "bg-slate-50 border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/90"
                   }`}
                 >
                   <div>
@@ -190,18 +216,22 @@ export function EneraCopilotSection() {
                       >
                         {stage.step}
                       </span>
-                      <Icon
-                        className={`h-4 w-4 ${
-                          isSelected ? "text-cyan-700" : "text-slate-500"
+                      <div
+                        className={`p-1 rounded-md transition-transform duration-200 ${
+                          isSelected
+                            ? "text-cyan-700 scale-110"
+                            : "text-slate-500 group-hover:scale-105"
                         }`}
-                      />
+                      >
+                        <Icon className="h-4 w-4" />
+                      </div>
                     </div>
 
                     <div className="text-xs sm:text-sm font-bold font-mono tracking-wider text-slate-900 uppercase mb-1.5">
                       {stage.name}
                     </div>
 
-                    <p className="text-[11px] text-slate-600 leading-snug line-clamp-2">
+                    <p className="text-[11px] text-slate-600 leading-snug line-clamp-2 font-sans">
                       {stage.definition}
                     </p>
                   </div>
@@ -224,10 +254,14 @@ export function EneraCopilotSection() {
             })}
           </div>
 
-          {/* Selected Stage Detail Callout */}
-          <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+          {/* Selected Stage Detail Callout with Transition */}
+          <div
+            key={FLOW_STAGES[activeStage].name}
+            className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono transition-all duration-300"
+          >
             <div className="flex items-center gap-3">
-              <span className="px-2 py-0.5 rounded bg-cyan-100 text-cyan-900 font-bold">
+              <span className="px-2.5 py-0.5 rounded bg-cyan-100 text-cyan-900 font-bold flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-600 animate-pulse" aria-hidden="true" />
                 {FLOW_STAGES[activeStage].name}
               </span>
               <span className="text-slate-700 font-sans">

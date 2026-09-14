@@ -165,12 +165,38 @@ export function EneraHeroFlowVisual() {
           </div>
         </div>
 
-        {/* 5-Stage Transformation Visual Grid (Desktop: Horizontal with flow indicators; Mobile: Vertical stack) */}
+        {/* 5-Stage Transformation Visual Grid (Desktop: Horizontal with energy connector line; Mobile: Vertical stack) */}
         <div
           role="tablist"
           aria-label="5-Stage Energy Intelligence Pipeline"
           className="grid grid-cols-1 lg:grid-cols-5 gap-3 relative"
         >
+          {/* Subtle desktop energy connection line spanning across the 5 stages */}
+          <div
+            className="hidden lg:block absolute top-1/2 left-4 right-4 -translate-y-1/2 h-[2px] pointer-events-none z-0"
+            aria-hidden="true"
+          >
+            <svg className="w-full h-2 overflow-visible" preserveAspectRatio="none">
+              <line
+                x1="0%"
+                y1="50%"
+                x2="100%"
+                y2="50%"
+                stroke="rgba(34, 211, 238, 0.15)"
+                strokeWidth="1"
+              />
+              <line
+                x1="0%"
+                y1="50%"
+                x2="100%"
+                y2="50%"
+                stroke="rgba(34, 211, 238, 0.4)"
+                strokeWidth="1.5"
+                className="enera-energy-stream"
+              />
+            </svg>
+          </div>
+
           {FLOW_STAGES.map((stage, idx) => {
             const Icon = stage.icon;
             const isSelected = activeIdx === idx;
@@ -188,10 +214,10 @@ export function EneraHeroFlowVisual() {
                     setActiveIdx(idx);
                     setIsPaused(true);
                   }}
-                  className={`p-4 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between group focus-ring-enera ${
+                  className={`p-4 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between group focus-ring-enera relative z-10 ${
                     isSelected
-                      ? `${stage.activeBg} ${stage.activeBorder} shadow-lg ring-1 ring-white/10`
-                      : "bg-[#05080f]/80 border-white/5 hover:border-white/20 hover:bg-[#0b101c]"
+                      ? `${stage.activeBg} ${stage.activeBorder} shadow-lg ring-1 ring-white/10 enera-glow-cyan`
+                      : "bg-[#05080f]/90 border-white/5 hover:border-white/20 hover:bg-[#0b101c]"
                   }`}
                 >
                   <div>
@@ -201,7 +227,7 @@ export function EneraHeroFlowVisual() {
                         {stage.stepNumber}
                       </span>
                       <div
-                        className={`p-1.5 rounded-md bg-white/5 ${stage.accentColor} transition-transform ${
+                        className={`p-1.5 rounded-md bg-white/5 ${stage.accentColor} transition-transform duration-200 ${
                           isSelected ? "scale-110" : "group-hover:scale-105"
                         }`}
                       >
@@ -230,7 +256,7 @@ export function EneraHeroFlowVisual() {
                       {stage.sampleMetric}
                     </span>
                     {isSelected && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" aria-hidden="true" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee]" aria-hidden="true" />
                     )}
                   </div>
                 </button>
@@ -254,11 +280,15 @@ export function EneraHeroFlowVisual() {
           id={`panel-${activeStage.id}`}
           role="tabpanel"
           aria-labelledby={`tab-${activeStage.id}`}
-          className="mt-5 pt-5 border-t border-white/10"
+          key={activeStage.id}
+          className="mt-5 pt-5 border-t border-white/10 transition-all duration-300"
         >
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-[#05080f]/90 border border-white/5 rounded-xl p-4 sm:p-5">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-[#05080f]/90 border border-white/5 rounded-xl p-4 sm:p-5 relative overflow-hidden">
+            {/* Subtle corner energy accent */}
+            <div className="absolute top-0 right-0 w-28 h-28 bg-cyan-500/[0.03] rounded-full blur-2xl pointer-events-none" />
+
             {/* Stage Summary Description */}
-            <div className="md:col-span-6 space-y-1.5">
+            <div className="md:col-span-6 space-y-1.5 relative z-10">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-white/5 border border-white/10 text-cyan-300 font-semibold">
                   STAGE {activeStage.stepNumber} · {activeStage.name.toUpperCase()}
@@ -273,10 +303,11 @@ export function EneraHeroFlowVisual() {
             </div>
 
             {/* Verifiable Telemetry Evidence Box */}
-            <div className="md:col-span-6 bg-black/40 border border-white/5 rounded-lg p-3 space-y-1">
+            <div className="md:col-span-6 bg-black/40 border border-white/5 rounded-lg p-3 space-y-1 relative z-10">
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pb-1 border-b border-white/5">
                 <span className="uppercase tracking-wider">{activeStage.evidenceLabel}</span>
-                <span className="text-emerald-400 flex items-center gap-1 font-mono">
+                <span className="text-emerald-400 flex items-center gap-1.5 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />
                   <Check className="h-3 w-3" /> VERIFIED
                 </span>
               </div>

@@ -69,7 +69,7 @@ export function EneraProductInterfacePreviewSection() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap focus-ring-enera ${
                   isActive
-                    ? "bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 shadow-sm"
+                    ? "bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 shadow-sm enera-glow-cyan"
                     : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"
                 }`}
               >
@@ -315,14 +315,24 @@ export function EneraProductInterfacePreviewSection() {
                   </div>
                 </div>
 
-                {/* Simulated SVG Interval Profile */}
-                <div className="w-full h-48 bg-[#0b1224] rounded-xl border border-white/5 p-4 flex flex-col justify-between">
-                  <div className="flex justify-between text-[10px] font-mono text-slate-500">
-                    <span>5,000 kVA (Ratchet Limit)</span>
+                {/* Simulated SVG Interval Profile with Live Telemetry Scanner */}
+                <div className="w-full h-48 bg-[#0b1224] rounded-xl border border-white/5 p-4 flex flex-col justify-between relative overflow-hidden">
+                  {/* Subtle telemetry scanner line across 24h profile */}
+                  <div
+                    className="absolute inset-y-0 w-12 bg-gradient-to-r from-transparent via-cyan-400/10 to-transparent pointer-events-none"
+                    style={{ animation: "enera-scan 10s linear infinite" }}
+                    aria-hidden="true"
+                  />
+
+                  <div className="flex justify-between text-[10px] font-mono text-slate-500 relative z-10">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                      5,000 kVA (Ratchet Limit)
+                    </span>
                     <span className="text-amber-400 font-bold">Max Peak: 4,850 kVA @ 08:30</span>
                   </div>
 
-                  <div className="w-full h-28 relative flex items-end">
+                  <div className="w-full h-28 relative flex items-end z-10">
                     {/* Simulated bars for 24 half-hour blocks */}
                     <div className="w-full h-full flex items-end gap-1 sm:gap-1.5">
                       {[
@@ -336,11 +346,11 @@ export function EneraProductInterfacePreviewSection() {
                         <div
                           key={i}
                           style={{ height: `${bar.h}%` }}
-                          className={`flex-1 rounded-t transition-all ${
+                          className={`flex-1 rounded-t transition-all duration-300 ${
                             bar.t === "peak"
-                              ? "bg-amber-500 hover:bg-amber-400"
+                              ? "bg-gradient-to-t from-amber-600 to-amber-400 hover:brightness-110"
                               : bar.t === "std"
-                              ? "bg-cyan-500 hover:bg-cyan-400"
+                              ? "bg-gradient-to-t from-cyan-600 to-cyan-400 hover:brightness-110"
                               : "bg-slate-700 hover:bg-slate-600"
                           }`}
                         />
@@ -348,7 +358,7 @@ export function EneraProductInterfacePreviewSection() {
                     </div>
                   </div>
 
-                  <div className="flex justify-between text-[10px] font-mono text-slate-500 pt-1 border-t border-white/5">
+                  <div className="flex justify-between text-[10px] font-mono text-slate-500 pt-1 border-t border-white/5 relative z-10">
                     <span>00:00</span>
                     <span>06:00</span>
                     <span>12:00</span>
@@ -383,7 +393,7 @@ export function EneraProductInterfacePreviewSection() {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="p-4 rounded-xl bg-[#0b1224] border border-amber-500/30 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="p-4 rounded-xl bg-[#0b1224] border border-amber-500/30 enera-glow-amber flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 font-bold">
@@ -405,7 +415,7 @@ export function EneraProductInterfacePreviewSection() {
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-[#0b1224] border border-amber-500/30 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="p-4 rounded-xl bg-[#0b1224] border border-amber-500/30 enera-glow-amber flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 font-bold">

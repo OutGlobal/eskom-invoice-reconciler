@@ -181,6 +181,60 @@
   .enera-accent-emerald {
     color: #10b981;
   }
+
+  /* Stage 14 — Restrained Energy Intelligence Accents */
+  .enera-glow-cyan {
+    box-shadow: 0 0 20px -4px rgba(6, 182, 212, 0.18);
+  }
+
+  .enera-glow-emerald {
+    box-shadow: 0 0 20px -4px rgba(16, 185, 129, 0.18);
+  }
+
+  .enera-glow-amber {
+    box-shadow: 0 0 20px -4px rgba(245, 158, 11, 0.18);
+  }
+
+  .enera-energy-stream {
+    stroke-dasharray: 4 6;
+    animation: enera-dash 25s linear infinite;
+  }
+
+  .enera-pulse-subtle {
+    animation: enera-glow-pulse 4s ease-in-out infinite;
+  }
+}
+
+@keyframes enera-dash {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+@keyframes enera-glow-pulse {
+  0%, 100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes enera-scan {
+  0% {
+    left: 0%;
+    opacity: 0;
+  }
+  5% {
+    opacity: 0.5;
+  }
+  95% {
+    opacity: 0.5;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
 }
 
 /* Accessibility Focus Rings & Screen Reader Utilities */

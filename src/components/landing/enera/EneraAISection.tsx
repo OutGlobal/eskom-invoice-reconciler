@@ -123,10 +123,10 @@ export function EneraAISection() {
                   key={q.id}
                   type="button"
                   onClick={() => setSelectedId(q.id)}
-                  className={`w-full text-left p-4 rounded-xl transition-all border block focus-ring-enera ${
+                  className={`w-full text-left p-4 rounded-xl transition-all duration-200 border block focus-ring-enera group ${
                     isSelected
-                      ? "bg-cyan-50/80 border-cyan-300 shadow-sm"
-                      : "bg-slate-50 border-slate-200/80 hover:border-slate-300"
+                      ? "bg-cyan-50/90 border-cyan-400 shadow-sm enera-glow-cyan ring-1 ring-cyan-400/20"
+                      : "bg-slate-50 border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/80"
                   }`}
                 >
                   <div className="flex items-center justify-between text-[10px] font-mono mb-1.5">
@@ -138,15 +138,15 @@ export function EneraAISection() {
                       {q.category}
                     </span>
                     <Icon
-                      className={`h-3.5 w-3.5 ${
-                        isSelected ? "text-cyan-700" : "text-slate-400"
+                      className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                        isSelected ? "text-cyan-700 scale-110" : "text-slate-400 group-hover:scale-105"
                       }`}
                     />
                   </div>
 
                   <p
                     className={`text-sm font-sans font-medium ${
-                      isSelected ? "text-slate-900" : "text-slate-700"
+                      isSelected ? "text-slate-900 font-semibold" : "text-slate-700"
                     }`}
                   >
                     "{q.question}"
@@ -157,13 +157,17 @@ export function EneraAISection() {
           </div>
 
           {/* Right Column: Concrete Operational & Financial Outcome */}
-          <div className="lg:col-span-7 rounded-xl bg-slate-50 border border-slate-200 p-6 sm:p-8 space-y-6 shadow-sm">
+          <div
+            key={current.id}
+            className="lg:col-span-7 rounded-xl bg-slate-50 border border-slate-200 p-6 sm:p-8 space-y-6 shadow-sm transition-all duration-300"
+          >
             <div className="flex items-center justify-between pb-4 border-b border-slate-200/80">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-700">
                   <CurrentIcon className="h-4 w-4" />
                 </div>
-                <span className="text-xs font-mono text-slate-600 uppercase tracking-wider">
+                <span className="text-xs font-mono text-slate-700 uppercase tracking-wider flex items-center gap-1.5 font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-600 animate-pulse" aria-hidden="true" />
                   DELIVERED OUTCOME: {current.category}
                 </span>
               </div>
