@@ -172,7 +172,7 @@ export function EneraProductInterfacePreviewSection() {
                       0.96 lagging
                     </div>
                     <span className="text-[11px] text-emerald-400/80 mt-1 block">
-                      Compliant (&gt; 0.85 threshold)
+                      Compliant (&gt; 0.85 standard)
                     </span>
                   </div>
                 </div>

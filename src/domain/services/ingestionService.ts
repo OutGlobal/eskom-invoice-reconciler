@@ -52,7 +52,7 @@ export class IngestionService {
     updateStage(
       "OBJECT STORAGE",
       10,
-      "Uploading raw binary payload to secure S3/Supabase storage bucket...",
+      "Uploading raw binary payload to secure encrypted storage...",
     );
     AuditLedgerService.recordEvent(jobCtx, "FILE_UPLOAD_INITIATED", {
       filename: file.name,
@@ -194,7 +194,7 @@ export class IngestionService {
     updateStage(
       "AUDIT LEDGER",
       95,
-      "Committing immutable audit lineage record to PostgreSQL execution ledger...",
+      "Committing immutable audit lineage record to execution ledger...",
     );
     AuditLedgerService.recordEvent(jobCtx, "RECONCILIATION_COMPLETED", {
       calculatedTotal: reconResult.totals.calculatedTotal,

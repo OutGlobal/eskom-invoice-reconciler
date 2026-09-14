@@ -141,7 +141,7 @@ function CustomersPage() {
         console.warn("Supabase customer sync notice:", error.message);
         toast.success(`Customer ${newName} added locally.`);
       } else {
-        toast.success(`Customer ${newName} added & synced to Supabase!`);
+        toast.success(`Customer ${newName} added and synchronized!`);
       }
     } catch (err) {
       toast.success(`Customer ${newName} added locally.`);

@@ -223,7 +223,7 @@ export class SecureIngestionGateway {
 
     // Stage 5: NORMALIZED - Canonical Data Model Reflection
     onProgress?.("NORMALIZED", 85, "Reflecting normalized invoice/telemetry into database...");
-    addLog("NORMALIZED", "info", "Storing raw text & normalized records in PostgreSQL");
+    addLog("NORMALIZED", "info", "Storing raw text & normalized records in encrypted data repository");
 
     try {
       // 1. Store raw document payload

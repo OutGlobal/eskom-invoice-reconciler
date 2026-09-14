@@ -341,7 +341,7 @@ export function TrendsPage() {
 
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 text-xs font-medium text-emerald-400">
-            <Database className="h-3.5 w-3.5" /> Supabase Live Connected
+            <Database className="h-3.5 w-3.5" /> Live Ledger Connected
           </span>
           <button
             onClick={handleExportDisputePackage}

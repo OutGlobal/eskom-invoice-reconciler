@@ -100,7 +100,7 @@ const FLOW_STAGES: FlowStage[] = [
     activeBorder: "border-emerald-500/40",
     activeBg: "bg-emerald-500/[0.08]",
     evidenceLabel: "RECOVERY DOSSIER & REMEDIATION",
-    evidenceCode: "Dispute Claim #DIS-2026-441 compiled · Direct Credit Note: R 51,227.00 · Fiduciary hash chain SHA-256 verified",
+    evidenceCode: "Dispute Claim #DIS-2026-441 compiled · Direct Credit Note: R 51,227.00 · Verified audit dossier record",
   },
 ];
 
@@ -151,7 +151,7 @@ export function EneraHeroFlowVisual() {
             </span>
           </div>
 
-          {/* Prompt-mandated textual flow indicator */}
+          {/* Textual flow indicator */}
           <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-400 overflow-x-auto py-1">
             <span className={activeIdx === 0 ? "text-cyan-400 font-semibold" : ""}>Energy data</span>
             <span className="text-slate-600">↓</span>
@@ -235,7 +235,7 @@ export function EneraHeroFlowVisual() {
                       </div>
                     </div>
 
-                    {/* Stage Name (matching prompt exactly) */}
+                    {/* Stage Name */}
                     <h3
                       className={`text-sm font-semibold font-sans leading-tight ${
                         isSelected ? "text-white" : "text-slate-300"

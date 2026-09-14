@@ -80,7 +80,7 @@ function EneraLandingPage() {
         id="main-content"
         tabIndex={-1}
         className="outline-none"
-        aria-label="ENERA Platform Architecture"
+        aria-label="ENERA Energy Financial Intelligence"
       >
         {/* 1. Hero & Executive Value Proposition */}
         <EneraHeroSection />

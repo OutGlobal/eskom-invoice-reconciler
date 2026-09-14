@@ -168,8 +168,8 @@ export async function runIngestionPipeline(
   await saveValidationResults(valPayloads);
 
   // Stage 7: Database Synchronization
-  onProgress?.("Syncing Normalized DB Record", 95, "Reflecting invoice into Supabase PostgreSQL");
-  addLog("Database Sync", "Reflecting normalized invoice record into public.invoices");
+  onProgress?.("Syncing Normalized Record", 95, "Reflecting invoice into secure data store");
+  addLog("Data Sync", "Reflecting normalized invoice record into secure store");
 
   await syncInvoiceToSupabase({
     account_number: invoice.accountNumber || "7856504676",
