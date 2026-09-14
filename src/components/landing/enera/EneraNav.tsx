@@ -1,41 +1,109 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Menu, X, Sparkles, LogIn } from "lucide-react";
+import { ArrowRight, Menu, X, ChevronDown, LogIn, Shield, Zap, Scale, FileText, Building2, Factory, Landmark, Building } from "lucide-react";
 import { useSupabaseSession } from "@/components/AuthGate";
+
+interface DropdownItem {
+  title: string;
+  description: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const PRODUCT_ITEMS: DropdownItem[] = [
+  {
+    title: "Invoice Reconciliation",
+    description: "Deterministic cross-audit of utility charges against physical meter intervals.",
+    href: "#reconciliation",
+    icon: Scale,
+  },
+  {
+    title: "AMR Telemetry Auditor",
+    description: "30-minute interval profile validation and hardware multiplier verification.",
+    href: "#how-it-works",
+    icon: Zap,
+  },
+  {
+    title: "Tariff Gazette Compliance",
+    description: "NERSA Megaflex multi-season schedules and statutory holiday rule enforcement.",
+    href: "#solutions",
+    icon: FileText,
+  },
+  {
+    title: "Financial Query Studio",
+    description: "Plain-language balance-sheet intelligence to isolate unexpected cost spikes.",
+    href: "#insights",
+    icon: Shield,
+  },
+];
+
+const SOLUTION_ITEMS: DropdownItem[] = [
+  {
+    title: "Commercial & Industrial",
+    description: "Multi-site facility energy cost governance and maximum demand optimization.",
+    href: "#solutions",
+    icon: Factory,
+  },
+  {
+    title: "Mining & Smelting",
+    description: "High-voltage bulk transmission tariffs (>66kV) and ratchet protection.",
+    href: "#solutions",
+    icon: Building2,
+  },
+  {
+    title: "Municipal Distributors",
+    description: "Dual fiscal calendar alignment (April 1 vs July 1) and wheeling settlements.",
+    href: "#solutions",
+    icon: Landmark,
+  },
+  {
+    title: "Property Portfolios",
+    description: "Commercial tenant sub-metering recovery and bulk utility reconciliation.",
+    href: "#solutions",
+    icon: Building,
+  },
+];
 
 export function EneraNav() {
   const { session } = useSupabaseSession();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<"products" | "solutions" | null>(null);
+  const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 24);
+      setIsScrolled(window.scrollY > 20);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close mobile menu on Esc
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMobileMenuOpen(false);
+      if (e.key === "Escape") {
+        setMobileMenuOpen(false);
+        setActiveDropdown(null);
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const navLinks = [
-    { label: "Platform", href: "#platform" },
-    { label: "Capabilities", href: "#capabilities" },
-    { label: "Intelligence", href: "#intelligence" },
-    { label: "Use Cases", href: "#use-cases" },
-    { label: "Resources", href: "#resources" },
-    { label: "About", href: "#about" },
-  ];
+  const handleDropdownEnter = (type: "products" | "solutions") => {
+    if (dropdownTimeoutRef.current) clearTimeout(dropdownTimeoutRef.current);
+    setActiveDropdown(type);
+  };
+
+  const handleDropdownLeave = () => {
+    dropdownTimeoutRef.current = setTimeout(() => {
+      setActiveDropdown(null);
+    }, 150);
+  };
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    setActiveDropdown(null);
     if (href.startsWith("#")) {
       e.preventDefault();
       setMobileMenuOpen(false);
@@ -44,11 +112,11 @@ export function EneraNav() {
       if (targetElement) {
         targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
         window.history.replaceState(null, "", href);
-        if (targetId === "demo-request-box") {
+        if (targetId === "contact" || targetId === "briefing") {
           setTimeout(() => {
-            const input = document.getElementById("demo-email");
+            const input = document.getElementById("workEmail");
             if (input) input.focus();
-          }, 600);
+          }, 500);
         }
       }
     }
@@ -57,97 +125,202 @@ export function EneraNav() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
           isScrolled
-            ? "bg-[#030712]/85 backdrop-blur-xl border-b border-white/10 py-3 shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
+            ? "bg-[#030712]/95 backdrop-blur-md border-b border-white/10 py-3 shadow-lg"
             : "bg-transparent py-5 border-b border-transparent"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between">
-          {/* Brand Logo Lockup */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+          {/* Left: ENERA Brand Logo */}
           <Link
             to="/"
-            className="group flex items-center gap-2.5 sm:gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-md py-1"
-            aria-label="ENERA Energy Financial Intelligence Home"
+            className="flex items-center gap-2.5 focus-ring-enera rounded py-1 shrink-0"
+            aria-label="ENERA Energy Financial Intelligence Homepage"
           >
-            <div className="relative flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-cyan-950 via-[#0d1117] to-slate-900 border border-cyan-500/30 group-hover:border-cyan-400 transition-colors shadow-[0_0_15px_-3px_rgba(6,182,212,0.3)]">
-              <span className="font-mono text-xs sm:text-sm font-bold tracking-widest text-cyan-400">
-                E
-              </span>
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-cyan-400 animate-ping opacity-75" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-cyan-400" />
+            <div className="flex items-center justify-center w-7 h-7 rounded-md bg-[#0c1322] border border-cyan-500/40 text-cyan-400 font-mono text-xs font-bold shadow-sm">
+              E
             </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm sm:text-base lg:text-lg font-semibold tracking-[0.2em] sm:tracking-[0.25em] text-white font-mono">
-                  E N E R A
-                </span>
-                <span className="hidden xs:inline text-[9px] sm:text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-semibold tracking-wide">
-                  2025/26
-                </span>
-              </div>
-              <span className="hidden xs:block text-[8px] sm:text-[9px] uppercase tracking-[0.2em] text-slate-400 font-medium">
-                Energy Financial Intelligence
-              </span>
-            </div>
+            <span className="text-base font-bold tracking-[0.24em] text-white font-mono">
+              E N E R A
+            </span>
           </Link>
 
-          {/* Desktop Navigation Links — 6 Public Recommended Categories */}
+          {/* Center: Simplified 6-Item Information Architecture */}
           <nav
             aria-label="Primary Navigation"
-            className="hidden md:flex items-center gap-1 lg:gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.07] backdrop-blur-md"
+            className="hidden lg:flex items-center gap-7 text-xs font-sans text-slate-300"
           >
-            {navLinks.map((link) => (
+            {/* 1. Products Dropdown */}
+            <div
+              className="relative"
+              onMouseEnter={() => handleDropdownEnter("products")}
+              onMouseLeave={handleDropdownLeave}
+            >
               <a
-                key={link.label}
-                href={link.href}
-                onClick={(e) => handleNavClick(e, link.href)}
-                className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white rounded-full hover:bg-white/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+                href="#products"
+                onClick={(e) => handleNavClick(e, "#products")}
+                className="flex items-center gap-1 hover:text-white py-2 transition-colors focus-ring-enera rounded"
+                aria-expanded={activeDropdown === "products"}
+                aria-haspopup="true"
               >
-                {link.label}
+                <span>Products</span>
+                <ChevronDown className={`h-3 w-3 transition-transform ${activeDropdown === "products" ? "rotate-180 text-cyan-400" : "text-slate-500"}`} />
               </a>
-            ))}
+
+              {activeDropdown === "products" && (
+                <div className="absolute top-full left-0 w-80 pt-2 z-50">
+                  <div className="rounded-xl bg-[#090e17] border border-white/10 p-2 shadow-2xl backdrop-blur-xl space-y-1">
+                    {PRODUCT_ITEMS.map((item) => (
+                      <a
+                        key={item.title}
+                        href={item.href}
+                        onClick={(e) => handleNavClick(e, item.href)}
+                        className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-white/[0.04] transition-colors group"
+                      >
+                        <div className="p-1.5 rounded-md bg-white/5 text-cyan-400 group-hover:text-cyan-300 mt-0.5 shrink-0">
+                          <item.icon className="h-3.5 w-3.5" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold text-white group-hover:text-cyan-300 transition-colors">
+                            {item.title}
+                          </div>
+                          <div className="text-[11px] text-slate-400 leading-snug mt-0.5">
+                            {item.description}
+                          </div>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 2. Solutions Dropdown */}
+            <div
+              className="relative"
+              onMouseEnter={() => handleDropdownEnter("solutions")}
+              onMouseLeave={handleDropdownLeave}
+            >
+              <a
+                href="#solutions"
+                onClick={(e) => handleNavClick(e, "#solutions")}
+                className="flex items-center gap-1 hover:text-white py-2 transition-colors focus-ring-enera rounded"
+                aria-expanded={activeDropdown === "solutions"}
+                aria-haspopup="true"
+              >
+                <span>Solutions</span>
+                <ChevronDown className={`h-3 w-3 transition-transform ${activeDropdown === "solutions" ? "rotate-180 text-cyan-400" : "text-slate-500"}`} />
+              </a>
+
+              {activeDropdown === "solutions" && (
+                <div className="absolute top-full left-0 w-80 pt-2 z-50">
+                  <div className="rounded-xl bg-[#090e17] border border-white/10 p-2 shadow-2xl backdrop-blur-xl space-y-1">
+                    {SOLUTION_ITEMS.map((item) => (
+                      <a
+                        key={item.title}
+                        href={item.href}
+                        onClick={(e) => handleNavClick(e, item.href)}
+                        className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-white/[0.04] transition-colors group"
+                      >
+                        <div className="p-1.5 rounded-md bg-white/5 text-emerald-400 group-hover:text-emerald-300 mt-0.5 shrink-0">
+                          <item.icon className="h-3.5 w-3.5" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold text-white group-hover:text-emerald-300 transition-colors">
+                            {item.title}
+                          </div>
+                          <div className="text-[11px] text-slate-400 leading-snug mt-0.5">
+                            {item.description}
+                          </div>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 3. How It Works */}
+            <a
+              href="#how-it-works"
+              onClick={(e) => handleNavClick(e, "#how-it-works")}
+              className="hover:text-white py-2 transition-colors focus-ring-enera rounded"
+            >
+              How It Works
+            </a>
+
+            {/* 4. Insights */}
+            <a
+              href="#insights"
+              onClick={(e) => handleNavClick(e, "#insights")}
+              className="hover:text-white py-2 transition-colors focus-ring-enera rounded"
+            >
+              Insights
+            </a>
+
+            {/* 5. About */}
+            <a
+              href="#about"
+              onClick={(e) => handleNavClick(e, "#about")}
+              className="hover:text-white py-2 transition-colors focus-ring-enera rounded"
+            >
+              About
+            </a>
+
+            {/* 6. Contact */}
+            <a
+              href="#contact"
+              onClick={(e) => handleNavClick(e, "#contact")}
+              className="hover:text-white py-2 transition-colors focus-ring-enera rounded"
+            >
+              Contact
+            </a>
           </nav>
 
-          {/* Desktop Action CTAs — Secondary: Login | Primary: Request a Demo */}
+          {/* Right: Exact Action CTAs (Sign In, Explore ENERA, Request a Demo) */}
           <div className="hidden sm:flex items-center gap-3">
-            {/* Secondary CTA: Login */}
+            {/* SIGN IN */}
             <Link
               to={session ? "/dashboard" : "/login"}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-slate-300 hover:text-white border border-white/10 hover:border-white/20 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+              className="text-xs font-sans text-slate-300 hover:text-white px-2.5 py-1.5 transition-colors focus-ring-enera rounded flex items-center gap-1.5"
             >
-              <LogIn className="h-3.5 w-3.5 text-cyan-400" />
-              <span>Login</span>
+              <LogIn className="h-3.5 w-3.5 text-slate-400" />
+              <span>{session ? "Client Portal" : "SIGN IN"}</span>
             </Link>
 
-            {/* Primary CTA: Request a Demo */}
+            {/* EXPLORE ENERA (Secondary CTA) */}
             <a
-              href="#demo-request-box"
-              onClick={(e) => handleNavClick(e, "#demo-request-box")}
-              className="group relative inline-flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-slate-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-300 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_-3px_rgba(6,182,212,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+              href="#how-it-works"
+              onClick={(e) => handleNavClick(e, "#how-it-works")}
+              className="hidden xl:inline-flex items-center px-3.5 py-1.5 text-xs font-medium text-slate-200 hover:text-white border border-white/10 hover:border-white/25 rounded-md bg-white/[0.02] transition-colors focus-ring-enera font-sans"
             >
-              <span>Request a Demo</span>
-              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-              <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none">
-                <div className="w-1/2 h-full bg-white/30 skew-x-12 animate-enera-pulse" />
-              </div>
+              EXPLORE ENERA
+            </a>
+
+            {/* REQUEST A DEMO (Primary CTA) */}
+            <a
+              href="#contact"
+              onClick={(e) => handleNavClick(e, "#contact")}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 rounded-md transition-colors focus-ring-enera font-sans shadow-sm"
+            >
+              <span>REQUEST A DEMO</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </a>
           </div>
 
-          {/* Mobile Action & Menu Toggle */}
-          <div className="flex sm:hidden items-center gap-2">
+          {/* Mobile Menu Toggle Button */}
+          <div className="flex lg:hidden items-center gap-2">
             <Link
               to={session ? "/dashboard" : "/login"}
-              className="px-2.5 py-1 text-xs font-medium text-slate-300 hover:text-white border border-white/10 rounded-md bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+              className="px-2.5 py-1 text-xs text-slate-300 border border-white/10 rounded font-sans"
             >
-              Login
+              {session ? "Portal" : "SIGN IN"}
             </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-slate-300 hover:text-white rounded-lg bg-white/[0.04] border border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-              aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-              aria-expanded={mobileMenuOpen}
-              aria-controls="mobile-nav-drawer"
+              className="p-1.5 text-slate-300 hover:text-white rounded border border-white/10"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -155,73 +328,89 @@ export function EneraNav() {
         </div>
       </header>
 
-      {/* Refined Mobile Navigation Drawer */}
+      {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
         <div
-          id="mobile-nav-drawer"
           role="dialog"
           aria-modal="true"
-          aria-label="Mobile Navigation Drawer"
-          className="fixed inset-0 z-40 sm:hidden"
+          className="fixed inset-0 z-40 lg:hidden bg-[#030712]/98 p-6 pt-20 flex flex-col justify-between overflow-y-auto"
         >
-          {/* Backdrop blur overlay */}
-          <div
-            className="fixed inset-0 bg-[#030712]/90 backdrop-blur-2xl transition-opacity animate-in fade-in"
-            onClick={() => setMobileMenuOpen(false)}
-            aria-hidden="true"
-          />
+          <nav className="flex flex-col space-y-3 pt-2">
+            <a
+              href="#products"
+              onClick={(e) => handleNavClick(e, "#products")}
+              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between"
+            >
+              <span>Products</span>
+              <span className="text-xs font-mono text-cyan-400">01</span>
+            </a>
+            <a
+              href="#solutions"
+              onClick={(e) => handleNavClick(e, "#solutions")}
+              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between"
+            >
+              <span>Solutions</span>
+              <span className="text-xs font-mono text-emerald-400">02</span>
+            </a>
+            <a
+              href="#how-it-works"
+              onClick={(e) => handleNavClick(e, "#how-it-works")}
+              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between"
+            >
+              <span>How It Works</span>
+              <span className="text-xs font-mono text-slate-400">03</span>
+            </a>
+            <a
+              href="#insights"
+              onClick={(e) => handleNavClick(e, "#insights")}
+              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between"
+            >
+              <span>Insights</span>
+              <span className="text-xs font-mono text-slate-400">04</span>
+            </a>
+            <a
+              href="#about"
+              onClick={(e) => handleNavClick(e, "#about")}
+              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between"
+            >
+              <span>About</span>
+              <span className="text-xs font-mono text-slate-400">05</span>
+            </a>
+            <a
+              href="#contact"
+              onClick={(e) => handleNavClick(e, "#contact")}
+              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between"
+            >
+              <span>Contact</span>
+              <span className="text-xs font-mono text-slate-400">06</span>
+            </a>
+          </nav>
 
-          <div className="fixed top-16 inset-x-4 bottom-6 rounded-2xl bg-[#0d1117] border border-white/10 p-6 flex flex-col justify-between shadow-2xl animate-in zoom-in-95 duration-200">
-            <div>
-              <div className="flex items-center justify-between pb-4 border-b border-white/10">
-                <div className="flex flex-col">
-                  <span className="text-xs font-mono font-bold tracking-widest text-cyan-400">
-                    E N E R A
-                  </span>
-                  <span className="text-[10px] text-slate-400">Energy Financial Intelligence</span>
-                </div>
-                <div className="inline-flex items-center gap-1.5 text-[11px] font-mono text-emerald-400">
-                  <Sparkles className="h-3 w-3 animate-pulse" />
-                  <span>2025/26</span>
-                </div>
-              </div>
+          <div className="space-y-3 pt-6 border-t border-white/10 mt-6">
+            <a
+              href="#contact"
+              onClick={(e) => handleNavClick(e, "#contact")}
+              className="w-full flex items-center justify-center gap-2 py-3 text-xs font-semibold text-slate-950 bg-cyan-400 rounded-md font-sans"
+            >
+              <span>REQUEST A DEMO</span>
+              <ArrowRight className="h-4 w-4" />
+            </a>
 
-              {/* Simplified 6 Public Categories */}
-              <nav aria-label="Mobile Navigation Links" className="mt-6 flex flex-col space-y-2">
-                {navLinks.map((link) => (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    onClick={(e) => handleNavClick(e, link.href)}
-                    className="flex items-center justify-between p-3 text-sm font-medium text-slate-200 hover:text-white hover:bg-white/[0.05] rounded-xl transition-colors"
-                  >
-                    <span>{link.label}</span>
-                    <ArrowRight className="h-4 w-4 text-slate-500" />
-                  </a>
-                ))}
-              </nav>
-            </div>
+            <a
+              href="#how-it-works"
+              onClick={(e) => handleNavClick(e, "#how-it-works")}
+              className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-medium text-slate-200 border border-white/15 rounded-md bg-white/[0.02] font-sans"
+            >
+              <span>EXPLORE ENERA</span>
+            </a>
 
-            {/* Mobile Action CTAs: Primary Request a Demo & Secondary Login */}
-            <div className="space-y-2.5 pt-5 border-t border-white/10">
-              <a
-                href="#demo-request-box"
-                onClick={(e) => handleNavClick(e, "#demo-request-box")}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold text-slate-950 bg-gradient-to-r from-cyan-400 to-emerald-300 rounded-xl shadow-lg hover:brightness-110 active:scale-[0.98] transition-all"
-              >
-                <span>Request a Demo</span>
-                <ArrowRight className="h-4 w-4" />
-              </a>
-
-              <Link
-                to={session ? "/dashboard" : "/login"}
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-medium text-slate-300 hover:text-white border border-white/10 rounded-xl bg-white/[0.03] transition-colors"
-              >
-                <LogIn className="h-4 w-4 text-cyan-400" />
-                <span>Login</span>
-              </Link>
-            </div>
+            <Link
+              to={session ? "/dashboard" : "/login"}
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full flex items-center justify-center gap-2 py-2.5 text-xs text-slate-300 border border-white/10 rounded-md font-sans"
+            >
+              <span>{session ? "CLIENT PORTAL" : "SIGN IN"}</span>
+            </Link>
           </div>
         </div>
       )}

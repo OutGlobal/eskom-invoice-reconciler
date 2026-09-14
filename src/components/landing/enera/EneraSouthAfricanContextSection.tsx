@@ -1,37 +1,11 @@
 import React, { useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import {
-  Zap,
-  Globe2,
-  Building2,
-  Cpu,
-  Activity,
-  Calendar,
-  CheckCircle2,
   Clock,
-  ShieldCheck,
-  ChevronRight,
-  TrendingUp,
-  BarChart3,
-  Layers,
+  Calendar,
   ArrowRight,
-  Sliders,
-  Sparkles,
-  Info,
+  ShieldCheck,
 } from "lucide-react";
-import { EnginePhaseTag } from "./EneraBrandPrimitives";
-
-// Time-of-Use Schedule Definition for South African High vs Low Season
-// High Season (Winter: June - August)
-// Weekdays:
-//   Off-Peak: 00:00 - 06:00, 22:00 - 24:00 (8h)
-//   Standard: 09:00 - 17:00, 19:00 - 22:00 (11h)
-//   Peak:     06:00 - 09:00, 17:00 - 19:00 (5h)
-// Low Season (Summer: September - May)
-// Weekdays:
-//   Off-Peak: 00:00 - 06:00, 22:00 - 24:00 (8h)
-//   Standard: 06:00 - 07:00, 10:00 - 18:00, 20:00 - 22:00 (11h)
-//   Peak:     07:00 - 10:00, 18:00 - 20:00 (5h)
 
 type SeasonType = "high" | "low";
 type DayType = "weekday" | "saturday" | "sunday";
@@ -45,7 +19,6 @@ export function EneraSouthAfricanContextSection() {
   const [activeSeason, setActiveSeason] = useState<SeasonType>("high");
   const [activeDay, setActiveDay] = useState<DayType>("weekday");
   const [isPublicHoliday, setIsPublicHoliday] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<"tariffs" | "amr" | "vectors">("tariffs");
 
   // Generate 24-hour TOU block disaggregation based on South African Megaflex rules
   const schedule: HourBlock[] = useMemo(() => {
@@ -94,163 +67,47 @@ export function EneraSouthAfricanContextSection() {
 
   return (
     <section
-      id="about"
-      className="relative py-28 sm:py-36 bg-[#030712] text-white overflow-hidden border-t border-white/5 scroll-mt-12"
-      aria-label="About ENERA South African Energy Intelligence Context"
+      id="solutions"
+      className="relative py-24 sm:py-32 bg-[#030712] text-white border-t border-white/10 overflow-hidden scroll-mt-12"
+      aria-label="Enterprise Grid Solutions"
     >
-      {/* Backwards-compatible anchor */}
+      {/* Backwards-compatible anchors */}
+      <div id="regulatory-grid" className="sr-only" aria-hidden="true" />
       <div id="ecosystem" className="sr-only" aria-hidden="true" />
 
-      {/* Background ambient lighting */}
-      <div
-        className="absolute top-1/3 right-1/4 w-[750px] h-[500px] bg-cyan-500/10 rounded-full blur-[160px] pointer-events-none -z-10"
-        aria-hidden="true"
-      />
-      <div
-        className="absolute bottom-10 left-10 w-[600px] h-[400px] bg-emerald-500/5 rounded-full blur-[140px] pointer-events-none -z-10"
-        aria-hidden="true"
-      />
-
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <EnginePhaseTag
-            phase="05"
-            name="ANOMALY"
-            sub="REGULATORY TARIFF & SURCHARGE ISOLATION"
-          />
-
-          <h2 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight enera-text-gradient leading-tight">
-            NATIVE TO SOUTH AFRICA&rsquo;S GRID.
-            <br />
-            ENGINEERED TO GLOBAL STANDARDS.
-          </h2>
-
-          <p className="mt-5 text-base sm:text-lg text-slate-400 font-light leading-relaxed">
-            South Africa&rsquo;s power economics are uniquely demanding. ENERA speaks fluent Eskom,
-            Megaflex, and Municipal billing — pairing localized regulatory depth with
-            global quantitative financial precision.
-          </p>
-
-          {/* Independence & International Positioning Badge */}
-          <div className="mt-5 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-mono text-slate-400">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-            <span>
-              INDEPENDENT PRIVATE INTELLIGENCE PLATFORM · ZERO STATE OR UTILITY AFFILIATION
-            </span>
-          </div>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* 1. SMALL EYEBROW */}
+        <div className="text-xs font-mono uppercase tracking-widest text-cyan-400 mb-3 font-semibold">
+          SOLUTIONS
         </div>
 
-        {/* 4 Pillars of South African Energy Financial Intelligence */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {/* Pillar 1: Eskom & Megaflex */}
-          <div className="rounded-3xl p-6 sm:p-7 bg-[#0d1117] border border-white/10 hover:border-cyan-500/40 transition-all group flex flex-col justify-between shadow-xl">
-            <div>
-              <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-4 group-hover:scale-105 transition-transform">
-                <Zap className="h-5 w-5" />
-              </div>
-              <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider font-semibold">
-                BULK TRANSMISSION TARIFFS
-              </span>
-              <h3 className="text-lg font-bold text-white font-mono mt-1">Eskom &amp; Megaflex</h3>
-              <p className="text-xs text-slate-400 mt-2.5 leading-relaxed">
-                Full-spectrum modeling of high-voltage transmission supply: High/Low season TOU
-                multipliers, voltage classifications (&gt;66kV to &lt;500V), transmission loss
-                factors, and Notified Maximum Demand (NMD) rules.
-              </p>
-            </div>
-            <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
-              <span>NERSA Schedule 2</span>
-              <span className="text-cyan-400 font-semibold">Auto-Versioned</span>
-            </div>
-          </div>
+        {/* 2. Large headline */}
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-tight font-sans max-w-3xl">
+          Native to South Africa&rsquo;s grid. Built for enterprise rigor.
+        </h2>
 
-          {/* Pillar 2: Municipal Billing */}
-          <div className="rounded-3xl p-6 sm:p-7 bg-[#0d1117] border border-white/10 hover:border-emerald-500/40 transition-all group flex flex-col justify-between shadow-xl">
-            <div>
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-4 group-hover:scale-105 transition-transform">
-                <Building2 className="h-5 w-5" />
-              </div>
-              <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-semibold">
-                MULTI-METRO INTEGRATION
-              </span>
-              <h3 className="text-lg font-bold text-white font-mono mt-1">Municipal Billing</h3>
-              <p className="text-xs text-slate-400 mt-2.5 leading-relaxed">
-                Seamless reconciliation across City Power (JHB), eThekwini, City of Cape Town,
-                Ekurhuleni, and Tshwane. Manages municipal wheeling credits and the pro-rata split
-                between Eskom&rsquo;s April 1 and Municipal July 1 fiscal tariff cycles.
-              </p>
-            </div>
-            <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
-              <span>Dual Fiscal Calendars</span>
-              <span className="text-emerald-400 font-semibold">April &amp; July Sync</span>
-            </div>
-          </div>
+        {/* 3. Short explanation */}
+        <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed max-w-3xl mb-14">
+          Deterministic modeling across Eskom Megaflex and municipal billing frameworks, matching statutory tariff gazettes with treasury-grade precision.
+        </p>
 
-          {/* Pillar 3: AMR Telemetry */}
-          <div className="rounded-3xl p-6 sm:p-7 bg-[#0d1117] border border-white/10 hover:border-cyan-500/40 transition-all group flex flex-col justify-between shadow-xl">
-            <div>
-              <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-4 group-hover:scale-105 transition-transform">
-                <Activity className="h-5 w-5" />
-              </div>
-              <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider font-semibold">
-                INTERVAL TELEMETRY
-              </span>
-              <h3 className="text-lg font-bold text-white font-mono mt-1">AMR Ground Truth</h3>
-              <p className="text-xs text-slate-400 mt-2.5 leading-relaxed">
-                Automated Meter Reading (AMR) streaming at 30-minute intervals (48 readings/day,
-                1,488/month). Correlates Class 0.2S optical and GSM data-logger pulses with CT/VT
-                multiplier verification.
-              </p>
-            </div>
-            <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
-              <span>SANS 474 / NRS 057</span>
-              <span className="text-cyan-400 font-semibold">30-Min Resolution</span>
-            </div>
-          </div>
-
-          {/* Pillar 4: Vector Units: kWh · kVA · kVArh */}
-          <div className="rounded-3xl p-6 sm:p-7 bg-[#0d1117] border border-white/10 hover:border-amber-500/40 transition-all group flex flex-col justify-between shadow-xl">
-            <div>
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-4 group-hover:scale-105 transition-transform">
-                <Cpu className="h-5 w-5" />
-              </div>
-              <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-semibold">
-                TRILATERAL DETERMINANTS
-              </span>
-              <h3 className="text-lg font-bold text-white font-mono mt-1">kWh · kVA · kVArh</h3>
-              <p className="text-xs text-slate-400 mt-2.5 leading-relaxed">
-                Vector disaggregation of active energy (<strong className="text-white">kWh</strong>
-                ), maximum demand (<strong className="text-white">kVA</strong>), and reactive power
-                (<strong className="text-white">kVArh</strong>), accounting for statutory power
-                factor surcharges across Peak and Standard billing periods.
-              </p>
-            </div>
-            <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
-              <span>Power Factor Reconciliation</span>
-              <span className="text-amber-400 font-semibold">Statutory Precision</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Interactive TOU (Time-of-Use) Matrix Engine Console */}
-        <div className="max-w-5xl mx-auto rounded-3xl bg-gradient-to-b from-[#0d1117] to-[#070b12] border border-cyan-500/30 p-6 sm:p-10 shadow-[0_0_80px_-20px_rgba(6,182,212,0.2)]">
+        {/* 4. Visual or capability: Interactive 24-Hour TOU Determinant Engine Console */}
+        <div className="rounded-2xl bg-[#090d16] border border-white/10 p-6 sm:p-8 space-y-6 shadow-xl">
           {/* Header of the Console */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
-                <Clock className="h-5 w-5" />
+              <div className="p-2 rounded-lg bg-white/5 border border-white/10 text-cyan-400">
+                <Clock className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="text-lg sm:text-xl font-bold text-white font-mono flex items-center gap-2">
-                  <span>TIME-OF-USE (TOU) DETERMINANT ENGINE</span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-semibold">
+                <h3 className="text-sm font-semibold text-white font-sans flex items-center gap-2">
+                  <span>Time-of-Use (TOU) Determinant Schedule</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-slate-300">
                     SAST (UTC+2)
                   </span>
                 </h3>
                 <p className="text-xs text-slate-400 font-sans">
-                  Inspect how active kWh and reactive kVArh map across Peak, Standard, and Off-Peak
-                  temporal buckets.
+                  Inspect how active kWh and reactive kVArh map across statutory temporal windows.
                 </p>
               </div>
             </div>
@@ -262,49 +119,43 @@ export function EneraSouthAfricanContextSection() {
                 role="radio"
                 aria-checked={activeSeason === "high"}
                 onClick={() => setActiveSeason("high")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all focus-ring-enera ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all border focus-ring-enera ${
                   activeSeason === "high"
-                    ? "bg-amber-500 text-slate-950 font-bold shadow-[0_0_15px_rgba(245,158,11,0.4)]"
-                    : "bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10"
+                    ? "bg-amber-500/20 text-amber-300 border-amber-500/40 font-semibold"
+                    : "bg-[#0b101b] text-slate-400 border-white/5 hover:text-white"
                 }`}
               >
-                HIGH SEASON (WINTER)
+                High Season (Winter)
               </button>
               <button
                 type="button"
                 role="radio"
                 aria-checked={activeSeason === "low"}
                 onClick={() => setActiveSeason("low")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all focus-ring-enera ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all border focus-ring-enera ${
                   activeSeason === "low"
-                    ? "bg-cyan-500 text-slate-950 font-bold shadow-[0_0_15px_rgba(6,182,212,0.4)]"
-                    : "bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10"
+                    ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40 font-semibold"
+                    : "bg-[#0b101b] text-slate-400 border-white/5 hover:text-white"
                 }`}
               >
-                LOW SEASON (SUMMER)
+                Low Season (Summer)
               </button>
             </div>
           </div>
 
-          {/* Secondary Controls: Day Type and Public Holiday Toggle */}
-          <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-b border-white/5 text-xs font-mono">
-            <div
-              className="flex flex-wrap items-center gap-1.5 sm:gap-2"
-              role="radiogroup"
-              aria-label="Day Profile"
-            >
-              <span className="text-slate-400">DAY PROFILE:</span>
+          {/* Secondary Controls: Day Profile & Public Holiday Toggle */}
+          <div className="flex flex-wrap items-center justify-between gap-4 py-3 border-b border-white/5 text-xs font-mono">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-slate-400">Day Profile:</span>
               <button
                 type="button"
-                role="radio"
-                aria-checked={activeDay === "weekday" && !isPublicHoliday}
                 onClick={() => {
                   setActiveDay("weekday");
                   setIsPublicHoliday(false);
                 }}
-                className={`px-2.5 py-1 rounded-lg transition-all focus-ring-enera ${
+                className={`px-2.5 py-1 rounded-md text-xs transition-all focus-ring-enera ${
                   activeDay === "weekday" && !isPublicHoliday
-                    ? "bg-white/15 text-white font-bold border border-white/20"
+                    ? "bg-white/15 text-white font-medium"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
@@ -312,15 +163,13 @@ export function EneraSouthAfricanContextSection() {
               </button>
               <button
                 type="button"
-                role="radio"
-                aria-checked={activeDay === "saturday" && !isPublicHoliday}
                 onClick={() => {
                   setActiveDay("saturday");
                   setIsPublicHoliday(false);
                 }}
-                className={`px-2.5 py-1 rounded-lg transition-all focus-ring-enera ${
+                className={`px-2.5 py-1 rounded-md text-xs transition-all focus-ring-enera ${
                   activeDay === "saturday" && !isPublicHoliday
-                    ? "bg-white/15 text-white font-bold border border-white/20"
+                    ? "bg-white/15 text-white font-medium"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
@@ -328,15 +177,13 @@ export function EneraSouthAfricanContextSection() {
               </button>
               <button
                 type="button"
-                role="radio"
-                aria-checked={activeDay === "sunday" && !isPublicHoliday}
                 onClick={() => {
                   setActiveDay("sunday");
                   setIsPublicHoliday(false);
                 }}
-                className={`px-2.5 py-1 rounded-lg transition-all focus-ring-enera ${
+                className={`px-2.5 py-1 rounded-md text-xs transition-all focus-ring-enera ${
                   activeDay === "sunday" && !isPublicHoliday
-                    ? "bg-white/15 text-white font-bold border border-white/20"
+                    ? "bg-white/15 text-white font-medium"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
@@ -349,73 +196,58 @@ export function EneraSouthAfricanContextSection() {
               type="button"
               aria-pressed={isPublicHoliday}
               onClick={() => setIsPublicHoliday(!isPublicHoliday)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs transition-all focus-ring-enera ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs transition-all focus-ring-enera ${
                 isPublicHoliday
-                  ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)] font-semibold"
+                  ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-semibold"
                   : "bg-white/5 border-white/10 text-slate-400 hover:text-white"
               }`}
             >
               <Calendar className="h-3.5 w-3.5" />
               <span>
-                PUBLIC HOLIDAY ACT 36 RULE ({isPublicHoliday ? "ACTIVE: 100% OFF-PEAK" : "DISABLED"}
-                )
+                Public Holidays Act 36 ({isPublicHoliday ? "Active: 100% Off-Peak" : "Standard"})
               </span>
             </button>
           </div>
 
           {/* 24-Hour Timeline Block Visualizer */}
-          <div
-            role="region"
-            aria-label="24-hour Time-of-Use schedule visualizer"
-            aria-live="polite"
-            className="mt-8 space-y-3"
-          >
+          <div className="space-y-3">
             <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-              <span>24-HOUR TIME-OF-USE ALLOCATION (SAST)</span>
+              <span>24-Hour Determinant Allocation</span>
               <div className="flex items-center gap-4 text-[11px]">
                 <span className="flex items-center gap-1.5">
-                  <span
-                    className="w-2.5 h-2.5 rounded bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"
-                    aria-hidden="true"
-                  />
-                  <span className="text-white font-bold">Peak ({peakHours}h)</span>
+                  <span className="w-2.5 h-2.5 rounded-sm bg-rose-500" />
+                  <span className="text-white font-medium">Peak ({peakHours}h)</span>
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span
-                    className="w-2.5 h-2.5 rounded bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]"
-                    aria-hidden="true"
-                  />
-                  <span className="text-white font-bold">Standard ({standardHours}h)</span>
+                  <span className="w-2.5 h-2.5 rounded-sm bg-cyan-400" />
+                  <span className="text-white font-medium">Standard ({standardHours}h)</span>
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded bg-slate-600" aria-hidden="true" />
+                  <span className="w-2.5 h-2.5 rounded-sm bg-slate-700" />
                   <span className="text-slate-300">Off-Peak ({offPeakHours}h)</span>
                 </span>
               </div>
             </div>
 
-            {/* 24 Grid Columns representing hours 00:00 - 23:00 */}
+            {/* 24 Columns */}
             <div className="overflow-x-auto pb-2">
-              <div className="grid grid-cols-[repeat(24,minmax(0,1fr))] min-w-[640px] gap-1 p-2 rounded-2xl bg-black/60 border border-white/10">
+              <div className="grid grid-cols-[repeat(24,minmax(0,1fr))] min-w-[620px] gap-1 p-2 rounded-xl bg-black/40 border border-white/10">
                 {schedule.map((block) => {
                   const isPeak = block.period === "Peak";
                   const isStandard = block.period === "Standard";
 
-                  let bgClass = "bg-slate-800 text-slate-400 hover:bg-slate-700";
+                  let bgClass = "bg-slate-800 text-slate-400";
                   if (isPeak) {
-                    bgClass =
-                      "bg-gradient-to-t from-rose-600 to-rose-400 text-slate-950 font-black shadow-[0_0_12px_rgba(244,63,94,0.5)]";
+                    bgClass = "bg-rose-600 text-white font-semibold";
                   } else if (isStandard) {
-                    bgClass =
-                      "bg-gradient-to-t from-cyan-600 to-cyan-400 text-slate-950 font-black shadow-[0_0_12px_rgba(6,182,212,0.4)]";
+                    bgClass = "bg-cyan-600 text-white font-semibold";
                   }
 
                   return (
                     <div
                       key={block.hour}
-                      className={`h-14 rounded-lg flex flex-col items-center justify-between p-1 transition-all ${bgClass}`}
+                      className={`h-12 rounded flex flex-col items-center justify-between p-1 transition-all ${bgClass}`}
                       title={`${String(block.hour).padStart(2, "0")}:00 – ${block.period}`}
-                      aria-label={`${String(block.hour).padStart(2, "0")}:00 to ${String((block.hour + 1) % 24).padStart(2, "0")}:00: ${block.period}`}
                     >
                       <span className="text-[9px] font-mono leading-none">
                         {String(block.hour).padStart(2, "0")}
@@ -428,10 +260,8 @@ export function EneraSouthAfricanContextSection() {
                 })}
               </div>
             </div>
-            <div
-              className="flex justify-between text-[10px] font-mono text-slate-400 px-1"
-              aria-hidden="true"
-            >
+
+            <div className="flex justify-between text-[10px] font-mono text-slate-400 px-1">
               <span>00:00 (Midnight)</span>
               <span>06:00 (Morning)</span>
               <span>12:00 (Noon)</span>
@@ -440,59 +270,53 @@ export function EneraSouthAfricanContextSection() {
             </div>
           </div>
 
-          {/* Real South African Billing Discrepancy Case Studies */}
-          <div className="mt-8 pt-6 border-t border-white/10 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
-            <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-1.5">
-              <span className="text-rose-400 font-bold text-[10px] block uppercase">
-                CRITICAL RECONCILIATION RISK
+          {/* 3 Core Discrepancy Scenarios */}
+          <div className="pt-4 border-t border-white/10 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+            <div className="p-4 rounded-xl bg-black/30 border border-white/5 space-y-1">
+              <span className="text-rose-400 font-semibold text-[10px] uppercase block">
+                STATUTORY RULE
               </span>
-              <div className="text-white font-bold">Public Holiday Peak Misbilling</div>
+              <div className="text-white font-medium">Public Holiday Exemption</div>
               <p className="text-slate-400 text-[11px] font-sans leading-relaxed">
-                When Human Rights Day or Youth Day falls on a weekday, Eskom billing systems
-                occasionally apply weekday Peak rates instead of mandatory Sunday Off-Peak tariffs.
+                Mandatory off-peak tariff substitution on gazetted holidays under NERSA Schedule 2.
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-1.5">
-              <span className="text-cyan-400 font-bold text-[10px] block uppercase">
-                DEMAND METRIC ACCURACY
+            <div className="p-4 rounded-xl bg-black/30 border border-white/5 space-y-1">
+              <span className="text-cyan-400 font-semibold text-[10px] uppercase block">
+                CAPACITY RATIO
               </span>
-              <div className="text-white font-bold">kVA Maximum Demand Ratchets</div>
+              <div className="text-white font-medium">Demand Ratchet Verification</div>
               <p className="text-slate-400 text-[11px] font-sans leading-relaxed">
-                30-minute AMR interval telemetry validates whether registered peak kVA was an
-                unnotified transmission spike or a legitimate operational peak under Megaflex rules.
+                Separates true 30-min operational demand peaks from transient network disturbances.
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-1.5">
-              <span className="text-emerald-400 font-bold text-[10px] block uppercase">
-                REACTIVE PENALTY COMPENSATION
+            <div className="p-4 rounded-xl bg-black/30 border border-white/5 space-y-1">
+              <span className="text-emerald-400 font-semibold text-[10px] uppercase block">
+                POWER FACTOR CODE
               </span>
-              <div className="text-white font-bold">kVArh Vector Auditing</div>
+              <div className="text-white font-medium">kVArh Vector Auditing</div>
               <p className="text-slate-400 text-[11px] font-sans leading-relaxed">
-                Lagging power factor surcharges are restricted exclusively to Peak &amp; Standard
-                periods during High Season. Off-Peak reactive energy is non-billable by law.
+                Validates reactive draw exclusively during billable Peak/Standard High-Season hours.
               </p>
             </div>
           </div>
+        </div>
 
-          {/* Action Gateway */}
-          <div className="mt-8 pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
-            <div className="text-xs text-slate-400 font-sans">
-              Compatible with all 2024/2025 NERSA gazetted rate schedules for Eskom Direct &amp;
-              Municipal Distributors.
-            </div>
-
-            <Link
-              to="/reconciliation"
-              className="py-2.5 px-5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs font-mono flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all group focus-ring-enera"
-            >
-              <span>EXPLORE LIVE RECONCILIATION COCKPIT</span>
-              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
-          </div>
+        {/* 5. Optional supporting information & 6. Optional CTA */}
+        <div className="mt-12 pt-6 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-400">
+          <span>Engineered for Commercial &amp; Industrial, Mining Operations, and Municipal Distributors.</span>
+          <a
+            href="#contact"
+            className="inline-flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 font-medium transition-colors focus-ring-enera shrink-0"
+          >
+            <span>Explore sector solutions</span>
+            <ArrowRight className="h-3 w-3" />
+          </a>
         </div>
       </div>
     </section>
   );
 }
+

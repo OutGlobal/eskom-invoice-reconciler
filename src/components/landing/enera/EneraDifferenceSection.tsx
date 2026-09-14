@@ -1,430 +1,358 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Scale,
   ArrowRight,
-  TrendingDown,
-  DollarSign,
-  CheckCircle,
-  AlertTriangle,
-  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  FileCheck,
+  ShieldCheck,
+  Zap,
+  Gauge,
+  Activity,
 } from "lucide-react";
-import { EnginePhaseTag } from "./EneraBrandPrimitives";
+
+type MetricKey = "active" | "demand" | "reactive";
+
+interface TOUIntervalRow {
+  window: string;
+  billed: string;
+  actual: string;
+  variance: string;
+  rate: string;
+  financialImpact: string;
+}
+
+interface ReconciliationDataSet {
+  id: MetricKey;
+  label: string;
+  shortLabel: string;
+  unit: string;
+  icon: React.ComponentType<{ className?: string }>;
+  billedSummary: string;
+  actualSummary: string;
+  varianceSummary: string;
+  impactSummary: string;
+  accountReference: string;
+  meterReference: string;
+  statutoryNotice: string;
+  rows: TOUIntervalRow[];
+}
+
+const RECONCILIATION_DATA: Record<MetricKey, ReconciliationDataSet> = {
+  active: {
+    id: "active",
+    label: "Active Energy (kWh)",
+    shortLabel: "Active Energy",
+    unit: "kWh",
+    icon: Zap,
+    billedSummary: "4,218,441",
+    actualSummary: "4,087,214",
+    varianceSummary: "131,227",
+    impactSummary: "R 51,227",
+    accountReference: "ACC: 9021-4819-2041",
+    meterReference: "MTR: 021-MS-90412 (1,488 Intervals)",
+    statutoryNotice: "NERSA Megaflex Schedule 2 — High Season TOU Gazette 2025/26",
+    rows: [
+      {
+        window: "Peak Hours (06:00-09:00, 17:00-19:00)",
+        billed: "892,100 kWh",
+        actual: "854,200 kWh",
+        variance: "37,900 kWh",
+        rate: "R 4.1284 / kWh",
+        financialImpact: "R 24,180",
+      },
+      {
+        window: "Standard Hours (09:00-17:00, 19:00-22:00)",
+        billed: "1,642,300 kWh",
+        actual: "1,598,110 kWh",
+        variance: "44,190 kWh",
+        rate: "R 1.4820 / kWh",
+        financialImpact: "R 18,914",
+      },
+      {
+        window: "Off-Peak Hours (22:00-06:00, Weekends)",
+        billed: "1,684,041 kWh",
+        actual: "1,634,904 kWh",
+        variance: "49,137 kWh",
+        rate: "R 0.8912 / kWh",
+        financialImpact: "R 8,133",
+      },
+    ],
+  },
+  demand: {
+    id: "demand",
+    label: "Maximum Demand (kVA)",
+    shortLabel: "Max Demand",
+    unit: "kVA",
+    icon: Gauge,
+    billedSummary: "8,421",
+    actualSummary: "7,940",
+    varianceSummary: "481",
+    impactSummary: "R 46,176",
+    accountReference: "ACC: 9021-4819-2041",
+    meterReference: "MTR: 021-MS-90412 (Peak 14 Jul 18:30)",
+    statutoryNotice: "Eskom Transmission Tariff Rules — Section 4.2 Demand Assessment",
+    rows: [
+      {
+        window: "Registered Monthly Peak (14 Jul 18:30)",
+        billed: "8,421 kVA",
+        actual: "7,940 kVA",
+        variance: "481 kVA",
+        rate: "R 96.00 / kVA",
+        financialImpact: "R 46,176",
+      },
+      {
+        window: "Historical 12-Month Ratchet Baseline",
+        billed: "8,200 kVA (Over-ratcheted)",
+        actual: "7,940 kVA Verified",
+        variance: "260 kVA",
+        rate: "Ratchet Factor 0.70",
+        financialImpact: "Protected",
+      },
+    ],
+  },
+  reactive: {
+    id: "reactive",
+    label: "Reactive Energy (kVArh)",
+    shortLabel: "Reactive Energy",
+    unit: "kVArh",
+    icon: Activity,
+    billedSummary: "342,100",
+    actualSummary: "112,040",
+    varianceSummary: "230,060",
+    impactSummary: "R 28,758",
+    accountReference: "ACC: 9021-4819-2041",
+    meterReference: "MTR: 021-MS-90412 (Vector Sum)",
+    statutoryNotice: "SA Grid Code v4.1 — Deterministic Power Factor Compliance",
+    rows: [
+      {
+        window: "Billed Reactive Energy Surcharge",
+        billed: "342,100 kVArh",
+        actual: "112,040 kVArh",
+        variance: "230,060 kVArh",
+        rate: "R 0.1250 / kVArh",
+        financialImpact: "R 28,758",
+      },
+      {
+        window: "Effective Power Factor Ratio",
+        billed: "0.88 Lagging (Penalty)",
+        actual: "0.94 Compliant",
+        variance: "+0.06 PF",
+        rate: "Threshold ≥0.92",
+        financialImpact: "Full Waiver",
+      },
+    ],
+  },
+};
 
 export function EneraDifferenceSection() {
-  const sectionRef = useRef<HTMLElement | null>(null);
-  const [isVisible, setIsVisible] = useState<boolean>(true);
-  const [reducedMotion, setReducedMotion] = useState<boolean>(false);
-  const [activeMetric, setActiveMetric] = useState<"active" | "demand" | "reactive">("active");
-
-  // Check prefers-reduced-motion
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReducedMotion(mediaQuery.matches);
-    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
-    mediaQuery.addEventListener("change", handler);
-    return () => mediaQuery.removeEventListener("change", handler);
-  }, []);
-
-  // Viewport intersection observer to trigger animated counting
-  useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-        }
-      },
-      { threshold: 0.2 },
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  // Datasets (Default is the exact required Active Energy: 4,218,441 vs 4,087,214 = 131,227 / R 51,227)
-  const METRIC_DATA = {
-    active: {
-      unit: "kWh",
-      billedVal: 4218441,
-      actualVal: 4087214,
-      varianceVal: 131227,
-      billedDisplay: "4,218,441",
-      actualDisplay: "4,087,214",
-      varianceDisplay: "131,227",
-      financialImpact: "R 51,227",
-      label: "Active Energy",
-    },
-    demand: {
-      unit: "kVA",
-      billedVal: 8421,
-      actualVal: 7940,
-      varianceVal: 481,
-      billedDisplay: "8,421",
-      actualDisplay: "7,940",
-      varianceDisplay: "481",
-      financialImpact: "R 46,176",
-      label: "Maximum Demand",
-    },
-    reactive: {
-      unit: "kVArh",
-      billedVal: 342100,
-      actualVal: 112040,
-      varianceVal: 230060,
-      billedDisplay: "342,100",
-      actualDisplay: "112,040",
-      varianceDisplay: "230,060",
-      financialImpact: "R 28,758",
-      label: "Reactive Energy",
-    },
-  };
-
-  const cur = METRIC_DATA[activeMetric];
-
-  // Number animation counters
-  const [billedCounter, setBilledCounter] = useState(0);
-  const [actualCounter, setActualCounter] = useState(0);
-  const [varianceCounter, setVarianceCounter] = useState(0);
-  const [impactCounter, setImpactCounter] = useState(0);
-  const [stage, setStage] = useState<number>(reducedMotion ? 3 : 0);
-
-  useEffect(() => {
-    if (reducedMotion) {
-      setBilledCounter(cur.billedVal);
-      setActualCounter(cur.actualVal);
-      setVarianceCounter(cur.varianceVal);
-      setImpactCounter(51227);
-      setStage(3);
-      return;
-    }
-
-    if (!isVisible) return;
-
-    // Reset counters on tab change or visibility trigger
-    setBilledCounter(0);
-    setActualCounter(0);
-    setVarianceCounter(0);
-    setImpactCounter(0);
-    setStage(1);
-
-    const duration = 1600;
-    let startTimestamp: number | null = null;
-    let activeRafId: number | null = null;
-
-    const step = (timestamp: number) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const elapsed = timestamp - startTimestamp;
-      const progress = Math.min(elapsed / duration, 1);
-      const ease = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-
-      setBilledCounter(Math.floor(ease * cur.billedVal));
-      setActualCounter(Math.floor(ease * cur.actualVal));
-
-      if (progress < 1) {
-        activeRafId = requestAnimationFrame(step);
-      } else {
-        setBilledCounter(cur.billedVal);
-        setActualCounter(cur.actualVal);
-        setStage(2);
-
-        // Sequence: Then Variance reveals and counts up
-        let vStart: number | null = null;
-        const vStep = (vTimestamp: number) => {
-          if (!vStart) vStart = vTimestamp;
-          const vElapsed = vTimestamp - vStart;
-          const vProgress = Math.min(vElapsed / 900, 1);
-          const vEase = 1 - Math.pow(1 - vProgress, 3);
-
-          setVarianceCounter(Math.floor(vEase * cur.varianceVal));
-
-          if (vProgress < 1) {
-            activeRafId = requestAnimationFrame(vStep);
-          } else {
-            setVarianceCounter(cur.varianceVal);
-            setStage(3);
-
-            // Sequence: Then Potential Financial Impact reveals
-            let fStart: number | null = null;
-            const targetMoney =
-              activeMetric === "active" ? 51227 : activeMetric === "demand" ? 46176 : 28758;
-            const fStep = (fTimestamp: number) => {
-              if (!fStart) fStart = fTimestamp;
-              const fElapsed = fTimestamp - fStart;
-              const fProgress = Math.min(fElapsed / 800, 1);
-              const fEase = 1 - Math.pow(1 - fProgress, 3);
-              setImpactCounter(Math.floor(fEase * targetMoney));
-              if (fProgress < 1) {
-                activeRafId = requestAnimationFrame(fStep);
-              } else {
-                setImpactCounter(targetMoney);
-              }
-            };
-            activeRafId = requestAnimationFrame(fStep);
-          }
-        };
-        activeRafId = requestAnimationFrame(vStep);
-      }
-    };
-
-    activeRafId = requestAnimationFrame(step);
-
-    return () => {
-      if (activeRafId) cancelAnimationFrame(activeRafId);
-    };
-  }, [isVisible, activeMetric, reducedMotion, cur.actualVal, cur.billedVal, cur.varianceVal]);
+  const [activeMetric, setActiveMetric] = useState<MetricKey>("active");
+  const dataset = RECONCILIATION_DATA[activeMetric];
 
   return (
     <section
-      ref={sectionRef}
       id="reconciliation"
-      className="relative py-28 sm:py-36 bg-[#030712] text-white overflow-hidden border-t border-white/5"
+      className="relative py-24 sm:py-32 bg-[#030712] text-white border-t border-white/10 overflow-hidden scroll-mt-12"
+      aria-label="Deterministic Reconciliation Ledger"
     >
-      {/* Background ambient lighting */}
-      <div className="absolute top-1/3 left-1/3 w-[650px] h-[650px] rounded-full bg-cyan-500/[0.04] blur-[160px] pointer-events-none" />
-      <div className="absolute bottom-1/3 right-1/3 w-[650px] h-[650px] rounded-full bg-amber-500/[0.03] blur-[160px] pointer-events-none" />
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* 1. SMALL EYEBROW */}
+        <div className="text-xs font-mono uppercase tracking-widest text-cyan-400 mb-3 font-semibold">
+          RECONCILIATION
+        </div>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 relative z-10">
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto">
-          <EnginePhaseTag
-            phase="04"
-            name="RECONCILIATION"
-            sub="GROUND TRUTH VERIFICATION"
-          />
+        {/* 2. Large headline */}
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-tight font-sans max-w-3xl">
+          Find the difference.
+        </h2>
 
-          {/* Title: FIND THE DIFFERENCE. */}
-          <h2 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-none font-sans">
-            FIND THE DIFFERENCE.
-          </h2>
+        {/* 3. Short explanation */}
+        <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed max-w-3xl mb-8">
+          Deterministic line-item comparison between billed utility registers and raw half-hour AMR telemetry to isolate unearned charges before settlement.
+        </p>
 
-          <p className="mt-5 text-base sm:text-xl text-slate-400 font-light max-w-xl mx-auto">
-            ENERA compares relevant billing and consumption information to identify material
-            differences and surface unusual patterns before invoices are settled.
-          </p>
-
-          {/* Metric Selector Tabs */}
-          <div
-            role="tablist"
-            aria-label="Reconciliation metric comparison selector"
-            className="mt-8 inline-flex max-w-full overflow-x-auto scrollbar-none items-center p-1 rounded-xl bg-[#0d1117]/80 border border-white/10 backdrop-blur-md"
-          >
-            {(["active", "demand", "reactive"] as const).map((tab) => {
-              const isSelected = activeMetric === tab;
+        {/* Metric Selector Pills */}
+        <div className="mb-10 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {(["active", "demand", "reactive"] as const).map((key) => {
+              const item = RECONCILIATION_DATA[key];
+              const isSelected = activeMetric === key;
               return (
                 <button
-                  key={tab}
-                  role="tab"
-                  id={`metric-tab-${tab}`}
-                  aria-selected={isSelected}
-                  aria-controls={`metric-panel-${tab}`}
-                  tabIndex={isSelected ? 0 : -1}
-                  onClick={() => setActiveMetric(tab)}
-                  className={`px-3 sm:px-4 py-1.5 text-xs font-mono rounded-lg transition-all shrink-0 focus-ring-enera ${
+                  key={key}
+                  type="button"
+                  onClick={() => setActiveMetric(key)}
+                  className={`px-4 py-2 rounded-lg text-xs font-mono transition-all border shrink-0 flex items-center gap-2 ${
                     isSelected
-                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold shadow-[0_0_12px_rgba(6,182,212,0.2)]"
-                      : "text-slate-300 hover:text-white"
+                      ? "bg-cyan-950/40 text-cyan-300 border-cyan-500/40 font-semibold"
+                      : "bg-[#0b101b] text-slate-400 border-white/5 hover:text-white hover:border-white/20"
                   }`}
                 >
-                  <span className="sm:hidden">
-                    {tab === "active" ? "Active" : tab === "demand" ? "Demand" : "Reactive"}
-                  </span>
-                  <span className="hidden sm:inline">
-                    {tab === "active"
-                      ? "Active Energy (kWh)"
-                      : tab === "demand"
-                        ? "Max Demand (kVA)"
-                        : "Reactive Energy (kVArh)"}
-                  </span>
+                  <item.icon className="h-3.5 w-3.5" />
+                  <span>{item.label}</span>
                 </button>
               );
             })}
           </div>
+
+        {/* Top Quantitative Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          {/* 1. Billed Card */}
+          <div className="rounded-xl bg-[#090d16] border border-white/10 p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-2 border-b border-white/5">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">
+                Billed Register
+              </span>
+              <span className="text-[10px] font-mono text-slate-400 uppercase px-1.5 py-0.5 rounded bg-white/5">
+                Invoice
+              </span>
+            </div>
+            <div className="my-4">
+              <div className="text-3xl sm:text-4xl font-mono font-semibold text-slate-200">
+                {dataset.billedSummary}
+              </div>
+              <span className="text-xs font-mono text-slate-400 mt-1 block">
+                {dataset.unit}
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-slate-500 truncate">
+              {dataset.accountReference}
+            </span>
+          </div>
+
+          {/* 2. Actual Ground Truth Card */}
+          <div className="rounded-xl bg-[#09111e] border border-cyan-500/25 p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-2 border-b border-white/5">
+              <span className="text-[11px] font-mono text-cyan-400 uppercase tracking-wider">
+                AMR Ground Truth
+              </span>
+              <span className="text-[10px] font-mono text-emerald-400 uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 font-semibold">
+                Verified
+              </span>
+            </div>
+            <div className="my-4">
+              <div className="text-3xl sm:text-4xl font-mono font-semibold text-cyan-300">
+                {dataset.actualSummary}
+              </div>
+              <span className="text-xs font-mono text-cyan-400/80 mt-1 block">
+                {dataset.unit}
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-cyan-400/70 truncate">
+              {dataset.meterReference}
+            </span>
+          </div>
+
+          {/* 3. Variance Card */}
+          <div className="rounded-xl bg-[#140f09] border border-amber-500/30 p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-2 border-b border-white/5">
+              <span className="text-[11px] font-mono text-amber-400 uppercase tracking-wider">
+                Isolated Variance
+              </span>
+              <AlertCircle className="h-3.5 w-3.5 text-amber-400" />
+            </div>
+            <div className="my-4">
+              <div className="text-3xl sm:text-4xl font-mono font-semibold text-amber-300">
+                {dataset.varianceSummary}
+              </div>
+              <span className="text-xs font-mono text-amber-400/80 mt-1 block">
+                {dataset.unit} Discrepancy
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-amber-400/70">
+              UNRECONCILED DELTA
+            </span>
+          </div>
+
+          {/* 4. Financial Impact Card */}
+          <div className="rounded-xl bg-[#091612] border border-emerald-500/30 p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-2 border-b border-white/5">
+              <span className="text-[11px] font-mono text-emerald-400 uppercase tracking-wider">
+                Financial Impact
+              </span>
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+            </div>
+            <div className="my-4">
+              <div className="text-3xl sm:text-4xl font-mono font-semibold text-emerald-300">
+                {dataset.impactSummary}
+              </div>
+              <span className="text-xs font-mono text-emerald-400/80 mt-1 block">
+                Potential Overcharge
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-emerald-400/80">
+              RECOVERY DOSSIER GENERATED
+            </span>
+          </div>
         </div>
 
-        {/* 1. Two Large Values: BILLED versus ACTUAL */}
-        <div
-          role="tabpanel"
-          id={`metric-panel-${activeMetric}`}
-          aria-labelledby={`metric-tab-${activeMetric}`}
-          aria-live="polite"
-          className="mt-14 max-w-5xl mx-auto"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-stretch relative">
-            {/* BILLED Card */}
-            <div className="group relative rounded-3xl bg-[#0d1117]/90 border border-white/10 p-7 sm:p-10 flex flex-col justify-between shadow-2xl enera-glass hover:border-white/20 transition-all">
-              <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                <span className="text-xs font-mono font-bold tracking-[0.25em] text-slate-400 uppercase">
-                  BILLED
-                </span>
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-400 font-semibold">
-                  UTILITY INVOICE
-                </span>
-              </div>
-
-              <div className="my-8">
-                {/* Large animated value */}
-                <div className="text-4xl sm:text-6xl md:text-7xl font-extrabold font-mono text-white tracking-tight leading-none drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]">
-                  {billedCounter.toLocaleString()}
-                </div>
-                <div className="text-lg sm:text-2xl font-mono text-slate-400 mt-2 font-semibold tracking-wider">
-                  {cur.unit}
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-slate-400">
-                <span>ACCOUNT: 9021-4819-2041</span>
-                <span>RATE MULTIPLIER STATED</span>
-              </div>
+        {/* Detailed Deterministic Breakdown Table */}
+        <div className="rounded-xl bg-[#0a0e17] border border-white/10 overflow-hidden">
+          <div className="px-6 py-4 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white/[0.02]">
+            <div className="flex items-center gap-2">
+              <FileCheck className="h-4 w-4 text-cyan-400" />
+              <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-200">
+                Granular Interval Determinant Breakdown
+              </h3>
             </div>
-
-            {/* Visual Comparison Bridge (Desktop Central Indicator) */}
-            <div
-              aria-hidden="true"
-              className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-[#030712] border border-cyan-500/40 items-center justify-center shadow-[0_0_25px_rgba(6,182,212,0.4)]"
-            >
-              <span className="text-xs font-mono font-extrabold text-cyan-300">VS</span>
-            </div>
-
-            {/* ACTUAL Card */}
-            <div className="group relative rounded-3xl bg-gradient-to-br from-[#0d1117] via-[#0d1117] to-cyan-950/30 border border-cyan-500/40 p-7 sm:p-10 flex flex-col justify-between shadow-[0_0_50px_-10px_rgba(6,182,212,0.2)] enera-glass hover:border-cyan-500/60 transition-all">
-              <div className="flex items-center justify-between pb-3 border-b border-cyan-500/20">
-                <span className="text-xs font-mono font-bold tracking-[0.25em] text-cyan-300 uppercase">
-                  ACTUAL
-                </span>
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-bold">
-                  AMR GROUND TRUTH
-                </span>
-              </div>
-
-              <div className="my-8">
-                {/* Large animated value */}
-                <div className="text-4xl sm:text-6xl md:text-7xl font-extrabold font-mono text-cyan-300 tracking-tight leading-none drop-shadow-[0_0_25px_rgba(34,211,238,0.5)]">
-                  {actualCounter.toLocaleString()}
-                </div>
-                <div className="text-lg sm:text-2xl font-mono text-cyan-400/90 mt-2 font-semibold tracking-wider">
-                  {cur.unit}
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-cyan-500/20 flex items-center justify-between text-xs font-mono text-cyan-400/80">
-                <span>METER ID: 021-MS-90412</span>
-                <span>1,488 HALF-HOUR INTERVALS</span>
-              </div>
-            </div>
+            <span className="text-[11px] font-mono text-slate-400">
+              {dataset.statutoryNotice}
+            </span>
           </div>
 
-          {/* 2. Elegant SVG Visual Connection Between the Two Datasets */}
-          <div className="my-6 flex justify-center" aria-hidden="true">
-            <svg
-              className="w-full max-w-lg h-16 overflow-visible pointer-events-none"
-              viewBox="0 0 400 60"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <defs>
-                <linearGradient id="streamGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.4" />
-                  <stop offset="50%" stopColor="#f59e0b" stopOpacity="1" />
-                  <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.4" />
-                </linearGradient>
-                <filter id="laserGlow">
-                  <feGaussianBlur stdDeviation="3" result="glow" />
-                  <feMerge>
-                    <feMergeNode in="glow" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
-
-              {/* Converging Stream Lines from Billed & Actual to Variance */}
-              <path
-                d="M 60 5 C 60 40, 170 50, 200 55"
-                stroke="#f43f5e"
-                strokeWidth="2"
-                strokeDasharray="4 4"
-                className="opacity-60"
-              />
-              <path
-                d="M 340 5 C 340 40, 230 50, 200 55"
-                stroke="#22d3ee"
-                strokeWidth="2"
-                strokeDasharray="4 4"
-                className="opacity-60"
-              />
-
-              {/* Central Differential Node */}
-              <circle cx="200" cy="55" r="5" fill="#f59e0b" filter="url(#laserGlow)" />
-              <circle
-                cx="200"
-                cy="55"
-                r="10"
-                stroke="#f59e0b"
-                strokeWidth="1"
-                className="animate-ping opacity-75"
-              />
-            </svg>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-mono border-collapse">
+              <thead>
+                <tr className="border-b border-white/10 bg-black/40 text-slate-400">
+                  <th className="py-3 px-6 font-semibold uppercase tracking-wider text-[10px]">
+                    Tariff Interval Window
+                  </th>
+                  <th className="py-3 px-6 font-semibold uppercase tracking-wider text-[10px]">
+                    Billed Register
+                  </th>
+                  <th className="py-3 px-6 font-semibold uppercase tracking-wider text-[10px]">
+                    AMR Actual
+                  </th>
+                  <th className="py-3 px-6 font-semibold uppercase tracking-wider text-[10px]">
+                    Variance
+                  </th>
+                  <th className="py-3 px-6 font-semibold uppercase tracking-wider text-[10px]">
+                    Gazetted Tariff
+                  </th>
+                  <th className="py-3 px-6 font-semibold uppercase tracking-wider text-[10px] text-right">
+                    Variance Impact
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 text-slate-300">
+                {dataset.rows.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="py-3.5 px-6 font-medium text-white">{row.window}</td>
+                    <td className="py-3.5 px-6 text-slate-300">{row.billed}</td>
+                    <td className="py-3.5 px-6 text-cyan-300 font-semibold">{row.actual}</td>
+                    <td className="py-3.5 px-6 text-amber-300 font-semibold">{row.variance}</td>
+                    <td className="py-3.5 px-6 text-slate-400">{row.rate}</td>
+                    <td className="py-3.5 px-6 text-right font-semibold text-emerald-300">
+                      {row.financialImpact}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          {/* 3. The Reconciled Output: 131,227 kWh VARIANCE + Potential financial impact R 51,227 */}
-          <div
-            className={`rounded-3xl bg-[#0d1117]/95 border border-amber-500/50 p-6 sm:p-10 shadow-[0_0_50px_-5px_rgba(245,158,11,0.25)] flex flex-col md:flex-row items-center justify-between gap-8 transition-all duration-700 ${
-              stage >= 2 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            }`}
-          >
-            {/* Left Chamber: 131,227 kWh VARIANCE */}
-            <div className="text-center md:text-left space-y-1.5">
-              <div className="flex items-center justify-center md:justify-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-400 animate-pulse" />
-                <span className="text-xs font-mono font-bold tracking-[0.25em] text-amber-400 uppercase">
-                  UNRECONCILED DISCREPANCY ISOLATED
-                </span>
-              </div>
-
-              {/* The Discrepancy Number */}
-              <div className="text-4xl sm:text-5xl md:text-6xl font-extrabold font-mono text-amber-300 tracking-tight leading-none drop-shadow-[0_0_20px_rgba(245,158,11,0.5)]">
-                {varianceCounter.toLocaleString()}{" "}
-                <span className="text-2xl sm:text-3xl text-amber-400/80">{cur.unit}</span>
-              </div>
-
-              <div className="text-sm sm:text-base font-mono uppercase tracking-[0.3em] text-amber-400 font-bold pt-1">
-                VARIANCE
-              </div>
+          <div className="px-6 py-4 border-t border-white/10 bg-white/[0.01] flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-400">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-emerald-400" />
+              <span>Deterministic Verification Complete • NERSA Tariff Gazette 2025/26 Ref. #ZA-NR-25</span>
             </div>
 
-            {/* Right Chamber: Potential financial impact R 51,227 */}
-            <div
-              className={`w-full md:w-auto rounded-2xl bg-emerald-950/30 border border-emerald-500/40 p-5 sm:p-6 text-center md:text-right shadow-[0_0_35px_-5px_rgba(16,185,129,0.25)] transition-all duration-700 ${
-                stage >= 3 ? "opacity-100 scale-100" : "opacity-0 scale-95"
-              }`}
-            >
-              <span className="text-xs font-mono font-semibold tracking-wider text-slate-300 uppercase block">
-                Potential financial impact
-              </span>
-
-              <div className="text-3xl sm:text-4xl md:text-5xl font-extrabold font-mono text-emerald-300 mt-1.5 drop-shadow-[0_0_20px_rgba(16,185,129,0.5)]">
-                {activeMetric === "active"
-                  ? `R ${impactCounter.toLocaleString()}`
-                  : cur.financialImpact}
-              </div>
-
-              <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 font-semibold">
-                <CheckCircle className="h-3.5 w-3.5" />
-                <span>Audited Overcharge Recovery Dossier Ready</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Link to Live Reconciliation Workflow */}
-          <div className="mt-8 flex justify-center">
             <Link
               to="/reconciliation"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 hover:text-cyan-200 border border-cyan-500/30 transition-all text-xs font-mono font-medium group focus-ring-enera"
+              className="inline-flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 transition-colors font-medium focus-ring-enera"
             >
-              <Scale className="h-4 w-4 text-cyan-400" />
-              <span>Explore Reconciliation Capabilities</span>
-              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+              <span>Launch Comprehensive Reconciliation Studio</span>
+              <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
         </div>

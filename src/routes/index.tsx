@@ -2,15 +2,10 @@ import React, { Suspense, lazy } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { EneraNav } from "@/components/landing/enera/EneraNav";
 import { EneraHeroSection } from "@/components/landing/enera/EneraHeroSection";
+import { EneraCapabilitiesSection } from "@/components/landing/enera/EneraCapabilitiesSection";
 import { EneraBillSignalSection } from "@/components/landing/enera/EneraBillSignalSection";
-import { EngineFlowConnector } from "@/components/landing/enera/EneraBrandPrimitives";
 
-// Lazy-load below-the-fold sections for optimal bundle splitting and initial load performance
-const EneraCapabilitiesSection = lazy(() =>
-  import("@/components/landing/enera/EneraCapabilitiesSection").then((m) => ({
-    default: m.EneraCapabilitiesSection,
-  })),
-);
+// Lazy-load subsequent sections for optimal initial bundle rendering
 const EneraDifferenceSection = lazy(() =>
   import("@/components/landing/enera/EneraDifferenceSection").then((m) => ({
     default: m.EneraDifferenceSection,
@@ -19,21 +14,6 @@ const EneraDifferenceSection = lazy(() =>
 const EneraCopilotSection = lazy(() =>
   import("@/components/landing/enera/EneraCopilotSection").then((m) => ({
     default: m.EneraCopilotSection,
-  })),
-);
-const EneraNetworkSection = lazy(() =>
-  import("@/components/landing/enera/EneraNetworkSection").then((m) => ({
-    default: m.EneraNetworkSection,
-  })),
-);
-const EneraImpactSection = lazy(() =>
-  import("@/components/landing/enera/EneraImpactSection").then((m) => ({
-    default: m.EneraImpactSection,
-  })),
-);
-const EneraInteractiveUploadSection = lazy(() =>
-  import("@/components/landing/enera/EneraInteractiveUploadSection").then((m) => ({
-    default: m.EneraInteractiveUploadSection,
   })),
 );
 const EneraSouthAfricanContextSection = lazy(() =>
@@ -46,9 +26,9 @@ const EneraAuditTrailSection = lazy(() =>
     default: m.EneraAuditTrailSection,
   })),
 );
-const EneraFinalCtaSection = lazy(() =>
-  import("@/components/landing/enera/EneraFinalCtaSection").then((m) => ({
-    default: m.EneraFinalCtaSection,
+const EneraContactSection = lazy(() =>
+  import("@/components/landing/enera/EneraContactSection").then((m) => ({
+    default: m.EneraContactSection,
   })),
 );
 const EneraFooter = lazy(() =>
@@ -60,10 +40,10 @@ const EneraFooter = lazy(() =>
 function SectionFallback() {
   return (
     <div
-      className="w-full py-28 bg-[#030712] flex items-center justify-center min-h-[300px]"
+      className="w-full py-20 bg-[#030712] flex items-center justify-center min-h-[200px]"
       aria-hidden="true"
     >
-      <div className="w-6 h-6 rounded-full border-2 border-cyan-500/20 border-t-cyan-400 animate-spin" />
+      <div className="w-5 h-5 rounded-full border-2 border-cyan-500/20 border-t-cyan-400 animate-spin" />
     </div>
   );
 }
@@ -77,7 +57,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "AI-powered energy intelligence that reconciles every charge, detects hidden anomalies and helps businesses understand where every energy rand goes.",
+          "Enterprise energy financial intelligence platform. Reconcile utility determinants, verify statutory TOU schedules, and recover unearned charges with mathematical certainty.",
       },
     ],
   }),
@@ -90,66 +70,49 @@ function EneraLandingPage() {
       {/* Keyboard Accessibility Skip Link */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:top-4 focus:left-4 focus:z-[100] focus:bg-cyan-400 focus:text-slate-950 focus:font-mono focus:font-bold focus:rounded-lg focus:shadow-2xl focus:border focus:border-cyan-300 focus:ring-4 focus:ring-cyan-500/40"
+        className="sr-only focus:not-sr-only focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-cyan-400 focus:text-slate-950 focus:font-mono focus:font-bold focus:rounded-lg focus:shadow-2xl focus:border focus:border-cyan-300"
       >
         Skip to main content
       </a>
 
-      {/* 1. Transparent-to-blur Sticky Navigation */}
+      {/* 1. Header Navigation */}
       <EneraNav />
 
-      {/* 2. Main Narrative Progression */}
+      {/* 2. Main Narrative Flow (7 Core Sections) */}
       <main
         id="main-content"
         tabIndex={-1}
         className="outline-none"
-        aria-label="ENERA Platform Narrative"
+        aria-label="ENERA Platform Architecture"
       >
-        {/* PHASE 01: ENERGY — The Front Door to an Energy Intelligence Engine */}
+        {/* 1. Hero & Executive Value Proposition + Determinant Ticker */}
         <EneraHeroSection />
 
-        <Suspense fallback={<SectionFallback />}>
-          {/* LEVEL 1 PUBLIC CAPABILITIES: Ten Pillars of Energy Financial Intelligence */}
-          <EneraCapabilitiesSection />
-        </Suspense>
+        {/* 2. Products: Core Capabilities & Determinant Engines */}
+        <EneraCapabilitiesSection />
 
-        <EngineFlowConnector from="ENERGY" to="DATA" />
+        {/* 3. Solutions: Commercial, Mining & Municipal Grid Frameworks */}
+        <EneraSouthAfricanContextSection />
 
-        {/* PHASE 02: DATA — "EVERY BILL HAS A SIGNAL" Progressive Deconstruction */}
+        {/* 4. How It Works: Signal Decomposition & Deterministic Reconciliation */}
         <EneraBillSignalSection />
 
-        <EngineFlowConnector from="DATA" to="UNDERSTANDING" />
-
         <Suspense fallback={<SectionFallback />}>
-          {/* PHASE 03: UNDERSTANDING — "ASK YOUR ENERGY DATA" & "ONE PLATFORM. EVERY ENERGY SIGNAL" */}
-          <EneraCopilotSection />
-          <EneraNetworkSection />
-
-          <EngineFlowConnector from="UNDERSTANDING" to="RECONCILIATION" />
-
-          {/* PHASE 04: RECONCILIATION — "FIND THE DIFFERENCE" Billed vs Consumed Ground Truth */}
+          {/* Ground-Truth Reconciliation Ledger */}
           <EneraDifferenceSection />
 
-          <EngineFlowConnector from="RECONCILIATION" to="ANOMALY" />
+          {/* 5. Insights: Executive Financial Intelligence Studio */}
+          <EneraCopilotSection />
 
-          {/* PHASE 05: ANOMALY — Complex SA Tariff Anomalies & Statutory Audit Chain */}
-          <EneraSouthAfricanContextSection />
+          {/* 6. About: Fiduciary Lineage & Sovereign Governance */}
           <EneraAuditTrailSection />
 
-          <EngineFlowConnector from="ANOMALY" to="INSIGHT" />
-
-          {/* PHASE 06: INSIGHT — "TURN ENERGY DATA INTO ADVANTAGE" Executive Balance Sheet Advantage */}
-          <EneraImpactSection />
-
-          <EngineFlowConnector from="INSIGHT" to="RECOVERY" />
-
-          {/* PHASE 07: RECOVERY — "DROP A BILL. WATCH ENERA THINK" & Returning Energy Climax */}
-          <EneraInteractiveUploadSection />
-          <EneraFinalCtaSection />
+          {/* 7. Contact: Executive Demo & Briefing Request */}
+          <EneraContactSection />
         </Suspense>
       </main>
 
-      {/* Stage 17: Minimal Luxury Footer */}
+      {/* 3. Institutional Footer */}
       <Suspense fallback={<SectionFallback />}>
         <EneraFooter />
       </Suspense>
