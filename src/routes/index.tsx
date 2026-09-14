@@ -74,7 +74,7 @@ export const Route = createFileRoute("/")({
 
 function EneraLandingPage() {
   return (
-    <div className="min-h-screen bg-[#030712] text-white selection:bg-cyan-500/30 selection:text-cyan-200 font-sans antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-white text-slate-900 selection:bg-cyan-500/20 selection:text-cyan-950 font-sans antialiased overflow-x-hidden">
       {/* Keyboard Accessibility Skip Link */}
       <a
         href="#main-content"

@@ -127,7 +127,7 @@ export function EneraNav() {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
           isScrolled
-            ? "bg-[#030712]/95 backdrop-blur-md border-b border-white/10 py-3 shadow-lg"
+            ? "bg-[#0c121e]/95 backdrop-blur-md border-b border-slate-800/80 py-3 shadow-sm"
             : "bg-transparent py-5 border-b border-transparent"
         }`}
       >

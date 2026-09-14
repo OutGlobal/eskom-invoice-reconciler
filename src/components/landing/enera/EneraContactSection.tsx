@@ -18,7 +18,7 @@ export function EneraContactSection() {
   return (
     <section
       id="contact"
-      className="relative py-24 sm:py-32 bg-[#030712] text-white border-t border-white/10 overflow-hidden scroll-mt-12"
+      className="relative py-20 sm:py-24 bg-[#0c121e] text-white border-t border-slate-800/80 overflow-hidden scroll-mt-12"
       aria-label="Contact ENERA — Request a Demo and Preliminary Briefing"
     >
       {/* Backwards-compatible anchors */}
@@ -37,12 +37,12 @@ export function EneraContactSection() {
         </h2>
 
         {/* 3. Short explanation */}
-        <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed max-w-3xl mb-14">
+        <p className="mt-4 text-base sm:text-lg text-slate-300 font-normal leading-relaxed max-w-3xl mb-12">
           Connect with our quantitative energy analysts for an initial overcharge screening across your Southern African commercial, industrial, or mining facilities.
         </p>
 
         {/* 4. Visual or capability: Executive Briefing Request Container */}
-        <div className="rounded-2xl bg-gradient-to-b from-[#09111e] to-[#060a12] border border-cyan-500/30 p-6 sm:p-10 shadow-2xl">
+        <div className="rounded-xl bg-[#090e18] border border-slate-800 p-6 sm:p-10 shadow-lg">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             {/* Left: Engagement Overview (6 cols) */}
             <div className="lg:col-span-6 space-y-4">

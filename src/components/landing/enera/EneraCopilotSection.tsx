@@ -124,7 +124,7 @@ export function EneraCopilotSection() {
   return (
     <section
       id="insights"
-      className="py-20 sm:py-28 bg-[#05080f] text-white border-t border-white/10 overflow-hidden scroll-mt-12"
+      className="py-20 sm:py-24 bg-slate-50 text-slate-900 border-t border-slate-200/80 overflow-hidden scroll-mt-12"
       aria-label="Financial Intelligence"
     >
       {/* Backwards-compatible anchors */}
@@ -133,33 +133,33 @@ export function EneraCopilotSection() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 1. SMALL EYEBROW */}
-        <div className="text-xs font-mono uppercase tracking-widest text-cyan-400 mb-3 font-semibold">
+        <div className="text-xs font-mono uppercase tracking-widest text-cyan-700 mb-3 font-semibold">
           FINANCIAL INTELLIGENCE
         </div>
 
         {/* 2. Large headline */}
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-tight font-sans max-w-3xl">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight font-sans max-w-3xl">
           SEE THE FINANCIAL SIGNAL.
         </h2>
 
         {/* 3. Short explanation */}
-        <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed max-w-3xl mb-12">
+        <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-12">
           Energy data is not only an operational concern. It directly governs cost, budget, billing, forecasting, risk, performance, and strategic decision-making across the enterprise balance sheet.
         </p>
 
         {/* 4. Sophisticated But Simple Transformation Visual: ENERGY -> CONSUMPTION -> BILLING -> COST -> INSIGHT -> DECISION */}
-        <div className="mb-14 p-6 sm:p-8 rounded-2xl bg-[#080d1a] border border-white/10">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-6 border-b border-white/5 mb-6">
+        <div className="mb-14 p-6 sm:p-8 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-6 border-b border-slate-200/80 mb-6">
             <div>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold block mb-1">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-700 font-bold block mb-1">
                 VALUE TRANSFORMATION PIPELINE
               </span>
-              <h3 className="text-lg font-bold text-white font-sans">
+              <h3 className="text-lg font-bold text-slate-900 font-sans">
                 From Raw Energy to Board-Level Decision
               </h3>
             </div>
-            <span className="text-xs font-mono text-slate-400">
-              Stage {FLOW_STAGES[activeStage].step} of 06: <strong className="text-cyan-300">{FLOW_STAGES[activeStage].name}</strong>
+            <span className="text-xs font-mono text-slate-500">
+              Stage {FLOW_STAGES[activeStage].step} of 06: <strong className="text-cyan-700">{FLOW_STAGES[activeStage].name}</strong>
             </span>
           </div>
 
@@ -177,44 +177,44 @@ export function EneraCopilotSection() {
                   onClick={() => setActiveStage(idx)}
                   className={`p-4 rounded-xl text-left transition-all border relative flex flex-col justify-between focus-ring-enera ${
                     isSelected
-                      ? "bg-cyan-500/10 border-cyan-500/40 shadow-sm"
-                      : "bg-[#0a1122] border-white/5 hover:border-white/15"
+                      ? "bg-cyan-50/70 border-cyan-300 shadow-sm"
+                      : "bg-slate-50 border-slate-200/80 hover:border-slate-300"
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <span
                         className={`font-mono text-[10px] font-bold ${
-                          isSelected ? "text-cyan-300" : "text-slate-500"
+                          isSelected ? "text-cyan-800" : "text-slate-500"
                         }`}
                       >
                         {stage.step}
                       </span>
                       <Icon
                         className={`h-4 w-4 ${
-                          isSelected ? "text-cyan-400" : "text-slate-400"
+                          isSelected ? "text-cyan-700" : "text-slate-500"
                         }`}
                       />
                     </div>
 
-                    <div className="text-xs sm:text-sm font-bold font-mono tracking-wider text-white uppercase mb-1.5">
+                    <div className="text-xs sm:text-sm font-bold font-mono tracking-wider text-slate-900 uppercase mb-1.5">
                       {stage.name}
                     </div>
 
-                    <p className="text-[11px] text-slate-400 leading-snug line-clamp-2">
+                    <p className="text-[11px] text-slate-600 leading-snug line-clamp-2">
                       {stage.definition}
                     </p>
                   </div>
 
-                  <div className="mt-4 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono">
+                  <div className="mt-4 pt-2 border-t border-slate-200/80 flex items-center justify-between text-[10px] font-mono">
                     <span className="text-slate-500">Flow</span>
                     {!isLast && (
-                      <span className="text-cyan-400/60 hidden lg:inline font-mono">
+                      <span className="text-cyan-700 hidden lg:inline font-mono">
                         ↓ Next
                       </span>
                     )}
                     {isLast && (
-                      <span className="text-emerald-400 font-mono">
+                      <span className="text-emerald-700 font-mono font-medium">
                         Action
                       </span>
                     )}
@@ -225,18 +225,18 @@ export function EneraCopilotSection() {
           </div>
 
           {/* Selected Stage Detail Callout */}
-          <div className="mt-6 p-4 rounded-xl bg-[#0a1122] border border-cyan-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+          <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
             <div className="flex items-center gap-3">
-              <span className="px-2 py-0.5 rounded bg-cyan-400/15 text-cyan-300 font-bold">
+              <span className="px-2 py-0.5 rounded bg-cyan-100 text-cyan-900 font-bold">
                 {FLOW_STAGES[activeStage].name}
               </span>
-              <span className="text-slate-300 font-sans">
+              <span className="text-slate-700 font-sans">
                 {FLOW_STAGES[activeStage].definition}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-slate-400 shrink-0">
+            <div className="flex items-center gap-2 text-slate-600 shrink-0">
               <span className="text-slate-500">{FLOW_STAGES[activeStage].metricLabel}:</span>
-              <span className="text-white font-bold">{FLOW_STAGES[activeStage].metricValue}</span>
+              <span className="text-slate-900 font-bold">{FLOW_STAGES[activeStage].metricValue}</span>
             </div>
           </div>
         </div>
@@ -244,10 +244,10 @@ export function EneraCopilotSection() {
         {/* 5. What Energy Data Governs Across the Enterprise: 7 Clean Balance-Sheet Dimensions */}
         <div>
           <div className="mb-6">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold block mb-1">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-700 font-bold block mb-1">
               ORGANIZATIONAL GOVERNANCE
             </span>
-            <h3 className="text-xl font-bold text-white font-sans">
+            <h3 className="text-xl font-bold text-slate-900 font-sans">
               Seven Enterprise Dimensions Influenced by Energy Data
             </h3>
           </div>
@@ -258,18 +258,18 @@ export function EneraCopilotSection() {
               return (
                 <div
                   key={area.dimension}
-                  className="p-5 rounded-xl bg-[#080d1a] border border-white/10 hover:border-white/20 transition-colors flex flex-col justify-start"
+                  className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-slate-300 hover:shadow transition-all flex flex-col justify-start"
                 >
                   <div className="flex items-center gap-2.5 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-700 shrink-0">
                       <Icon className="h-4 w-4" />
                     </div>
-                    <h4 className="text-sm font-bold font-mono tracking-wide text-white uppercase">
+                    <h4 className="text-sm font-bold font-mono tracking-wide text-slate-900 uppercase">
                       {area.dimension}
                     </h4>
                   </div>
 
-                  <p className="text-xs text-slate-400 font-sans leading-relaxed">
+                  <p className="text-xs text-slate-600 font-sans leading-relaxed">
                     {area.impact}
                   </p>
                 </div>
@@ -279,11 +279,11 @@ export function EneraCopilotSection() {
         </div>
 
         {/* 6. Supporting information & CTA */}
-        <div className="mt-12 pt-6 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-400">
+        <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-500">
           <span>Deterministic financial governance grounded in statutory NERSA tariff frameworks.</span>
           <a
             href="#contact"
-            className="inline-flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 transition-colors font-medium focus-ring-enera shrink-0"
+            className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 font-semibold transition-colors focus-ring-enera shrink-0"
           >
             <span>Request a financial portfolio audit</span>
             <ArrowRight className="h-3 w-3" />

@@ -39,7 +39,7 @@ export function EneraBillSignalSection() {
   return (
     <section
       id="how-it-works"
-      className="py-20 sm:py-28 bg-[#05080f] text-white border-t border-white/10 overflow-hidden scroll-mt-12"
+      className="py-20 sm:py-24 bg-white text-slate-900 border-t border-slate-200/80 overflow-hidden scroll-mt-12"
       aria-label="How ENERA Works"
     >
       {/* Backwards-compatible anchor */}
@@ -47,17 +47,17 @@ export function EneraBillSignalSection() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 1. SMALL EYEBROW */}
-        <div className="text-xs font-mono uppercase tracking-widest text-cyan-400 mb-3 font-semibold">
+        <div className="text-xs font-mono uppercase tracking-widest text-cyan-700 mb-3 font-semibold">
           METHODOLOGY
         </div>
 
         {/* 2. Large headline */}
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-tight font-sans max-w-3xl">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight font-sans max-w-3xl">
           HOW ENERA WORKS
         </h2>
 
         {/* 3. Short explanation */}
-        <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed max-w-3xl mb-14">
+        <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-12">
           A transparent, four-step sequence turning complex energy and tariff inputs into verified operational and financial outcomes.
         </p>
 
@@ -70,40 +70,40 @@ export function EneraBillSignalSection() {
             return (
               <div
                 key={step.number}
-                className="relative p-6 rounded-xl bg-[#090d18] border border-white/10 hover:border-white/20 transition-colors flex flex-col justify-between"
+                className="relative p-6 rounded-xl bg-slate-50 border border-slate-200 shadow-sm hover:border-slate-300 hover:shadow transition-all flex flex-col justify-between"
               >
                 <div>
                   {/* Step counter and icon header */}
-                  <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/5">
-                    <span className="font-mono text-xs font-bold text-cyan-400 tracking-wider">
+                  <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-200/80">
+                    <span className="font-mono text-xs font-bold text-cyan-700 tracking-wider">
                       STEP {step.number}
                     </span>
-                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400">
+                    <div className="w-8 h-8 rounded-lg bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-700">
                       <Icon className="h-4 w-4" />
                     </div>
                   </div>
 
                   {/* Heading */}
-                  <h3 className="text-base font-bold font-mono tracking-wider text-white uppercase mb-2">
+                  <h3 className="text-base font-bold font-mono tracking-wider text-slate-900 uppercase mb-2">
                     {step.title}
                   </h3>
 
                   {/* Short Explanation */}
-                  <p className="text-sm text-slate-400 font-sans leading-relaxed">
+                  <p className="text-sm text-slate-600 font-sans leading-relaxed">
                     {step.description}
                   </p>
                 </div>
 
                 {/* Step position indicator */}
-                <div className="mt-6 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-500">
+                <div className="mt-6 pt-3 border-t border-slate-200/80 flex items-center justify-between text-[11px] font-mono text-slate-500">
                   <span>Phase {index + 1} of 4</span>
                   {!isLast && (
-                    <span className="text-cyan-400/60 hidden lg:inline font-mono">
+                    <span className="text-cyan-700 hidden lg:inline font-mono">
                       → Next
                     </span>
                   )}
                   {isLast && (
-                    <span className="text-emerald-400/80 font-mono">
+                    <span className="text-emerald-700 font-mono font-medium">
                       Outcome
                     </span>
                   )}
@@ -113,12 +113,12 @@ export function EneraBillSignalSection() {
           })}
         </div>
 
-        {/* 5. Supporting information & 6. Optional CTA */}
-        <div className="mt-12 pt-6 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-400">
+        {/* 5. Optional supporting information & 6. Optional CTA */}
+        <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-500">
           <span>Deterministic, reproducible pipeline with complete audit lineage.</span>
           <a
             href="#reconciliation"
-            className="inline-flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 transition-colors font-medium focus-ring-enera shrink-0"
+            className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 transition-colors font-semibold focus-ring-enera shrink-0"
           >
             <span>View reconciliation ledger</span>
             <ArrowRight className="h-3 w-3" />

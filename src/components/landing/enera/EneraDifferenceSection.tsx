@@ -153,7 +153,7 @@ export function EneraDifferenceSection() {
   return (
     <section
       id="reconciliation"
-      className="relative py-24 sm:py-32 bg-[#030712] text-white border-t border-white/10 overflow-hidden scroll-mt-12"
+      className="relative py-20 sm:py-24 bg-[#0c1220] text-white border-t border-slate-800/80 overflow-hidden scroll-mt-12"
       aria-label="Deterministic Reconciliation Ledger"
     >
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

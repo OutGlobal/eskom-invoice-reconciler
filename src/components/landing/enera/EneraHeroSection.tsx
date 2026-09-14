@@ -8,7 +8,7 @@ export function EneraHeroSection() {
   return (
     <section
       id="hero"
-      className="relative min-h-[90vh] pt-32 pb-20 sm:pt-40 sm:pb-28 flex flex-col justify-center items-center text-center overflow-hidden bg-[#030712] text-white"
+      className="relative min-h-[85vh] pt-32 pb-20 sm:pt-36 sm:pb-24 flex flex-col justify-center items-center text-center overflow-hidden bg-[#0c121e] text-white border-b border-slate-800/80"
       aria-label="ENERA Platform Overview"
     >
       {/* Calm ambient energy baseline (subtle, non-distracting telemetry grid) */}
@@ -16,7 +16,7 @@ export function EneraHeroSection() {
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center">
         {/* Subtle pill positioning */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.03] border border-white/10 text-xs text-slate-300 mb-6 font-sans">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-xs text-slate-300 mb-6 font-sans shadow-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
           <span className="font-mono text-[11px] uppercase tracking-wider text-slate-400">
             Energy Financial Intelligence
@@ -25,18 +25,18 @@ export function EneraHeroSection() {
           <span className="text-slate-400 font-mono text-[11px]">SANS 474 / NERSA Standard</span>
         </div>
 
-        {/* Primary headline (exact requirement) */}
-        <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight text-white leading-[1.05] font-sans max-w-4xl">
+        {/* Primary headline (controlled, authoritative) */}
+        <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white leading-tight font-sans max-w-3xl">
           SEE BEYOND THE BILL.
         </h1>
 
-        {/* Supporting statement (exact requirement) */}
-        <p className="mt-6 text-lg sm:text-2xl md:text-3xl text-slate-100 font-normal max-w-3xl mx-auto leading-relaxed font-sans">
+        {/* Supporting statement */}
+        <p className="mt-5 text-base sm:text-xl text-slate-200 font-normal max-w-2xl mx-auto leading-relaxed font-sans">
           ENERA turns complex energy and billing information into clear, actionable intelligence.
         </p>
 
-        {/* Secondary statement (exact requirement) */}
-        <p className="mt-4 text-sm sm:text-base md:text-lg text-slate-400 font-normal max-w-2xl mx-auto leading-relaxed font-sans">
+        {/* Secondary statement */}
+        <p className="mt-3 text-sm sm:text-base text-slate-400 font-normal max-w-xl mx-auto leading-relaxed font-sans">
           Reconcile energy data, understand costs, identify anomalies and make better decisions from one intelligent platform.
         </p>
 

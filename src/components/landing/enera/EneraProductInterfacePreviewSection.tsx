@@ -38,7 +38,7 @@ export function EneraProductInterfacePreviewSection() {
   return (
     <section
       id="interface-previews"
-      className="py-20 sm:py-28 bg-[#050811] text-white border-t border-white/5 font-sans scroll-mt-12"
+      className="py-20 sm:py-24 bg-[#0c121e] text-white border-t border-slate-800/80 font-sans scroll-mt-12"
       aria-label="Product Interface Previews"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
