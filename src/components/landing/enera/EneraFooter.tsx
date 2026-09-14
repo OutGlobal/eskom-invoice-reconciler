@@ -63,17 +63,17 @@ export function EneraFooter() {
             </span>
             <ul className="space-y-2 text-xs font-sans">
               <li>
-                <a href="#hero" className="text-slate-400 hover:text-cyan-300 transition-colors">
+                <a href="#hero" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Overview
                 </a>
               </li>
               <li>
-                <a href="#capabilities" className="text-slate-400 hover:text-cyan-300 transition-colors">
+                <a href="#capabilities" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Capabilities
                 </a>
               </li>
               <li>
-                <a href="#how-it-works" className="text-slate-400 hover:text-cyan-300 transition-colors">
+                <a href="#how-it-works" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   How It Works
                 </a>
               </li>
@@ -87,22 +87,22 @@ export function EneraFooter() {
             </span>
             <ul className="space-y-2 text-xs font-sans">
               <li>
-                <a href="#solutions" className="text-slate-400 hover:text-cyan-300 transition-colors">
+                <a href="#solutions" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Energy
                 </a>
               </li>
               <li>
-                <a href="#insights" className="text-slate-400 hover:text-cyan-300 transition-colors">
+                <a href="#insights" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Finance
                 </a>
               </li>
               <li>
-                <a href="#solutions" className="text-slate-400 hover:text-cyan-300 transition-colors">
+                <a href="#solutions" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Facilities
                 </a>
               </li>
               <li>
-                <a href="#reconciliation" className="text-slate-400 hover:text-cyan-300 transition-colors">
+                <a href="#reconciliation" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Audit
                 </a>
               </li>
@@ -116,17 +116,17 @@ export function EneraFooter() {
             </span>
             <ul className="space-y-2 text-xs font-sans">
               <li>
-                <a href="#insights" className="text-slate-400 hover:text-cyan-300 transition-colors">
+                <a href="#insights" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Insights
                 </a>
               </li>
               <li>
-                <a href="#guides" className="text-slate-400 hover:text-cyan-300 transition-colors">
+                <a href="#guides" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Guides
                 </a>
               </li>
               <li>
-                <a href="#faq" className="text-slate-400 hover:text-cyan-300 transition-colors">
+                <a href="#faq" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   FAQ
                 </a>
               </li>
@@ -140,17 +140,17 @@ export function EneraFooter() {
             </span>
             <ul className="space-y-2 text-xs font-sans">
               <li>
-                <a href="#about" className="text-slate-400 hover:text-cyan-300 transition-colors">
+                <a href="#about" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   About
                 </a>
               </li>
               <li>
-                <a href="#contact" className="text-slate-400 hover:text-cyan-300 transition-colors">
+                <a href="#contact" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Contact
                 </a>
               </li>
               <li>
-                <a href="#contact" className="text-slate-400 hover:text-cyan-300 transition-colors">
+                <a href="#contact" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Request a Demo
                 </a>
               </li>
@@ -164,17 +164,17 @@ export function EneraFooter() {
             </span>
             <ul className="space-y-2 text-xs font-sans">
               <li>
-                <a href="#privacy" className="text-slate-400 hover:text-cyan-300 transition-colors">
+                <a href="#privacy" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Privacy
                 </a>
               </li>
               <li>
-                <a href="#terms" className="text-slate-400 hover:text-cyan-300 transition-colors">
+                <a href="#terms" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Terms
                 </a>
               </li>
               <li>
-                <a href="#security" className="text-slate-400 hover:text-cyan-300 transition-colors">
+                <a href="#security" className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded">
                   Security
                 </a>
               </li>
@@ -183,13 +183,13 @@ export function EneraFooter() {
         </nav>
 
         {/* Bottom Bar: Copyright & Compliance */}
-        <div className="pt-8 mt-10 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-500">
+        <div className="pt-8 mt-10 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-400">
           <div>
             &copy; {new Date().getFullYear()} ENERA Technologies. All rights reserved.
           </div>
 
           <div className="flex items-center gap-2 text-[11px] text-slate-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
             <span>Deterministic Engine · Client-Isolated Processing</span>
           </div>
         </div>

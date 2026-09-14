@@ -98,7 +98,7 @@ export function EneraAudienceSection() {
         </div>
 
         {/* 5. Supporting info & 6. Progressive CTA */}
-        <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-500">
+        <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
           <span>Role-based access controls and customized views tailored to each operational mandate.</span>
           <a
             href="#how-it-works"

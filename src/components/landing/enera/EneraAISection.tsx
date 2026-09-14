@@ -110,8 +110,12 @@ export function EneraAISection() {
         {/* 4. Visual or capability: Interactive Questions & Outcomes Studio */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
           {/* Left Column: 5 Example Inquiries */}
-          <div className="lg:col-span-5 space-y-2.5">
-            <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider block mb-3 px-1">
+          <div
+            role="tablist"
+            aria-label="Example inquiries"
+            className="lg:col-span-5 space-y-2.5"
+          >
+            <span className="text-[11px] font-mono text-slate-600 uppercase tracking-wider block mb-3 px-1">
               Select an Example Inquiry
             </span>
 
@@ -122,6 +126,11 @@ export function EneraAISection() {
               return (
                 <button
                   key={q.id}
+                  id={`ai-tab-${q.id}`}
+                  role="tab"
+                  aria-selected={isSelected}
+                  aria-controls="ai-outcome-panel"
+                  tabIndex={isSelected ? 0 : -1}
                   type="button"
                   onClick={() => setSelectedId(q.id)}
                   className={`w-full text-left p-4 rounded-xl transition-all duration-200 border block focus-ring-enera group ${
@@ -133,14 +142,14 @@ export function EneraAISection() {
                   <div className="flex items-center justify-between text-[10px] font-mono mb-1.5">
                     <span
                       className={`${
-                        isSelected ? "text-cyan-800 font-semibold" : "text-slate-500"
+                        isSelected ? "text-cyan-800 font-semibold" : "text-slate-600"
                       }`}
                     >
                       {q.category}
                     </span>
                     <Icon
                       className={`h-3.5 w-3.5 transition-transform duration-200 ${
-                        isSelected ? "text-cyan-700 scale-110" : "text-slate-400 group-hover:scale-105"
+                        isSelected ? "text-cyan-700 scale-110" : "text-slate-500 group-hover:scale-105"
                       }`}
                     />
                   </div>
@@ -159,8 +168,12 @@ export function EneraAISection() {
 
           {/* Right Column: Concrete Operational & Financial Outcome */}
           <div
+            id="ai-outcome-panel"
+            role="tabpanel"
+            aria-labelledby={`ai-tab-${current.id}`}
+            tabIndex={0}
             key={current.id}
-            className="lg:col-span-7 rounded-xl bg-slate-50 border border-slate-200 p-6 sm:p-8 space-y-6 shadow-sm transition-all duration-300"
+            className="lg:col-span-7 rounded-xl bg-slate-50 border border-slate-200 p-6 sm:p-8 space-y-6 shadow-sm transition-all duration-300 focus:outline-none"
           >
             <div className="flex items-center justify-between pb-4 border-b border-slate-200/80">
               <div className="flex items-center gap-2">
@@ -202,7 +215,7 @@ export function EneraAISection() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-200/80 flex items-center justify-between text-xs font-mono text-slate-500">
+            <div className="pt-4 border-t border-slate-200/80 flex items-center justify-between text-xs font-mono text-slate-600">
               <span>Grounded in interval telemetry and statutory gazettes.</span>
               <span className="text-emerald-700 font-medium">Deterministic Lineage</span>
             </div>
@@ -210,7 +223,7 @@ export function EneraAISection() {
         </div>
 
         {/* 5. Supporting information & Progressive CTA */}
-        <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-500">
+        <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
           <span>Information synthesized directly from verified interval telemetry and statutory tariff schedules.</span>
           <a
             href="#contact"

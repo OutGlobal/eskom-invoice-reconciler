@@ -271,7 +271,7 @@ export function EneraHeroFlowVisual() {
                     </h3>
 
                     {/* Micro Category */}
-                    <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400 block mt-1">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block mt-1">
                       {stage.category}
                     </span>
                   </div>

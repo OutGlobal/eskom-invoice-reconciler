@@ -122,7 +122,7 @@ export function EneraBillSignalSection() {
                 </div>
 
                 {/* Step position indicator */}
-                <div className="mt-6 pt-3 border-t border-slate-200/80 flex items-center justify-between text-[11px] font-mono text-slate-500">
+                <div className="mt-6 pt-3 border-t border-slate-200/80 flex items-center justify-between text-[11px] font-mono text-slate-600">
                   <span>Phase {index + 1} of 4</span>
                   {!isLast && (
                     <span className="text-cyan-700 hidden lg:inline font-mono">
@@ -141,7 +141,7 @@ export function EneraBillSignalSection() {
         </div>
 
         {/* 5. Supporting information & 6. Progressive CTA */}
-        <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-500">
+        <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
           <span>Deterministic, reproducible pipeline with complete audit lineage.</span>
           <a
             href="#interface-previews"

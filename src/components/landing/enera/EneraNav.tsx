@@ -159,24 +159,31 @@ export function EneraNav() {
             >
               <a
                 href="#products"
+                id="products-menu-button"
                 onClick={(e) => handleNavClick(e, "#products")}
                 className="flex items-center gap-1 hover:text-white py-2 transition-colors focus-ring-enera rounded"
                 aria-expanded={activeDropdown === "products"}
                 aria-haspopup="true"
+                aria-controls="products-menu"
               >
                 <span>Products</span>
-                <ChevronDown className={`h-3 w-3 transition-transform ${activeDropdown === "products" ? "rotate-180 text-cyan-400" : "text-slate-500"}`} />
+                <ChevronDown className={`h-3 w-3 transition-transform ${activeDropdown === "products" ? "rotate-180 text-cyan-400" : "text-slate-400"}`} />
               </a>
 
               {activeDropdown === "products" && (
-                <div className="absolute top-full left-0 w-80 pt-2 z-50">
+                <div
+                  id="products-menu"
+                  role="region"
+                  aria-labelledby="products-menu-button"
+                  className="absolute top-full left-0 w-80 pt-2 z-50"
+                >
                   <div className="rounded-xl bg-[#090e17] border border-white/10 p-2 shadow-2xl backdrop-blur-xl space-y-1">
                     {PRODUCT_ITEMS.map((item) => (
                       <a
                         key={item.title}
                         href={item.href}
                         onClick={(e) => handleNavClick(e, item.href)}
-                        className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-white/[0.04] transition-colors group"
+                        className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-white/[0.04] transition-colors group focus-ring-enera"
                       >
                         <div className="p-1.5 rounded-md bg-white/5 text-cyan-400 group-hover:text-cyan-300 mt-0.5 shrink-0">
                           <item.icon className="h-3.5 w-3.5" />
@@ -204,24 +211,31 @@ export function EneraNav() {
             >
               <a
                 href="#solutions"
+                id="solutions-menu-button"
                 onClick={(e) => handleNavClick(e, "#solutions")}
                 className="flex items-center gap-1 hover:text-white py-2 transition-colors focus-ring-enera rounded"
                 aria-expanded={activeDropdown === "solutions"}
                 aria-haspopup="true"
+                aria-controls="solutions-menu"
               >
                 <span>Solutions</span>
-                <ChevronDown className={`h-3 w-3 transition-transform ${activeDropdown === "solutions" ? "rotate-180 text-cyan-400" : "text-slate-500"}`} />
+                <ChevronDown className={`h-3 w-3 transition-transform ${activeDropdown === "solutions" ? "rotate-180 text-cyan-400" : "text-slate-400"}`} />
               </a>
 
               {activeDropdown === "solutions" && (
-                <div className="absolute top-full left-0 w-80 pt-2 z-50">
+                <div
+                  id="solutions-menu"
+                  role="region"
+                  aria-labelledby="solutions-menu-button"
+                  className="absolute top-full left-0 w-80 pt-2 z-50"
+                >
                   <div className="rounded-xl bg-[#090e17] border border-white/10 p-2 shadow-2xl backdrop-blur-xl space-y-1">
                     {SOLUTION_ITEMS.map((item) => (
                       <a
                         key={item.title}
                         href={item.href}
                         onClick={(e) => handleNavClick(e, item.href)}
-                        className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-white/[0.04] transition-colors group"
+                        className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-white/[0.04] transition-colors group focus-ring-enera"
                       >
                         <div className="p-1.5 rounded-md bg-white/5 text-emerald-400 group-hover:text-emerald-300 mt-0.5 shrink-0">
                           <item.icon className="h-3.5 w-3.5" />
@@ -321,6 +335,8 @@ export function EneraNav() {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-300 hover:text-white rounded border border-white/10 focus-ring-enera"
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-nav-dialog"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -331,15 +347,17 @@ export function EneraNav() {
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
         <div
+          id="mobile-nav-dialog"
           role="dialog"
           aria-modal="true"
+          aria-label="Mobile Navigation Menu"
           className="fixed inset-0 z-40 lg:hidden bg-[#030712]/98 p-6 pt-20 flex flex-col justify-between overflow-y-auto"
         >
-          <nav className="flex flex-col space-y-3 pt-2">
+          <nav aria-label="Mobile Navigation" className="flex flex-col space-y-3 pt-2">
             <a
               href="#products"
               onClick={(e) => handleNavClick(e, "#products")}
-              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between"
+              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between focus-ring-enera rounded"
             >
               <span>Products</span>
               <span className="text-xs font-mono text-cyan-400">01</span>
@@ -347,7 +365,7 @@ export function EneraNav() {
             <a
               href="#solutions"
               onClick={(e) => handleNavClick(e, "#solutions")}
-              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between"
+              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between focus-ring-enera rounded"
             >
               <span>Solutions</span>
               <span className="text-xs font-mono text-emerald-400">02</span>
@@ -355,7 +373,7 @@ export function EneraNav() {
             <a
               href="#how-it-works"
               onClick={(e) => handleNavClick(e, "#how-it-works")}
-              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between"
+              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between focus-ring-enera rounded"
             >
               <span>How It Works</span>
               <span className="text-xs font-mono text-slate-400">03</span>
@@ -363,7 +381,7 @@ export function EneraNav() {
             <a
               href="#insights"
               onClick={(e) => handleNavClick(e, "#insights")}
-              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between"
+              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between focus-ring-enera rounded"
             >
               <span>Insights</span>
               <span className="text-xs font-mono text-slate-400">04</span>
@@ -371,7 +389,7 @@ export function EneraNav() {
             <a
               href="#about"
               onClick={(e) => handleNavClick(e, "#about")}
-              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between"
+              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between focus-ring-enera rounded"
             >
               <span>About</span>
               <span className="text-xs font-mono text-slate-400">05</span>
@@ -379,7 +397,7 @@ export function EneraNav() {
             <a
               href="#contact"
               onClick={(e) => handleNavClick(e, "#contact")}
-              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between"
+              className="text-base font-medium text-slate-200 hover:text-white py-2 border-b border-white/5 flex items-center justify-between focus-ring-enera rounded"
             >
               <span>Contact</span>
               <span className="text-xs font-mono text-slate-400">06</span>

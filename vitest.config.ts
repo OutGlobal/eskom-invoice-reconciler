@@ -17,6 +17,7 @@ export default defineConfig({
       "src/lib/__tests__/test_cta_strategy.test.ts",
       "src/lib/__tests__/test_responsive_viewports.test.ts",
       "src/lib/__tests__/test_performance_audit.test.ts",
+      "src/lib/__tests__/test_accessibility_audit.test.ts",
     ],
     testTimeout: 30000,
   },

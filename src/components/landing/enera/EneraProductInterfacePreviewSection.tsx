@@ -61,13 +61,22 @@ export function EneraProductInterfacePreviewSection() {
         </p>
 
         {/* 4. Tab Navigation (5 Views) */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 border-b border-white/10 no-scrollbar">
+        <div
+          role="tablist"
+          aria-label="Platform Views"
+          className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 border-b border-white/10 no-scrollbar"
+        >
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
+                id={`tab-${tab.id}`}
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`panel-${tab.id}`}
+                tabIndex={isActive ? 0 : -1}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap focus-ring-enera ${
@@ -99,12 +108,12 @@ export function EneraProductInterfacePreviewSection() {
           {/* Top Window Chrome */}
           <div className="px-4 py-3 bg-[#0a0f1d] border-b border-white/5 flex items-center justify-between text-xs text-slate-400 font-mono">
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5" aria-hidden="true">
                 <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
                 <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
               </div>
-              <span className="hidden sm:inline-block ml-3 text-slate-500">
+              <span className="hidden sm:inline-block ml-3 text-slate-400">
                 enera.platform / intelligence / executive-suite
               </span>
             </div>
@@ -114,7 +123,7 @@ export function EneraProductInterfacePreviewSection() {
                 <Building className="h-3 w-3 text-cyan-400" />
                 <span className="hidden md:inline">Entity:</span> Apex Precision Manufacturing
               </span>
-              <span className="text-slate-600">|</span>
+              <span className="text-slate-400">|</span>
               <span className="flex items-center gap-1 text-slate-400">
                 <Calendar className="h-3 w-3 text-cyan-400" />
                 <span>Aug 2026 (Winter)</span>
@@ -123,7 +132,13 @@ export function EneraProductInterfacePreviewSection() {
           </div>
 
           {/* Viewport Content Area */}
-          <div className="p-5 sm:p-7 min-h-[440px] flex flex-col justify-between">
+          <div
+            id={`panel-${activeTab}`}
+            role="tabpanel"
+            aria-labelledby={`tab-${activeTab}`}
+            tabIndex={0}
+            className="p-5 sm:p-7 min-h-[440px] flex flex-col justify-between focus:outline-none"
+          >
             {/* VIEW 1: DASHBOARD */}
             {activeTab === "dashboard" && (
               <div className="space-y-6">
@@ -135,7 +150,7 @@ export function EneraProductInterfacePreviewSection() {
                     <div className="text-lg sm:text-2xl font-bold font-mono text-white">
                       R 1,842,500.00
                     </div>
-                    <span className="text-[11px] text-slate-500 mt-1 block">
+                    <span className="text-[11px] text-slate-400 mt-1 block">
                       Stated statement amount
                     </span>
                   </div>
@@ -147,7 +162,7 @@ export function EneraProductInterfacePreviewSection() {
                     <div className="text-lg sm:text-2xl font-bold font-mono text-cyan-300">
                       R 1,789,120.00
                     </div>
-                    <span className="text-[11px] text-slate-500 mt-1 block">
+                    <span className="text-[11px] text-slate-400 mt-1 block">
                       Verified interval total
                     </span>
                   </div>
@@ -248,7 +263,7 @@ export function EneraProductInterfacePreviewSection() {
                         </td>
                         <td className="py-3 px-3 text-slate-300">1,433,070 kWh / R 544,566</td>
                         <td className="py-3 px-3 text-cyan-300">1,433,070 kWh / R 544,566</td>
-                        <td className="py-3 px-3 text-slate-500">0 kWh (R 0.00)</td>
+                        <td className="py-3 px-3 text-slate-400">0 kWh (R 0.00)</td>
                         <td className="py-3 pl-3 text-right">
                           <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300">
                             Clean Match
@@ -327,7 +342,7 @@ export function EneraProductInterfacePreviewSection() {
                     aria-hidden="true"
                   />
 
-                  <div className="flex justify-between text-[10px] font-mono text-slate-500 relative z-10">
+                  <div className="flex justify-between text-[10px] font-mono text-slate-400 relative z-10">
                     <span className="flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                       5,000 kVA (Ratchet Limit)
@@ -361,7 +376,7 @@ export function EneraProductInterfacePreviewSection() {
                     </div>
                   </div>
 
-                  <div className="flex justify-between text-[10px] font-mono text-slate-500 pt-1 border-t border-white/5 relative z-10">
+                  <div className="flex justify-between text-[10px] font-mono text-slate-400 pt-1 border-t border-white/5 relative z-10">
                     <span>00:00</span>
                     <span>06:00</span>
                     <span>12:00</span>
@@ -372,15 +387,15 @@ export function EneraProductInterfacePreviewSection() {
 
                 <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-3 text-xs font-mono">
                   <div className="p-3 rounded-lg bg-[#0b1224] border border-white/5">
-                    <span className="text-slate-500 block text-[10px]">PEAK RATIO</span>
+                    <span className="text-slate-400 block text-[10px]">PEAK RATIO</span>
                     <span className="text-white font-bold">24.0%</span>
                   </div>
                   <div className="p-3 rounded-lg bg-[#0b1224] border border-white/5">
-                    <span className="text-slate-500 block text-[10px]">LOAD FACTOR</span>
+                    <span className="text-slate-400 block text-[10px]">LOAD FACTOR</span>
                     <span className="text-white font-bold">78.4%</span>
                   </div>
                   <div className="p-3 rounded-lg bg-[#0b1224] border border-white/5">
-                    <span className="text-slate-500 block text-[10px]">OFF-PEAK UTILIZATION</span>
+                    <span className="text-slate-400 block text-[10px]">OFF-PEAK UTILIZATION</span>
                     <span className="text-cyan-400 font-bold">Optimal</span>
                   </div>
                 </div>
@@ -414,7 +429,7 @@ export function EneraProductInterfacePreviewSection() {
                       <div className="font-mono text-sm font-bold text-amber-400">
                         +R 24,180.00
                       </div>
-                      <span className="text-[10px] font-mono text-slate-500">Unearned Tariff Charge</span>
+                      <span className="text-[10px] font-mono text-slate-400">Unearned Tariff Charge</span>
                     </div>
                   </div>
 
@@ -436,7 +451,7 @@ export function EneraProductInterfacePreviewSection() {
                       <div className="font-mono text-sm font-bold text-amber-400">
                         +R 14,166.00
                       </div>
-                      <span className="text-[10px] font-mono text-slate-500">250 kVA Discrepancy</span>
+                      <span className="text-[10px] font-mono text-slate-400">250 kVA Discrepancy</span>
                     </div>
                   </div>
 
@@ -458,7 +473,7 @@ export function EneraProductInterfacePreviewSection() {
                       <div className="font-mono text-sm font-bold text-emerald-400">
                         +R 27,800.00
                       </div>
-                      <span className="text-[10px] font-mono text-slate-500">Exempt from Penalty</span>
+                      <span className="text-[10px] font-mono text-slate-400">Exempt from Penalty</span>
                     </div>
                   </div>
                 </div>
@@ -489,19 +504,19 @@ export function EneraProductInterfacePreviewSection() {
 
                   <div className="grid grid-cols-1 min-[380px]:grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
                     <div>
-                      <span className="text-slate-500 block text-[10px]">STATUTORY BASIS</span>
+                      <span className="text-slate-400 block text-[10px]">STATUTORY BASIS</span>
                       <span className="text-slate-200">NERSA Sched 2 / Megaflex</span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block text-[10px]">TELEMETRY REGISTERS</span>
+                      <span className="text-slate-400 block text-[10px]">TELEMETRY REGISTERS</span>
                       <span className="text-slate-200">1,488 Intervals (100%)</span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block text-[10px]">ISOLATED CREDIT CLAIM</span>
+                      <span className="text-slate-400 block text-[10px]">ISOLATED CREDIT CLAIM</span>
                       <span className="text-amber-400 font-bold">R 53,380.00</span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block text-[10px]">AUDIT STATUS</span>
+                      <span className="text-slate-400 block text-[10px]">AUDIT STATUS</span>
                       <span className="text-emerald-400 font-bold">Dispute Ready</span>
                     </div>
                   </div>

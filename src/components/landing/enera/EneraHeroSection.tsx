@@ -17,7 +17,7 @@ export function EneraHeroSection() {
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center">
         {/* Subtle pill positioning */}
         <div className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-[10px] sm:text-xs text-slate-300 mb-6 font-sans shadow-sm flex-wrap text-center max-w-full">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" aria-hidden="true" />
           <span className="font-mono uppercase tracking-wider text-slate-400">
             Energy Financial Intelligence
           </span>

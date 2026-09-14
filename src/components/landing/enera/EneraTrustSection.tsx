@@ -187,7 +187,7 @@ export function EneraTrustSection() {
                 PUBLIC DISCLOSURE MODEL
               </h3>
             </div>
-            <p className="text-xs text-slate-500 font-sans max-w-md sm:text-right">
+            <p className="text-xs text-slate-600 font-sans max-w-md sm:text-right">
               A strict three-tier classification safeguarding enterprise security while ensuring clear operational visibility.
             </p>
           </div>
@@ -207,7 +207,7 @@ export function EneraTrustSection() {
                           <Icon className="h-4 w-4" />
                         </div>
                         <div>
-                          <span className="text-[10px] font-mono text-slate-400 block tracking-wider">
+                          <span className="text-[10px] font-mono text-slate-500 block tracking-wider font-semibold">
                             {tier.level}
                           </span>
                           <span className="text-sm font-bold text-slate-900 font-sans">
@@ -225,7 +225,7 @@ export function EneraTrustSection() {
                     </p>
 
                     <div className="pt-3 border-t border-slate-100 space-y-2">
-                      <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold tracking-wider block">
+                      <span className="text-[10px] font-mono uppercase text-slate-600 font-semibold tracking-wider block">
                         Scope Definition:
                       </span>
                       <ul className="space-y-1.5 text-xs text-slate-600 font-sans">
@@ -245,7 +245,7 @@ export function EneraTrustSection() {
         </div>
 
         {/* 6. Supporting information & CTA */}
-        <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-500">
+        <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
           <span>Verifiable source lineage linking findings directly to underlying utility and telemetry records.</span>
           <a
             href="#contact"

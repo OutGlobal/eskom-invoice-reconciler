@@ -78,7 +78,11 @@ export function EneraContactSection() {
             {/* Right: Briefing Request Form (6 cols) */}
             <div className="lg:col-span-6">
               {formSubmitted ? (
-                <div className="p-6 rounded-xl bg-black/40 border border-emerald-500/30 text-center space-y-3">
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="p-6 rounded-xl bg-black/40 border border-emerald-500/30 text-center space-y-3"
+                >
                   <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto">
                     <CheckCircle2 className="h-5 w-5" />
                   </div>
@@ -97,25 +101,29 @@ export function EneraContactSection() {
                 <form
                   onSubmit={handleFormSubmit}
                   className="p-6 rounded-xl bg-black/40 border border-white/10 space-y-4"
+                  aria-label="Executive Briefing Request Form"
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label
-                        htmlFor="contactWorkEmail"
+                        htmlFor="workEmail"
                         className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block mb-1"
                       >
-                        Corporate Email
+                        Corporate Email <span className="text-cyan-400" aria-hidden="true">*</span>
                       </label>
                       <input
-                        id="contactWorkEmail"
+                        id="workEmail"
+                        name="workEmail"
                         type="email"
                         required
+                        aria-required="true"
+                        autoComplete="email"
                         placeholder="executive@enterprise.co.za"
                         value={formData.workEmail}
                         onChange={(e) =>
                           setFormData({ ...formData, workEmail: e.target.value })
                         }
-                        className="w-full px-3 py-2.5 min-h-[44px] rounded-lg bg-[#0b101b] border border-white/10 text-white placeholder-slate-500 text-xs font-mono focus:border-cyan-500 focus:outline-none focus-ring-enera"
+                        className="w-full px-3 py-2.5 min-h-[44px] rounded-lg bg-[#0b101b] border border-white/10 text-white placeholder-slate-400 text-xs font-mono focus:border-cyan-500 focus:outline-none focus-ring-enera"
                       />
                     </div>
 
@@ -124,18 +132,21 @@ export function EneraContactSection() {
                         htmlFor="contactOrganization"
                         className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block mb-1"
                       >
-                        Organization Name
+                        Organization Name <span className="text-cyan-400" aria-hidden="true">*</span>
                       </label>
                       <input
                         id="contactOrganization"
+                        name="organization"
                         type="text"
                         required
+                        aria-required="true"
+                        autoComplete="organization"
                         placeholder="Enterprise / Facility Name"
                         value={formData.organization}
                         onChange={(e) =>
                           setFormData({ ...formData, organization: e.target.value })
                         }
-                        className="w-full px-3 py-2.5 min-h-[44px] rounded-lg bg-[#0b101b] border border-white/10 text-white placeholder-slate-500 text-xs font-mono focus:border-cyan-500 focus:outline-none focus-ring-enera"
+                        className="w-full px-3 py-2.5 min-h-[44px] rounded-lg bg-[#0b101b] border border-white/10 text-white placeholder-slate-400 text-xs font-mono focus:border-cyan-500 focus:outline-none focus-ring-enera"
                       />
                     </div>
                   </div>
@@ -150,6 +161,7 @@ export function EneraContactSection() {
                       </label>
                       <select
                         id="contactMonthlySpend"
+                        name="monthlySpend"
                         value={formData.monthlySpend}
                         onChange={(e) =>
                           setFormData({ ...formData, monthlySpend: e.target.value })
@@ -172,6 +184,7 @@ export function EneraContactSection() {
                       </label>
                       <select
                         id="contactSupplyType"
+                        name="supplyType"
                         value={formData.supplyType}
                         onChange={(e) =>
                           setFormData({ ...formData, supplyType: e.target.value })
@@ -199,7 +212,7 @@ export function EneraContactSection() {
                   </button>
 
                   {/* 5. Optional supporting information */}
-                  <p className="text-[10px] font-mono text-slate-500 text-center">
+                  <p className="text-[10px] font-mono text-slate-400 text-center">
                     All communications governed by strict confidentiality under mutual NDA.
                   </p>
                 </form>

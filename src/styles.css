@@ -246,6 +246,22 @@
     outline: 2px solid #22d3ee;
     outline-offset: 2px;
   }
+  .bg-white .focus-ring-enera:focus-visible,
+  .bg-slate-50 .focus-ring-enera:focus-visible,
+  .bg-slate-100 .focus-ring-enera:focus-visible {
+    outline-color: #0284c7;
+  }
+
+  /* Global high-contrast visible focus outline for all interactive elements */
+  :focus-visible {
+    outline: 2px solid #22d3ee;
+    outline-offset: 2px;
+  }
+  .bg-white :focus-visible,
+  .bg-slate-50 :focus-visible,
+  .bg-slate-100 :focus-visible {
+    outline-color: #0284c7;
+  }
 
   .sr-only {
     position: absolute;

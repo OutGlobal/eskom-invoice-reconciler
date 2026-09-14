@@ -158,13 +158,17 @@ export function EneraCopilotSection() {
                 From Raw Energy to Board-Level Decision
               </h3>
             </div>
-            <span className="text-xs font-mono text-slate-500">
+            <span className="text-xs font-mono text-slate-600">
               Stage {FLOW_STAGES[activeStage].step} of 06: <strong className="text-cyan-700">{FLOW_STAGES[activeStage].name}</strong>
             </span>
           </div>
 
           {/* 6-Stage Progression Track with Energy Trace */}
-          <div className="grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 relative">
+          <div
+            role="tablist"
+            aria-label="Value Transformation Pipeline Stages"
+            className="grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 relative"
+          >
             {/* Subtle desktop energy connection line */}
             <div
               className="hidden lg:block absolute top-1/2 left-6 right-6 -translate-y-1/2 h-[2px] pointer-events-none z-0"
@@ -199,6 +203,11 @@ export function EneraCopilotSection() {
               return (
                 <button
                   key={stage.name}
+                  id={`copilot-tab-${stage.step}`}
+                  role="tab"
+                  aria-selected={isSelected}
+                  aria-controls="copilot-stage-detail"
+                  tabIndex={isSelected ? 0 : -1}
                   type="button"
                   onClick={() => setActiveStage(idx)}
                   className={`p-4 rounded-xl text-left transition-all border relative z-10 flex flex-col justify-between group focus-ring-enera ${
@@ -211,7 +220,7 @@ export function EneraCopilotSection() {
                     <div className="flex items-center justify-between mb-3">
                       <span
                         className={`font-mono text-[10px] font-bold ${
-                          isSelected ? "text-cyan-800" : "text-slate-500"
+                          isSelected ? "text-cyan-800" : "text-slate-600"
                         }`}
                       >
                         {stage.step}
@@ -220,7 +229,7 @@ export function EneraCopilotSection() {
                         className={`p-1 rounded-md transition-transform duration-200 ${
                           isSelected
                             ? "text-cyan-700 scale-110"
-                            : "text-slate-500 group-hover:scale-105"
+                            : "text-slate-600 group-hover:scale-105"
                         }`}
                       >
                         <Icon className="h-4 w-4" />
@@ -237,7 +246,7 @@ export function EneraCopilotSection() {
                   </div>
 
                   <div className="mt-4 pt-2 border-t border-slate-200/80 flex items-center justify-between text-[10px] font-mono">
-                    <span className="text-slate-500">Flow</span>
+                    <span className="text-slate-600">Flow</span>
                     {!isLast && (
                       <span className="text-cyan-700 hidden lg:inline font-mono">
                         ↓ Next
@@ -256,6 +265,9 @@ export function EneraCopilotSection() {
 
           {/* Selected Stage Detail Callout with Transition */}
           <div
+            id="copilot-stage-detail"
+            role="tabpanel"
+            aria-labelledby={`copilot-tab-${FLOW_STAGES[activeStage].step}`}
             key={FLOW_STAGES[activeStage].name}
             className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono transition-all duration-300"
           >
@@ -269,7 +281,7 @@ export function EneraCopilotSection() {
               </span>
             </div>
             <div className="flex items-center gap-2 text-slate-600 shrink-0">
-              <span className="text-slate-500">{FLOW_STAGES[activeStage].metricLabel}:</span>
+              <span className="text-slate-600">{FLOW_STAGES[activeStage].metricLabel}:</span>
               <span className="text-slate-900 font-bold">{FLOW_STAGES[activeStage].metricValue}</span>
             </div>
           </div>
@@ -313,7 +325,7 @@ export function EneraCopilotSection() {
         </div>
 
         {/* 6. Supporting information & Progressive CTA */}
-        <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-500">
+        <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
           <span>Deterministic financial governance grounded in statutory NERSA tariff frameworks.</span>
           <a
             href="#contact"

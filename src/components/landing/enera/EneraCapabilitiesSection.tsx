@@ -86,7 +86,7 @@ export function EneraCapabilitiesSection() {
         </div>
 
         {/* 5. Optional supporting information & 6. Optional CTA */}
-        <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-500">
+        <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
           <span>Deterministic analysis grounded in revenue-grade interval telemetry and official NERSA schedules.</span>
           <a
             href="#how-it-works"
