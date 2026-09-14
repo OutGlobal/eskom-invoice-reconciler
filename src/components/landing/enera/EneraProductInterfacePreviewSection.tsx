@@ -57,7 +57,7 @@ export function EneraProductInterfacePreviewSection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed max-w-3xl mb-10">
-          Explore how ENERA translates millions of raw telemetry pulses and complex utility invoices into boardroom-ready financial intelligence.
+          Explore how ENERA turns interval meter telemetry and complex utility statements into clear, verifiable answers.
         </p>
 
         {/* 4. Tab Navigation (5 Views) */}

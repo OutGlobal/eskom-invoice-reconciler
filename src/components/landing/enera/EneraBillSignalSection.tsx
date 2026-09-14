@@ -58,7 +58,7 @@ export function EneraBillSignalSection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-12">
-          A transparent, four-step sequence turning complex energy and tariff inputs into verified operational and financial outcomes.
+          A straightforward four-step sequence from raw energy inputs to verified financial decisions.
         </p>
 
         {/* 4. Visual or capability: 4-Step Horizontal Flow with Energy Trace */}

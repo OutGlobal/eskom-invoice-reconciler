@@ -38,7 +38,7 @@ export function EneraContactSection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-300 font-normal leading-relaxed max-w-3xl mb-12">
-          Connect with our quantitative energy analysts for an initial overcharge screening across your Southern African commercial, industrial, or mining facilities.
+          Connect with our analysts for an initial overcharge screening across your commercial, industrial, or mining facilities.
         </p>
 
         {/* 4. Visual or capability: Executive Briefing Request Container */}
@@ -52,25 +52,25 @@ export function EneraContactSection() {
               </div>
 
               <h3 className="text-xl sm:text-2xl font-semibold text-white font-sans leading-tight">
-                Quantitative overcharge assessment before invoice settlement.
+                Preliminary overcharge screening before invoice settlement.
               </h3>
 
               <p className="text-sm text-slate-300 leading-relaxed font-sans">
-                Our analysts conduct preliminary deterministic reconciliations for mining operations, heavy industrial smelters, commercial property portfolios, and municipal distributors across Southern Africa.
+                We conduct initial deterministic reconciliations across commercial property, manufacturing, mining, and municipal power consumers.
               </p>
 
               <div className="space-y-2 pt-2 text-xs font-sans text-slate-400">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-cyan-400 shrink-0" />
-                  <span>Preliminary high-resolution billing discrepancy isolation</span>
+                  <span>Preliminary billing discrepancy isolation against official tariffs.</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-cyan-400 shrink-0" />
-                  <span>30-minute AMR interval telemetry synchronization assessment</span>
+                  <span>30-minute interval telemetry verification.</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-cyan-400 shrink-0" />
-                  <span>Direct consultation under bilateral mutual non-disclosure agreement</span>
+                  <span>Direct consultation under mutual non-disclosure agreement.</span>
                 </div>
               </div>
             </div>
@@ -200,7 +200,7 @@ export function EneraContactSection() {
 
                   {/* 5. Optional supporting information */}
                   <p className="text-[10px] font-mono text-slate-500 text-center">
-                    All communications governed by strict confidentiality under mutual NDA. Zero telemetry or billing records shared with third parties.
+                    All communications governed by strict confidentiality under mutual NDA.
                   </p>
                 </form>
               )}

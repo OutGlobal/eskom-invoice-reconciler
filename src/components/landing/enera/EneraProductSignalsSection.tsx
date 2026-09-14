@@ -19,51 +19,51 @@ interface ProductSignalCapability {
 
 const PRODUCT_CAPABILITIES: ProductSignalCapability[] = [
   {
-    title: "Billing Intelligence",
+    title: "Verify every bill.",
     description:
-      "Immediate clarity on every line item across utility invoices, validated against official rate gazettes to eliminate hidden fees and calculation errors.",
+      "Check utility invoice line items against official tariffs to catch calculation errors and hidden charges.",
     icon: Receipt,
   },
   {
-    title: "Energy Reconciliation",
+    title: "Find the difference.",
     description:
-      "Side-by-side verification comparing stated utility charges against physical meter interval data to expose unearned charges before invoice payment.",
+      "Compare utility statements against physical interval meter data to expose unearned charges.",
     icon: Scale,
   },
   {
-    title: "Consumption Analysis",
+    title: "Understand your energy.",
     description:
-      "Granular visibility into active energy usage across peak, standard, and off-peak periods to understand true operational cost drivers.",
+      "See active consumption across peak, standard, and off-peak periods to know what drives your costs.",
     icon: TrendingUp,
   },
   {
-    title: "Demand & Power Analysis",
+    title: "Control peak demand.",
     description:
-      "Continuous tracking of peak kVA demand, power factor penalties, and capacity utilization to prevent costly ratchet surcharges.",
+      "Track peak kVA and power factor in real time to prevent avoidable penalty surcharges.",
     icon: Zap,
   },
   {
-    title: "Tariff Intelligence",
+    title: "Apply the right rates.",
     description:
-      "Accurate rate modeling for complex Eskom and municipal tariff schedules, ensuring correct seasonal pricing and statutory public holiday treatments.",
+      "Ensure correct seasonal pricing, time-of-use schedules, and public holiday rules on every bill.",
     icon: FileText,
   },
   {
-    title: "Anomaly Detection",
+    title: "Spot what needs attention.",
     description:
-      "Automated alerts for billing spikes, meter rollovers, missing intervals, and unannounced rate shifts requiring immediate finance team attention.",
+      "Get immediate notice when usage spikes, meters drop intervals, or rate schedules shift unexpectedly.",
     icon: AlertTriangle,
   },
   {
-    title: "Multi-Site Visibility",
+    title: "Track all your sites.",
     description:
-      "Unified executive overview of energy spend, consumption trends, and billing accuracy across your entire commercial or industrial property portfolio.",
+      "Monitor energy spend and billing accuracy across your entire property and facility portfolio.",
     icon: Building2,
   },
   {
-    title: "Reporting & Evidence",
+    title: "Back every claim.",
     description:
-      "Export-ready executive audit packs, discrepancy dossiers, and structured dispute documentation for seamless utility credit claims.",
+      "Generate structured dispute dossiers and audit packs ready for utility credit recovery.",
     icon: FileSpreadsheet,
   },
 ];
@@ -94,7 +94,7 @@ export function EneraProductSignalsSection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-12">
-          ENERA reconciles complex utility and telemetry streams into clear, actionable operational and financial intelligence across your entire portfolio.
+          Bring your utility bills and interval meter data together. See what changed, verify every charge, and make confident operational and financial decisions.
         </p>
 
         {/* 4. Visual or capability: 8 Clean, Compact Cards */}

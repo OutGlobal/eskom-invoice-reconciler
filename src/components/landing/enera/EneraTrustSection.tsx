@@ -20,28 +20,28 @@ const TRUST_PRINCIPLES: TrustPrinciple[] = [
     title: "Evidence-led",
     statement: "Clear source information.",
     description:
-      "Every variance, metric, and total links directly to underlying interval meter telemetry and official tariff gazettes.",
+      "Every finding connects directly to underlying meter intervals and gazetted rates.",
     icon: FileSearch,
   },
   {
     title: "Transparent",
     statement: "Understand the basis of important findings.",
     description:
-      "Deterministic calculation steps and rate schedules are open to inspection, with no black-box adjustments.",
+      "Every calculation step is verifiable, with zero black-box adjustments.",
     icon: Eye,
   },
   {
     title: "Controlled",
     statement: "Designed around appropriate access and information handling.",
     description:
-      "Tenant-isolated environments and role-based access govern how organizational energy information is handled.",
+      "Role-based access and tenant isolation safeguard your organizational data.",
     icon: ShieldCheck,
   },
   {
     title: "Decision-ready",
     statement: "Turn complex information into usable outputs.",
     description:
-      "High-frequency interval data and complex utility statements are organized into structured evidence and clear reports.",
+      "Complex interval telemetry is synthesized into structured evidence and audit packs.",
     icon: CheckCircle2,
   },
 ];
@@ -72,7 +72,7 @@ export function EneraTrustSection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-12">
-          Every variance, metric, and finding in ENERA is tied directly to verifiable data sources and transparent logic, providing finance and operations teams with complete confidence.
+          Every metric and finding in ENERA links directly to verifiable data sources and transparent calculation logic.
         </p>
 
         {/* 4. Visual or capability: 4 Clean Principle Cards */}

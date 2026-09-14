@@ -25,50 +25,50 @@ const QUESTION_OUTCOMES: AIQuestionOutcome[] = [
     id: "cost-change",
     question: "Why did this site's energy cost change?",
     category: "Cost Drivers",
-    outcomeTitle: "Decomposed Rate vs. Volume Analysis",
+    outcomeTitle: "Separate Rate Changes from Usage",
     outcomeDescription:
-      "Isolates the exact financial drivers behind billing increases, distinguishing statutory seasonal tariff rate hikes from physical peak demand spikes or active energy volume increases.",
-    keyDeliverable: "Clear separation of external price increases from internal operational consumption.",
+      "Isolate whether cost increases stem from seasonal tariff hikes, peak demand charges, or higher active consumption.",
+    keyDeliverable: "Clearly distinguish utility price increases from internal operational shifts.",
     icon: TrendingUp,
   },
   {
     id: "billing-periods",
     question: "Which billing periods require attention?",
     category: "Audit Priorities",
-    outcomeTitle: "Discrepancy Identification by Billing Cycle",
+    outcomeTitle: "Target Problem Billing Cycles",
     outcomeDescription:
-      "Surfaces specific historical billing months where stated utility charges deviate from physical 30-minute interval telemetry records, flagging statements ready for immediate dispute review.",
-    keyDeliverable: "Chronological audit schedule highlighting verified invoice variances.",
+      "Highlight billing months where utility statements disagree with physical meter interval records.",
+    keyDeliverable: "Prioritize statements with verified discrepancies for immediate credit claims.",
     icon: AlertTriangle,
   },
   {
     id: "unusual-patterns",
     question: "Where are unusual consumption patterns appearing?",
     category: "Operational Diagnostics",
-    outcomeTitle: "Pinpointed Baseload & Interval Anomalies",
+    outcomeTitle: "Locate Operational Inefficiencies",
     outcomeDescription:
-      "Locates off-hours baseload creep, uncharacteristic weekend operations, or unexpected reactive energy draw across individual meter points and physical facilities.",
-    keyDeliverable: "Facility-level pinpointing of irregular operational profiles.",
+      "Identify unexpected baseload creep, uncharacteristic weekend usage, or reactive energy draw across facilities.",
+    keyDeliverable: "Pinpoint abnormal equipment runtimes before they drive up demand surcharges.",
     icon: Search,
   },
   {
     id: "multi-site-comparison",
     question: "What changed across our sites?",
     category: "Portfolio Visibility",
-    outcomeTitle: "Comparative Multi-Facility Overview",
+    outcomeTitle: "Compare Facility Performance",
     outcomeDescription:
-      "Delivers an executive portfolio comparison summarizing facility-level performance changes, load factor shifts, and capacity utilization period-over-period.",
-    keyDeliverable: "Unified cross-site perspective on energy performance and cost evolution.",
+      "Review cross-site energy trends, load factor changes, and capacity utilization over any billing period.",
+    keyDeliverable: "Gain a unified portfolio view to benchmark performance across locations.",
     icon: Building2,
   },
   {
     id: "investigate-first",
     question: "Which areas should we investigate first?",
     category: "Action Roadmap",
-    outcomeTitle: "Impact-Ranked Investigation Roadmap",
+    outcomeTitle: "Rank Issues by Financial Value",
     outcomeDescription:
-      "Prioritizes identified billing discrepancies and operational anomalies by financial value and statutory claim deadlines, providing finance and engineering teams with a clear starting roadmap.",
-    keyDeliverable: "Actionable priority ranking focused on immediate balance sheet recovery.",
+      "Sort identified billing variances and operational anomalies by monetary impact and dispute deadlines.",
+    keyDeliverable: "Focus your team's attention on the largest recovery opportunities first.",
     icon: CheckCircle2,
   },
 ];
@@ -103,7 +103,7 @@ export function EneraAISection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-12">
-          Turn complex, multi-site energy telemetry and historical billing statements into direct, plain-language answers. ENERA assists teams in interrogating their data to understand drivers, surface priorities, and guide investigations.
+          Ask plain-language questions to understand your energy data. ENERA identifies cost drivers, highlights priorities, and guides investigations.
         </p>
 
         {/* 4. Visual or capability: Interactive Questions & Outcomes Studio */}

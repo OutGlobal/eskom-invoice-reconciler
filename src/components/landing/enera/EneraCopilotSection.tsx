@@ -27,7 +27,7 @@ const FLOW_STAGES: FlowStage[] = [
   {
     step: "01",
     name: "ENERGY",
-    definition: "Physical grid supply and active/reactive raw feeder generation.",
+    definition: "Physical grid supply and meter interval records.",
     metricLabel: "Telemetry Resolution",
     metricValue: "1,488 30-min registers",
     icon: Zap,
@@ -35,7 +35,7 @@ const FLOW_STAGES: FlowStage[] = [
   {
     step: "02",
     name: "CONSUMPTION",
-    definition: "Temporal distribution across statutory Peak, Standard, and Off-Peak windows.",
+    definition: "Usage across peak, standard, and off-peak periods.",
     metricLabel: "Time-of-Use Profile",
     metricValue: "High-season weekday",
     icon: Activity,
@@ -43,7 +43,7 @@ const FLOW_STAGES: FlowStage[] = [
   {
     step: "03",
     name: "BILLING",
-    definition: "Multi-layered utility line items, access charges, and regulatory levies.",
+    definition: "Utility line items, demand charges, and statutory levies.",
     metricLabel: "Invoice Aggregation",
     metricValue: "Gazetted tariff rates",
     icon: Receipt,
@@ -51,7 +51,7 @@ const FLOW_STAGES: FlowStage[] = [
   {
     step: "04",
     name: "COST",
-    definition: "Financial realization of capacity, maximum demand, and active energy determinants.",
+    definition: "Financial impact realized on your organization's balance sheet.",
     metricLabel: "Expenditure Realized",
     metricValue: "Direct balance sheet debit",
     icon: Coins,
@@ -59,7 +59,7 @@ const FLOW_STAGES: FlowStage[] = [
   {
     step: "05",
     name: "INSIGHT",
-    definition: "Deterministic detection of variances, unearned charges, and rate drift.",
+    definition: "Identification of billing variances, drift, and unearned charges.",
     metricLabel: "Variance Isolated",
     metricValue: "Mathematical proof",
     icon: Search,
@@ -67,7 +67,7 @@ const FLOW_STAGES: FlowStage[] = [
   {
     step: "06",
     name: "DECISION",
-    definition: "Evidence-backed dispute packages, treasury adjustments, and load shifting.",
+    definition: "Evidence-backed dispute dossiers and operational adjustments.",
     metricLabel: "Operational Impact",
     metricValue: "Audit-ready governance",
     icon: CheckCircle2,
@@ -83,37 +83,37 @@ interface AffectedArea {
 const AFFECTED_AREAS: AffectedArea[] = [
   {
     dimension: "Cost",
-    impact: "Direct balance sheet exposure across active energy rates, peak demand charges, and capacity levies.",
+    impact: "Direct balance sheet exposure across active energy rates and demand charges.",
     icon: Coins,
   },
   {
     dimension: "Budget",
-    impact: "Variance control between projected utility allocations and actual operational consumption.",
+    impact: "Variance control between projected utility allocations and actual spend.",
     icon: Calendar,
   },
   {
     dimension: "Billing",
-    impact: "Cross-verification of opaque utility line items against verified interval meter registers.",
+    impact: "Verification of utility line items against physical meter registers.",
     icon: Receipt,
   },
   {
     dimension: "Forecasting",
-    impact: "Predictive modeling for seasonal tariff changes, winter multipliers, and plant schedule shifts.",
+    impact: "Informed projections for seasonal tariff changes and operational shifts.",
     icon: TrendingUp,
   },
   {
     dimension: "Risk",
-    impact: "Early warning for maximum demand ratchet resets, power factor penalties, and uncredited public holidays.",
+    impact: "Early warnings for demand ratchet resets and unapplied holiday credits.",
     icon: ShieldAlert,
   },
   {
     dimension: "Performance",
-    impact: "Benchmarking load factor efficiency and off-peak energy utilization across facilities.",
+    impact: "Benchmarking load factor and energy efficiency across facilities.",
     icon: Gauge,
   },
   {
     dimension: "Decision-Making",
-    impact: "Supplying corporate treasury and facility directors with certified evidence for utility disputes.",
+    impact: "Certified evidence to support disputes and operational choices.",
     icon: FileSpreadsheet,
   },
 ];
