@@ -88,6 +88,7 @@ export function EneraAISection() {
     >
       {/* Backwards-compatible anchor */}
       <div id="ask-better-questions" className="sr-only" aria-hidden="true" />
+      <div id="faq" className="sr-only" aria-hidden="true" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 1. SMALL EYEBROW */}

@@ -125,6 +125,8 @@ export function EneraTrustSection() {
       <div id="about" className="sr-only" aria-hidden="true" />
       <div id="governance" className="sr-only" aria-hidden="true" />
       <div id="security" className="sr-only" aria-hidden="true" />
+      <div id="privacy" className="sr-only" aria-hidden="true" />
+      <div id="terms" className="sr-only" aria-hidden="true" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 1. SMALL EYEBROW */}

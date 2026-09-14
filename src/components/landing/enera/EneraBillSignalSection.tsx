@@ -44,6 +44,7 @@ export function EneraBillSignalSection() {
     >
       {/* Backwards-compatible anchor */}
       <div id="signal" className="sr-only" aria-hidden="true" />
+      <div id="guides" className="sr-only" aria-hidden="true" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 1. SMALL EYEBROW */}
