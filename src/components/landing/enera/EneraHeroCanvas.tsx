@@ -32,7 +32,8 @@ export function EneraHeroCanvas() {
     const observer = new IntersectionObserver(
       ([entry]) => {
         isVisible = entry.isIntersecting;
-        if (isVisible && window.innerWidth >= 640) {
+        if (isVisible && !document.hidden && window.innerWidth >= 640) {
+          cancelAnimationFrame(animId);
           animId = requestAnimationFrame(render);
         } else {
           cancelAnimationFrame(animId);
@@ -41,6 +42,16 @@ export function EneraHeroCanvas() {
       { threshold: 0.05 },
     );
     observer.observe(canvas);
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(animId);
+      } else if (isVisible && window.innerWidth >= 640) {
+        cancelAnimationFrame(animId);
+        animId = requestAnimationFrame(render);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     const handleResize = () => {
       if (!canvas) return;
@@ -134,7 +145,7 @@ export function EneraHeroCanvas() {
         }
       }
 
-      if (isVisible) {
+      if (isVisible && !document.hidden) {
         animId = requestAnimationFrame(render);
       }
     };
@@ -145,6 +156,7 @@ export function EneraHeroCanvas() {
       observer.disconnect();
       cancelAnimationFrame(animId);
       window.removeEventListener("resize", handleResize);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [reducedMotion]);
 

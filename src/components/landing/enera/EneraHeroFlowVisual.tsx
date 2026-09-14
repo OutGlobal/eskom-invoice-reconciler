@@ -108,6 +108,9 @@ export function EneraHeroFlowVisual() {
   const [activeIdx, setActiveIdx] = useState<number>(3); // Default highlighting Insight/Analysis
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [reducedMotion, setReducedMotion] = useState<boolean>(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [isVisible, setIsVisible] = useState<boolean>(true);
+  const [isTabVisible, setIsTabVisible] = useState<boolean>(true);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -115,22 +118,45 @@ export function EneraHeroFlowVisual() {
     setReducedMotion(mq.matches);
     const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
     mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
+
+    const handleVisibilityChange = () => {
+      setIsTabVisible(!document.hidden);
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      mq.removeEventListener("change", handler);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
-  // Subtle automated progression every 5 seconds (disabled on hover, click, or reduced motion)
   useEffect(() => {
-    if (reducedMotion || isPaused) return;
+    const el = containerRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Subtle automated progression every 5 seconds (paused on hover, click, offscreen, hidden tab, or reduced motion)
+  useEffect(() => {
+    if (reducedMotion || isPaused || !isVisible || !isTabVisible) return;
     const timer = setInterval(() => {
       setActiveIdx((prev) => (prev + 1) % FLOW_STAGES.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, [reducedMotion, isPaused]);
+  }, [reducedMotion, isPaused, isVisible, isTabVisible]);
 
   const activeStage = FLOW_STAGES[activeIdx];
 
   return (
     <div
+      ref={containerRef}
       className="w-full max-w-5xl mx-auto mt-12 sm:mt-16 text-left"
       aria-label="ENERA Energy Intelligence Transformation Flow"
       onMouseEnter={() => setIsPaused(true)}

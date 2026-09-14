@@ -307,6 +307,14 @@
   }
 }
 
+/* Stage 22: Performance Optimization — Deferred Rendering & GPU Acceleration */
+.enera-section-deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 500px;
+}
 
-
-
+.enera-gpu-accelerated {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
