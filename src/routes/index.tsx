@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { EneraNav } from "@/components/landing/enera/EneraNav";
 import { EneraHeroSection } from "@/components/landing/enera/EneraHeroSection";
 import { EneraCapabilitiesSection } from "@/components/landing/enera/EneraCapabilitiesSection";
+import { EneraProductSignalsSection } from "@/components/landing/enera/EneraProductSignalsSection";
 import { EneraBillSignalSection } from "@/components/landing/enera/EneraBillSignalSection";
 
 // Lazy-load subsequent sections for optimal initial bundle rendering
@@ -88,8 +89,11 @@ function EneraLandingPage() {
         {/* 1. Hero & Executive Value Proposition + Determinant Ticker */}
         <EneraHeroSection />
 
-        {/* 2. Products: Core Capabilities & Determinant Engines */}
+        {/* 2. From Energy Data to Decision */}
         <EneraCapabilitiesSection />
+
+        {/* 3. Product Capabilities: One Platform. Multiple Energy Signals. */}
+        <EneraProductSignalsSection />
 
         {/* 3. Solutions: Commercial, Mining & Municipal Grid Frameworks */}
         <EneraSouthAfricanContextSection />
