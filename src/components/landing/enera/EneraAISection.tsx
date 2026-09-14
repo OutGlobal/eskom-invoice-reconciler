@@ -212,10 +212,10 @@ export function EneraAISection() {
         <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-500">
           <span>Information synthesized directly from verified interval telemetry and statutory tariff schedules.</span>
           <a
-            href="#trust"
+            href="#contact"
             className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 transition-colors font-semibold focus-ring-enera shrink-0"
           >
-            <span>Review data governance &amp; trust</span>
+            <span>REQUEST A DEMO</span>
             <ArrowRight className="h-3 w-3" />
           </a>
         </div>

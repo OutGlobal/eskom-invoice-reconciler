@@ -249,7 +249,7 @@ export function EneraTrustSection() {
             href="#contact"
             className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 transition-colors font-semibold focus-ring-enera shrink-0"
           >
-            <span>Request a technical briefing</span>
+            <span>REQUEST A DEMO</span>
             <ArrowRight className="h-3 w-3" />
           </a>
         </div>

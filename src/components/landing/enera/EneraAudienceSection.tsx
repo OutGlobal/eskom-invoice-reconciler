@@ -104,7 +104,7 @@ export function EneraAudienceSection() {
             href="#how-it-works"
             className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 font-semibold transition-colors focus-ring-enera shrink-0"
           >
-            <span>See how ENERA works</span>
+            <span>EXPLORE ENERA</span>
             <ArrowRight className="h-3 w-3" />
           </a>
         </div>

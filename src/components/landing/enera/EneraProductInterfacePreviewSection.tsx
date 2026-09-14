@@ -478,15 +478,13 @@ export function EneraProductInterfacePreviewSection() {
                         Apex Precision Manufacturing — August 2026 Audit Pack
                       </h4>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
+                      <a
+                        href="#contact"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 text-xs font-mono hover:bg-cyan-500/20 transition-colors"
                       >
-                        <Download className="h-3.5 w-3.5" />
-                        <span>Download Dossier (PDF)</span>
-                      </button>
-                    </div>
+                        <span>REQUEST A DEMO</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </a>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
@@ -529,7 +527,7 @@ export function EneraProductInterfacePreviewSection() {
             href="#contact"
             className="inline-flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 transition-colors font-medium focus-ring-enera shrink-0"
           >
-            <span>Request a live platform briefing</span>
+            <span>REQUEST A DEMO</span>
             <ArrowRight className="h-3 w-3" />
           </a>
         </div>
