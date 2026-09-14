@@ -139,14 +139,14 @@ export function EneraBillSignalSection() {
           })}
         </div>
 
-        {/* 5. Optional supporting information & 6. Optional CTA */}
+        {/* 5. Supporting information & 6. Progressive CTA */}
         <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-500">
           <span>Deterministic, reproducible pipeline with complete audit lineage.</span>
           <a
-            href="#reconciliation"
+            href="#insights"
             className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 transition-colors font-semibold focus-ring-enera shrink-0"
           >
-            <span>View reconciliation ledger</span>
+            <span>See the financial signal</span>
             <ArrowRight className="h-3 w-3" />
           </a>
         </div>

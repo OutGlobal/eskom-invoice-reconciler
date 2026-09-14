@@ -82,10 +82,10 @@ export function EneraTrustSection() {
             return (
               <div
                 key={p.title}
-                className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-slate-300 hover:shadow transition-all flex flex-col justify-between"
+                className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-cyan-300 hover:shadow-[0_4px_20px_-4px_rgba(6,182,212,0.12)] transition-all duration-300 flex flex-col justify-between group"
               >
                 <div>
-                  <div className="w-10 h-10 rounded-lg bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-700 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-700 mb-4 transition-transform duration-200 group-hover:scale-105 group-hover:border-cyan-200">
                     <Icon className="h-5 w-5" />
                   </div>
 

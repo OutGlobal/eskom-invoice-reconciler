@@ -292,10 +292,10 @@ export function EneraCopilotSection() {
               return (
                 <div
                   key={area.dimension}
-                  className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-slate-300 hover:shadow transition-all flex flex-col justify-start"
+                  className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-cyan-300 hover:shadow-[0_4px_20px_-4px_rgba(6,182,212,0.1)] transition-all duration-300 flex flex-col justify-start group"
                 >
                   <div className="flex items-center gap-2.5 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-700 shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-700 shrink-0 transition-transform duration-200 group-hover:scale-105 group-hover:border-cyan-200">
                       <Icon className="h-4 w-4" />
                     </div>
                     <h4 className="text-sm font-bold font-mono tracking-wide text-slate-900 uppercase">
@@ -312,14 +312,14 @@ export function EneraCopilotSection() {
           </div>
         </div>
 
-        {/* 6. Supporting information & CTA */}
+        {/* 6. Supporting information & Progressive CTA */}
         <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-500">
           <span>Deterministic financial governance grounded in statutory NERSA tariff frameworks.</span>
           <a
-            href="#contact"
+            href="#ai-assistant"
             className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 font-semibold transition-colors focus-ring-enera shrink-0"
           >
-            <span>Request a financial portfolio audit</span>
+            <span>Interrogate your portfolio with ENERA AI</span>
             <ArrowRight className="h-3 w-3" />
           </a>
         </div>

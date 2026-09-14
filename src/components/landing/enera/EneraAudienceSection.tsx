@@ -49,13 +49,14 @@ export function EneraAudienceSection() {
       className="py-20 sm:py-24 bg-slate-50 text-slate-900 border-t border-slate-200/80 font-sans scroll-mt-12"
       aria-label="Built For The People Who Manage Energy"
     >
-      {/* Backwards-compatible anchor */}
+      {/* Backwards-compatible anchors */}
       <div id="stakeholders" className="sr-only" aria-hidden="true" />
+      <div id="solutions" className="sr-only" aria-hidden="true" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 1. SMALL EYEBROW */}
         <div className="text-xs font-mono uppercase tracking-widest text-cyan-700 mb-3 font-semibold">
-          STAKEHOLDERS & SOLUTIONS
+          STAKEHOLDERS
         </div>
 
         {/* 2. Large headline */}
@@ -75,10 +76,10 @@ export function EneraAudienceSection() {
             return (
               <div
                 key={audience.title}
-                className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-slate-300 hover:shadow transition-all flex flex-col justify-start"
+                className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-cyan-300 hover:shadow-[0_4px_20px_-4px_rgba(6,182,212,0.1)] transition-all duration-300 flex flex-col justify-start group"
               >
-                {/* Small icon */}
-                <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200/80 flex items-center justify-center mb-4 text-slate-700">
+                {/* Small icon with micro-interaction */}
+                <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200/80 flex items-center justify-center mb-4 text-slate-700 transition-transform duration-200 group-hover:scale-105 group-hover:border-cyan-200">
                   <Icon className="h-5 w-5" />
                 </div>
 
@@ -87,7 +88,7 @@ export function EneraAudienceSection() {
                   {audience.title}
                 </h3>
 
-                {/* Short explanation (exact user copy, no unsupported claims) */}
+                {/* Short explanation */}
                 <p className="text-sm text-slate-600 font-sans leading-relaxed">
                   {audience.description}
                 </p>
@@ -96,14 +97,14 @@ export function EneraAudienceSection() {
           })}
         </div>
 
-        {/* 5. Supporting info & 6. Optional CTA */}
+        {/* 5. Supporting info & 6. Progressive CTA */}
         <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-500">
           <span>Role-based access controls and customized views tailored to each operational mandate.</span>
           <a
-            href="#contact"
+            href="#how-it-works"
             className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 font-semibold transition-colors focus-ring-enera shrink-0"
           >
-            <span>Schedule a multi-team demonstration</span>
+            <span>See how ENERA works</span>
             <ArrowRight className="h-3 w-3" />
           </a>
         </div>

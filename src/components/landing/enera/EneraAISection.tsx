@@ -201,27 +201,21 @@ export function EneraAISection() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono text-slate-500">
+            <div className="pt-4 border-t border-slate-200/80 flex items-center justify-between text-xs font-mono text-slate-500">
               <span>Grounded in interval telemetry and statutory gazettes.</span>
-              <a
-                href="#contact"
-                className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 transition-colors font-semibold focus-ring-enera"
-              >
-                <span>Request a briefing on your portfolio</span>
-                <ArrowRight className="h-3 w-3" />
-              </a>
+              <span className="text-emerald-700 font-medium">Deterministic Lineage</span>
             </div>
           </div>
         </div>
 
-        {/* 5. Supporting information & CTA */}
+        {/* 5. Supporting information & Progressive CTA */}
         <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-500">
           <span>Information synthesized directly from verified interval telemetry and statutory tariff schedules.</span>
           <a
-            href="#contact"
+            href="#trust"
             className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 transition-colors font-semibold focus-ring-enera shrink-0"
           >
-            <span>Explore executive intelligence</span>
+            <span>Review data governance &amp; trust</span>
             <ArrowRight className="h-3 w-3" />
           </a>
         </div>

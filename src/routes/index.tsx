@@ -2,18 +2,12 @@ import React, { Suspense, lazy } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { EneraNav } from "@/components/landing/enera/EneraNav";
 import { EneraHeroSection } from "@/components/landing/enera/EneraHeroSection";
-import { EneraCapabilitiesSection } from "@/components/landing/enera/EneraCapabilitiesSection";
 import { EneraProductSignalsSection } from "@/components/landing/enera/EneraProductSignalsSection";
 import { EneraProductInterfacePreviewSection } from "@/components/landing/enera/EneraProductInterfacePreviewSection";
 import { EneraAudienceSection } from "@/components/landing/enera/EneraAudienceSection";
 import { EneraBillSignalSection } from "@/components/landing/enera/EneraBillSignalSection";
 
 // Lazy-load subsequent sections for optimal initial bundle rendering
-const EneraDifferenceSection = lazy(() =>
-  import("@/components/landing/enera/EneraDifferenceSection").then((m) => ({
-    default: m.EneraDifferenceSection,
-  })),
-);
 const EneraCopilotSection = lazy(() =>
   import("@/components/landing/enera/EneraCopilotSection").then((m) => ({
     default: m.EneraCopilotSection,
@@ -22,11 +16,6 @@ const EneraCopilotSection = lazy(() =>
 const EneraAISection = lazy(() =>
   import("@/components/landing/enera/EneraAISection").then((m) => ({
     default: m.EneraAISection,
-  })),
-);
-const EneraSouthAfricanContextSection = lazy(() =>
-  import("@/components/landing/enera/EneraSouthAfricanContextSection").then((m) => ({
-    default: m.EneraSouthAfricanContextSection,
   })),
 );
 const EneraTrustSection = lazy(() =>
@@ -93,41 +82,32 @@ function EneraLandingPage() {
         className="outline-none"
         aria-label="ENERA Platform Architecture"
       >
-        {/* 1. Hero & Executive Value Proposition + Determinant Ticker */}
+        {/* 1. Hero & Executive Value Proposition */}
         <EneraHeroSection />
 
-        {/* 2. From Energy Data to Decision */}
-        <EneraCapabilitiesSection />
-
-        {/* 3. Product Capabilities: One Platform. Multiple Energy Signals. */}
+        {/* 2. Unified Capabilities: One Platform. Multiple Energy Signals. */}
         <EneraProductSignalsSection />
 
-        {/* 4. Product Interface Previews: See The Signal Behind The Number */}
+        {/* 3. Product Interface Previews: See The Signal Behind The Number */}
         <EneraProductInterfacePreviewSection />
 
-        {/* 5. Solutions: Commercial, Mining & Municipal Grid Frameworks */}
-        <EneraSouthAfricanContextSection />
-
-        {/* 6. Stakeholders: Built For The People Who Manage Energy */}
+        {/* 4. Stakeholders: Built For The People Who Manage Energy */}
         <EneraAudienceSection />
 
-        {/* 4. How It Works: Signal Decomposition & Deterministic Reconciliation */}
+        {/* 5. How It Works: Four-Step Reconciler Methodology */}
         <EneraBillSignalSection />
 
         <Suspense fallback={<SectionFallback />}>
-          {/* Ground-Truth Reconciliation Ledger */}
-          <EneraDifferenceSection />
-
-          {/* 5. Insights: Executive Financial Intelligence Studio */}
+          {/* 6. Financial Intelligence: See The Financial Signal */}
           <EneraCopilotSection />
 
-          {/* 6. Intelligent Assistance: Ask Better Questions */}
+          {/* 7. Intelligent Assistance: Ask Better Questions */}
           <EneraAISection />
 
-          {/* 7. Trust & Governance: Intelligence You Can Trace */}
+          {/* 8. Trust & Governance: Intelligence You Can Trace */}
           <EneraTrustSection />
 
-          {/* 7. Contact: Executive Demo & Briefing Request */}
+          {/* 9. Contact: Executive Demo & Briefing Request */}
           <EneraContactSection />
         </Suspense>
       </main>

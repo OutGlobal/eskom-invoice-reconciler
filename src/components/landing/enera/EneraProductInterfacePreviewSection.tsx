@@ -41,6 +41,9 @@ export function EneraProductInterfacePreviewSection() {
       className="py-20 sm:py-24 bg-[#0c121e] text-white border-t border-slate-800/80 font-sans scroll-mt-12"
       aria-label="Product Interface Previews"
     >
+      {/* Backwards-compatible anchors */}
+      <div id="reconciliation" className="sr-only" aria-hidden="true" />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 1. SMALL EYEBROW */}
         <div className="text-xs font-mono uppercase tracking-widest text-cyan-400 mb-3 font-semibold">
