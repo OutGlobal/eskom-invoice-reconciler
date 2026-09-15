@@ -85,7 +85,7 @@ export function EneraProductInterfacePreviewSection() {
     <section
       ref={containerRef}
       id="interface-previews"
-      className="py-20 sm:py-24 bg-[#0c121e] text-white border-t border-slate-800/80 font-sans scroll-mt-12"
+      className="py-24 sm:py-32 bg-[#0c121e] text-white border-t border-slate-800/80 font-sans scroll-mt-12"
       aria-label="Product Interface Previews"
     >
       {/* Backwards-compatible anchors */}
@@ -103,7 +103,7 @@ export function EneraProductInterfacePreviewSection() {
         </h2>
 
         {/* 3. Short explanation */}
-        <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed max-w-3xl mb-10">
+        <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed max-w-3xl mb-12">
           Explore how ENERA turns interval meter telemetry and complex utility statements into clear, verifiable answers.
         </p>
 
@@ -111,7 +111,7 @@ export function EneraProductInterfacePreviewSection() {
         <div
           role="tablist"
           aria-label="Platform Views"
-          className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 border-b border-white/10 no-scrollbar"
+          className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-white/10 no-scrollbar"
         >
           {TABS.map((tab) => {
             const Icon = tab.icon;
