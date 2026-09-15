@@ -63,7 +63,7 @@ export function EneraFaqSection() {
   return (
     <section
       id="faq"
-      className="py-20 sm:py-24 bg-slate-50 text-slate-900 border-t border-slate-200/80 font-sans scroll-mt-12"
+      className="py-24 sm:py-32 bg-slate-50/60 text-slate-900 border-t border-slate-200/80 font-sans scroll-mt-12"
       aria-label="Resources and Frequently Asked Questions"
     >
       {/* Backwards-compatible anchors */}
@@ -84,7 +84,7 @@ export function EneraFaqSection() {
         </h2>
 
         {/* 3. Short explanation */}
-        <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-12">
+        <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-14">
           Clear answers about ENERA's reconciliation methodology, supported tariffs, data security, and dispute resolution workflows.
         </p>
 

@@ -118,7 +118,7 @@ export function EneraTrustSection() {
   return (
     <section
       id="trust"
-      className="py-20 sm:py-24 bg-slate-50 text-slate-900 border-t border-slate-200/80 font-sans scroll-mt-12"
+      className="py-24 sm:py-32 bg-slate-50/60 text-slate-900 border-t border-slate-200/80 font-sans scroll-mt-12"
       aria-label="Trust & Governance — Intelligence You Can Trace"
     >
       {/* Backwards-compatible navigation anchors */}
@@ -141,7 +141,7 @@ export function EneraTrustSection() {
         </h2>
 
         {/* 3. Short explanation */}
-        <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-12">
+        <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-14">
           Every metric and finding in ENERA links directly to verifiable data sources and transparent calculation logic.
         </p>
 

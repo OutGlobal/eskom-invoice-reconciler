@@ -18,7 +18,7 @@ export function EneraContactSection() {
   return (
     <section
       id="contact"
-      className="relative py-20 sm:py-24 bg-[#0c121e] text-white border-t border-slate-800/80 overflow-hidden scroll-mt-12"
+      className="relative py-24 sm:py-32 bg-[#0c121e] text-white border-t border-slate-800/80 overflow-hidden scroll-mt-12"
       aria-label="Contact ENERA — Request a Demo and Preliminary Briefing"
     >
       {/* Backwards-compatible anchors */}
@@ -37,7 +37,7 @@ export function EneraContactSection() {
         </h2>
 
         {/* 3. Short explanation */}
-        <p className="mt-4 text-base sm:text-lg text-slate-300 font-normal leading-relaxed max-w-3xl mb-12">
+        <p className="mt-4 text-base sm:text-lg text-slate-300 font-normal leading-relaxed max-w-3xl mb-14">
           Connect with our analysts for an initial overcharge screening across your commercial, industrial, or mining facilities.
         </p>
 

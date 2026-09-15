@@ -8,7 +8,7 @@ export function EneraFooter() {
 
   return (
     <footer
-      className="py-12 sm:py-16 bg-[#070c16] text-slate-400 border-t border-slate-800/80 font-sans"
+      className="py-16 sm:py-20 bg-[#070c16] text-slate-400 border-t border-slate-800/80 font-sans"
       aria-label="Footer"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
