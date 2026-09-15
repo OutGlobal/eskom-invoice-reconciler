@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { EneraHeroCanvas } from "./EneraHeroCanvas";
 import { EneraHeroFlowVisual } from "./EneraHeroFlowVisual";
+import { EneraHeroImageSlider } from "./EneraHeroImageSlider";
 
 export function EneraHeroSection() {
   return (
@@ -11,6 +12,9 @@ export function EneraHeroSection() {
       className="relative min-h-[90vh] pt-36 pb-24 sm:pt-44 sm:pb-32 flex flex-col justify-center items-center text-center overflow-hidden bg-[#0c121e] text-white border-b border-slate-800/80"
       aria-label="ENERA Platform Overview"
     >
+      {/* Background Image Slides (slides left every 3.5s with contrast-preserving dark overlay) */}
+      <EneraHeroImageSlider />
+
       {/* Calm ambient energy baseline (subtle, non-distracting telemetry grid) */}
       <EneraHeroCanvas />
 
