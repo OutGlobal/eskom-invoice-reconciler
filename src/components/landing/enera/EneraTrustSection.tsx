@@ -246,7 +246,7 @@ export function EneraTrustSection() {
 
         {/* 6. Supporting information & CTA */}
         <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
-          <span>Verifiable source lineage linking findings directly to underlying utility and telemetry records.</span>
+          <span>Verifiable source lineage linking findings directly to underlying utility and SANS 474 telemetry records.</span>
           <a
             href="#contact"
             className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 transition-colors font-semibold focus-ring-enera shrink-0"

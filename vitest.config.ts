@@ -22,6 +22,7 @@ export default defineConfig({
       "src/lib/__tests__/test_page_structure_sequence.test.ts",
       "src/lib/__tests__/test_public_website_front_door_audit.test.ts",
       "src/lib/__tests__/test_visual_signature_advanced.test.ts",
+      "src/lib/__tests__/test_sp_global_principles_audit.test.ts",
     ],
     testTimeout: 30000,
   },
