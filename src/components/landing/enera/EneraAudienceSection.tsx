@@ -16,7 +16,7 @@ interface AudienceCard {
 
 const AUDIENCES: AudienceCard[] = [
   {
-    title: "ENERGY MANAGEMENT",
+    title: "ENERGY",
     description: "Understand consumption, demand and operational patterns.",
     icon: Activity,
   },
@@ -31,12 +31,12 @@ const AUDIENCES: AudienceCard[] = [
     icon: Building2,
   },
   {
-    title: "AUDIT & COMPLIANCE",
+    title: "AUDIT",
     description: "Create clearer evidence trails and reporting.",
     icon: ShieldCheck,
   },
   {
-    title: "EXECUTIVE LEADERSHIP",
+    title: "EXECUTIVES",
     description: "Turn energy information into financial and operational visibility.",
     icon: TrendingUp,
   },

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 interface ProductSignalCapability {
+  category: string;
   title: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -19,71 +20,72 @@ interface ProductSignalCapability {
 
 const PRODUCT_CAPABILITIES: ProductSignalCapability[] = [
   {
+    category: "BILLING",
     title: "Verify every bill.",
     description:
       "Check utility invoice line items against official tariffs to catch calculation errors and hidden charges.",
     icon: Receipt,
   },
   {
-    title: "Find the difference.",
-    description:
-      "Compare utility statements against physical interval meter data to expose unearned charges.",
-    icon: Scale,
-  },
-  {
+    category: "ENERGY",
     title: "Understand your energy.",
     description:
       "See active consumption across peak, standard, and off-peak periods to know what drives your costs.",
     icon: TrendingUp,
   },
   {
-    title: "Control peak demand.",
-    description:
-      "Track peak kVA and power factor in real time to prevent avoidable penalty surcharges.",
-    icon: Zap,
-  },
-  {
+    category: "TARIFF",
     title: "Apply the right rates.",
     description:
       "Ensure correct seasonal pricing, time-of-use schedules, and public holiday rules on every bill.",
     icon: FileText,
   },
   {
+    category: "DEMAND",
+    title: "Control peak demand.",
+    description:
+      "Track peak kVA and power factor in real time to prevent avoidable penalty surcharges.",
+    icon: Zap,
+  },
+  {
+    category: "ANOMALY",
     title: "Spot what needs attention.",
     description:
       "Get immediate notice when usage spikes, meters drop intervals, or rate schedules shift unexpectedly.",
     icon: AlertTriangle,
   },
   {
-    title: "Track all your sites.",
-    description:
-      "Monitor energy spend and billing accuracy across your entire property and facility portfolio.",
-    icon: Building2,
-  },
-  {
+    category: "REPORTING",
     title: "Back every claim.",
     description:
       "Generate structured dispute dossiers and audit packs ready for utility credit recovery.",
     icon: FileSpreadsheet,
+  },
+  {
+    category: "MULTI-SITE",
+    title: "Track all your sites.",
+    description:
+      "Monitor energy spend and billing accuracy across your entire property and facility portfolio.",
+    icon: Building2,
   },
 ];
 
 export function EneraProductSignalsSection() {
   return (
     <section
-      id="product-capabilities"
+      id="platform-capabilities"
       className="py-20 sm:py-24 bg-white text-slate-900 border-t border-slate-200/80 font-sans scroll-mt-12"
-      aria-label="Product Capabilities"
+      aria-label="Platform Capabilities"
     >
       {/* Backwards-compatible anchors */}
+      <div id="product-capabilities" className="sr-only" aria-hidden="true" />
       <div id="products" className="sr-only" aria-hidden="true" />
       <div id="capabilities" className="sr-only" aria-hidden="true" />
-      <div id="from-data-to-decision" className="sr-only" aria-hidden="true" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 1. SMALL EYEBROW */}
         <div className="text-xs font-mono uppercase tracking-widest text-cyan-700 mb-3 font-semibold">
-          CAPABILITIES · FROM ENERGY DATA TO DECISION
+          PLATFORM CAPABILITIES
         </div>
 
         {/* 2. Large headline */}
@@ -97,18 +99,23 @@ export function EneraProductSignalsSection() {
           Bring your utility bills and interval meter data together. See what changed, verify every charge, and make confident operational and financial decisions.
         </p>
 
-        {/* 4. Visual or capability: 8 Clean, Compact Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+        {/* 4. Visual or capability: 7 Clean, Compact Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
           {PRODUCT_CAPABILITIES.map((capability) => {
             const Icon = capability.icon;
             return (
               <div
-                key={capability.title}
+                key={capability.category}
                 className="p-6 rounded-xl bg-slate-50 border border-slate-200 shadow-sm hover:border-cyan-300 hover:shadow-[0_4px_20px_-4px_rgba(6,182,212,0.12)] transition-all duration-300 flex flex-col justify-start group"
               >
-                {/* Small icon with micro-interaction */}
-                <div className="w-10 h-10 rounded-lg bg-cyan-50 border border-cyan-100 flex items-center justify-center mb-4 text-cyan-700 transition-transform duration-200 group-hover:scale-105 group-hover:border-cyan-200">
-                  <Icon className="h-5 w-5" />
+                {/* Header with Icon and Category Tag */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-700 transition-transform duration-200 group-hover:scale-105 group-hover:border-cyan-200">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <span className="text-[10px] font-mono font-bold tracking-wider text-cyan-700 uppercase bg-cyan-50/60 px-2 py-0.5 rounded border border-cyan-100">
+                    {capability.category}
+                  </span>
                 </div>
 
                 {/* Heading */}

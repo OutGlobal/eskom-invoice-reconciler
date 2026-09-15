@@ -19,6 +19,7 @@ export default defineConfig({
       "src/lib/__tests__/test_performance_audit.test.ts",
       "src/lib/__tests__/test_accessibility_audit.test.ts",
       "src/lib/__tests__/test_seo_structure.test.ts",
+      "src/lib/__tests__/test_page_structure_sequence.test.ts",
     ],
     testTimeout: 30000,
   },

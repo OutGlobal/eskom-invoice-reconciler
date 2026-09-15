@@ -28,12 +28,12 @@ export function EneraContactSection() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 1. SMALL EYEBROW */}
         <div className="text-xs font-mono uppercase tracking-widest text-cyan-400 mb-3 font-semibold">
-          CONTACT
+          GET STARTED
         </div>
 
         {/* 2. Large headline */}
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-tight font-sans max-w-3xl">
-          Request a demo and preliminary briefing.
+          REQUEST A DEMO
         </h2>
 
         {/* 3. Short explanation */}
