@@ -46,7 +46,7 @@ export function EneraAudienceSection() {
   return (
     <section
       id="audience"
-      className="py-20 sm:py-24 bg-slate-50 text-slate-900 border-t border-slate-200/80 font-sans scroll-mt-12"
+      className="py-24 sm:py-32 bg-slate-50/60 text-slate-900 border-t border-slate-200/80 font-sans scroll-mt-12"
       aria-label="Built For The People Who Manage Energy"
     >
       {/* Backwards-compatible anchors */}
@@ -65,18 +65,18 @@ export function EneraAudienceSection() {
         </h2>
 
         {/* 3. Short explanation */}
-        <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-12">
+        <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-14">
           Designed for cross-functional teams responsible for energy procurement, financial governance, and physical facility operations.
         </p>
 
         {/* 4. Visual or capability: 5 Clean Audience Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
           {AUDIENCES.map((audience) => {
             const Icon = audience.icon;
             return (
               <div
                 key={audience.title}
-                className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-cyan-300 hover:shadow-[0_4px_20px_-4px_rgba(6,182,212,0.1)] transition-all duration-300 flex flex-col justify-start group"
+                className="p-7 rounded-xl bg-white border border-slate-200/90 shadow-sm hover:border-cyan-300 hover:shadow-[0_8px_30px_-6px_rgba(6,182,212,0.12)] transition-all duration-300 flex flex-col justify-start group"
               >
                 {/* Small icon with micro-interaction */}
                 <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200/80 flex items-center justify-center mb-4 text-slate-700 transition-transform duration-200 group-hover:scale-105 group-hover:border-cyan-200">

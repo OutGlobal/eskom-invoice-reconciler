@@ -39,7 +39,7 @@ export function EneraBillSignalSection() {
   return (
     <section
       id="how-it-works"
-      className="py-20 sm:py-24 bg-white text-slate-900 border-t border-slate-200/80 overflow-hidden scroll-mt-12"
+      className="py-24 sm:py-32 bg-white text-slate-900 border-t border-slate-200/80 overflow-hidden scroll-mt-12"
       aria-label="How ENERA Works"
     >
       {/* Backwards-compatible anchor */}
@@ -58,7 +58,7 @@ export function EneraBillSignalSection() {
         </h2>
 
         {/* 3. Short explanation */}
-        <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-12">
+        <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-14">
           A straightforward four-step sequence from raw energy inputs to verified financial decisions.
         </p>
 
@@ -97,7 +97,7 @@ export function EneraBillSignalSection() {
             return (
               <div
                 key={step.number}
-                className="relative p-6 rounded-xl bg-slate-50 border border-slate-200 shadow-sm hover:border-cyan-300 hover:shadow-[0_4px_20px_-4px_rgba(6,182,212,0.12)] transition-all duration-300 flex flex-col justify-between group z-10"
+                className="relative p-7 rounded-xl bg-slate-50/80 border border-slate-200/90 shadow-sm hover:border-cyan-300 hover:shadow-[0_8px_30px_-6px_rgba(6,182,212,0.12)] transition-all duration-300 flex flex-col justify-between group z-10"
               >
                 <div>
                   {/* Step counter and icon header */}
