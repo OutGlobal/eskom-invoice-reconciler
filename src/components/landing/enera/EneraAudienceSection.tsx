@@ -97,6 +97,39 @@ export function EneraAudienceSection() {
           })}
         </div>
 
+        {/* Mobile Platform Visibility Spotlight */}
+        <div className="mt-12 p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-slate-900 to-[#0c121e] border border-slate-800 text-white flex flex-col lg:flex-row items-center gap-8 shadow-xl">
+          <div className="w-full lg:w-1/2 rounded-xl overflow-hidden border border-slate-700/80 shadow-2xl bg-slate-950">
+            <img
+              src="/images/enera-mobile-platform.jpg"
+              alt="ENERA Mobile Platform Interface displaying real-time peak demand and anomaly alerts on a smartphone"
+              className="w-full h-auto object-cover hover:scale-[1.02] transition-transform duration-500"
+              loading="lazy"
+            />
+          </div>
+          <div className="w-full lg:w-1/2 flex flex-col justify-center">
+            <div className="text-xs font-mono uppercase tracking-widest text-cyan-400 mb-2 font-semibold">
+              EXECUTIVE MOBILITY
+            </div>
+            <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-4 leading-tight">
+              Intelligence on any device, anywhere.
+            </h3>
+            <p className="text-slate-300 text-sm sm:text-base leading-relaxed mb-6 font-light">
+              Monitor peak demand kVA, track Time-of-Use consumption, and receive immediate anomaly notices on your phone before utility bills are finalized.
+            </p>
+            <div className="grid grid-cols-2 gap-4 text-xs font-mono text-slate-300">
+              <div className="p-3.5 rounded-lg bg-white/5 border border-white/10">
+                <span className="text-cyan-300 font-bold block text-sm mb-0.5">Real-Time</span>
+                Peak kVA Alerts
+              </div>
+              <div className="p-3.5 rounded-lg bg-white/5 border border-white/10">
+                <span className="text-amber-400 font-bold block text-sm mb-0.5">Instant</span>
+                Tariff Differential Flags
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* 5. Supporting info & 6. Progressive CTA */}
         <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
           <span>Role-based access controls and customized views tailored to each operational mandate.</span>

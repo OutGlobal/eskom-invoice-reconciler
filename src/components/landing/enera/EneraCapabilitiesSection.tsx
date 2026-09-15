@@ -90,8 +90,36 @@ export function EneraCapabilitiesSection() {
           })}
         </div>
 
+        {/* Enterprise Operations Center Showcase */}
+        <div className="mt-10 rounded-2xl overflow-hidden border border-slate-200/90 shadow-lg bg-slate-950 text-white relative group">
+          <div className="relative aspect-[16/9] sm:aspect-[21/9] w-full overflow-hidden">
+            <img
+              src="/images/enera-telemetry-ecosystem.jpg"
+              alt="ENERA Enterprise Operations Center displaying multi-site facility benchmarking and real-time AMR interval telemetry"
+              className="w-full h-full object-cover object-center group-hover:scale-[1.01] transition-transform duration-700"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent flex items-end p-6 sm:p-8">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-4">
+                <div>
+                  <span className="text-[11px] font-mono uppercase tracking-widest text-cyan-300 font-semibold block mb-1">
+                    ENTERPRISE OPERATIONS
+                  </span>
+                  <p className="text-sm sm:text-base font-medium text-white max-w-xl">
+                    Multi-site facility benchmarking and deterministic reconciliation deployed across corporate, industrial, and municipal operations.
+                  </p>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/80 border border-white/20 text-xs font-mono text-cyan-300 shrink-0">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Real-Time AMR Stream</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* 5. Optional supporting information & 6. Optional CTA */}
-        <div className="mt-14 pt-8 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
+        <div className="mt-12 pt-8 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
           <span>Deterministic analysis grounded in revenue-grade interval telemetry and official NERSA schedules.</span>
           <a
             href="#how-it-works"

@@ -103,9 +103,37 @@ export function EneraProductInterfacePreviewSection() {
         </h2>
 
         {/* 3. Short explanation */}
-        <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed max-w-3xl mb-12">
+        <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed max-w-3xl mb-8">
           Explore how ENERA turns interval meter telemetry and complex utility statements into clear, verifiable answers.
         </p>
+
+        {/* Enterprise Hardware & Workstation Showcase */}
+        <div className="mb-10 rounded-2xl overflow-hidden border border-slate-700/80 shadow-2xl bg-[#080d17] group relative">
+          <div className="relative aspect-[16/9] w-full overflow-hidden">
+            <img
+              src="/images/enera-laptop-dashboard.jpg"
+              alt="ENERA Energy Financial Intelligence Platform displayed on an executive laptop showing Time-of-Use interval demand graphs and billing reconciliation variances"
+              className="w-full h-full object-cover object-center group-hover:scale-[1.01] transition-transform duration-700"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0c121e] via-[#0c121e]/20 to-transparent flex items-end p-6 sm:p-8">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-4">
+                <div>
+                  <span className="text-[11px] font-mono uppercase tracking-widest text-cyan-400 font-semibold block mb-1">
+                    PRODUCTION WORKSTATION VIEW
+                  </span>
+                  <p className="text-sm sm:text-base font-normal text-slate-200 max-w-xl">
+                    24-hour interval demand profiles, Time-of-Use distribution, and reconciled line-item variances on a single unified canvas.
+                  </p>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 border border-cyan-500/30 text-xs font-mono text-cyan-300 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                  <span>High-Resolution Telemetry</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* 4. Tab Navigation (5 Views) */}
         <div
