@@ -24,6 +24,7 @@ export default defineConfig({
       "src/lib/__tests__/test_visual_signature_advanced.test.ts",
       "src/lib/__tests__/test_sp_global_principles_audit.test.ts",
       "src/lib/__tests__/production_data_lifecycle.test.ts",
+      "src/lib/__tests__/database_source_of_truth.test.ts",
     ],
     testTimeout: 30000,
   },

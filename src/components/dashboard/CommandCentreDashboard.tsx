@@ -40,10 +40,11 @@ export function CommandCentreDashboard() {
   const batchInvoices = useApp((s) => s.batchInvoices);
   const validationIssues = useApp((s) => s.validation);
 
-  // Local filter state
+  // Local filter state (Authoritative Database source by default)
   const [filters, setFilters] = useState<DashboardFilterState>({
     severity: "all",
     status: "all",
+    source: "database",
   });
 
   const [dashboardData, setDashboardData] = useState<AggregatedDashboardData | null>(null);

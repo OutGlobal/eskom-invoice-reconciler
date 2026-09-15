@@ -12,6 +12,7 @@ export interface DashboardFilterState {
   endDate?: string;
   severity?: "all" | "critical" | "major" | "minor" | "info";
   status?: "all" | "PASS" | "FAIL" | "REVIEW" | "PENDING" | "APPROVED" | "FINALIZED";
+  source?: "all" | "database" | "store";
 }
 
 export interface PortfolioSummary {

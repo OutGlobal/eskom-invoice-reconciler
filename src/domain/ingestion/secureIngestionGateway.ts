@@ -246,6 +246,68 @@ export class SecureIngestionGateway {
         file_hash_sha256: sha256Checksum,
         status: "parsed",
       });
+
+      // 3. Insert into ingestion_jobs
+      const jobUuid = crypto.randomUUID();
+      await supabase.from("ingestion_jobs").insert({
+        id: jobUuid,
+        source_file_id: documentId,
+        job_type: extractRes.documentType === "AMR_INTERVALS_CSV" ? "AMR_CSV_INGEST" : "PDF_INVOICE_OCR",
+        status: "completed",
+        correlation_id: batchId,
+        started_at: new Date(startTime).toISOString(),
+        completed_at: new Date().toISOString(),
+      });
+
+      // 4. Persist extracted invoice to invoice_records
+      if (extractRes.extractedFields && extractRes.extractedFields.accountNumber) {
+        const invNum = extractRes.extractedFields.invoiceNumber || `INV-${Date.now()}`;
+        const bStart = extractRes.extractedFields.billingPeriodStart || new Date().toISOString().substring(0, 10);
+        const bEnd = extractRes.extractedFields.billingPeriodEnd || new Date().toISOString().substring(0, 10);
+        await supabase.from("invoice_records").upsert(
+          {
+            invoice_number: invNum,
+            account_number: extractRes.extractedFields.accountNumber,
+            customer_name: extractRes.extractedFields.clientName || "Enterprise Client",
+            organisation_id: organisationId,
+            premise_id: extractRes.extractedFields.premiseId || null,
+            meter_number: extractRes.extractedFields.meterNumber || null,
+            billing_period_name: `${bStart} to ${bEnd}`,
+            billing_start: bStart,
+            billing_end: bEnd,
+            total_kwh: extractRes.extractedFields.totalKWh || 0,
+            peak_kwh: extractRes.extractedFields.peakKWh || 0,
+            standard_kwh: extractRes.extractedFields.standardKWh || 0,
+            off_peak_kwh: extractRes.extractedFields.offPeakKWh || 0,
+            max_demand_kva: extractRes.extractedFields.maxDemandKVA || 0,
+            invoiced_total: extractRes.extractedFields.invoiceTotal || 0,
+            status: extractRes.needsHumanReview ? "draft" : "ingested",
+            lifecycle_state: extractRes.needsHumanReview ? "REVIEW_REQUIRED" : "EXTRACTED",
+            sha256_hash: sha256Checksum,
+            raw_data: extractRes.extractedFields as any,
+          },
+          { onConflict: "invoice_number" },
+        );
+      }
+
+      // 5. Persist extracted telemetry intervals to telemetry_intervals
+      if (extractRes.intervals && extractRes.intervals.length > 0) {
+        const intervalPayloads = extractRes.intervals.slice(0, 5000).map((intv) => ({
+          meter_id: intv.meter_id || "7856504226",
+          timestamp_utc: intv.timestamp_utc,
+          local_timestamp: intv.local_timestamp || intv.timestamp_utc,
+          source_timezone: intv.timezone || "Africa/Johannesburg",
+          kw: intv.channel === "kW" ? intv.engineering_value : 0,
+          kva: intv.channel === "kVA" ? intv.engineering_value : 0,
+          kvarh: intv.channel === "kVARh" ? intv.engineering_value : 0,
+          kwh: intv.channel === "kWh" ? intv.engineering_value : 0,
+          power_factor: intv.channel === "power_factor" ? intv.engineering_value : 0.96,
+          quality_code: "valid",
+        }));
+        await supabase.from("telemetry_intervals").upsert(intervalPayloads, {
+          onConflict: "meter_id,timestamp_utc",
+        });
+      }
     } catch (dbErr) {
       addLog("DB", "warn", "Supabase offline mode active. Using local memory reflection.");
     }

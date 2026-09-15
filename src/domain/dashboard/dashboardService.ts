@@ -40,8 +40,21 @@ export class DashboardService {
       return this.createEmptyDashboardData(timestamp);
     }
 
-    // 2. If fallbackStoreData is provided with active session data, use store calculation engine
+    // 2. If source is explicitly "database", query production database as Authoritative Source of Truth
+    if (filters.source === "database") {
+      try {
+        const dbData = await this.queryDatabaseAggregates(filters);
+        if (dbData && dbData.hasData) {
+          return dbData;
+        }
+      } catch (err) {
+        console.warn("Supabase dashboard query notice:", err);
+      }
+    }
+
+    // 3. If fallbackStoreData has active session data and source is NOT strictly "database", use store engine
     if (
+      filters.source !== "database" &&
       fallbackStoreData &&
       (fallbackStoreData.invoice ||
         (fallbackStoreData.batchInvoices && fallbackStoreData.batchInvoices.length > 0) ||
@@ -50,7 +63,7 @@ export class DashboardService {
       return this.aggregateStoreData(filters, fallbackStoreData, timestamp);
     }
 
-    // 3. Otherwise query production Supabase database
+    // 4. Otherwise query production Supabase database as Authoritative Source of Truth
     try {
       const dbData = await this.queryDatabaseAggregates(filters);
       if (dbData && dbData.hasData) {
@@ -60,7 +73,7 @@ export class DashboardService {
       console.warn("Supabase dashboard query notice:", err);
     }
 
-    // 4. Return explicit NO DATA state if nothing present
+    // 5. Return explicit NO DATA state if nothing present
     return this.createEmptyDashboardData(timestamp);
   }
 
