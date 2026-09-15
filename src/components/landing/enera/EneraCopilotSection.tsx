@@ -118,8 +118,70 @@ const AFFECTED_AREAS: AffectedArea[] = [
   },
 ];
 
+interface StreamScenario {
+  id: string;
+  name: string;
+  category: string;
+  packets: string[];
+  rule: string;
+  metricValue: string;
+  metricLabel: string;
+  metricSubtext: string;
+  confidence: string;
+}
+
+const STREAM_SCENARIOS: StreamScenario[] = [
+  {
+    id: "holiday",
+    name: "Holiday Reclassification",
+    category: "CALENDAR MATRIX",
+    packets: [
+      "16-Jun 06:00:00 · Interval #1440 · 842.1 kWh · Billed: High-Season Peak (R 0.742/kWh)",
+      "16-Jun 07:00:00 · Interval #1442 · 890.4 kWh · NERSA Rule: Statutory Sunday Schedule",
+      "16-Jun 08:30:00 · Interval #1445 · 940.2 kWh · Corrected: Off-Peak (R 0.250/kWh)",
+    ],
+    rule: "NERSA Schedule 2 · Youth Day Statutory Holiday Off-Peak Substitution",
+    metricValue: "+R 24,180.00",
+    metricLabel: "Recoverable Energy Charge Credit",
+    metricSubtext: "Reclassified 23,200 kWh from High-Season Peak to statutory Off-Peak rates",
+    confidence: "100% Deterministic Match",
+  },
+  {
+    id: "demand",
+    name: "Peak Demand Ratchet",
+    category: "CAPACITY INTEGRATION",
+    packets: [
+      "Statement Peak Stated: 5,100 kVA (Utility Stated Invoice Determinant)",
+      "AMR Max Measured: 4,850 kVA @ 08:30 (SANS 474 Certified Check Meter)",
+      "Discrepancy: +250 kVA Capacity Charge Billed Above Physical Maximum",
+    ],
+    rule: "NERSA Capacity Rule · Actual Integrated 30-Min High-Season Demand",
+    metricValue: "+R 14,166.00",
+    metricLabel: "Unearned Demand Capacity Credit",
+    metricSubtext: "250 kVA Overstatement @ R 56.66/kVA High Season Demand Rate",
+    confidence: "Verified Across 1,488 Intervals",
+  },
+  {
+    id: "power-factor",
+    name: "Power Factor Boundary",
+    category: "REACTIVE ENERGY",
+    packets: [
+      "Utility Stated Surcharge: R 27,800.00 (Reactive Energy Surcharge Stated)",
+      "Active: 3,412,080 kWh · Reactive: 994,200 kvarh (Monthly Totals)",
+      "Vector Derivation: cos(arctan(994200 / 3412080)) = 0.96 lagging",
+    ],
+    rule: "NERSA Power Factor Threshold · Compliant (> 0.85 Lagging Exemption)",
+    metricValue: "+R 27,800.00",
+    metricLabel: "Invalid Surcharge Reversal",
+    metricSubtext: "Full exemption from reactive penalty under gazetted rules",
+    confidence: "Vector Compliance Certified",
+  },
+];
+
 export function EneraCopilotSection() {
   const [activeStage, setActiveStage] = useState<number>(3); // Default to "COST"
+  const [activeScenarioIdx, setActiveScenarioIdx] = useState<number>(0);
+  const currentScenario = STREAM_SCENARIOS[activeScenarioIdx];
 
   return (
     <section
@@ -283,6 +345,105 @@ export function EneraCopilotSection() {
             <div className="flex items-center gap-2 text-slate-600 shrink-0">
               <span className="text-slate-600">{FLOW_STAGES[activeStage].metricLabel}:</span>
               <span className="text-slate-900 font-bold">{FLOW_STAGES[activeStage].metricValue}</span>
+            </div>
+          </div>
+
+          {/* DATA STREAM TO FINANCIAL METRIC RESOLUTION */}
+          <div className="mt-8 pt-6 border-t border-slate-200/80">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-700 font-bold block mb-1">
+                  TELEMETRY STREAM TO FINANCIAL METRIC RESOLUTION
+                </span>
+                <h4 className="text-sm sm:text-base font-bold text-slate-900 font-sans">
+                  Watch Continuous Interval Streams Resolve Into Certified Balance-Sheet Metrics
+                </h4>
+              </div>
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                {STREAM_SCENARIOS.map((scenario, idx) => (
+                  <button
+                    key={scenario.id}
+                    type="button"
+                    onClick={() => setActiveScenarioIdx(idx)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all whitespace-nowrap focus-ring-enera ${
+                      activeScenarioIdx === idx
+                        ? "bg-cyan-100 text-cyan-900 font-bold border border-cyan-300 shadow-sm"
+                        : "bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 border border-transparent"
+                    }`}
+                  >
+                    {scenario.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center bg-slate-900 text-white rounded-xl p-5 border border-slate-800 shadow-inner">
+              {/* Left: Continuous Data Stream */}
+              <div className="lg:col-span-5 space-y-2 font-mono">
+                <div className="flex items-center justify-between text-[10px] text-slate-400 pb-1.5 border-b border-slate-800">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" aria-hidden="true" />
+                    <span>INCOMING TELEMETRY STREAM</span>
+                  </span>
+                  <span className="text-cyan-400 text-[10px]">{currentScenario.category}</span>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  {currentScenario.packets.map((pkt, i) => (
+                    <div key={i} className="p-2 rounded bg-slate-950/80 border border-slate-800 text-slate-300 text-[11px] leading-relaxed">
+                      {pkt}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Center: Stream Conduit with animated pulse */}
+              <div className="lg:col-span-3 flex flex-col items-center justify-center p-3 text-center space-y-2">
+                <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider font-semibold">
+                  Deterministic Tariff Engine
+                </span>
+                {/* Animated Stream Pulse Conduit */}
+                <div className="w-full h-8 flex items-center justify-center relative overflow-hidden" aria-hidden="true">
+                  <svg className="w-full h-6" preserveAspectRatio="none">
+                    <line
+                      x1="0%"
+                      y1="50%"
+                      x2="100%"
+                      y2="50%"
+                      stroke="rgba(34, 211, 238, 0.2)"
+                      strokeWidth="2"
+                    />
+                    <line
+                      x1="0%"
+                      y1="50%"
+                      x2="100%"
+                      y2="50%"
+                      stroke="rgba(34, 211, 238, 0.8)"
+                      strokeWidth="2"
+                      className="enera-data-stream-pulse"
+                    />
+                  </svg>
+                </div>
+                <span className="text-[10px] font-mono text-slate-400 max-w-[200px] leading-tight">
+                  {currentScenario.rule}
+                </span>
+              </div>
+
+              {/* Right: Resolved Financial Metric */}
+              <div className="lg:col-span-4 p-4 rounded-xl bg-slate-950 border border-cyan-500/30 enera-glow-cyan space-y-2">
+                <div className="flex items-center justify-between text-[10px] font-mono">
+                  <span className="text-slate-400 uppercase tracking-wider">RESOLVED FINANCIAL METRIC</span>
+                  <span className="text-emerald-400 font-bold">{currentScenario.confidence}</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-mono font-extrabold text-amber-400">
+                  {currentScenario.metricValue}
+                </div>
+                <div className="text-xs font-semibold text-white font-sans">
+                  {currentScenario.metricLabel}
+                </div>
+                <p className="text-[11px] text-slate-400 font-sans leading-snug">
+                  {currentScenario.metricSubtext}
+                </p>
+              </div>
             </div>
           </div>
         </div>

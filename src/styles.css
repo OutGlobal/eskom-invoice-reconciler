@@ -200,14 +200,64 @@
     animation: enera-dash 25s linear infinite;
   }
 
+  .enera-chart-traveling-line {
+    stroke-dasharray: 6 12;
+    animation: enera-chart-stream 12s linear infinite;
+  }
+
+  .enera-anomaly-radar {
+    position: relative;
+  }
+  .enera-anomaly-radar::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: inherit;
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    animation: enera-radar-ping 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+    pointer-events: none;
+  }
+
   .enera-pulse-subtle {
     animation: enera-glow-pulse 4s ease-in-out infinite;
+  }
+
+  .enera-data-stream-pulse {
+    stroke-dasharray: 8 16;
+    animation: enera-stream-flow 6s linear infinite;
   }
 }
 
 @keyframes enera-dash {
   to {
     stroke-dashoffset: -100;
+  }
+}
+
+@keyframes enera-chart-stream {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+@keyframes enera-radar-ping {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
+@keyframes enera-stream-flow {
+  to {
+    stroke-dashoffset: -120;
   }
 }
 
@@ -307,7 +357,9 @@
   .enera-energy-stream,
   .enera-pulse-subtle,
   .animate-enera-pulse,
-  .animate-pulse {
+  .animate-pulse,
+  .enera-chart-traveling-line,
+  .enera-data-stream-pulse {
     animation: none !important;
   }
 

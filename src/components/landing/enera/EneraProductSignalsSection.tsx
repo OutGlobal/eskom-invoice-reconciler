@@ -110,12 +110,23 @@ export function EneraProductSignalsSection() {
               >
                 {/* Header with Icon and Category Tag */}
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-700 transition-transform duration-200 group-hover:scale-105 group-hover:border-cyan-200">
+                  <div className={`w-10 h-10 rounded-lg border flex items-center justify-center transition-transform duration-200 group-hover:scale-105 ${
+                    capability.category === "ANOMALY"
+                      ? "bg-amber-50 border-amber-200 text-amber-700"
+                      : "bg-cyan-50 border-cyan-100 text-cyan-700 group-hover:border-cyan-200"
+                  }`}>
                     <Icon className="h-5 w-5" />
                   </div>
-                  <span className="text-[10px] font-mono font-bold tracking-wider text-cyan-700 uppercase bg-cyan-50/60 px-2 py-0.5 rounded border border-cyan-100">
-                    {capability.category}
-                  </span>
+                  {capability.category === "ANOMALY" ? (
+                    <span className="text-[10px] font-mono font-bold tracking-wider text-amber-800 uppercase bg-amber-50 px-2 py-0.5 rounded border border-amber-200/80 enera-anomaly-radar flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" aria-hidden="true" />
+                      {capability.category}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-mono font-bold tracking-wider text-cyan-700 uppercase bg-cyan-50/60 px-2 py-0.5 rounded border border-cyan-100">
+                      {capability.category}
+                    </span>
+                  )}
                 </div>
 
                 {/* Heading */}
@@ -127,6 +138,27 @@ export function EneraProductSignalsSection() {
                 <p className="text-sm text-slate-600 font-sans leading-relaxed">
                   {capability.description}
                 </p>
+
+                {/* Subtle micro visual moment for Energy load curve */}
+                {capability.category === "ENERGY" && (
+                  <div className="mt-3 pt-2 border-t border-slate-200/80 overflow-hidden" aria-hidden="true">
+                    <svg className="w-full h-3" preserveAspectRatio="none">
+                      <path
+                        d="M 0 8 Q 25 2, 50 7 T 100 4"
+                        fill="none"
+                        stroke="rgba(14, 116, 144, 0.25)"
+                        strokeWidth="1.5"
+                      />
+                      <path
+                        d="M 0 8 Q 25 2, 50 7 T 100 4"
+                        fill="none"
+                        stroke="rgba(6, 182, 212, 0.85)"
+                        strokeWidth="1.5"
+                        className="enera-chart-traveling-line"
+                      />
+                    </svg>
+                  </div>
+                )}
               </div>
             );
           })}

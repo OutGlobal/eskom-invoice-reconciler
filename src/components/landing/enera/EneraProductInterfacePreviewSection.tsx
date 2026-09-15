@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   LayoutDashboard,
   Scale,
@@ -32,11 +32,58 @@ const TABS: TabConfig[] = [
   { id: "reporting", label: "Reporting", icon: FileCheck },
 ];
 
+const INTERVAL_BARS = [
+  { h: 30, t: "off" }, { h: 28, t: "off" }, { h: 32, t: "off" }, { h: 35, t: "off" },
+  { h: 42, t: "std" }, { h: 58, t: "std" }, { h: 88, t: "peak" }, { h: 96, t: "peak" },
+  { h: 92, t: "peak" }, { h: 72, t: "std" }, { h: 68, t: "std" }, { h: 65, t: "std" },
+  { h: 64, t: "std" }, { h: 62, t: "std" }, { h: 60, t: "std" }, { h: 66, t: "std" },
+  { h: 82, t: "peak" }, { h: 90, t: "peak" }, { h: 78, t: "peak" }, { h: 52, t: "std" },
+  { h: 44, t: "std" }, { h: 38, t: "off" }, { h: 34, t: "off" }, { h: 30, t: "off" },
+];
+
 export function EneraProductInterfacePreviewSection() {
   const [activeTab, setActiveTab] = useState<PreviewTab>("dashboard");
+  const [hasEnteredViewport, setHasEnteredViewport] = useState<boolean>(false);
+  const [reducedMotion, setReducedMotion] = useState<boolean>(false);
+  const [transitionView, setTransitionView] = useState<"raw" | "transition" | "insight">("insight");
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReducedMotion(mq.matches);
+    if (mq.matches) {
+      setHasEnteredViewport(true);
+    }
+    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    mq.addEventListener("change", handler);
+
+    const el = containerRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setHasEnteredViewport(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setHasEnteredViewport(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(el);
+
+    return () => {
+      mq.removeEventListener("change", handler);
+      observer.disconnect();
+    };
+  }, []);
 
   return (
     <section
+      ref={containerRef}
       id="interface-previews"
       className="py-20 sm:py-24 bg-[#0c121e] text-white border-t border-slate-800/80 font-sans scroll-mt-12"
       aria-label="Product Interface Previews"
@@ -192,6 +239,97 @@ export function EneraProductInterfacePreviewSection() {
                   </div>
                 </div>
 
+                {/* BILLING NUMBER TRANSITIONING INTO A CLEAN INSIGHT */}
+                <div className="p-5 rounded-xl bg-[#0b1224] border border-cyan-500/20 shadow-lg space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" aria-hidden="true" />
+                      <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-300">
+                        Reconciliation Signal Transition
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] font-mono">
+                      <span className="text-slate-400">State:</span>
+                      <button
+                        type="button"
+                        onClick={() => setTransitionView("raw")}
+                        className={`px-2.5 py-1 rounded text-[10px] font-mono transition-colors focus-ring-enera ${
+                          transitionView === "raw" ? "bg-white/10 text-white font-bold" : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        1. Raw Stated
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTransitionView("transition")}
+                        className={`px-2.5 py-1 rounded text-[10px] font-mono transition-colors focus-ring-enera ${
+                          transitionView === "transition" ? "bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30" : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        2. Cross-Verification
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTransitionView("insight")}
+                        className={`px-2.5 py-1 rounded text-[10px] font-mono transition-colors focus-ring-enera ${
+                          transitionView === "insight" ? "bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30" : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        3. Clean Insight
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                    {/* Stated Billing Number */}
+                    <div className={`md:col-span-4 p-4 rounded-lg border transition-all duration-300 ${
+                      transitionView === "raw" ? "bg-[#070b16] border-white/30 shadow-inner ring-1 ring-white/10" : "bg-[#070b16]/60 border-white/5 opacity-85"
+                    }`}>
+                      <span className="text-[10px] font-mono uppercase text-slate-400 block mb-1">
+                        1. Raw Billed Statement
+                      </span>
+                      <div className="text-xl sm:text-2xl font-mono font-bold text-white">
+                        R 1,842,500.00
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Aggregated monthly utility statement amount without interval cross-examination.
+                      </p>
+                    </div>
+
+                    {/* Transition Conduit */}
+                    <div className={`md:col-span-4 flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all duration-300 ${
+                      transitionView === "transition" ? "bg-cyan-950/40 border-cyan-500/50 enera-glow-cyan" : "bg-cyan-950/20 border-cyan-500/20"
+                    }`}>
+                      <div className="text-[10px] font-mono text-cyan-400 font-bold uppercase mb-1">
+                        2. Deterministic Verification
+                      </div>
+                      <div className="flex items-center gap-2 text-xs font-mono text-cyan-300 py-1">
+                        <span>1,488 Intervals</span>
+                        <ArrowRight className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
+                        <span>NERSA Sched 2</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        Continuous TOU matrix cross-referencing holiday and peak determinants
+                      </span>
+                    </div>
+
+                    {/* Clean Insight Number */}
+                    <div className={`md:col-span-4 p-4 rounded-lg border transition-all duration-300 ${
+                      transitionView === "insight" ? "bg-[#070b16] border-amber-500/40 enera-glow-amber ring-1 ring-amber-500/20" : "bg-[#070b16]/60 border-white/5 opacity-85"
+                    }`}>
+                      <span className="text-[10px] font-mono uppercase text-amber-400 font-bold block mb-1">
+                        3. Clean Audited Insight
+                      </span>
+                      <div className="text-xl sm:text-2xl font-mono font-bold text-amber-400">
+                        +R 53,380.00 Credit
+                      </div>
+                      <p className="text-[11px] text-slate-300 mt-1">
+                        Isolated 16-June Public Holiday Peak misclassification &amp; 250 kVA demand overcharge.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* TOU Split Overview Bar */}
                 <div className="p-5 rounded-xl bg-[#0b1224] border border-white/5 space-y-3">
                   <div className="flex items-center justify-between text-xs">
@@ -199,11 +337,32 @@ export function EneraProductInterfacePreviewSection() {
                     <span className="font-mono text-slate-400">Total: 3,412,080 kWh</span>
                   </div>
 
-                  {/* Multi-segment visual bar */}
+                  {/* Multi-segment visual bar with viewport entrance animation */}
                   <div className="w-full h-3 rounded-full bg-slate-800 overflow-hidden flex">
-                    <div style={{ width: "24%" }} className="bg-amber-500" title="Peak: 24%" />
-                    <div style={{ width: "42%" }} className="bg-cyan-500" title="Standard: 42%" />
-                    <div style={{ width: "34%" }} className="bg-slate-500" title="Off-Peak: 34%" />
+                    <div
+                      style={{
+                        width: hasEnteredViewport ? "24%" : "0%",
+                        transition: reducedMotion ? "none" : "width 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
+                      }}
+                      className="bg-amber-500"
+                      title="Peak: 24%"
+                    />
+                    <div
+                      style={{
+                        width: hasEnteredViewport ? "42%" : "0%",
+                        transition: reducedMotion ? "none" : "width 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s",
+                      }}
+                      className="bg-cyan-500"
+                      title="Standard: 42%"
+                    />
+                    <div
+                      style={{
+                        width: hasEnteredViewport ? "34%" : "0%",
+                        transition: reducedMotion ? "none" : "width 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s",
+                      }}
+                      className="bg-slate-500"
+                      title="Off-Peak: 34%"
+                    />
                   </div>
 
                   <div className="flex flex-wrap items-center gap-6 text-xs text-slate-400 pt-1">
@@ -333,8 +492,8 @@ export function EneraProductInterfacePreviewSection() {
                   </div>
                 </div>
 
-                {/* Simulated SVG Interval Profile with Live Telemetry Scanner */}
-                <div className="w-full h-48 bg-[#0b1224] rounded-xl border border-white/5 p-4 flex flex-col justify-between relative overflow-hidden">
+                {/* Simulated SVG Interval Profile with Live Telemetry Scanner & Traveling Energy Line */}
+                <div className="w-full h-56 bg-[#0b1224] rounded-xl border border-white/5 p-4 flex flex-col justify-between relative overflow-hidden">
                   {/* Subtle telemetry scanner line across 24h profile */}
                   <div
                     className="absolute inset-y-0 w-12 bg-gradient-to-r from-transparent via-cyan-400/10 to-transparent pointer-events-none"
@@ -347,24 +506,78 @@ export function EneraProductInterfacePreviewSection() {
                       <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                       5,000 kVA (Ratchet Limit)
                     </span>
-                    <span className="text-amber-400 font-bold">Max Peak: 4,850 kVA @ 08:30</span>
+                    <span className="text-amber-400 font-bold flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 enera-anomaly-radar" />
+                      Max Peak: 4,850 kVA @ 08:30 (Measured)
+                    </span>
                   </div>
 
-                  <div className="w-full h-28 relative flex items-end z-10">
-                    {/* Simulated bars for 24 half-hour blocks */}
+                  <div className="w-full h-32 relative flex items-end z-10">
+                    {/* Subtle Continuous Load Curve with Traveling Energy Line */}
+                    <svg
+                      className="absolute inset-0 w-full h-full pointer-events-none z-20 overflow-visible"
+                      preserveAspectRatio="none"
+                      viewBox="0 0 1000 120"
+                      aria-hidden="true"
+                    >
+                      <defs>
+                        <linearGradient id="chartEnergyGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.8" />
+                          <stop offset="28%" stopColor="#f59e0b" stopOpacity="1" />
+                          <stop offset="50%" stopColor="#22d3ee" stopOpacity="0.8" />
+                          <stop offset="72%" stopColor="#f59e0b" stopOpacity="1" />
+                          <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.8" />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Static Load Curve Guide */}
+                      <path
+                        d="M 20 84 C 100 86, 150 72, 210 48 C 260 20, 290 8, 312 6 C 340 8, 370 32, 420 40 C 500 44, 600 42, 650 32 C 700 18, 720 12, 740 12 C 770 14, 820 48, 880 74 C 940 84, 980 84, 1000 84"
+                        stroke="rgba(34, 211, 238, 0.2)"
+                        strokeWidth="1.5"
+                        fill="none"
+                      />
+
+                      {/* Traveling Energy Line */}
+                      <path
+                        d="M 20 84 C 100 86, 150 72, 210 48 C 260 20, 290 8, 312 6 C 340 8, 370 32, 420 40 C 500 44, 600 42, 650 32 C 700 18, 720 12, 740 12 C 770 14, 820 48, 880 74 C 940 84, 980 84, 1000 84"
+                        stroke="url(#chartEnergyGradient)"
+                        strokeWidth="2.5"
+                        fill="none"
+                        className="enera-chart-traveling-line"
+                      />
+
+                      {/* Morning Peak Waypoint @ 08:30 (x=312, y=6) */}
+                      <circle cx="312" cy="6" r="4" fill="#f59e0b" className="animate-pulse" />
+                      <circle cx="312" cy="6" r="8" stroke="#f59e0b" strokeWidth="1" fill="none" opacity="0.5" />
+
+                      {/* Evening Peak Waypoint @ 18:00 (x=740, y=12) */}
+                      <circle cx="740" cy="12" r="3.5" fill="#f59e0b" />
+                      <circle cx="740" cy="12" r="7" stroke="#f59e0b" strokeWidth="1" fill="none" opacity="0.4" />
+                    </svg>
+
+                    {/* Anomaly Indicator Radar Pill directly above 08:30 Peak */}
+                    <div
+                      className="absolute left-[31.2%] -top-4 -translate-x-1/2 flex items-center gap-1.5 z-30 pointer-events-none"
+                      aria-hidden="true"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-amber-400 enera-anomaly-radar" />
+                      <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-mono border border-amber-500/30 whitespace-nowrap hidden sm:inline-block shadow-sm">
+                        Flagged: +250 kVA Overstated
+                      </span>
+                    </div>
+
+                    {/* Simulated bars for 24 half-hour blocks animating upon viewport entrance */}
                     <div className="w-full h-full flex items-end gap-1 sm:gap-1.5">
-                      {[
-                        { h: 30, t: "off" }, { h: 28, t: "off" }, { h: 32, t: "off" }, { h: 35, t: "off" },
-                        { h: 42, t: "std" }, { h: 58, t: "std" }, { h: 88, t: "peak" }, { h: 96, t: "peak" },
-                        { h: 92, t: "peak" }, { h: 72, t: "std" }, { h: 68, t: "std" }, { h: 65, t: "std" },
-                        { h: 64, t: "std" }, { h: 62, t: "std" }, { h: 60, t: "std" }, { h: 66, t: "std" },
-                        { h: 82, t: "peak" }, { h: 90, t: "peak" }, { h: 78, t: "peak" }, { h: 52, t: "std" },
-                        { h: 44, t: "std" }, { h: 38, t: "off" }, { h: 34, t: "off" }, { h: 30, t: "off" },
-                      ].map((bar, i) => (
+                      {INTERVAL_BARS.map((bar, i) => (
                         <div
                           key={i}
-                          style={{ height: `${bar.h}%` }}
-                          className={`flex-1 rounded-t transition-all duration-300 ${
+                          style={{
+                            height: hasEnteredViewport ? `${bar.h}%` : "0%",
+                            transition: reducedMotion ? "none" : "height 0.7s cubic-bezier(0.16, 1, 0.3, 1)",
+                            transitionDelay: reducedMotion ? "0ms" : `${i * 22}ms`,
+                          }}
+                          className={`flex-1 rounded-t ${
                             bar.t === "peak"
                               ? "bg-gradient-to-t from-amber-600 to-amber-400 hover:brightness-110"
                               : bar.t === "std"
@@ -414,7 +627,8 @@ export function EneraProductInterfacePreviewSection() {
                   <div className="p-4 rounded-xl bg-[#0b1224] border border-amber-500/30 enera-glow-amber flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 font-bold">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 font-bold enera-anomaly-radar inline-flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" aria-hidden="true" />
                           CRITICAL
                         </span>
                         <h3 className="text-sm font-bold text-white">
@@ -424,6 +638,22 @@ export function EneraProductInterfacePreviewSection() {
                       <p className="text-xs text-slate-400 font-sans leading-relaxed">
                         Youth Day (16 June) was billed at High-Season Peak weekday rates instead of statutory Sunday Off-Peak schedule under NERSA Schedule 2 rules.
                       </p>
+
+                      {/* Subtle rate comparison breakdown */}
+                      <div className="mt-3 pt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-mono border-t border-white/5">
+                        <div className="p-2 rounded bg-black/40 border border-white/5">
+                          <span className="text-slate-400 block text-[9px] uppercase">Utility Stated Rate</span>
+                          <span className="text-rose-300 font-bold">R 0.742/kWh (Peak)</span>
+                        </div>
+                        <div className="p-2 rounded bg-black/40 border border-white/5">
+                          <span className="text-slate-400 block text-[9px] uppercase">NERSA Schedule Rate</span>
+                          <span className="text-cyan-300 font-bold">R 0.250/kWh (Off-Peak)</span>
+                        </div>
+                        <div className="p-2 rounded bg-amber-950/20 border border-amber-500/20">
+                          <span className="text-amber-400 block text-[9px] uppercase">Unearned Variance</span>
+                          <span className="text-amber-300 font-bold">+R 24,180.00 Recovery</span>
+                        </div>
+                      </div>
                     </div>
                     <div className="text-left sm:text-right shrink-0">
                       <div className="font-mono text-sm font-bold text-amber-400">
@@ -436,7 +666,8 @@ export function EneraProductInterfacePreviewSection() {
                   <div className="p-4 rounded-xl bg-[#0b1224] border border-amber-500/30 enera-glow-amber flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 font-bold">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 font-bold inline-flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" aria-hidden="true" />
                           WARNING
                         </span>
                         <h3 className="text-sm font-bold text-white">
