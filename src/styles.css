@@ -386,3 +386,13 @@
   backface-visibility: hidden;
   will-change: transform, opacity;
 }
+
+@keyframes enera-slide-progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+

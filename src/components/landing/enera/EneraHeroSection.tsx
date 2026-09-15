@@ -28,17 +28,17 @@ export function EneraHeroSection() {
         </div>
 
         {/* Primary headline (authoritative, institutional) */}
-        <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white leading-tight font-sans max-w-4xl">
+        <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white leading-tight font-sans max-w-4xl drop-shadow-[0_2px_16px_rgba(0,0,0,0.9)]">
           SEE BEYOND THE BILL.
         </h1>
 
         {/* Single clear, concise institutional proposition */}
-        <p className="mt-6 text-base sm:text-xl text-slate-200 font-normal max-w-2xl mx-auto leading-relaxed font-sans">
+        <p className="mt-6 text-base sm:text-xl text-slate-100 font-normal max-w-2xl mx-auto leading-relaxed font-sans drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
           ENERA turns complex energy and billing information into clear, actionable intelligence.
         </p>
 
         {/* Secondary clear outcomes */}
-        <p className="mt-3 text-sm sm:text-base text-slate-400 font-normal max-w-xl mx-auto leading-relaxed font-sans">
+        <p className="mt-3 text-sm sm:text-base text-slate-300 font-normal max-w-xl mx-auto leading-relaxed font-sans drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
           Reconcile energy data, understand costs, identify anomalies and make better decisions from one intelligent platform.
         </p>
 

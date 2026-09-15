@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 
 interface HeroSlide {
   src: string;
@@ -28,9 +28,9 @@ const SLIDE_INTERVAL_MS = 3500; // 3.5 seconds
 
 export function EneraHeroImageSlider() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [prevSlide, setPrevSlide] = useState<number | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -44,74 +44,113 @@ export function EneraHeroImageSlider() {
   useEffect(() => {
     if (reducedMotion || isPaused) return;
 
-    timerRef.current = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+    const interval = setInterval(() => {
+      setCurrentSlide((curr) => {
+        setPrevSlide(curr);
+        return (curr + 1) % HERO_SLIDES.length;
+      });
     }, SLIDE_INTERVAL_MS);
 
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return () => clearInterval(interval);
   }, [reducedMotion, isPaused]);
 
   return (
     <div
-      className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0 select-none"
+      className="absolute inset-0 w-full h-full overflow-hidden select-none z-0"
       aria-hidden="true"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* 1. Horizontal sliding track (slides left every 3.5s) */}
-      <div
-        className="flex w-full h-full transition-transform duration-1000 ease-out will-change-transform"
-        style={{
-          transform: `translateX(-${currentSlide * 100}%)`,
-        }}
-      >
-        {HERO_SLIDES.map((slide, index) => (
+      {/* 1. Slide Images: Smooth Left-Sliding Carousel Engine */}
+      {HERO_SLIDES.map((slide, index) => {
+        const isActive = index === currentSlide;
+        const isPrev = index === prevSlide;
+
+        let transformStyle = "translateX(100%)";
+        let opacityStyle = 0;
+        let transitionStyle = "none";
+        let zIndex = 0;
+
+        if (isActive) {
+          transformStyle = "translateX(0%)";
+          opacityStyle = 1;
+          transitionStyle = "transform 1000ms cubic-bezier(0.16, 1, 0.3, 1), opacity 800ms ease";
+          zIndex = 2;
+        } else if (isPrev) {
+          transformStyle = "translateX(-100%)";
+          opacityStyle = 0;
+          transitionStyle = "transform 1000ms cubic-bezier(0.16, 1, 0.3, 1), opacity 800ms ease";
+          zIndex = 1;
+        }
+
+        return (
           <div
             key={slide.src}
-            className="w-full h-full min-w-full flex-shrink-0 relative"
+            className="absolute inset-0 w-full h-full will-change-transform pointer-events-none"
+            style={{
+              transform: transformStyle,
+              opacity: opacityStyle,
+              transition: transitionStyle,
+              zIndex,
+            }}
           >
             <img
               src={slide.src}
               alt={slide.alt}
-              className="w-full h-full object-cover object-center filter brightness-[0.75] contrast-[1.05]"
-              loading={index === 0 ? "eager" : "lazy"}
-              decoding="async"
+              className="w-full h-full object-cover object-center filter brightness-[0.88] contrast-[1.08] saturate-[1.05]"
+              loading="eager"
+              decoding="sync"
             />
           </div>
-        ))}
-      </div>
+        );
+      })}
 
-      {/* 2. Multi-layered dark overlays to protect text contrast and readability */}
-      {/* Deep dark tint overlay */}
-      <div className="absolute inset-0 bg-[#0c121e]/75 backdrop-blur-[0.5px]" />
+      {/* 2. Calibrated Contrast Overlays: Images are clearly visible while typography is 100% readable */}
+      {/* Base dark tint */}
+      <div className="absolute inset-0 bg-[#0c121e]/50 pointer-events-none z-[3]" />
 
-      {/* Vertical gradient overlay: smooth transition from nav and into flow visual */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0c121e]/95 via-[#0c121e]/65 to-[#0c121e]" />
+      {/* Vertical gradient: seamless top header transition and bottom visual integration */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0c121e]/85 via-[#0c121e]/35 to-[#0c121e]/95 pointer-events-none z-[3]" />
 
-      {/* Center elliptical vignette: dims the hero center so headline & text pop out */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(12,18,30,0.5)_0%,_rgba(12,18,30,0.92)_100%)]" />
+      {/* Center elliptical vignette: dims center behind headline */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(12,18,30,0.3)_0%,_rgba(12,18,30,0.75)_100%)] pointer-events-none z-[3]" />
 
-      {/* 3. Subtle slide indicator tabs at bottom */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 pointer-events-auto">
+      {/* 3. Slide Indicators with 3.5s Progress Bar */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2.5 pointer-events-auto">
         {HERO_SLIDES.map((slide, index) => {
           const isActive = index === currentSlide;
           return (
             <button
               key={slide.src}
               type="button"
-              onClick={() => setCurrentSlide(index)}
-              className={`h-1.5 rounded-full transition-all duration-500 focus-ring-enera ${
-                isActive
-                  ? "w-8 bg-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.6)]"
-                  : "w-2 bg-white/20 hover:bg-white/40"
+              onClick={() => {
+                setPrevSlide(currentSlide);
+                setCurrentSlide(index);
+              }}
+              className={`group relative h-1.5 rounded-full overflow-hidden transition-all duration-300 focus-ring-enera ${
+                isActive ? "w-10 bg-white/20" : "w-3 bg-white/20 hover:bg-white/40"
               }`}
               aria-label={`Go to slide ${index + 1}: ${slide.label}`}
-              tabIndex={0}
-            />
+              title={slide.label}
+            >
+              {isActive && (
+                <span
+                  key={`progress-${currentSlide}`}
+                  className="absolute inset-y-0 left-0 bg-cyan-400 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.8)]"
+                  style={{
+                    animation: reducedMotion ? "none" : `enera-slide-progress ${SLIDE_INTERVAL_MS}ms linear forwards`,
+                  }}
+                />
+              )}
+            </button>
           );
         })}
+      </div>
+
+      {/* Slide Badge Pill (Shows active South African grid aspect) */}
+      <div className="absolute top-28 right-6 z-20 hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/80 border border-slate-700/60 text-[10px] font-mono text-slate-300 shadow-md backdrop-blur-sm">
+        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+        <span className="text-cyan-300 font-semibold">{HERO_SLIDES[currentSlide].label}</span>
       </div>
     </div>
   );
