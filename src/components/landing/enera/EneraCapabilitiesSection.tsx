@@ -34,7 +34,7 @@ export function EneraCapabilitiesSection() {
   return (
     <section
       id="from-data-to-decision"
-      className="py-20 sm:py-24 bg-white text-slate-900 border-t border-slate-200/80 font-sans scroll-mt-12"
+      className="py-24 sm:py-32 bg-white text-slate-900 border-t border-slate-200/80 font-sans scroll-mt-12"
       aria-label="From Energy Data to Decision"
     >
       {/* Backwards-compatible anchors for navigation links */}
@@ -53,22 +53,27 @@ export function EneraCapabilitiesSection() {
         </h2>
 
         {/* 3. Short explanation */}
-        <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-12">
+        <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-14">
           ENERA brings together the information behind your energy costs and consumption, helping teams move from fragmented data to clear financial and operational insight.
         </p>
 
         {/* 4. Visual or capability: 4 Clean, Compact Capability Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-          {CAPABILITIES.map((cap) => {
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {CAPABILITIES.map((cap, idx) => {
             const Icon = cap.icon;
             return (
               <div
                 key={cap.title}
-                className="p-6 rounded-xl bg-slate-50 border border-slate-200/90 shadow-sm hover:border-cyan-300 hover:shadow-[0_4px_20px_-4px_rgba(6,182,212,0.12)] transition-all duration-300 flex flex-col justify-start group"
+                className="p-7 rounded-xl bg-slate-50/80 border border-slate-200 shadow-sm hover:border-cyan-300 hover:shadow-[0_8px_30px_-6px_rgba(6,182,212,0.12)] transition-all duration-300 flex flex-col justify-start group"
               >
-                {/* Simple icon with micro-interaction */}
-                <div className="w-10 h-10 rounded-lg bg-cyan-50 border border-cyan-100 flex items-center justify-center mb-5 text-cyan-700 transition-transform duration-200 group-hover:scale-105 group-hover:border-cyan-200">
-                  <Icon className="h-5 w-5" />
+                {/* Header with Step indicator and Icon */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="w-10 h-10 rounded-lg bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-700 transition-transform duration-200 group-hover:scale-105 group-hover:border-cyan-200">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <span className="text-[11px] font-mono font-bold tracking-wider text-slate-400 group-hover:text-cyan-700 transition-colors">
+                    0{idx + 1}
+                  </span>
                 </div>
 
                 {/* Short heading */}
@@ -86,7 +91,7 @@ export function EneraCapabilitiesSection() {
         </div>
 
         {/* 5. Optional supporting information & 6. Optional CTA */}
-        <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
+        <div className="mt-14 pt-8 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
           <span>Deterministic analysis grounded in revenue-grade interval telemetry and official NERSA schedules.</span>
           <a
             href="#how-it-works"

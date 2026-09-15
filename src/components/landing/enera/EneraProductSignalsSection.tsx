@@ -74,7 +74,7 @@ export function EneraProductSignalsSection() {
   return (
     <section
       id="platform-capabilities"
-      className="py-20 sm:py-24 bg-white text-slate-900 border-t border-slate-200/80 font-sans scroll-mt-12"
+      className="py-24 sm:py-32 bg-slate-50/60 text-slate-900 border-t border-slate-200/80 font-sans scroll-mt-12"
       aria-label="Platform Capabilities"
     >
       {/* Backwards-compatible anchors */}
@@ -95,18 +95,18 @@ export function EneraProductSignalsSection() {
         </h2>
 
         {/* 3. Short explanation */}
-        <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-12">
+        <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-14">
           Bring your utility bills and interval meter data together. See what changed, verify every charge, and make confident operational and financial decisions.
         </p>
 
         {/* 4. Visual or capability: 7 Clean, Compact Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {PRODUCT_CAPABILITIES.map((capability) => {
             const Icon = capability.icon;
             return (
               <div
                 key={capability.category}
-                className="p-6 rounded-xl bg-slate-50 border border-slate-200 shadow-sm hover:border-cyan-300 hover:shadow-[0_4px_20px_-4px_rgba(6,182,212,0.12)] transition-all duration-300 flex flex-col justify-start group"
+                className="p-7 rounded-xl bg-white border border-slate-200/90 shadow-sm hover:border-cyan-300 hover:shadow-[0_8px_30px_-6px_rgba(6,182,212,0.12)] transition-all duration-300 flex flex-col justify-start group"
               >
                 {/* Header with Icon and Category Tag */}
                 <div className="flex items-center justify-between mb-4">
