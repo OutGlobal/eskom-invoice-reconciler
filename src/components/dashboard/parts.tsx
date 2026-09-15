@@ -40,34 +40,9 @@ export const NUM = (n: number, d = 2) =>
     maximumFractionDigits: d,
   });
 
-/** Loads default complete 4-month telemetry meter dataset once on mount if store has partial rows. */
+/** In production, telemetry is populated exclusively via user uploads or database queries. */
 export function useBootstrapMeter() {
-  const rows = useApp((s) => s.rows);
-  const setRows = useApp((s) => s.setRows);
-  const setValidation = useApp((s) => s.setValidation);
-  const setBilling = useApp((s) => s.setBilling);
-  const started = useRef(false);
-  useEffect(() => {
-    // Only bootstrap benchmark data if store is completely empty
-    if (rows.length > 0 || started.current) return;
-    started.current = true;
-    (async () => {
-      try {
-        // Generate complete 4-month interval dataset (5,747 intervals, Jan 17 - May 16 2026)
-        const fullDataset = await parseMeterWorkbook(new ArrayBuffer(0));
-        setRows(fullDataset);
-        setValidation(validateMeterRows(fullDataset));
-        if (fullDataset.length && !useApp.getState().invoice?.billingPeriodStart) {
-          setBilling(
-            format(fullDataset[0].ts, "yyyy-MM-dd"),
-            format(fullDataset[fullDataset.length - 1].ts, "yyyy-MM-dd"),
-          );
-        }
-      } catch {
-        // Fallback
-      }
-    })();
-  }, [rows.length, setRows, setValidation, setBilling]);
+  // Deliberately no-op: does not auto-inject synthetic data into clean user sessions.
 }
 
 /** Returns filtered rows + derived totals/charges based on billing period. */
@@ -94,21 +69,21 @@ export function useDerived() {
     if (filtered.length > 0) {
       return computeTotals(filtered, nmd);
     }
-    // Fallback to active Eskom Megaflex Invoice data if no raw meter rows uploaded yet
-    const peakKWh = invoice?.peakKWh ?? invoice?.normalizedJson?.consumption?.peakKwh ?? 6401924.4;
+    // Real invoice data if available, otherwise zero
+    const peakKWh = invoice?.peakKWh ?? invoice?.normalizedJson?.consumption?.peakKwh ?? 0;
     const standardKWh =
-      invoice?.standardKWh ?? invoice?.normalizedJson?.consumption?.standardKwh ?? 19432557.6;
+      invoice?.standardKWh ?? invoice?.normalizedJson?.consumption?.standardKwh ?? 0;
     const offPeakKWh =
-      invoice?.offPeakKWh ?? invoice?.normalizedJson?.consumption?.offPeakKwh ?? 23429967.6;
+      invoice?.offPeakKWh ?? invoice?.normalizedJson?.consumption?.offPeakKwh ?? 0;
     const totalKWh =
       invoice?.totalKWh ??
       invoice?.normalizedJson?.consumption?.totalKwh ??
-      peakKWh + standardKWh + offPeakKWh;
+      (peakKWh + standardKWh + offPeakKWh);
     const maxDemandKVA =
       invoice?.simMaxDemand ??
       invoice?.maxDemandKVA ??
       invoice?.normalizedJson?.consumption?.peakDemand ??
-      85740;
+      0;
     const PF = 0.96;
 
     // Resolve exact peak timestamp based on active billing period
@@ -449,7 +424,7 @@ export function DemandLineChart({
   const rows = useMemo(() => {
     if (inputRows && inputRows.length > 0) return inputRows;
     if (storeRows && storeRows.length > 0) return storeRows;
-    return generateFallbackIntervalReadings();
+    return [];
   }, [inputRows, storeRows]);
 
   const data = useChartData(rows);

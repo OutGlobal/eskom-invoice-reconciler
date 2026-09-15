@@ -72,6 +72,91 @@ export default {
       );
     }
 
+    // Stage 1 Production Data Lifecycle Specification & Status Endpoint
+    if (url.pathname === "/api/pipeline/lifecycle") {
+      const { ProductionDataLifecycleEngine } = await import("./domain/pipeline/productionDataLifecycle");
+      const stages = ProductionDataLifecycleEngine.getStages();
+      return new Response(
+        JSON.stringify({
+          lifecycle_version: "2026.1",
+          total_stages: stages.length,
+          stages: stages.map((s) => ({
+            id: s.stageId,
+            order: s.order,
+            name: s.name,
+            boundary: s.executionBoundary,
+            persistent_record: s.persistentTables.length > 0,
+          })),
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+            "cache-control": "no-cache, no-store, must-revalidate",
+            "X-Content-Type-Options": "nosniff",
+          },
+        },
+      );
+    }
+
+    // Trusted Server-Side Authoritative Reconciliation Pipeline
+    if (url.pathname === "/api/pipeline/reconcile" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const { ProductionDataLifecycleEngine } = await import("./domain/pipeline/productionDataLifecycle");
+        const Decimal = (await import("decimal.js-light")).default;
+
+        const input = {
+          tenant_id: body.tenant_id || "DEFAULT_TENANT",
+          invoice_id: body.invoice_id || `INV-${Date.now()}`,
+          invoice_number: body.invoice_number || body.invoice_id || "INV-UNKNOWN",
+          account_number: body.account_number || "ACC-UNKNOWN",
+          billing_start: body.billing_start,
+          billing_end: body.billing_end,
+          tariff_version: body.tariff_version,
+          billed_peak_kwh: new Decimal(body.billed_peak_kwh || 0),
+          billed_standard_kwh: new Decimal(body.billed_standard_kwh || 0),
+          billed_off_peak_kwh: new Decimal(body.billed_off_peak_kwh || 0),
+          billed_total_kwh: new Decimal(body.billed_total_kwh || 0),
+          billed_maximum_demand_kva: new Decimal(body.billed_maximum_demand_kva || 0),
+          billed_ratcheted_demand_kva: new Decimal(body.billed_ratcheted_demand_kva || 0),
+          billed_reactive_energy_kvarh: new Decimal(body.billed_reactive_energy_kvarh || 0),
+          billed_energy_charges_zar: new Decimal(body.billed_energy_charges_zar || 0),
+          billed_demand_charges_zar: new Decimal(body.billed_demand_charges_zar || 0),
+          billed_network_charges_zar: new Decimal(body.billed_network_charges_zar || 0),
+          billed_service_charges_zar: new Decimal(body.billed_service_charges_zar || 0),
+          billed_ancillary_charges_zar: new Decimal(body.billed_ancillary_charges_zar || 0),
+          billed_vat_zar: new Decimal(body.billed_vat_zar || 0),
+          billed_total_invoice_zar: new Decimal(body.billed_total_invoice_zar || 0),
+          calc_peak_kwh: body.calc_peak_kwh ? new Decimal(body.calc_peak_kwh) : undefined,
+          calc_standard_kwh: body.calc_standard_kwh ? new Decimal(body.calc_standard_kwh) : undefined,
+          calc_off_peak_kwh: body.calc_off_peak_kwh ? new Decimal(body.calc_off_peak_kwh) : undefined,
+          calc_total_kwh: body.calc_total_kwh ? new Decimal(body.calc_total_kwh) : undefined,
+          calc_maximum_demand_kva: body.calc_maximum_demand_kva ? new Decimal(body.calc_maximum_demand_kva) : undefined,
+          calc_reactive_energy_kvarh: body.calc_reactive_energy_kvarh ? new Decimal(body.calc_reactive_energy_kvarh) : undefined,
+        };
+
+        const result = await ProductionDataLifecycleEngine.executeAuthoritativePipeline(
+          input as any,
+          body.correlation_id || `CORR-${Date.now()}`
+        );
+
+        return new Response(JSON.stringify(result), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+            "X-Content-Type-Options": "nosniff",
+          },
+        });
+      } catch (err: any) {
+        console.error("Server reconciliation error:", err);
+        return new Response(
+          JSON.stringify({ error: "Reconciliation execution failed", details: err?.message }),
+          { status: 500, headers: { "content-type": "application/json" } }
+        );
+      }
+    }
+
     try {
       const handler = await getServerEntry();
       const rawResponse = await handler.fetch(request, env, ctx);

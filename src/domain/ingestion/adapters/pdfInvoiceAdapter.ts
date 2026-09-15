@@ -27,28 +27,40 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
       // Fallback layout resolution for scanned or non-standard PDF formats
     }
 
+    if (!pdfRes?.invoice) {
+      errors.push({
+        id: `ERR-${Date.now()}-pdf`,
+        jobId,
+        errorCode: "PDF_EXTRACTION_UNRESOLVED",
+        errorMessage: "Could not extract standard Eskom invoice determinants from the uploaded document.",
+        severity: "critical",
+        timestamp: new Date().toISOString(),
+      });
+      ambiguityReasons.push("PDF layout did not match recognized utility bill structure");
+    }
+
     const inv = pdfRes?.invoice || {
-      accountNumber: "7856504676",
-      premiseId: "7856504226",
-      meterNumber: "7856504226",
-      tariffName: "Megaflex Non-Local Authority",
-      invoiceTotal: 98380358.13,
-      peakKWh: 17290000,
-      standardKWh: 21540000,
-      offPeakKWh: 12850000,
-      totalKWh: 51680000,
-      maxDemandKVA: 85740,
-      billingPeriod: "March 2026",
-      billingDate: "2026-03-18",
+      accountNumber: "",
+      premiseId: "",
+      meterNumber: "",
+      tariffName: "Unspecified Tariff",
+      invoiceTotal: 0,
+      peakKWh: 0,
+      standardKWh: 0,
+      offPeakKWh: 0,
+      totalKWh: 0,
+      maxDemandKVA: 0,
+      billingPeriod: "Unspecified Period",
+      billingDate: new Date().toISOString().substring(0, 10),
     };
 
-    // Extract and map all 33 mandated invoice fields with fallback calculations
+    // Extract and map all mandated invoice fields with parsed calculations
     const extractedFields: ExtractedInvoiceFields = {
-      accountNumber: inv.accountNumber || "7856504676",
-      pod: inv.premiseId || inv.meterNumber || "7856504226",
-      premiseId: inv.premiseId || "7856504226",
-      meterNumber: inv.meterNumber || "7856504226",
-      meterSerial: inv.meterNumber || "7856504226",
+      accountNumber: inv.accountNumber || "",
+      pod: inv.premiseId || inv.meterNumber || "",
+      premiseId: inv.premiseId || "",
+      meterNumber: inv.meterNumber || "",
+      meterSerial: inv.meterNumber || "",
       billingPeriod: inv.billingPeriod || "Current Period",
       billingStart: inv.billingPeriodStart,
       billingEnd: inv.billingPeriodEnd,
@@ -56,14 +68,14 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
       dueDate: inv.dueDate,
       tariff: inv.tariffName || "Megaflex Non-Local Authority",
       voltage: inv.voltage || "132 kV",
-      notifiedMaximumDemand: inv.nmd || 85740,
-      billedMaximumDemand: inv.maxDemandKVA || 85740,
-      utilisedCapacity: inv.utilisedCapacity || inv.maxDemandKVA || 85740,
-      peakKwh: inv.peakKWh || 17290000,
-      standardKwh: inv.standardKWh || 21540000,
-      offPeakKwh: inv.offPeakKWh || 12850000,
-      totalKwh: inv.totalKWh || 51680000,
-      kva: inv.maxDemandKVA || 85740,
+      notifiedMaximumDemand: inv.nmd || 0,
+      billedMaximumDemand: inv.maxDemandKVA || 0,
+      utilisedCapacity: inv.utilisedCapacity || inv.maxDemandKVA || 0,
+      peakKwh: inv.peakKWh || 0,
+      standardKwh: inv.standardKWh || 0,
+      offPeakKwh: inv.offPeakKWh || 0,
+      totalKwh: inv.totalKWh || 0,
+      kva: inv.maxDemandKVA || 0,
       kvarh: inv.reactiveTotal || inv.reactivePeak || 0,
       powerFactor: 0.96,
       energyCharges:
@@ -75,13 +87,13 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
       serviceCharges: inv.serviceCharge || 0,
       ancillaryCharges: inv.ancillary || 0,
       subsidies: (inv.affordability || 0) + (inv.electrification || 0),
-      vat: inv.vat || (inv.invoiceTotal || 98380358.13) * 0.15,
-      totalInvoice: inv.invoiceTotal || 98380358.13,
+      vat: inv.vat || 0,
+      totalInvoice: inv.invoiceTotal || 0,
       previousBalance: 0,
       payments: 0,
       adjustments: 0,
       credits: 0,
-      debits: inv.invoiceTotal || 98380358.13,
+      debits: inv.invoiceTotal || 0,
     };
 
     let confidenceScore = pdfRes ? 0.95 : 0.85;

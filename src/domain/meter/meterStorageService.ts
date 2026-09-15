@@ -131,19 +131,27 @@ export class MeterStorageService {
       const { data: channelsData } = await supabase.from("meter_channels").select("*");
       const { data: podsData } = await supabase.from("points_of_delivery").select("*");
 
-      const dbMeters: MeterRecord[] = metersData && metersData.length > 0 ? metersData : [DEMO_METER];
-      const dbConfigs: MeterConfigurationRecord[] = configsData && configsData.length > 0 ? configsData : [DEMO_CONFIG_V1, DEMO_CONFIG_V2];
-      const dbChannels: MeterChannelRecord[] = channelsData && channelsData.length > 0 ? channelsData : DEMO_CHANNELS;
-      const dbPods: PointOfDeliveryRecord[] = podsData && podsData.length > 0 ? podsData : [DEMO_POD];
+      const dbMeters: MeterRecord[] = metersData && metersData.length > 0 ? metersData : [];
+      const dbConfigs: MeterConfigurationRecord[] = configsData && configsData.length > 0 ? configsData : [];
+      const dbChannels: MeterChannelRecord[] = channelsData && channelsData.length > 0 ? channelsData : [];
+      const dbPods: PointOfDeliveryRecord[] = podsData && podsData.length > 0 ? podsData : [];
+
+      if (dbPods.length === 0 && dbMeters.length === 0) {
+        return {
+          client_id: "",
+          client_name: "Enterprise Metering Directory",
+          sites: [],
+        };
+      }
 
       return {
-        client_id: DEMO_ORGANISATION_ID,
-        client_name: "ACME INDUSTRIAL SA (PTY) LTD",
+        client_id: dbPods[0]?.site_id || "client-01",
+        client_name: "Enterprise Metering Portfolio",
         sites: [
           {
-            site_id: DEMO_SITE_ID,
-            site_name: "Randburg Industrial Facility",
-            site_code: "SITE-RANDBURG-01",
+            site_id: dbPods[0]?.site_id || "site-01",
+            site_name: "Primary Enterprise Facility",
+            site_code: "SITE-01",
             pods: dbPods.map((pod) => ({
               pod_id: pod.id,
               pod_code: pod.pod_code,
@@ -155,11 +163,11 @@ export class MeterStorageService {
                   const activeConfig =
                     mConfigs.length > 0
                       ? mConfigs.sort((a, b) => b.version_number - a.version_number)[0]
-                      : DEMO_CONFIG_V2;
+                      : undefined;
 
                   return {
                     meter: m,
-                    active_config: activeConfig,
+                    active_config: activeConfig as any,
                     channels: dbChannels.filter((c) => c.meter_id === m.id),
                   };
                 }),
@@ -168,31 +176,11 @@ export class MeterStorageService {
         ],
       };
     } catch (err) {
-      console.warn("Using seeded fallback meter hierarchy due to connection:", err);
+      console.warn("Notice querying meter hierarchy:", err);
       return {
-        client_id: DEMO_ORGANISATION_ID,
-        client_name: "ACME INDUSTRIAL SA (PTY) LTD",
-        sites: [
-          {
-            site_id: DEMO_SITE_ID,
-            site_name: "Randburg Industrial Facility",
-            site_code: "SITE-RANDBURG-01",
-            pods: [
-              {
-                pod_id: DEMO_POD.id,
-                pod_code: DEMO_POD.pod_code,
-                pod_name: DEMO_POD.pod_name,
-                meters: [
-                  {
-                    meter: DEMO_METER,
-                    active_config: DEMO_CONFIG_V2,
-                    channels: DEMO_CHANNELS,
-                  },
-                ],
-              },
-            ],
-          },
-        ],
+        client_id: "",
+        client_name: "Enterprise Metering Directory",
+        sites: [],
       };
     }
   }
@@ -211,14 +199,11 @@ export class MeterStorageService {
         .order("version_number", { ascending: true });
 
       if (error || !data || data.length === 0) {
-        if (meterId === DEMO_METER_ID) {
-          return [DEMO_CONFIG_V1, DEMO_CONFIG_V2];
-        }
-        return [DEMO_CONFIG_V2];
+        return [];
       }
       return data;
     } catch (err) {
-      return [DEMO_CONFIG_V1, DEMO_CONFIG_V2];
+      return [];
     }
   }
 

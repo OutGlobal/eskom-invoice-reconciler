@@ -312,11 +312,11 @@ function activateInvoice(invoice: InvoiceData, items: InvoiceLineItemStored[]): 
 }
 
 export const useApp = create<AppState>((set) => ({
-  rows: generateFallbackIntervalReadings(),
+  rows: [],
   setRows: (rows) => set({ rows }),
 
-  // Pre-load March 2026 Impala Platinum Mine Invoice by default
-  invoice: SAMPLE_MARCH_2026_INVOICE,
+  // Clean empty state for production default (real user data populated on upload)
+  invoice: null,
   setInvoice: (invoice) =>
     set(
       invoice
@@ -329,10 +329,10 @@ export const useApp = create<AppState>((set) => ({
         : { invoice: null, invoiceTotal: 0 },
     ),
 
-  invoiceItems: SAMPLE_MARCH_2026_LINE_ITEMS,
+  invoiceItems: [],
   setInvoiceItems: (invoiceItems) => set({ invoiceItems }),
 
-  processedInvoiceNumbers: ["785762166034"],
+  processedInvoiceNumbers: [],
   addProcessedInvoiceNumber: (invoiceNumber) =>
     set((s) =>
       invoiceNumber && !s.processedInvoiceNumbers.includes(invoiceNumber)
@@ -344,27 +344,20 @@ export const useApp = create<AppState>((set) => ({
   setTariff: (tariff) => set({ tariff }),
 
   customer: {
-    name: "Impala Plats Rustenburg Mine",
-    meter: "7856504226",
-    accountNumber: "7856504676",
-    address: "Mineral Processes, Beerfontein Farm, Phokeng, RUSTENBURG 0300",
-    nmd: 85740,
+    name: "",
+    meter: "",
+    accountNumber: "",
+    address: "",
+    nmd: 0,
   },
   setCustomer: (c) => set((s) => ({ customer: { ...s.customer, ...c } })),
 
-  invoiceTotal: SAMPLE_MARCH_2026_INVOICE.invoiceTotal,
-  invoiceLines: invoiceLinesFromItems(SAMPLE_MARCH_2026_INVOICE, SAMPLE_MARCH_2026_LINE_ITEMS),
+  invoiceTotal: 0,
+  invoiceLines: {},
   setInvoiceTotal: (invoiceTotal) => set({ invoiceTotal }),
   setInvoiceLines: (invoiceLines) => set({ invoiceLines }),
 
-  uploads: [
-    {
-      name: "Impala_Mine_March_2026_Eskom_Invoice.pdf",
-      size: 482910,
-      type: "invoice",
-      uploadedAt: new Date(),
-    },
-  ],
+  uploads: [],
   addUpload: (u) => set((s) => ({ uploads: [...s.uploads, u] })),
 
   validation: [],

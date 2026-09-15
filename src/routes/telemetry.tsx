@@ -46,6 +46,7 @@ import toast from "react-hot-toast";
 import { EnergyPage } from "@/routes/energy";
 import { DemandPage } from "@/routes/demand";
 import { MetersPage } from "@/routes/meters";
+import { useApp } from "@/lib/store";
 import { InvoiceSelector } from "@/components/InvoiceSelector";
 
 export const Route = createFileRoute("/telemetry")({
@@ -57,6 +58,9 @@ function TelemetryPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [workspaceTab, setWorkspaceTab] = useState<"stream" | "energy" | "demand" | "meters">("stream");
   const [activeTab, setActiveTab] = useState<"stream" | "gaps" | "quarantine" | "benchmark">("stream");
+
+  const storeRows = useApp((s) => s.rows);
+  const customer = useApp((s) => s.customer);
 
   // Telemetry Domain State
   const [intervals, setIntervals] = useState<TelemetryIntervalRecord[]>([]);
@@ -78,24 +82,40 @@ function TelemetryPage() {
   const pageSize = 50;
 
   useEffect(() => {
-    runInitialDemoStream();
-  }, []);
-
-  const runInitialDemoStream = () => {
-    setIsProcessing(true);
-    try {
-      const demoRaw = LoadTestBenchmarkEngine.generateSyntheticStream(500, "mtr-megaflex-9988", "batch-demo-initial");
-      const { validIntervals, quarantineRecords, missingGaps } = TelemetryQualityEngine.processTelemetryStream(demoRaw, [], 30);
-
-      setIntervals(validIntervals);
-      setQuarantine(quarantineRecords);
-      setGaps(missingGaps);
-    } catch (err: any) {
-      toast.error("Failed to initialize telemetry stream");
-    } finally {
-      setIsProcessing(false);
+    if (storeRows && storeRows.length > 0) {
+      setIsProcessing(true);
+      try {
+        const rawInputs: RawTelemetryRowInput[] = storeRows.map((r) => ({
+          interval_timestamp: r.ts instanceof Date ? r.ts.toISOString() : String(r.ts),
+          kwh_active: r.kWh || 0,
+          kwh_reactive: (r as any).kVARh || 0,
+          kva_apparent: r.kVA || 0,
+          power_factor: (r as any).pf || 0.96,
+          line_voltage_v: (r as any).voltage || 33000,
+          meter_id: customer.meter || "7856504226",
+          raw_payload: r,
+        }));
+        const { validIntervals, quarantineRecords, missingGaps } = TelemetryQualityEngine.processTelemetryStream(rawInputs, [], 30);
+        setIntervals(validIntervals);
+        setQuarantine(quarantineRecords);
+        setGaps(missingGaps);
+      } catch (err) {
+        console.warn("Telemetry store parsing notice:", err);
+      } finally {
+        setIsProcessing(false);
+      }
+    } else {
+      TelemetryStorageService.fetchIntervals(100).then((dbIntervals) => {
+        if (dbIntervals && dbIntervals.length > 0) {
+          setIntervals(dbIntervals);
+        } else {
+          setIntervals([]);
+          setQuarantine([]);
+          setGaps([]);
+        }
+      });
     }
-  };
+  }, [storeRows.length]);
 
   const handleRunBenchmark = (count: number) => {
     setIsProcessing(true);

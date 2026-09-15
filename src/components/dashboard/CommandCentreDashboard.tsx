@@ -171,10 +171,10 @@ export function CommandCentreDashboard() {
               }
               className="w-full text-xs rounded border border-border bg-background px-2 py-1"
             >
-              <option value="all">All Clients (Impala Plat)</option>
-              <option value="7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c">
-                Impala Platinum Rustenburg
-              </option>
+              <option value="all">All Clients</option>
+              {customer?.name ? (
+                <option value={customer.name}>{customer.name}</option>
+              ) : null}
             </select>
           </div>
 
@@ -191,8 +191,10 @@ export function CommandCentreDashboard() {
               }
               className="w-full text-xs rounded border border-border bg-background px-2 py-1"
             >
-              <option value="all">All Sites (Beerfontein)</option>
-              <option value="beerfontein">Beerfontein Farm Site</option>
+              <option value="all">All Sites</option>
+              {customer?.name ? (
+                <option value={customer.name}>{customer.name} Facility</option>
+              ) : null}
             </select>
           </div>
 
@@ -210,7 +212,9 @@ export function CommandCentreDashboard() {
               className="w-full text-xs rounded border border-border bg-background px-2 py-1"
             >
               <option value="all">All Accounts</option>
-              <option value={customer.accountNumber}>{customer.accountNumber}</option>
+              {customer?.accountNumber ? (
+                <option value={customer.accountNumber}>{customer.accountNumber}</option>
+              ) : null}
             </select>
           </div>
 
@@ -228,7 +232,9 @@ export function CommandCentreDashboard() {
               className="w-full text-xs rounded border border-border bg-background px-2 py-1"
             >
               <option value="all">All Meters</option>
-              <option value={customer.meter}>{customer.meter}</option>
+              {customer?.meter ? (
+                <option value={customer.meter}>{customer.meter}</option>
+              ) : null}
             </select>
           </div>
 

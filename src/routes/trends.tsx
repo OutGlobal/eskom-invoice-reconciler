@@ -45,7 +45,7 @@ import {
 import { InvoiceSelector } from "@/components/InvoiceSelector";
 import { useApp } from "@/lib/store";
 import { exportCustomCsv } from "@/lib/exportReports";
-import { fetchSupabaseRecoveries } from "@/lib/supabase";
+import { fetchSupabaseRecoveries, fetchSupabaseInvoices } from "@/lib/supabase";
 
 export const Route = createFileRoute("/trends")({
   head: () => ({ meta: [{ title: "Trends & Overcharge Recoveries — Eskom Bill Balancer" }] }),
@@ -71,53 +71,6 @@ interface RecoveryRecord {
   actionLoad: () => void;
 }
 
-const HISTORICAL_TRENDS_DATA = [
-  {
-    period: "Feb 2026",
-    peakEnergy: 17719245.25,
-    standardEnergy: 30240946.76,
-    offPeakEnergy: 26042409.43,
-    networkCapacity: 3084925.2,
-    demandCharge: 2089075.22,
-    subsidiesAndLegacy: 17832637.25,
-    totalInvoice: 97009239.11,
-    recoveryAmount: 878835.0,
-  },
-  {
-    period: "March 2026",
-    peakEnergy: 19460008.77,
-    standardEnergy: 31433067.54,
-    offPeakEnergy: 24473673.9,
-    networkCapacity: 3084925.2,
-    demandCharge: 2102463.71,
-    subsidiesAndLegacy: 17826219.01,
-    totalInvoice: 98380358.13,
-    recoveryAmount: 601365.0,
-  },
-  {
-    period: "April 2026",
-    peakEnergy: 16398169.56,
-    standardEnergy: 27598950.78,
-    offPeakEnergy: 24846738.18,
-    networkCapacity: 3233935.4,
-    demandCharge: 2094064.8,
-    subsidiesAndLegacy: 17079997.0,
-    totalInvoice: 91251855.72,
-    recoveryAmount: 620450.4,
-  },
-  {
-    period: "May 2026",
-    peakEnergy: 16393641.26,
-    standardEnergy: 29774184.81,
-    offPeakEnergy: 27084272.58,
-    networkCapacity: 3355006.2,
-    demandCharge: 2132962.38,
-    subsidiesAndLegacy: 18429182.77,
-    totalInvoice: 97169250.0,
-    recoveryAmount: 318000.0,
-  },
-];
-
 function IntervalSkeleton() {
   return (
     <div className="space-y-3">
@@ -142,21 +95,46 @@ export function TrendsPage() {
   const invoice = useApp((s) => s.invoice);
   useBootstrapMeter();
   const rows = useApp((s) => s.rows);
-  const nmd = useApp((s) => s.customer.nmd);
+  const customer = useApp((s) => s.customer);
+  const batchInvoices = useApp((s) => s.batchInvoices);
+  const nmd = customer.nmd || 0;
   const dq = useDataQuality(rows);
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [isDbConnected, setIsDbConnected] = useState<boolean>(false);
-  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({
-    "feb-2026": true,
-    "march-2026": true,
-    "april-2026": true,
-    "may-2026": true,
-  });
+  const [dbRecoveries, setDbRecoveries] = useState<RecoveryRecord[]>([]);
+  const [dbInvoices, setDbInvoices] = useState<any[]>([]);
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchSupabaseRecoveries().then((data) => {
       if (data && data.length > 0) {
         setIsDbConnected(true);
+        setDbRecoveries(
+          data.map((d) => ({
+            id: d.id || d.invoice_no,
+            period: d.period_name,
+            dates: d.dates,
+            invoiceNo: d.invoice_no,
+            location: d.supply_location,
+            premiseId: d.premise_id,
+            chargeCategory: d.charge_category,
+            invoicedAmount: d.invoiced_amount,
+            calculatedAmount: d.calculated_amount,
+            recoveryAmount: d.recovery_amount,
+            rootCause: d.root_cause,
+            detailedExplanation: d.detailed_explanation,
+            auditFormula: d.audit_formula,
+            tariffRef: d.tariff_ref,
+            status: d.status,
+            actionLoad: () => {},
+          }))
+        );
+      }
+    });
+
+    fetchSupabaseInvoices().then((invs) => {
+      if (invs && invs.length > 0) {
+        setDbInvoices(invs);
       }
     });
   }, []);
@@ -165,118 +143,81 @@ export function TrendsPage() {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const recoveryItems: RecoveryRecord[] = useMemo(
-    () => [
-      {
-        id: "feb-2026",
-        period: "Feb 2026",
-        dates: "17/01/2026 - 16/02/2026",
-        invoiceNo: "785101497007",
-        location: "Millennium 33kV - Farm Goedgedacht 114JQ",
-        premiseId: "7856504226",
-        chargeCategory: "TX Network Capacity Rate (Contractual Check)",
-        invoicedAmount: 878835.0,
-        calculatedAmount: 878835.0,
-        recoveryAmount: 878835.0,
-        rootCause:
-          "BLOCKED / CONTRACTUAL ASK: Table 3 prices TX Network Capacity at R10.25/kVA for 33kV (≥500V & <66kV). Reclaiming requires Impala's specific connection agreement.",
-        detailedExplanation:
-          "Eskom billed Transmission Network Capacity of R 878,835.00 (85,740 kVA @ R10.25/kVA). While specification proposed setting this to zero under NERSA distribution rules, Table 3 page 16 explicitly charges R10.25 for 33kV. Outright cancellation requires presenting Impala's specific connection agreement to Eskom.",
-        auditFormula:
-          "Invoiced (85,740 kVA @ R10.25) R 878,835.00 — Requires Connection Agreement to set zero",
-        tariffRef: "Eskom Schedule of Standard Prices 2025/26 Table 3 p.16 Row ≥500V & <66kV",
-        status: "pending",
-        actionLoad: () => useApp.getState().loadFeb2026SampleInvoice(),
-      },
-      {
-        id: "march-2026",
-        period: "March 2026",
-        dates: "17/02/2026 - 18/03/2026",
-        invoiceNo: "785762166034",
-        location: "Millennium 33kV - Farm Goedgedacht 114JQ",
-        premiseId: "7856504226",
-        chargeCategory: "Peak Demand Curtailment Reversal",
-        invoicedAmount: 2246559.07,
-        calculatedAmount: 1645194.07,
-        recoveryAmount: 601365.0,
-        rootCause:
-          "BLOCKED / CONTROL ROOM TIMESTAMPS ASK: Requires System Operator control room timestamps to exclude curtailment window spike from rolling demand ceiling.",
-        detailedExplanation:
-          "Maximum demand billed on peak spike reading of 92,948.29 kVA during a load curtailment event. To exclude the spike from setting the rolling 12-month demand ceiling (R54.32/kVA/month = R651,840/yr), Impala control room start/end timestamps must be submitted.",
-        auditFormula:
-          "Invoiced (92,948.29 kVA @ R24.17) R 2,246,559.07 - Reconciled (87,034.19 kVA @ R24.17) R 1,645,194.07 = Recovery Claim R 601,365.00",
-        tariffRef:
-          "NERSA Megaflex Schedule 2025/26 - Emergency Load Curtailment Rule 7.1 & Control Room Logs",
-        status: "pending",
-        actionLoad: () => useApp.getState().loadMarch2026SampleInvoice(),
-      },
-      {
-        id: "april-2026",
-        period: "April 2026",
-        dates: "19/03/2026 - 16/04/2026",
-        invoiceNo: "785684906677",
-        location: "Millennium 33kV - Farm Goedgedacht 114JQ",
-        premiseId: "7856504226",
-        chargeCategory: "Pro-Rata Tariff Year Split (Built & Verified)",
-        invoicedAmount: 3233935.4,
-        calculatedAmount: 3233935.4,
-        recoveryAmount: 620450.4,
-        rootCause:
-          "BUILT & VERIFIED: Tariff year turns April 1 mid-cycle. Engine reproduces Eskom's 13-day (2025/26) and 16-day (2026/27) pro-rata split to the cent.",
-        detailedExplanation:
-          "Invoice 785684906677 prints every affected charge twice: energy at 2025/26 rate for 13 days and 2026/27 rate for 16 days, capacity charges weighted 13/29 and 16/29. The engine calculates this pro-rata split exactly to the cent.",
-        auditFormula:
-          "Pro-Rata Day Weighting: 13/29 days @ 2025/26 Rate + 16/29 days @ 2026/27 Rate = 100% Exact Match to the Cent",
-        tariffRef: "Eskom Schedule 2025/26 & 2026/27 Tariff-Year Transition Rule 3.4",
-        status: "approved",
-        actionLoad: () => useApp.getState().loadApril2026SampleInvoice(),
-      },
-      {
-        id: "may-2026",
-        period: "May 2026",
-        dates: "17/04/2026 - 16/05/2026",
-        invoiceNo: "785595072130",
-        location: "Millennium 33kV - Farm Goedgedacht 114JQ",
-        premiseId: "7856504226",
-        chargeCategory: "Renewable Wheeling Subsidy Netting Check",
-        invoicedAmount: 2457681.67,
-        calculatedAmount: 2139681.67,
-        recoveryAmount: 318000.0,
-        rootCause:
-          "QUESTION: Electrification (4.94 c/kWh / 5.37 c/kWh) & Affordability (4.69 c/kWh / 5.10 c/kWh) subsidies applied to gross grid intake. Requires PPA agreement check.",
-        detailedExplanation:
-          "Table 3 states subsidies apply to total active energy measured at the POD in the month (gross). If Impala's wheeling PPA delivers clean solar energy, netting it out requires confirming connection agreement terms.",
-        auditFormula:
-          "Invoiced Gross Subsidy (45,766,884 kWh @ R0.0537) R 2,457,681.67 - Net Import (39,845,097 kWh @ R0.0537) R 2,139,681.67 = Recovery Claim R 318,000.00",
-        tariffRef: "Eskom Schedule of Standard Prices 2026 & Impala Connection PPA Agreement",
-        status: "ready",
-        actionLoad: () => useApp.getState().loadMay2026SampleInvoice(),
-      },
-    ],
-    [],
-  );
+  const recoveryItems: RecoveryRecord[] = useMemo(() => {
+    if (dbRecoveries.length > 0) return dbRecoveries;
+    if (invoice && invoice.invoiceTotal) {
+      const diff = Math.max(0, (invoice.invoiceTotal || 0) - (invoice.reconciledTotal || 0));
+      if (diff > 1) {
+        return [
+          {
+            id: invoice.invoiceNo || "active-invoice",
+            period: invoice.accountMonth || "Current",
+            dates: invoice.billingPeriod || "",
+            invoiceNo: invoice.invoiceNo || "Active",
+            location: customer.name || "Premise Facility",
+            premiseId: customer.meter || "AMR Meter",
+            chargeCategory: "Tariff Variance Discrepancy",
+            invoicedAmount: invoice.invoiceTotal,
+            calculatedAmount: invoice.reconciledTotal || invoice.invoiceTotal,
+            recoveryAmount: diff,
+            rootCause: "Deterministic tariff engine identified billed excess against gazetted NERSA rates.",
+            detailedExplanation: "Variance between extracted billing determinants and deterministic rate verification.",
+            auditFormula: `Invoiced ${ZAR(invoice.invoiceTotal)} - Reconciled ${ZAR(invoice.reconciledTotal || 0)} = ${ZAR(diff)}`,
+            tariffRef: "NERSA Approved Megaflex Tariff Schedule",
+            status: "ready" as const,
+            actionLoad: () => {},
+          },
+        ];
+      }
+    }
+    return [];
+  }, [dbRecoveries, invoice, customer]);
 
   const trendsData = useMemo(() => {
-    if (!invoice || !invoice.billingPeriod) return HISTORICAL_TRENDS_DATA;
-    const currentPeriodLabel = invoice.accountMonth || invoice.billingPeriod;
-    const exists = HISTORICAL_TRENDS_DATA.some(
-      (d) => d.period.toLowerCase().includes(currentPeriodLabel.toLowerCase()) || currentPeriodLabel.toLowerCase().includes(d.period.toLowerCase()),
-    );
-    if (exists) return HISTORICAL_TRENDS_DATA;
-
-    const activeItem = {
-      period: currentPeriodLabel,
-      peakEnergy: invoice.peakEnergyCharge || 0,
-      standardEnergy: invoice.standardEnergyCharge || 0,
-      offPeakEnergy: invoice.offPeakEnergyCharge || 0,
-      networkCapacity: (invoice.transmissionNetworkCharge || 0) + (invoice.networkCapacityCharge || 0),
-      demandCharge: invoice.networkDemandCharge || 0,
-      subsidiesAndLegacy: (invoice.affordability || 0) + (invoice.electrification || 0) + (invoice.ancillary || 0) + (invoice.legacy || 0),
-      totalInvoice: invoice.totalInclVat || invoice.invoiceTotal || 0,
-      recoveryAmount: 0,
-    };
-    return [...HISTORICAL_TRENDS_DATA, activeItem];
-  }, [invoice]);
+    const list: any[] = [];
+    if (dbInvoices.length > 0) {
+      list.push(
+        ...dbInvoices.map((inv) => ({
+          period: inv.billing_period || inv.invoice_number,
+          peakEnergy: inv.peak_kwh ? inv.peak_kwh * 0.95 : 0,
+          standardEnergy: inv.standard_kwh ? inv.standard_kwh * 0.65 : 0,
+          offPeakEnergy: inv.off_peak_kwh ? inv.off_peak_kwh * 0.45 : 0,
+          networkCapacity: 0,
+          demandCharge: inv.max_demand_kva ? inv.max_demand_kva * 24.17 : 0,
+          subsidiesAndLegacy: 0,
+          totalInvoice: inv.invoiced_total || 0,
+          recoveryAmount: inv.variance_amount || 0,
+        }))
+      );
+    } else if (batchInvoices && batchInvoices.length > 0) {
+      list.push(
+        ...batchInvoices.map((inv) => ({
+          period: inv.accountMonth || inv.billingPeriod || inv.invoiceNo,
+          peakEnergy: inv.peakEnergyCharge || 0,
+          standardEnergy: inv.standardEnergyCharge || 0,
+          offPeakEnergy: inv.offPeakEnergyCharge || 0,
+          networkCapacity: (inv.transmissionNetworkCharge || 0) + (inv.networkCapacityCharge || 0),
+          demandCharge: inv.networkDemandCharge || 0,
+          subsidiesAndLegacy: (inv.affordability || 0) + (inv.electrification || 0) + (inv.ancillary || 0) + (inv.legacy || 0),
+          totalInvoice: inv.totalInclVat || inv.invoiceTotal || 0,
+          recoveryAmount: Math.max(0, (inv.invoiceTotal || 0) - (inv.reconciledTotal || 0)),
+        }))
+      );
+    } else if (invoice) {
+      list.push({
+        period: invoice.accountMonth || invoice.billingPeriod || "Current Period",
+        peakEnergy: invoice.peakEnergyCharge || 0,
+        standardEnergy: invoice.standardEnergyCharge || 0,
+        offPeakEnergy: invoice.offPeakEnergyCharge || 0,
+        networkCapacity: (invoice.transmissionNetworkCharge || 0) + (invoice.networkCapacityCharge || 0),
+        demandCharge: invoice.networkDemandCharge || 0,
+        subsidiesAndLegacy: (invoice.affordability || 0) + (invoice.electrification || 0) + (invoice.ancillary || 0) + (invoice.legacy || 0),
+        totalInvoice: invoice.totalInclVat || invoice.invoiceTotal || 0,
+        recoveryAmount: Math.max(0, (invoice.invoiceTotal || 0) - (invoice.reconciledTotal || 0)),
+      });
+    }
+    return list;
+  }, [dbInvoices, batchInvoices, invoice]);
 
   const totalInvoiced4Months = trendsData.reduce((a, b) => a + b.totalInvoice, 0);
   const totalRecoveries4Months = recoveryItems.reduce((a, b) => a + b.recoveryAmount, 0);
@@ -469,56 +410,54 @@ export function TrendsPage() {
       {/* Executive KPI Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          label="4-Month Eskom Invoiced Total"
+          label="Total Invoiced Portfolio"
           value={ZAR(totalInvoiced4Months)}
-          sub="Feb 2026 – May 2026 Total"
+          sub={`${trendsData.length} Billing Period(s) Audited`}
         />
         <MetricCard
           label="Identified Overcharge Recoveries"
           value={ZAR(totalRecoveries4Months)}
           accent
-          sub="Potential refunds across 4 cycles"
+          sub={`${recoveryItems.length} Total Potential Recovery Claims`}
         />
         <MetricCard
-          label="Approved Eskom Credits"
+          label="Approved Utility Credits"
           value={ZAR(approvedRecoveries)}
-          sub="1 Claim Processed &amp; Credited"
+          sub={`${recoveryItems.filter((r) => r.status === "approved").length} Claim(s) Approved & Credited`}
         />
         <MetricCard
-          label="Pending &amp; Filing Pipeline"
+          label="Pending & Filing Pipeline"
           value={ZAR(pendingRecoveries + readyRecoveries)}
-          sub="3 Active Dispute Claims"
+          sub={`${recoveryItems.filter((r) => r.status !== "approved").length} Active Claim(s) Under Review`}
         />
       </div>
 
       {/* Data Source Provenance & Financial Audit Rationale Panel */}
       <Panel
-        title="Data Collection Provenance &amp; Financial Audit Rationale"
+        title="Data Collection Provenance & Financial Audit Rationale"
         subtitle="100% Data Lineage: Verified sources, NERSA gazetted statutory rules, and financial overcharge rationale."
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
           <div className="space-y-2 p-3.5 rounded-lg border border-border bg-card">
             <div className="font-semibold text-foreground flex items-center gap-1.5">
-              <ShieldCheck className="h-4 w-4 text-emerald-400" /> Data Source Provenance &amp;
-              Lineage
+              <ShieldCheck className="h-4 w-4 text-emerald-400" /> Data Source Provenance & Lineage
             </div>
             <ul className="space-y-1.5 text-muted-foreground">
               <li>
-                <strong className="text-foreground">AMR Meter Telemetry:</strong> 30-minute interval
-                readings collected from official Eskom AMR meter{" "}
-                <code className="text-primary font-mono">7856504226</code> at Millennium 33kV
-                (Impala Plats Rustenburg Mine).
+                <strong className="text-foreground">AMR Meter Telemetry:</strong>{" "}
+                {rows.length > 0
+                  ? `${NUM(rows.length, 0)} interval readings collected for meter ${customer.meter || "7856504226"} at ${customer.name || "Customer Facility"}.`
+                  : "No interval readings ingested in active session."}
               </li>
               <li>
-                <strong className="text-foreground">Official Eskom Invoices:</strong> Monthly Tax
-                Invoices <code className="text-primary font-mono">785101497007</code>,{" "}
-                <code className="text-primary font-mono">7856504676</code>,{" "}
-                <code className="text-primary font-mono">785684906677</code>,{" "}
-                <code className="text-primary font-mono">785595072130</code>.
+                <strong className="text-foreground">Official Utility Invoices:</strong>{" "}
+                {trendsData.length > 0
+                  ? `${trendsData.length} invoice period(s) analyzed (${trendsData.map((d) => d.period).join(", ")}).`
+                  : "No utility invoices ingested."}
               </li>
               <li>
                 <strong className="text-foreground">NERSA Rate Gazette:</strong> NERSA Schedule of
-                Standard Prices for Megaflex Diversity 33kV (High &amp; Low Season TOU energy rates,
+                Standard Prices for Megaflex Time-of-Use structure (High & Low Season TOU energy rates,
                 capacity charges, subsidies, 15% VAT).
               </li>
             </ul>
@@ -530,22 +469,26 @@ export function TrendsPage() {
             </div>
             <ul className="space-y-1.5 text-muted-foreground">
               <li>
-                <strong className="text-foreground">Gross Invoiced Portfolio (4 Months):</strong> R
-                383,810,702.96 (excl VAT) / R 441,382,308.41 (incl VAT).
+                <strong className="text-foreground">Gross Invoiced Portfolio:</strong>{" "}
+                {ZAR(totalInvoiced4Months)}.
               </li>
               <li>
-                <strong className="text-foreground">Reconciled NERSA Statutory Cost:</strong> R
-                381,392,052.56.
+                <strong className="text-foreground">Reconciled Statutory Cost:</strong>{" "}
+                {ZAR(Math.max(0, totalInvoiced4Months - totalRecoveries4Months))}.
               </li>
               <li>
                 <strong className="text-foreground">Net Recoverable Overcharges:</strong>{" "}
-                <span className="font-bold text-emerald-400 font-mono">R 2,418,650.40</span> (0.63%
-                net billing accuracy error recovered).
+                <span className="font-bold text-emerald-400 font-mono">
+                  {ZAR(totalRecoveries4Months)}
+                </span>
+                {totalInvoiced4Months > 0
+                  ? ` (${((totalRecoveries4Months / totalInvoiced4Months) * 100).toFixed(2)}% net billing accuracy error).`
+                  : "."}
               </li>
               <li>
-                <strong className="text-foreground">Financial Status:</strong> R 620,450.40 Approved
-                &amp; Credited (25.7%), R 1,480,200.00 Pending Dispute (61.2%), R 318,000.00 Ready
-                for Filing (13.1%).
+                <strong className="text-foreground">Financial Status:</strong>{" "}
+                {ZAR(approvedRecoveries)} Approved, {ZAR(pendingRecoveries)} Pending,{" "}
+                {ZAR(readyRecoveries)} Ready for Filing.
               </li>
             </ul>
           </div>
@@ -553,113 +496,123 @@ export function TrendsPage() {
       </Panel>
 
       {/* Trend Visualizations */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Charge Breakdown Trend Chart */}
-        <Panel
-          title="Eskom Charge Component Breakdown & Overall Bill Trend Line (ZAR)"
-          subtitle="Monthly breakdown of Peak, Standard, Off-Peak Energy, Network & Subsidies with overall Invoiced Bill Trend Line."
-        >
-          <div className="h-72 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={trendsData}
-                margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis dataKey="period" stroke="#888888" fontSize={11} />
-                <YAxis
-                  stroke="#888888"
-                  fontSize={10}
-                  tickFormatter={(v) => `R ${(v / 1e6).toFixed(1)}M`}
-                />
-                <Tooltip
-                  formatter={(val: number, name: string) => [ZAR(val), name]}
-                  contentStyle={{
-                    backgroundColor: "rgba(15, 23, 42, 0.95)",
-                    borderColor: "#334155",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
-                <Bar dataKey="peakEnergy" name="Peak Energy" stackId="a" fill="#ef4444" />
-                <Bar dataKey="standardEnergy" name="Standard Energy" stackId="a" fill="#eab308" />
-                <Bar dataKey="offPeakEnergy" name="Off-Peak Energy" stackId="a" fill="#10b981" />
-                <Bar dataKey="networkCapacity" name="Network Capacity" stackId="a" fill="#3b82f6" />
-                <Bar dataKey="demandCharge" name="Demand Charge" stackId="a" fill="#8b5cf6" />
-                <Bar
-                  dataKey="subsidiesAndLegacy"
-                  name="Subsidies & Legacy"
-                  stackId="a"
-                  fill="#64748b"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="totalInvoice"
-                  name="Total Invoiced Bill (Trend Line)"
-                  stroke="#06b6d4"
-                  strokeWidth={3}
-                  dot={{ r: 5, fill: "#06b6d4" }}
-                  activeDot={{ r: 7 }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </Panel>
+      {trendsData.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border p-8 text-center text-xs text-muted-foreground">
+          <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <p className="font-semibold text-foreground">No Multi-Period Trend Data Available</p>
+          <p className="mt-1 max-w-md mx-auto">
+            Upload Eskom invoices or AMR CSV intervals to visualize charge component trends and overcharge recovery timelines.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Charge Breakdown Trend Chart */}
+          <Panel
+            title="Eskom Charge Component Breakdown & Overall Bill Trend Line (ZAR)"
+            subtitle="Monthly breakdown of Peak, Standard, Off-Peak Energy, Network & Subsidies with overall Invoiced Bill Trend Line."
+          >
+            <div className="h-72 w-full pt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart
+                  data={trendsData}
+                  margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                  <XAxis dataKey="period" stroke="#888888" fontSize={11} />
+                  <YAxis
+                    stroke="#888888"
+                    fontSize={10}
+                    tickFormatter={(v) => `R ${(v / 1e6).toFixed(1)}M`}
+                  />
+                  <Tooltip
+                    formatter={(val: number, name: string) => [ZAR(val), name]}
+                    contentStyle={{
+                      backgroundColor: "rgba(15, 23, 42, 0.95)",
+                      borderColor: "#334155",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
+                  <Bar dataKey="peakEnergy" name="Peak Energy" stackId="a" fill="#ef4444" />
+                  <Bar dataKey="standardEnergy" name="Standard Energy" stackId="a" fill="#eab308" />
+                  <Bar dataKey="offPeakEnergy" name="Off-Peak Energy" stackId="a" fill="#10b981" />
+                  <Bar dataKey="networkCapacity" name="Network Capacity" stackId="a" fill="#3b82f6" />
+                  <Bar dataKey="demandCharge" name="Demand Charge" stackId="a" fill="#8b5cf6" />
+                  <Bar
+                    dataKey="subsidiesAndLegacy"
+                    name="Subsidies & Legacy"
+                    stackId="a"
+                    fill="#64748b"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="totalInvoice"
+                    name="Total Invoiced Bill (Trend Line)"
+                    stroke="#06b6d4"
+                    strokeWidth={3}
+                    dot={{ r: 5, fill: "#06b6d4" }}
+                    activeDot={{ r: 7 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </Panel>
 
-        {/* Identified Overcharge Recoveries Trend */}
-        <Panel
-          title="Identified Overcharge Recoveries & Recovery Trend Line (ZAR)"
-          subtitle="Monthly overcharge recoveries identified by system calculations overlayed with 4-month recovery trend line."
-        >
-          <div className="h-72 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={trendsData}
-                margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis dataKey="period" stroke="#888888" fontSize={11} />
-                <YAxis
-                  stroke="#888888"
-                  fontSize={10}
-                  tickFormatter={(v) => `R ${(v / 1e3).toFixed(0)}k`}
-                />
-                <Tooltip
-                  formatter={(val: number, name: string) => [ZAR(val), name]}
-                  contentStyle={{
-                    backgroundColor: "rgba(15, 23, 42, 0.95)",
-                    borderColor: "#334155",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
-                <Bar dataKey="recoveryAmount" name="Recovery Amount (ZAR)">
-                  {trendsData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={
-                        index === 0 || index === 1 ? "#10b981" : index === 2 ? "#f59e0b" : "#06b6d4"
-                      }
-                    />
-                  ))}
-                </Bar>
-                <Line
-                  type="monotone"
-                  dataKey="recoveryAmount"
-                  name="Recovery Trend Line"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                  strokeDasharray="4 4"
-                  dot={{ r: 5, fill: "#10b981" }}
-                  activeDot={{ r: 7 }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </Panel>
-      </div>
+          {/* Identified Overcharge Recoveries Trend */}
+          <Panel
+            title="Identified Overcharge Recoveries & Recovery Trend Line (ZAR)"
+            subtitle="Monthly overcharge recoveries identified by system calculations overlayed with recovery trend line."
+          >
+            <div className="h-72 w-full pt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart
+                  data={trendsData}
+                  margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                  <XAxis dataKey="period" stroke="#888888" fontSize={11} />
+                  <YAxis
+                    stroke="#888888"
+                    fontSize={10}
+                    tickFormatter={(v) => `R ${(v / 1e3).toFixed(0)}k`}
+                  />
+                  <Tooltip
+                    formatter={(val: number, name: string) => [ZAR(val), name]}
+                    contentStyle={{
+                      backgroundColor: "rgba(15, 23, 42, 0.95)",
+                      borderColor: "#334155",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
+                  <Bar dataKey="recoveryAmount" name="Recovery Amount (ZAR)">
+                    {trendsData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={
+                          index === 0 || index === 1 ? "#10b981" : index === 2 ? "#f59e0b" : "#06b6d4"
+                        }
+                      />
+                    ))}
+                  </Bar>
+                  <Line
+                    type="monotone"
+                    dataKey="recoveryAmount"
+                    name="Recovery Trend Line"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    strokeDasharray="4 4"
+                    dot={{ r: 5, fill: "#10b981" }}
+                    activeDot={{ r: 7 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </Panel>
+        </div>
+      )}
 
       {/* Period-by-Period Recoveries Audit Table */}
       <Panel
@@ -685,7 +638,7 @@ export function TrendsPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Approved (1)
+              Approved ({recoveryItems.filter((r) => r.status === "approved").length})
             </button>
             <button
               onClick={() => setFilterCategory("pending")}
@@ -695,7 +648,7 @@ export function TrendsPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Under Review (2)
+              Under Review ({recoveryItems.filter((r) => r.status === "pending").length})
             </button>
             <button
               onClick={() => setFilterCategory("ready")}
@@ -705,13 +658,22 @@ export function TrendsPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Ready for Filing (1)
+              Ready for Filing ({recoveryItems.filter((r) => r.status === "ready").length})
             </button>
           </div>
         }
       >
-        <div className="overflow-x-auto rounded border border-border">
-          <table className="w-full text-sm">
+        {filteredRecoveries.length === 0 ? (
+          <div className="py-12 text-center text-xs text-muted-foreground">
+            <FileCheck className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+            <div className="font-semibold text-foreground text-sm">No Overcharge Recoveries Identified</div>
+            <p className="mt-1 max-w-md mx-auto">
+              No overcharge disputes match the active filter criteria. Upload monthly invoices to audit against gazetted NERSA tariffs.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded border border-border">
+            <table className="w-full text-sm">
             <thead className="bg-secondary text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="text-left px-3 py-2.5">Billing Period</th>
@@ -877,6 +839,7 @@ export function TrendsPage() {
             </tbody>
           </table>
         </div>
+        )}
       </Panel>
     </div>
   );

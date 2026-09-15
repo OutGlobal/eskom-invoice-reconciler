@@ -56,7 +56,7 @@ export function DemandPage() {
   const setCustomer = useApp((s) => s.setCustomer);
   const invoice = useApp((s) => s.invoice);
 
-  const nmd = customer.nmd || 85740;
+  const nmd = customer.nmd || 0;
   const [isEditingNmd, setIsEditingNmd] = useState(false);
   const [tempNmd, setTempNmd] = useState(nmd.toString());
 
@@ -71,50 +71,33 @@ export function DemandPage() {
     toast.success(`Agreed Maximum Demand (NMD) updated to ${NUM(val, 0)} kVA across all months!`);
   };
 
-  // Determine active invoice demand details dynamically
-  const activeMonth = (invoice?.accountMonth || "").toUpperCase();
-  const isFeb = activeMonth.includes("FEB") || invoice?.invoiceNo === "785101497007";
-  const isMar = activeMonth.includes("MARCH") || invoice?.invoiceNo === "785762166034";
-  const isApr = activeMonth.includes("APRIL") || invoice?.invoiceNo === "785684906677";
-  const isMay = activeMonth.includes("MAY") || invoice?.invoiceNo === "785595072130";
+  const batchInvoices = useApp((s) => s.batchInvoices);
 
   // Dynamic active peak data derived from active invoice and telemetry
   const activeBilledPeakKVA =
     invoice?.maxDemandKVA ||
     invoice?.simMaxDemand ||
     totals.maxDemandKVA ||
-    (isMar ? 86986.5 : isApr ? 82639.83 : isMay ? 81132.08 : 86432.56);
+    0;
 
   const activeRawPeakKVA =
     totals.maxDemandKVA ||
-    (isMar ? 92948.29 : isApr ? 85760.81 : isMay ? 84529.33 : 87431.54);
+    (activeBilledPeakKVA > 0 ? activeBilledPeakKVA * 1.011558 : 0);
 
   const activePeakTimestampText = totals.maxDemandAt
     ? format(totals.maxDemandAt, "dd MMM yyyy 'at' HH:mm:ss")
-    : isMar
-    ? "04 Mar 2026 at 12:00:00 (Curtailment Spike)"
-    : isApr
-    ? "30 Mar 2026 at 14:00:00"
-    : isMay
-    ? "04 May 2026 at 11:30:00"
-    : "04 Feb 2026 at 12:00:00";
+    : invoice?.accountMonth
+    ? `Peak recorded in ${invoice.accountMonth}`
+    : "No peak telemetry recorded";
 
-  const activePeakDate =
-    totals.maxDemandAt ||
-    (isMar
-      ? new Date("2026-03-04T12:00:00")
-      : isApr
-      ? new Date("2026-03-30T14:00:00")
-      : isMay
-      ? new Date("2026-05-04T11:30:00")
-      : new Date("2026-02-04T12:00:00"));
+  const activePeakDate = totals.maxDemandAt || new Date();
 
   const activeDemandChargeR =
     invoice?.networkDemandCharge ||
     (activeBilledPeakKVA * TARIFF.networkDemand);
 
   const activeExceedanceKVA = Math.max(0, activeBilledPeakKVA - nmd);
-  const isExceeded = activeExceedanceKVA > 0.01;
+  const isExceeded = nmd > 0 && activeExceedanceKVA > 0.01;
 
   const touData = [
     { period: "Peak", value: totals.peakKVAh, color: TOU_COLOR.peak },
@@ -124,79 +107,40 @@ export function DemandPage() {
 
   const exceedances = totals.nmdExceedances || [];
 
-  // Multi-period 4-Month Invoiced Peak Demand vs Agreed NMD Audit Table Data
-  const fourMonthDemandData: FourMonthDemandRow[] = [
-    {
-      month: "February 2026",
-      invoiceNo: "785101497007",
-      period: "17/01/2026 – 16/02/2026",
+  // Multi-period Invoiced Peak Demand vs Agreed NMD Audit Table Data
+  // Dynamically populated from active invoice and any batch invoices
+  const invoicesToAudit = (batchInvoices && batchInvoices.length > 0)
+    ? batchInvoices
+    : invoice
+    ? [invoice]
+    : [];
+
+  const fourMonthDemandData: FourMonthDemandRow[] = invoicesToAudit.map((inv) => {
+    const billedPeak = inv.maxDemandKVA || inv.simMaxDemand || totals.maxDemandKVA || 0;
+    const subIncomerPeak = totals.maxDemandKVA || (billedPeak * 1.011558);
+    const exceedance = nmd > 0 ? Math.max(0, billedPeak - nmd) : 0;
+    const demandCharge = inv.networkDemandCharge || (billedPeak * TARIFF.networkDemand);
+    const isExceed = exceedance > 0.01;
+
+    return {
+      month: inv.accountMonth || "Active Period",
+      invoiceNo: inv.invoiceNo || "N/A",
+      period: inv.billingPeriod || "N/A",
       agreedNmd: nmd,
-      billedRevenuePeakKVA: 86432.56,
-      subIncomerPeakKVA: 87431.54,
-      subIncomerTimestamp: "04 Feb 12:00 (84.75 MW / 21.47 MVAr)",
+      billedRevenuePeakKVA: billedPeak,
+      subIncomerPeakKVA: subIncomerPeak,
+      subIncomerTimestamp: totals.maxDemandAt
+        ? format(totals.maxDemandAt, "dd MMM HH:mm")
+        : "Interval Peak",
       lineLossRatio: 1.011558,
-      exceedanceKVA: Math.max(0, 86432.56 - nmd),
-      ratchetExposureMonthly: Math.max(0, 86432.56 - nmd) * 54.32,
-      networkDemandChargeExVat: 2089075.22,
-      status: 86432.56 > nmd ? "exceeded" : "compliant",
-      statusText: 86432.56 > nmd ? `🔴 Exceeded (+${NUM(86432.56 - nmd)} kVA)` : "🟢 Compliant",
-      actionLoad: () => useApp.getState().loadFeb2026SampleInvoice(),
-    },
-    {
-      month: "March 2026",
-      invoiceNo: "785762166034",
-      period: "17/02/2026 – 18/03/2026",
-      agreedNmd: nmd,
-      billedRevenuePeakKVA: 86986.5,
-      subIncomerPeakKVA: 92948.29,
-      subIncomerTimestamp: "04 Mar 12:00 (Curtailment Spike 89.23 MW)",
-      lineLossRatio: 1.011558,
-      exceedanceKVA: Math.max(0, 86986.5 - nmd),
-      ratchetExposureMonthly: Math.max(0, 86986.5 - nmd) * 54.32,
-      networkDemandChargeExVat: 2102463.71,
-      status: "disputed",
-      statusText: `⚠️ Disputed Curtailment Window (#MAR-2026)`,
-      actionLoad: () => useApp.getState().loadMarch2026SampleInvoice(),
-    },
-    {
-      month: "April 2026",
-      invoiceNo: "785684906677",
-      period: "19/03/2026 – 16/04/2026",
-      agreedNmd: nmd,
-      billedRevenuePeakKVA: 82639.83,
-      subIncomerPeakKVA: 85760.81,
-      subIncomerTimestamp: "30 Mar 14:00 (82.33 MW / 20.15 MVAr)",
-      lineLossRatio: 1.011558,
-      exceedanceKVA: Math.max(0, 82639.83 - nmd),
-      ratchetExposureMonthly: Math.max(0, 82639.83 - nmd) * 62.55,
-      networkDemandChargeExVat: 2094064.8,
-      status: 82639.83 > nmd ? "exceeded" : "compliant",
-      statusText:
-        82639.83 > nmd
-          ? `🔴 Exceeded (+${NUM(82639.83 - nmd)} kVA)`
-          : `🟢 Compliant (-${NUM(nmd - 82639.83)} kVA)`,
-      actionLoad: () => useApp.getState().loadApril2026SampleInvoice(),
-    },
-    {
-      month: "May 2026",
-      invoiceNo: "785595072130",
-      period: "17/04/2026 – 16/05/2026",
-      agreedNmd: nmd,
-      billedRevenuePeakKVA: 81132.08,
-      subIncomerPeakKVA: 84529.33,
-      subIncomerTimestamp: "04 May 11:30 (81.15 MW / 21.05 MVAr)",
-      lineLossRatio: 1.011558,
-      exceedanceKVA: Math.max(0, 81132.08 - nmd),
-      ratchetExposureMonthly: Math.max(0, 81132.08 - nmd) * 62.55,
-      networkDemandChargeExVat: 2132962.38,
-      status: 81132.08 > nmd ? "exceeded" : "compliant",
-      statusText:
-        81132.08 > nmd
-          ? `🔴 Exceeded (+${NUM(81132.08 - nmd)} kVA)`
-          : `🟢 Compliant (-${NUM(nmd - 81132.08)} kVA)`,
-      actionLoad: () => useApp.getState().loadMay2026SampleInvoice(),
-    },
-  ];
+      exceedanceKVA: exceedance,
+      ratchetExposureMonthly: exceedance * 54.32,
+      networkDemandChargeExVat: demandCharge,
+      status: isExceed ? "exceeded" : "compliant",
+      statusText: isExceed ? `🔴 Exceeded (+${NUM(exceedance)} kVA)` : "🟢 Compliant",
+      actionLoad: () => useApp.getState().setInvoice(inv),
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -301,103 +245,113 @@ export function DemandPage() {
 
       {/* 4-Month Invoiced Peak Demand vs Agreed NMD Audit Register Table */}
       <Panel
-        title="4-Month Invoiced Peak Demand vs Agreed NMD Audit Register"
-        subtitle={`Complete historical audit across all 4 billing periods comparing Eskom Revenue Billed Peak against Agreed NMD (${NUM(nmd, 0)} kVA)`}
+        title="Multi-Period Invoiced Peak Demand vs Agreed NMD Audit Register"
+        subtitle={`Audit comparing Eskom Revenue Billed Peak against Agreed NMD (${NUM(nmd, 0)} kVA)`}
       >
-        <div className="overflow-x-auto rounded border border-border">
-          <table className="w-full text-xs text-left border-collapse">
-            <thead className="bg-muted/40 text-muted-foreground font-semibold uppercase text-[11px]">
-              <tr className="border-b border-border">
-                <th className="py-2.5 px-3">Billing Month &amp; Invoice #</th>
-                <th className="py-2.5 px-3 text-right">Agreed NMD (kVA)</th>
-                <th className="py-2.5 px-3 text-right">Eskom Billed Revenue Peak</th>
-                <th className="py-2.5 px-3 text-right">Sub-Incomer Measured Peak</th>
-                <th className="py-2.5 px-3 text-center">Line Loss Ratio</th>
-                <th className="py-2.5 px-3 text-right">Exceedance (kVA)</th>
-                <th className="py-2.5 px-3 text-right">Ratchet Exposure (R/mo)</th>
-                <th className="py-2.5 px-3 text-center">Audit Verdict &amp; Status</th>
-                <th className="py-2.5 px-3 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {fourMonthDemandData.map((row, idx) => {
-                const isActive =
-                  invoice?.invoiceNo === row.invoiceNo ||
-                  (invoice?.accountMonth || "").includes(row.month.split(" ")[0].toUpperCase());
-                return (
-                  <tr
-                    key={idx}
-                    className={`hover:bg-muted/30 transition ${isActive ? "bg-primary/5 font-medium" : ""}`}
-                  >
-                    <td className="py-3 px-3">
-                      <div className="font-semibold text-foreground text-xs">{row.month}</div>
-                      <div className="text-[11px] text-muted-foreground font-mono">
-                        Invoice #{row.invoiceNo}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground">{row.period}</div>
-                    </td>
-                    <td className="py-3 px-3 text-right font-mono font-bold text-foreground">
-                      {NUM(row.agreedNmd, 0)} kVA
-                    </td>
-                    <td className="py-3 px-3 text-right font-mono font-semibold text-primary">
-                      {NUM(row.billedRevenuePeakKVA)} kVA
-                      <div className="text-[10px] text-muted-foreground font-normal">
-                        Demand: {ZAR(row.networkDemandChargeExVat)}
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 text-right font-mono text-amber-400">
-                      {NUM(row.subIncomerPeakKVA)} kVA
-                      <div className="text-[10px] text-muted-foreground font-normal">
-                        {row.subIncomerTimestamp}
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 text-center font-mono text-muted-foreground">
-                      {row.lineLossRatio}
-                    </td>
-                    <td
-                      className={`py-3 px-3 text-right font-mono font-bold ${row.exceedanceKVA > 0 ? "text-red-400" : "text-emerald-400"}`}
+        {fourMonthDemandData.length === 0 ? (
+          <div className="py-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+            <Zap className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+            <div className="font-semibold text-foreground text-sm">No Invoices Loaded for Multi-Period Audit</div>
+            <p className="mt-1 max-w-md mx-auto">
+              Upload Eskom monthly invoices or AMR interval data to audit peak demand against contracted NMD capacity.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded border border-border">
+            <table className="w-full text-xs text-left border-collapse">
+              <thead className="bg-muted/40 text-muted-foreground font-semibold uppercase text-[11px]">
+                <tr className="border-b border-border">
+                  <th className="py-2.5 px-3">Billing Month &amp; Invoice #</th>
+                  <th className="py-2.5 px-3 text-right">Agreed NMD (kVA)</th>
+                  <th className="py-2.5 px-3 text-right">Eskom Billed Revenue Peak</th>
+                  <th className="py-2.5 px-3 text-right">Sub-Incomer Measured Peak</th>
+                  <th className="py-2.5 px-3 text-center">Line Loss Ratio</th>
+                  <th className="py-2.5 px-3 text-right">Exceedance (kVA)</th>
+                  <th className="py-2.5 px-3 text-right">Ratchet Exposure (R/mo)</th>
+                  <th className="py-2.5 px-3 text-center">Audit Verdict &amp; Status</th>
+                  <th className="py-2.5 px-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {fourMonthDemandData.map((row, idx) => {
+                  const isActive =
+                    invoice?.invoiceNo === row.invoiceNo ||
+                    (invoice?.accountMonth || "").includes(row.month.split(" ")[0].toUpperCase());
+                  return (
+                    <tr
+                      key={idx}
+                      className={`hover:bg-muted/30 transition ${isActive ? "bg-primary/5 font-medium" : ""}`}
                     >
-                      {row.exceedanceKVA > 0 ? `+${NUM(row.exceedanceKVA)} kVA` : "0.00 kVA"}
-                    </td>
-                    <td className="py-3 px-3 text-right font-mono font-semibold text-foreground">
-                      {row.ratchetExposureMonthly > 0
-                        ? `${ZAR(row.ratchetExposureMonthly)}/mo`
-                        : "R 0.00"}
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      <span
-                        className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium border ${
-                          row.status === "exceeded"
-                            ? "bg-red-500/10 text-red-400 border-red-500/30"
-                            : row.status === "disputed"
-                              ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                              : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                        }`}
+                      <td className="py-3 px-3">
+                        <div className="font-semibold text-foreground text-xs">{row.month}</div>
+                        <div className="text-[11px] text-muted-foreground font-mono">
+                          Invoice #{row.invoiceNo}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">{row.period}</div>
+                      </td>
+                      <td className="py-3 px-3 text-right font-mono font-bold text-foreground">
+                        {NUM(row.agreedNmd, 0)} kVA
+                      </td>
+                      <td className="py-3 px-3 text-right font-mono font-semibold text-primary">
+                        {NUM(row.billedRevenuePeakKVA)} kVA
+                        <div className="text-[10px] text-muted-foreground font-normal">
+                          Demand: {ZAR(row.networkDemandChargeExVat)}
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-right font-mono text-amber-400">
+                        {NUM(row.subIncomerPeakKVA)} kVA
+                        <div className="text-[10px] text-muted-foreground font-normal">
+                          {row.subIncomerTimestamp}
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-center font-mono text-muted-foreground">
+                        {row.lineLossRatio}
+                      </td>
+                      <td
+                        className={`py-3 px-3 text-right font-mono font-bold ${row.exceedanceKVA > 0 ? "text-red-400" : "text-emerald-400"}`}
                       >
-                        {row.statusText}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      <button
-                        onClick={() => {
-                          row.actionLoad();
-                          toast.success(`Loaded ${row.month} invoice into active session!`);
-                        }}
-                        className={`text-xs border rounded px-2.5 py-1 font-medium transition ${
-                          isActive
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-secondary hover:bg-secondary/80 text-foreground border-border"
-                        }`}
-                      >
-                        {isActive ? "Active Month" : "Load Session"}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        {row.exceedanceKVA > 0 ? `+${NUM(row.exceedanceKVA)} kVA` : "0.00 kVA"}
+                      </td>
+                      <td className="py-3 px-3 text-right font-mono font-semibold text-foreground">
+                        {row.ratchetExposureMonthly > 0
+                          ? `${ZAR(row.ratchetExposureMonthly)}/mo`
+                          : "R 0.00"}
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <span
+                          className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium border ${
+                            row.status === "exceeded"
+                              ? "bg-red-500/10 text-red-400 border-red-500/30"
+                              : row.status === "disputed"
+                                ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                                : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                          }`}
+                        >
+                          {row.statusText}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <button
+                          onClick={() => {
+                            row.actionLoad();
+                            toast.success(`Loaded ${row.month} invoice into active session!`);
+                          }}
+                          className={`text-xs border rounded px-2.5 py-1 font-medium transition ${
+                            isActive
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-secondary hover:bg-secondary/80 text-foreground border-border"
+                          }`}
+                        >
+                          {isActive ? "Active Month" : "Load Session"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Panel>
 
       {/* Demand Consumption Graph (1.c & 1.e) */}
@@ -435,7 +389,7 @@ export function DemandPage() {
                   Peak Demand Consumption
                 </td>
                 <td className="py-2.5 px-3 text-right font-mono font-medium">{NUM(totals.peakKVAh, 1)} kVAh</td>
-                <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">{NUM((invoice?.peakKWh ?? 6401924.4) / 0.96, 1)} kVAh</td>
+                <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">{NUM((invoice?.peakKWh ?? 0) / 0.96, 1)} kVAh</td>
                 <td className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground">kWh / 0.96</td>
                 <td className="py-2.5 px-3 text-center">
                   <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase">
@@ -449,7 +403,7 @@ export function DemandPage() {
                   Standard Demand Consumption
                 </td>
                 <td className="py-2.5 px-3 text-right font-mono font-medium">{NUM(totals.standardKVAh, 1)} kVAh</td>
-                <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">{NUM((invoice?.standardKWh ?? 19432557.6) / 0.96, 1)} kVAh</td>
+                <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">{NUM((invoice?.standardKWh ?? 0) / 0.96, 1)} kVAh</td>
                 <td className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground">kWh / 0.96</td>
                 <td className="py-2.5 px-3 text-center">
                   <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase">
@@ -463,7 +417,7 @@ export function DemandPage() {
                   Off-Peak Demand Consumption
                 </td>
                 <td className="py-2.5 px-3 text-right font-mono font-medium">{NUM(totals.offPeakKVAh, 1)} kVAh</td>
-                <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">{NUM((invoice?.offPeakKWh ?? 23429967.6) / 0.96, 1)} kVAh</td>
+                <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">{NUM((invoice?.offPeakKWh ?? 0) / 0.96, 1)} kVAh</td>
                 <td className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground">kWh / 0.96</td>
                 <td className="py-2.5 px-3 text-center">
                   <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase">
@@ -475,7 +429,7 @@ export function DemandPage() {
               <tr className="bg-muted/60 font-bold border-t-2 border-border">
                 <td className="py-3 px-3">Total Demand for Month (ALL Peak + Standard + Off-Peak)</td>
                 <td className="py-3 px-3 text-right font-mono text-primary">{NUM(totals.totalKVAh, 1)} kVAh</td>
-                <td className="py-3 px-3 text-right font-mono">{NUM((invoice?.totalKWh ?? 49264449.6) / 0.96, 1)} kVAh</td>
+                <td className="py-3 px-3 text-right font-mono">{NUM((invoice?.totalKWh ?? 0) / 0.96, 1)} kVAh</td>
                 <td className="py-3 px-3 text-right font-mono text-xs text-muted-foreground">Total kWh / 0.96</td>
                 <td className="py-3 px-3 text-center">
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase">
@@ -507,8 +461,12 @@ export function DemandPage() {
 
       {/* Sub-Incomer Raw Peak vs Revenue Meter Reconciliation Panel */}
       <Panel
-        title="Millennium 33kV Sub-Incomer Raw Peak vs Eskom Revenue Meter Reconciliation"
-        subtitle={`Active Session: ${invoice?.accountMonth || "FEBRUARY 2026"} · Line Loss & Transformer Location Offset Audit · NERSA Megaflex Tariff Schedule Section 6 & Table 3, p.16`}
+        title="Sub-Incomer Raw Peak vs Eskom Revenue Meter Reconciliation"
+        subtitle={
+          invoice?.accountMonth
+            ? `Active Session: ${invoice.accountMonth} · Line Loss & Transformer Location Offset Audit · NERSA Megaflex Tariff Schedule Section 6`
+            : "Deterministic Demand & Transformer Location Offset Audit · NERSA Megaflex Tariff Schedule Section 6"
+        }
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
           <div className="rounded-lg border border-border bg-muted/20 p-3.5 space-y-1.5">
@@ -521,7 +479,7 @@ export function DemandPage() {
                 • <strong>Peak Window:</strong> {activePeakTimestampText}
               </div>
               <div>
-                • <strong>Primary Busbar:</strong> Millennium 33kV Incomer Total
+                • <strong>Primary Busbar:</strong> Incomer Total
               </div>
             </div>
           </div>
@@ -536,7 +494,7 @@ export function DemandPage() {
             <div className="text-muted-foreground text-[11px]">
               Formula: Revenue kVA = Sub-Incomer kVA / 1.011558
               <br />
-              Location: Millennium 33kV Incomer Primary Busbar
+              Location: Primary Incomer Busbar
             </div>
           </div>
 
@@ -565,7 +523,7 @@ export function DemandPage() {
             <p>
               • <strong>Eskom Line Loss Netting Formula:</strong> Billed Revenue kVA ={" "}
               {NUM(activeRawPeakKVA)} / 1.011558 = <strong>{NUM(activeBilledPeakKVA)} kVA</strong>{" "}
-              stamped on Tax Invoice #{invoice?.invoiceNo || "785101497007"}.
+              {invoice?.invoiceNo ? `stamped on Tax Invoice #${invoice.invoiceNo}` : ""}.
             </p>
             <p>
               • <strong>Network Demand Charge:</strong> {NUM(activeBilledPeakKVA)} kVA × R 24.17/kVA
@@ -624,18 +582,13 @@ export function DemandPage() {
                       </span>
                     </td>
                     <td className="py-2.5 px-3 text-muted-foreground text-[11px]">
-                      {invoice?.accountMonth?.includes("MARCH") ||
-                      format(evt.ts, "yyyy-MM") === "2026-03" ? (
-                        <span className="text-amber-300 font-medium flex items-center gap-1">
-                          <ShieldAlert className="h-3.5 w-3.5 inline text-amber-400" />
-                          System Operator Curtailment Window (Dispute Claim #MAR-2026)
-                        </span>
-                      ) : format(evt.ts, "yyyy-MM") === "2026-02" ? (
-                        <span>
-                          Sub-Incomer Measured Peak · Reconciles to 86,432.56 kVA Revenue Peak
+                      {nmd > 0 && evt.kVA > nmd ? (
+                        <span className="text-red-400 font-medium flex items-center gap-1">
+                          <ShieldAlert className="h-3.5 w-3.5 inline text-red-400" />
+                          Notified Maximum Demand Exceeded (+{NUM(evt.exceedanceKVA)} kVA)
                         </span>
                       ) : (
-                        <span>Notified Capacity Threshold Exceeded</span>
+                        <span>Demand Peak Interval Recorded</span>
                       )}
                     </td>
                   </tr>

@@ -50,7 +50,7 @@ export function MetersPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Selected state
-  const [selectedMeterId, setSelectedMeterId] = useState<string>("mtr-megaflex-9988");
+  const [selectedMeterId, setSelectedMeterId] = useState<string>("");
   const [configs, setConfigs] = useState<MeterConfigurationRecord[]>([]);
 
   // 3-Tier Value Calculator Input State
@@ -206,85 +206,116 @@ export function MetersPage() {
         </div>
       </div>
 
-      {/* KPI Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xs">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Active Meters</span>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">1 Main AMR</span>
-            <Gauge className="w-5 h-5 text-blue-500" />
+      {/* If no sites or meters exist */}
+      {!isLoading && (!hierarchy || hierarchy.sites.length === 0 || !activeMeterData) ? (
+        <div className="bg-white dark:bg-gray-900 rounded-xl p-12 border border-gray-200 dark:border-gray-800 text-center space-y-4 shadow-sm">
+          <div className="w-14 h-14 bg-blue-50 dark:bg-blue-950/50 rounded-full flex items-center justify-center mx-auto text-blue-600">
+            <Gauge className="w-7 h-7" />
           </div>
-          <span className="text-2xs text-gray-400 mt-1 block">Landis+Gyr E650 (Serial #88991122)</span>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xs">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Point of Delivery (POD)</span>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">POD-JHB-MAIN-4401</span>
-            <Building className="w-5 h-5 text-indigo-500" />
+          <div className="max-w-md mx-auto">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">No Meter Infrastructure Configured</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Add your Point of Delivery (POD) and Meter profiles to begin tracking CT/VT ratios, overall multipliers, pulse scaling, and calibration audit logs.
+            </p>
           </div>
-          <span className="text-2xs text-gray-400 mt-1 block">11.0 kV · 5000 kVA NMD</span>
+          <div className="pt-2">
+            <button
+              onClick={() => setShowConfigModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"
+            >
+              <Plus className="w-4 h-4" /> Add Meter Profile
+            </button>
+          </div>
         </div>
+      ) : (
+        <>
+          {/* KPI Overview Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xs">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Active Meters</span>
+              <div className="mt-2 flex items-baseline justify-between">
+                <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {hierarchy?.sites.reduce((acc, s) => acc + s.pods.reduce((pAcc, p) => pAcc + p.meters.length, 0), 0) || 0} AMR
+                </span>
+                <Gauge className="w-5 h-5 text-blue-500" />
+              </div>
+              <span className="text-2xs text-gray-400 mt-1 block">
+                {activeMeterData?.meter.manufacturer || "Meter"} {activeMeterData?.meter.model || ""} {activeMeterData?.meter.serial_number ? `(#${activeMeterData.meter.serial_number})` : ""}
+              </span>
+            </div>
 
-        <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xs">
-          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Active Multiplier</span>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              {activeMeterData?.activeConfig?.overall_multiplier || 8000}×
+            <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xs">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Point of Delivery (POD)</span>
+              <div className="mt-2 flex items-baseline justify-between">
+                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                  {activeMeterData?.pod.pod_code || "—"}
+                </span>
+                <Building className="w-5 h-5 text-indigo-500" />
+              </div>
+              <span className="text-2xs text-gray-400 mt-1 block">
+                {activeMeterData?.pod.voltage_level_kv ? `${activeMeterData.pod.voltage_level_kv} kV` : "—"} · {activeMeterData?.pod.notified_maximum_demand_kva ? `${activeMeterData.pod.notified_maximum_demand_kva} kVA NMD` : "—"}
+              </span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xs">
+              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Active Multiplier</span>
+              <div className="mt-2 flex items-baseline justify-between">
+                <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {activeMeterData?.activeConfig?.overall_multiplier ? `${activeMeterData.activeConfig.overall_multiplier}×` : "—"}
+                </span>
+                <Zap className="w-5 h-5 text-emerald-500" />
+              </div>
+              <span className="text-2xs text-gray-400 mt-1 block">
+                CT {activeMeterData?.activeConfig?.ct_ratio_numerator || "—"}/{activeMeterData?.activeConfig?.ct_ratio_denominator || "—"} × VT {activeMeterData?.activeConfig?.vt_ratio_numerator || "—"}/{activeMeterData?.activeConfig?.vt_ratio_denominator || "—"}
+              </span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xs">
+              <span className="text-xs font-medium text-purple-600 dark:text-purple-400 uppercase tracking-wider">Config Versions</span>
+              <div className="mt-2 flex items-baseline justify-between">
+                <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">{configs.length} Versions</span>
+                <History className="w-5 h-5 text-purple-500" />
+              </div>
+              <span className="text-2xs text-gray-400 mt-1 block">Historical Reproducibility Active</span>
+            </div>
+          </div>
+
+          {/* 5-Level Master Data Hierarchy Breadcrumb Bar */}
+          <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
+              5-Level Master Data Hierarchy Relationship
             </span>
-            <Zap className="w-5 h-5 text-emerald-500" />
-          </div>
-          <span className="text-2xs text-gray-400 mt-1 block">
-            CT {activeMeterData?.activeConfig?.ct_ratio_numerator}/5 × VT {activeMeterData?.activeConfig?.vt_ratio_numerator}/110
-          </span>
-        </div>
+            <div className="flex items-center flex-wrap gap-2 text-xs">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-900 dark:bg-blue-950/60 dark:text-blue-200 font-semibold">
+                <Building2 className="w-3.5 h-3.5" />
+                <span>CLIENT: {hierarchy?.client_name || "—"}</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
 
-        <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xs">
-          <span className="text-xs font-medium text-purple-600 dark:text-purple-400 uppercase tracking-wider">Config Versions</span>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">{configs.length} Versions</span>
-            <History className="w-5 h-5 text-purple-500" />
-          </div>
-          <span className="text-2xs text-gray-400 mt-1 block">Historical Reproducibility Active</span>
-        </div>
-      </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-900 dark:bg-indigo-950/60 dark:text-indigo-200 font-semibold">
+                <Building className="w-3.5 h-3.5" />
+                <span>SITE: {activeMeterData?.site.site_name || "—"}</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
 
-      {/* 5-Level Master Data Hierarchy Breadcrumb Bar */}
-      <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm">
-        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
-          5-Level Master Data Hierarchy Relationship
-        </span>
-        <div className="flex items-center flex-wrap gap-2 text-xs">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-900 dark:bg-blue-950/60 dark:text-blue-200 font-semibold">
-            <Building2 className="w-3.5 h-3.5" />
-            <span>CLIENT: {hierarchy?.client_name || "ACME SA"}</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 text-purple-900 dark:bg-purple-950/60 dark:text-purple-200 font-semibold">
+                <Layers className="w-3.5 h-3.5" />
+                <span>POD: {activeMeterData?.pod.pod_code || "—"}</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-900 dark:bg-indigo-950/60 dark:text-indigo-200 font-semibold">
-            <Building className="w-3.5 h-3.5" />
-            <span>SITE: {activeMeterData?.site.site_name || "Randburg Facility"}</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200 font-bold">
+                <Gauge className="w-3.5 h-3.5" />
+                <span>METER: {activeMeterData?.meter.meter_number || "—"}</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 text-purple-900 dark:bg-purple-950/60 dark:text-purple-200 font-semibold">
-            <Layers className="w-3.5 h-3.5" />
-            <span>POD: {activeMeterData?.pod.pod_code || "POD-4401"}</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200 font-semibold">
+                <Activity className="w-3.5 h-3.5" />
+                <span>CHANNELS: {activeMeterData?.channels.length || 0} Active</span>
+              </div>
+            </div>
           </div>
-          <ChevronRight className="w-4 h-4 text-gray-400" />
-
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200 font-bold">
-            <Gauge className="w-3.5 h-3.5" />
-            <span>METER: {activeMeterData?.meter.meter_number || "MTR-MEGAFLEX"}</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-gray-400" />
-
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200 font-semibold">
-            <Activity className="w-3.5 h-3.5" />
-            <span>CHANNELS: {activeMeterData?.channels.length || 3} Active</span>
-          </div>
-        </div>
-      </div>
 
       {/* Main Workspace Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -559,6 +590,8 @@ export function MetersPage() {
           </div>
         </div>
       </div>
+    </>
+  )}
 
       {/* New Configuration Modal */}
       {showConfigModal && (

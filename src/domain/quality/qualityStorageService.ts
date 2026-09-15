@@ -20,8 +20,7 @@ export class QualityStorageService {
         .order("created_at", { ascending: false });
 
       if (error || !dbIssues || dbIssues.length === 0) {
-        console.warn("[QualityStorageService] Supabase issues table empty or unavailable, using sample fixtures.");
-        return DataGovernanceEngine.generateSampleGovernanceIssues();
+        return [];
       }
 
       return dbIssues.map((row: any) => ({
@@ -40,7 +39,7 @@ export class QualityStorageService {
       }));
     } catch (e) {
       console.warn("[QualityStorageService] Exception loading quality issues:", e);
-      return DataGovernanceEngine.generateSampleGovernanceIssues();
+      return [];
     }
   }
 

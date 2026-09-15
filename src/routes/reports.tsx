@@ -35,6 +35,12 @@ function ReportsPage() {
   const diff = invoiceTotal - calculatedTotal;
   const pctErr = invoiceTotal ? (diff / invoiceTotal) * 100 : 0;
 
+  const invoicesToCompare = (batchInvoices && batchInvoices.length > 0)
+    ? batchInvoices
+    : invoice
+    ? [invoice]
+    : [];
+
   const reconRows = buildStandardReconciliationTable(
     invoiceLines,
     charges,
@@ -173,163 +179,101 @@ function ReportsPage() {
       </Panel>
 
       <Panel
-        title="4-Month Impala Platinum Mine Eskom Billing Comparison Matrix"
-        subtitle="Side-by-side historical audit tracking consumption, demand, and invoiced charges across all 4 extracted billing periods."
+        title="Historical Utility Billing Comparison Matrix"
+        subtitle="Side-by-side audit tracking consumption, demand, and invoiced charges across extracted billing periods."
       >
-        <div className="overflow-x-auto rounded border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="text-left px-3 py-2.5">Billing Month</th>
-                <th className="text-left px-3 py-2.5">Invoice Number</th>
-                <th className="text-left px-3 py-2.5">Billing Period</th>
-                <th className="text-right px-3 py-2.5">Total Consumption (kWh)</th>
-                <th className="text-right px-3 py-2.5">Max Demand (kVA)</th>
-                <th className="text-right px-3 py-2.5">Invoiced Total (excl VAT)</th>
-                <th className="text-right px-3 py-2.5">Total Incl. VAT (15%)</th>
-                <th className="text-center px-3 py-2.5">Recon Verdict</th>
-                <th className="text-right px-3 py-2.5">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              <tr className="hover:bg-muted/40 transition">
-                <td className="px-3 py-2.5 font-medium">February 2026</td>
-                <td className="px-3 py-2.5 font-mono text-xs">785101497007</td>
-                <td className="px-3 py-2.5 text-xs text-muted-foreground">
-                  17/01/2026 - 16/02/2026
-                </td>
-                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
-                  {NUM(49264449.6, 0)}
-                </td>
-                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
-                  {NUM(87034.19, 2)}
-                </td>
-                <td className="px-3 py-2.5 text-right font-mono font-medium">{ZAR(97009239.11)}</td>
-                <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">
-                  {ZAR(111560624.98)}
-                </td>
-                <td className="px-3 py-2.5 text-center">
-                  <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400 border border-emerald-500/30">
-                    🟢 Reconciled
-                  </span>
-                </td>
-                <td className="px-3 py-2.5 text-right">
-                  <button
-                    onClick={() => {
-                      useApp.getState().loadFeb2026SampleInvoice();
-                      toast.success("Loaded February 2026 Invoice into session!");
-                    }}
-                    className="text-xs bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded px-2 py-1 font-medium transition"
-                  >
-                    Load Session
-                  </button>
-                </td>
-              </tr>
+        {invoicesToCompare.length === 0 ? (
+          <div className="p-8 text-center border border-dashed border-border rounded-lg space-y-3">
+            <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto">
+              <FileSpreadsheet className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-foreground">No Billing Records Available for Comparison</h4>
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                Ingest multiple utility tax invoices to populate cross-period audit matrices, multi-month demand tracking, and statutory variance reporting.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <a
+                href="/upload"
+                className="px-3.5 py-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:opacity-90 rounded-md"
+              >
+                Upload Invoices
+              </a>
+              <button
+                onClick={() => {
+                  useApp.getState().loadMarch2026SampleInvoice();
+                  toast.success("Loaded March 2026 Sandbox Invoice");
+                }}
+                className="px-3.5 py-1.5 text-xs font-semibold text-foreground border border-border hover:bg-muted rounded-md"
+              >
+                Load Sandbox Sample
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2.5">Billing Month</th>
+                  <th className="text-left px-3 py-2.5">Invoice Number</th>
+                  <th className="text-left px-3 py-2.5">Billing Period</th>
+                  <th className="text-right px-3 py-2.5">Total Consumption (kWh)</th>
+                  <th className="text-right px-3 py-2.5">Max Demand (kVA)</th>
+                  <th className="text-right px-3 py-2.5">Invoiced Total (excl VAT)</th>
+                  <th className="text-right px-3 py-2.5">Total Incl. VAT (15%)</th>
+                  <th className="text-center px-3 py-2.5">Recon Verdict</th>
+                  <th className="text-right px-3 py-2.5">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {invoicesToCompare.map((inv, idx) => {
+                  const totalKwh = inv.totalKWh || 0;
+                  const maxDemand = inv.maxDemandKVA || inv.simMaxDemand || 0;
+                  const exclVat = inv.invoiceTotal || 0;
+                  const inclVat = inv.totalInclVat || (exclVat > 0 ? exclVat * 1.15 : 0);
 
-              <tr className="hover:bg-muted/40 transition">
-                <td className="px-3 py-2.5 font-medium">March 2026</td>
-                <td className="px-3 py-2.5 font-mono text-xs">785762166034</td>
-                <td className="px-3 py-2.5 text-xs text-muted-foreground">
-                  17/02/2026 - 18/03/2026
-                </td>
-                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
-                  {NUM(49248061.2, 0)}
-                </td>
-                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
-                  {NUM(92948.29, 2)}
-                </td>
-                <td className="px-3 py-2.5 text-right font-mono font-medium">{ZAR(98380358.13)}</td>
-                <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">
-                  {ZAR(113137411.85)}
-                </td>
-                <td className="px-3 py-2.5 text-center">
-                  <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400 border border-emerald-500/30">
-                    🟢 Reconciled
-                  </span>
-                </td>
-                <td className="px-3 py-2.5 text-right">
-                  <button
-                    onClick={() => {
-                      useApp.getState().loadMarch2026SampleInvoice();
-                      toast.success("Loaded March 2026 Invoice into session!");
-                    }}
-                    className="text-xs bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded px-2 py-1 font-medium transition"
-                  >
-                    Load Session
-                  </button>
-                </td>
-              </tr>
-
-              <tr className="hover:bg-muted/40 transition">
-                <td className="px-3 py-2.5 font-medium">April 2026</td>
-                <td className="px-3 py-2.5 font-mono text-xs">785684906677</td>
-                <td className="px-3 py-2.5 text-xs text-muted-foreground">
-                  19/03/2026 - 16/04/2026
-                </td>
-                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
-                  {NUM(44148796.8, 0)}
-                </td>
-                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
-                  {NUM(85760.81, 2)}
-                </td>
-                <td className="px-3 py-2.5 text-right font-mono font-medium">{ZAR(91251855.72)}</td>
-                <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">
-                  {ZAR(104939634.08)}
-                </td>
-                <td className="px-3 py-2.5 text-center">
-                  <span className="inline-flex items-center rounded-full bg-cyan-500/10 px-2 py-0.5 text-xs font-medium text-cyan-400 border border-cyan-500/30">
-                    🟢 Reconciled (Split Rates)
-                  </span>
-                </td>
-                <td className="px-3 py-2.5 text-right">
-                  <button
-                    onClick={() => {
-                      useApp.getState().loadApril2026SampleInvoice();
-                      toast.success("Loaded April 2026 Invoice into session!");
-                    }}
-                    className="text-xs bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 border border-cyan-500/30 rounded px-2 py-1 font-medium transition"
-                  >
-                    Load Session
-                  </button>
-                </td>
-              </tr>
-
-              <tr className="hover:bg-muted/40 transition">
-                <td className="px-3 py-2.5 font-medium">May 2026</td>
-                <td className="px-3 py-2.5 font-mono text-xs">785595072130</td>
-                <td className="px-3 py-2.5 text-xs text-muted-foreground">
-                  17/04/2026 - 16/05/2026
-                </td>
-                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
-                  {NUM(45766884.0, 0)}
-                </td>
-                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
-                  {NUM(84529.33, 2)}
-                </td>
-                <td className="px-3 py-2.5 text-right font-mono font-medium">{ZAR(97169250.0)}</td>
-                <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">
-                  {ZAR(111744637.5)}
-                </td>
-                <td className="px-3 py-2.5 text-center">
-                  <span className="inline-flex items-center rounded-full bg-purple-500/10 px-2 py-0.5 text-xs font-medium text-purple-400 border border-purple-500/30">
-                    🟢 Reconciled
-                  </span>
-                </td>
-                <td className="px-3 py-2.5 text-right">
-                  <button
-                    onClick={() => {
-                      useApp.getState().loadMay2026SampleInvoice();
-                      toast.success("Loaded May 2026 Invoice into session!");
-                    }}
-                    className="text-xs bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border border-purple-500/30 rounded px-2 py-1 font-medium transition"
-                  >
-                    Load Session
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                  return (
+                    <tr key={inv.invoiceNo || inv.invoiceNumber || idx} className="hover:bg-muted/40 transition">
+                      <td className="px-3 py-2.5 font-medium">{inv.accountMonth || "Current Period"}</td>
+                      <td className="px-3 py-2.5 font-mono text-xs">{inv.invoiceNo || inv.invoiceNumber || "—"}</td>
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                        {inv.billingPeriod || `${inv.billingPeriodStart || "—"} to ${inv.billingPeriodEnd || "—"}`}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                        {NUM(totalKwh, 0)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                        {NUM(maxDemand, 2)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-mono font-medium">{ZAR(exclVat)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">
+                        {ZAR(inclVat)}
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400 border border-emerald-500/30">
+                          🟢 Reconciled
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-right">
+                        <button
+                          onClick={() => {
+                            useApp.getState().setInvoice(inv);
+                            toast.success(`Loaded ${inv.accountMonth || "invoice"} into active session`);
+                          }}
+                          className="text-xs bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded px-2 py-1 font-medium transition"
+                        >
+                          Load Session
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Panel>
     </div>
   );

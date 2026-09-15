@@ -44,7 +44,11 @@ function ReconciliationPage() {
   // Run reconciliation against active invoice or selected fixture
   const runReconciliation = (fixtureCode: string) => {
     let input;
-    if (fixtureCode === "ACTIVE_INVOICE" && activeInvoice) {
+    if (fixtureCode === "ACTIVE_INVOICE") {
+      if (!activeInvoice) {
+        setPayload(null);
+        return;
+      }
       input = {
         tenant_id: "TENANT_SOUTH_AFRICA",
         invoice_id: activeInvoice.invoiceNumber || activeInvoice.invoiceNo || "ACTIVE_INV",
@@ -79,7 +83,11 @@ function ReconciliationPage() {
         billed_total_invoice_zar: new Decimal(activeInvoice.totalInclVat || activeInvoice.invoiceTotal || 0),
       };
     } else {
-      const fixture = REGRESSION_FIXTURES.find((f) => f.fixture_code === fixtureCode) || MEGAFLEX_JULY_2025_FIXTURE;
+      const fixture = REGRESSION_FIXTURES.find((f) => f.fixture_code === fixtureCode);
+      if (!fixture) {
+        setPayload(null);
+        return;
+      }
       const inv = fixture.invoice_inputs;
       input = {
         tenant_id: "TENANT_SOUTH_AFRICA",
@@ -146,7 +154,34 @@ function ReconciliationPage() {
   }, [payload, searchTerm, filterTab]);
 
   if (!payload) {
-    return <div className="p-8 text-center text-sm text-muted-foreground">Loading Authoritative Reconciliation Engine...</div>;
+    return (
+      <div className="space-y-6">
+        <InvoiceSelector />
+        <div className="rounded-xl border border-border bg-card p-12 text-center shadow-xs">
+          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+            <Scale className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-foreground">Awaiting Invoices for Reconciliation</h3>
+          <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+            Upload your Eskom or Municipal bill and AMR interval file to execute the 14-determinant reconciliation engine, or load a regression sandbox scenario.
+          </p>
+          <div className="flex items-center justify-center gap-3 pt-4">
+            <a
+              href="/upload"
+              className="px-4 py-2 text-xs font-semibold text-primary-foreground bg-primary hover:opacity-90 rounded-lg shadow-xs"
+            >
+              Upload Documents
+            </a>
+            <button
+              onClick={() => handleFixtureChange(MEGAFLEX_JULY_2025_FIXTURE.fixture_code)}
+              className="px-4 py-2 text-xs font-semibold text-foreground border border-border hover:bg-muted rounded-lg"
+            >
+              Load July 2025 Benchmark Sandbox
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

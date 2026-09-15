@@ -103,6 +103,15 @@ function QualityPage() {
 
         <div className="flex items-center gap-2">
           <button
+            onClick={() => {
+              const sample = DataGovernanceEngine.generateSampleGovernanceIssues();
+              setIssues(sample);
+            }}
+            className="px-3 py-1.5 text-xs font-medium border border-border hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+          >
+            Load Sandbox Issues
+          </button>
+          <button
             onClick={() => setHasExplicitOverride(!hasExplicitOverride)}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors ${
               hasExplicitOverride
@@ -280,8 +289,15 @@ function QualityPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredIssues.map((issue) => (
-                <tr key={issue.issue_id} className="hover:bg-muted/20">
+              {filteredIssues.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-xs text-muted-foreground">
+                    No data governance issues found. All telemetry streams and invoice determinants satisfy statutory precision tolerances.
+                  </td>
+                </tr>
+              ) : (
+                filteredIssues.map((issue) => (
+                  <tr key={issue.issue_id} className="hover:bg-muted/20">
                   <td className="p-2.5 font-mono font-medium">{issue.issue_id}</td>
                   <td className="p-2.5 font-mono text-muted-foreground">{issue.source}</td>
                   <td className="p-2.5 font-mono font-medium">
@@ -326,8 +342,9 @@ function QualityPage() {
                       <Info className="h-3.5 w-3.5" />
                     </button>
                   </td>
-                </tr>
-              ))}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

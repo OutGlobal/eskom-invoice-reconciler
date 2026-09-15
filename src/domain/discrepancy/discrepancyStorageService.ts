@@ -21,8 +21,7 @@ export class DiscrepancyStorageService {
         .order("created_at", { ascending: false });
 
       if (error || !dbRecords || dbRecords.length === 0) {
-        console.warn("[DiscrepancyStorageService] Supabase discrepancy records empty or unavailable, using sample fixtures.");
-        return DeterministicDiagnosticsEngine.generateAllCodesSample();
+        return [];
       }
 
       return dbRecords.map((row: any) => ({
@@ -46,7 +45,7 @@ export class DiscrepancyStorageService {
       }));
     } catch (e) {
       console.warn("[DiscrepancyStorageService] Exception loading discrepancies:", e);
-      return DeterministicDiagnosticsEngine.generateAllCodesSample();
+      return [];
     }
   }
 

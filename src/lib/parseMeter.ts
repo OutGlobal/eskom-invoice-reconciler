@@ -120,7 +120,7 @@ export async function parseMeterWorkbook(buffer: ArrayBuffer): Promise<Measureme
   rows.sort((a, b) => a.ts.getTime() - b.ts.getTime());
 
   if (rows.length === 0) {
-    return imputeAndFlag(generateFallbackIntervalReadings());
+    return [];
   }
 
   return imputeAndFlag(rows);

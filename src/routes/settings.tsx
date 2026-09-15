@@ -33,11 +33,11 @@ function SettingsPage() {
   const setInvoiceTotal = useApp((s) => s.setInvoiceTotal);
 
   const [dbStatus, setDbStatus] = useState<"connected" | "checking" | "offline">("checking");
-  const [invoiceCount, setInvoiceCount] = useState<number>(4);
-  const [recoveryCount, setRecoveryCount] = useState<number>(4);
-  const [rawDocsCount, setRawDocsCount] = useState<number>(4);
+  const [invoiceCount, setInvoiceCount] = useState<number>(0);
+  const [recoveryCount, setRecoveryCount] = useState<number>(0);
+  const [rawDocsCount, setRawDocsCount] = useState<number>(0);
 
-  const [companyName, setCompanyName] = useState<string>("Impala Platinum Limited");
+  const [companyName, setCompanyName] = useState<string>("Enterprise Client");
   const [currency, setCurrency] = useState<string>("ZAR (R)");
   const [vatRate, setVatRate] = useState<number>(15.0);
   const [autoSync, setAutoSync] = useState<boolean>(true);
@@ -55,9 +55,9 @@ function SettingsPage() {
         .from("raw_documents")
         .select("*", { count: "exact", head: true });
 
-      setInvoiceCount(invs.length || 4);
-      setRecoveryCount(recs.length || 4);
-      setRawDocsCount(count || 4);
+      setInvoiceCount(invs.length);
+      setRecoveryCount(recs.length);
+      setRawDocsCount(count || 0);
       setDbStatus("connected");
       toast.success("Primary data repository connection verified!");
     } catch (err) {

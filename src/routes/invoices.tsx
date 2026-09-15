@@ -77,7 +77,7 @@ TOTAL INVOICE AMOUNT: R 920000.00
 function InvoicesPage() {
   const [activeDoc, setActiveDoc] = useState<ExtractedInvoiceDocument | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [viewMode, setViewMode] = useState<"table" | "workspace" | "upload">("workspace");
+  const [viewMode, setViewMode] = useState<"workspace" | "upload" | "table">("table");
 
   // Invoices List State
   const [invoices, setInvoices] = useState<InvoiceHeaderMeta[]>([]);
@@ -96,9 +96,8 @@ function InvoicesPage() {
 
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-  // Load initial sample & query database on mount
+  // Query database on mount
   useEffect(() => {
-    loadSampleInvoice();
     fetchInvoicesList();
   }, []);
 
@@ -129,29 +128,7 @@ function InvoicesPage() {
     setIsLoadingInvoices(true);
     try {
       const results = await InvoiceStorageService.queryInvoices(filter);
-      // Combine with active document if available and not already in results
-      if (results.length === 0 && activeDoc) {
-        const docHeader: InvoiceHeaderMeta = {
-          invoice_id: activeDoc.id || "inv-sample-megaflex",
-          account_number: String(activeDoc.account_number.value),
-          client_name: String(activeDoc.customer_name.value),
-          premise_id: String(activeDoc.premise_id.value),
-          meter_number: String(activeDoc.meter_number.value),
-          billing_period_start: String(activeDoc.billing_period_start.value),
-          billing_period_end: String(activeDoc.billing_period_end.value),
-          invoice_date: String(activeDoc.invoice_date.value),
-          tariff_name: String(activeDoc.tariff_name.value),
-          tariff_code: String(activeDoc.tariff_code.value),
-          sha256_hash: activeDoc.metadata.sha256_hash,
-          extraction_status: "success",
-          validation_status: activeDoc.validation_summary.status === "valid" ? "passed" : "warnings",
-          reconciliation_status: "unprocessed",
-          lifecycle_state: activeDoc.lifecycle_state || "EXTRACTED",
-        };
-        setInvoices([docHeader]);
-      } else {
-        setInvoices(results);
-      }
+      setInvoices(results);
     } catch (err: any) {
       toast.error("Failed to query invoice records");
     } finally {
@@ -173,7 +150,7 @@ function InvoicesPage() {
 
       const extracted = await LayeredExtractor.extractDocument({
         filename: file.name,
-        pageTexts: [contentStr.length > 50 ? contentStr : SAMPLE_MEGAFLEX_TEXT],
+        pageTexts: [contentStr],
         sha256Hash: hash,
         isScanned: file.type.includes("pdf") && contentStr.length < 50,
       });
@@ -459,8 +436,42 @@ function InvoicesPage() {
         <div className="bg-white dark:bg-gray-900 rounded-xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm">
           <SecureUploadGateway />
         </div>
-      ) : viewMode === "workspace" && activeDoc ? (
-        <InvoiceReviewWorkspace document={activeDoc} onApprove={handleApprove} />
+      ) : viewMode === "workspace" ? (
+        activeDoc ? (
+          <InvoiceReviewWorkspace document={activeDoc} onApprove={handleApprove} />
+        ) : (
+          <div className="bg-white dark:bg-gray-900 rounded-xl p-10 border border-gray-200 dark:border-gray-800 text-center space-y-4">
+            <div className="w-12 h-12 bg-blue-50 dark:bg-blue-950/50 rounded-full flex items-center justify-center mx-auto text-blue-600">
+              <FileText className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">No Invoice Active in Workspace</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-md mx-auto">
+                Select an ingested invoice from the register to audit determinants, upload a utility bill, or explore the Megaflex sandbox sample.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => setViewMode("upload")}
+                className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs"
+              >
+                Upload Bill
+              </button>
+              <button
+                onClick={() => setViewMode("table")}
+                className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 rounded-lg"
+              >
+                View Register
+              </button>
+              <button
+                onClick={loadSampleInvoice}
+                className="px-4 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-lg"
+              >
+                Load Sandbox Sample
+              </button>
+            </div>
+          </div>
+        )
       ) : (
         /* Invoice Register Table */
         <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
@@ -506,12 +517,12 @@ function InvoicesPage() {
                       <td className="py-3 px-4 font-bold text-gray-900 dark:text-gray-100">{inv.invoice_id}</td>
                       <td className="py-3 px-4 font-mono text-gray-700 dark:text-gray-300">{inv.account_number}</td>
                       <td className="py-3 px-4 text-gray-800 dark:text-gray-200">
-                        {inv.client_name || "ACME SA"} ({inv.premise_id || "PRM-4499"})
+                        {inv.client_name || "—"} {inv.premise_id ? `(${inv.premise_id})` : ""}
                       </td>
                       <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
-                        {inv.billing_period_start} to {inv.billing_period_end}
+                        {inv.billing_period_start || "—"} to {inv.billing_period_end || "—"}
                       </td>
-                      <td className="py-3 px-4 text-gray-700 dark:text-gray-300">{inv.tariff_name || "Megaflex"}</td>
+                      <td className="py-3 px-4 text-gray-700 dark:text-gray-300">{inv.tariff_name || "—"}</td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-0.5 rounded text-2xs font-bold uppercase tracking-wider ${InvoiceLifecycleService.getStateBadgeStyle(inv.lifecycle_state)}`}>
                           {InvoiceLifecycleService.getStateLabel(inv.lifecycle_state)}
