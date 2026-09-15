@@ -186,7 +186,7 @@ export function EneraCopilotSection() {
   return (
     <section
       id="insights"
-      className="py-20 sm:py-24 bg-slate-50 text-slate-900 border-t border-slate-200/80 overflow-hidden scroll-mt-12"
+      className="py-24 sm:py-32 bg-slate-50/60 text-slate-900 border-t border-slate-200/80 overflow-hidden scroll-mt-12"
       aria-label="Financial Intelligence"
     >
       {/* Backwards-compatible anchors */}
@@ -205,7 +205,7 @@ export function EneraCopilotSection() {
         </h2>
 
         {/* 3. Short explanation */}
-        <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-12">
+        <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-14">
           Energy data is not only an operational concern. It directly governs cost, budget, billing, forecasting, risk, performance, and strategic decision-making across the enterprise balance sheet.
         </p>
 
