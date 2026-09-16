@@ -12,6 +12,8 @@ import { PdfInvoiceAdapter } from "./adapters/pdfInvoiceAdapter";
 import { AmrCsvAdapter } from "./adapters/amrCsvAdapter";
 import { AmrXlsxAdapter } from "./adapters/amrXlsxAdapter";
 import { TelemetryXmlAdapter } from "./adapters/telemetryXmlAdapter";
+import type { UserSecurityContext } from "../security/types";
+import { TenantIsolationViolationError } from "../security/tenantContextService";
 import type { ILayoutAdapter } from "./adapters/baseAdapter";
 import type {
   FileMetadataHeader,
@@ -44,7 +46,7 @@ export class SecureIngestionGateway {
   }
 
   /**
-   * Main entrypoint for processing any uploaded document or telemetry stream
+   * Main entrypoint for processing any uploaded document or telemetry stream with tenant isolation
    */
   public static async processUpload(
     file: File | Uint8Array,
@@ -52,7 +54,17 @@ export class SecureIngestionGateway {
     organisationId = "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
     uploaderId = "user-system-admin",
     onProgress?: (state: IngestionLifecycleState, pct: number, msg: string) => void,
+    context?: UserSecurityContext,
   ): Promise<IngestionGatewayResult> {
+    // Enforce caller security context if provided
+    if (context && context.role !== "SUPER_ADMIN") {
+      if (organisationId && organisationId !== context.organisationId) {
+        throw new TenantIsolationViolationError(context.organisationId, organisationId);
+      }
+      organisationId = context.organisationId;
+      uploaderId = context.userId || uploaderId;
+    }
+
     const startTime = Date.now();
     const logs: IngestionBatchJob["logs"] = [];
     const errors: IngestionErrorRecord[] = [];

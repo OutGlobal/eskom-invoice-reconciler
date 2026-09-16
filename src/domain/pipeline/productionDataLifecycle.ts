@@ -438,9 +438,16 @@ export class ProductionDataLifecycleEngine {
       total_zar: totalZar.toNumber(),
     };
 
+    const tariffCode = typeof tariffVersion === "string" 
+      ? tariffVersion 
+      : (tariffVersion?.header?.tariff_code || tariffVersion?.tariff_code || "MEGAFLEX");
+    const tariffVer = typeof tariffVersion === "string"
+      ? "2025.1"
+      : (tariffVersion?.header?.version || tariffVersion?.version || "2025.1");
+
     const inputParams = {
-      tariff_code: tariffVersion.header.tariff_code,
-      tariff_version: tariffVersion.header.version,
+      tariff_code: tariffCode,
+      tariff_version: tariffVer,
       peak_kwh: peakKwh.toNumber(),
       standard_kwh: standardKwh.toNumber(),
       off_peak_kwh: offPeakKwh.toNumber(),
@@ -452,7 +459,7 @@ export class ProductionDataLifecycleEngine {
     const snapshot: CalculationSnapshotRecord = {
       id: snapshotId,
       reconciliation_run_id: runId,
-      snapshot_name: `Tariff Re-Calculation: ${tariffVersion.header.tariff_code}`,
+      snapshot_name: `Tariff Re-Calculation: ${tariffCode}`,
       input_params: inputParams,
       calculated_outputs: calculatedOutputs,
       created_at: new Date().toISOString(),

@@ -99,15 +99,46 @@ export default {
       );
     }
 
-    // Trusted Server-Side Authoritative Reconciliation Pipeline
+    // Trusted Server-Side Authoritative Reconciliation Pipeline with Strict Tenant Isolation
     if (url.pathname === "/api/pipeline/reconcile" && request.method === "POST") {
       try {
         const body = await request.json();
         const { ProductionDataLifecycleEngine } = await import("./domain/pipeline/productionDataLifecycle");
+        const { createSecurityContext, validateTenantAccess } = await import("./domain/security/tenantContextService");
         const Decimal = (await import("decimal.js-light")).default;
 
+        // Extract tenant security context from headers
+        const headerTenantId = request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
+        const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
+        const headerUserId = request.headers.get("X-User-ID") || "user-session";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+
+        const requestedTenantId = body.tenant_id || body.organisation_id || headerTenantId || "DEFAULT_TENANT";
+
+        // If caller provided a specific tenant header, validate access against target tenant
+        if (headerTenantId) {
+          const securityContext = createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole);
+          const access = validateTenantAccess(securityContext, requestedTenantId);
+          if (!access.allowed) {
+            return new Response(
+              JSON.stringify({
+                error: "UNAUTHORIZED_TENANT_ACCESS",
+                message: access.reason || "Cross-tenant reconciliation access denied",
+                status: 403,
+              }),
+              {
+                status: 403,
+                headers: {
+                  "content-type": "application/json",
+                  "X-Content-Type-Options": "nosniff",
+                },
+              },
+            );
+          }
+        }
+
         const input = {
-          tenant_id: body.tenant_id || "DEFAULT_TENANT",
+          tenant_id: requestedTenantId,
           invoice_id: body.invoice_id || `INV-${Date.now()}`,
           invoice_number: body.invoice_number || body.invoice_id || "INV-UNKNOWN",
           account_number: body.account_number || "ACC-UNKNOWN",
@@ -138,7 +169,7 @@ export default {
 
         const result = await ProductionDataLifecycleEngine.executeAuthoritativePipeline(
           input as any,
-          body.correlation_id || `CORR-${Date.now()}`
+          body.correlation_id || `CORR-${Date.now()}`,
         );
 
         return new Response(JSON.stringify(result), {
@@ -152,7 +183,7 @@ export default {
         console.error("Server reconciliation error:", err);
         return new Response(
           JSON.stringify({ error: "Reconciliation execution failed", details: err?.message }),
-          { status: 500, headers: { "content-type": "application/json" } }
+          { status: 500, headers: { "content-type": "application/json" } },
         );
       }
     }

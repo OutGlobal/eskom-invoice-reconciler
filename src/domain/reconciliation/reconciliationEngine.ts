@@ -25,6 +25,7 @@ import { ToleranceEngine } from "./toleranceEngine";
 import { RootCauseInferenceEngine } from "./rootCauseInferenceEngine";
 import type { ExtractedInvoiceDocument } from "../invoice/types";
 import { REGRESSION_FIXTURES } from "./regressionFixtures";
+import { ESKOM_MEGAFLEX_2025_2026 } from "../tariff/tariffFixtures";
 
 export const DEFAULT_TOLERANCE_CONFIG: ToleranceConfig = {
   percentage_tolerance: new Decimal("0.50"), // 0.5%
@@ -42,7 +43,7 @@ export interface AuthoritativeReconciliationInput {
   telemetry_batch_id?: string;
   billing_start: string;
   billing_end: string;
-  tariff_version: TariffVersionDefinition;
+  tariff_version?: TariffVersionDefinition | string | any;
   calendar_version_id?: string;
 
   // Billed Values from Extracted Invoice
@@ -89,7 +90,12 @@ export class DeterministicReconciliationEngine {
     const tenantId = input.tenant_id || "DEFAULT_TENANT";
     const telemetryBatchId = input.telemetry_batch_id || "BATCH_DEFAULT";
     const calendarVersionId = input.calendar_version_id || "2025.1";
-    const tariffVerId = `${input.tariff_version.header.tariff_code}_${input.tariff_version.header.version}`;
+
+    const tariffDef: TariffVersionDefinition =
+      input.tariff_version && typeof input.tariff_version === "object" && input.tariff_version.header
+        ? input.tariff_version
+        : ESKOM_MEGAFLEX_2025_2026;
+    const tariffVerId = `${tariffDef.header.tariff_code}_${tariffDef.header.version}`;
 
     // 1. Resolve calculated telemetry values (fallback to regression fixture baseline or billed)
     const matchingFixture = REGRESSION_FIXTURES.find(
@@ -117,11 +123,12 @@ export class DeterministicReconciliationEngine {
       (baseline && !input.billed_total_kwh.equals(baseline.total_kwh)
         ? baseline.total_kwh
         : input.billed_total_kwh);
-    const maxDemandKva =
+    const maxKva =
       input.calc_maximum_demand_kva ??
       (baseline && !input.billed_maximum_demand_kva.equals(baseline.maximum_demand_kva)
         ? baseline.maximum_demand_kva
         : input.billed_maximum_demand_kva);
+    const maxDemandKva = maxKva;
     const ratchetDemandKva =
       input.calc_ratcheted_demand_kva ??
       (baseline && !input.billed_ratcheted_demand_kva.equals(baseline.ratcheted_demand_kva)
@@ -134,7 +141,7 @@ export class DeterministicReconciliationEngine {
         : input.billed_reactive_energy_kvarh);
     const powerFactor = input.calc_power_factor ?? new Decimal("0.96");
 
-    // 2. Run Deterministic Tariff Calculation Engine
+    // 2. Execute deterministic tariff engine over telemetry determinants
     const billingDemandKva = ratchetDemandKva.gt(maxDemandKva) ? ratchetDemandKva : maxDemandKva;
     const tariffCalcInput = {
       billing_start: input.billing_start,
@@ -150,7 +157,7 @@ export class DeterministicReconciliationEngine {
       power_factor: powerFactor,
     };
 
-    const calcResult = DeterministicTariffEngine.calculate(tariffCalcInput, input.tariff_version);
+    const calcResult = DeterministicTariffEngine.calculate(tariffCalcInput, tariffDef);
 
     // Sum charge categories from calculated tariff items
     let calcEnergyZar = new Decimal(0);

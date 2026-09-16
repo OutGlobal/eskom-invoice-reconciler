@@ -5,6 +5,8 @@
 
 import { supabase } from "@/lib/supabase";
 import Decimal from "decimal.js-light";
+import type { UserSecurityContext } from "../security/types";
+import { TenantIsolationViolationError } from "../security/tenantContextService";
 import type {
   AggregatedDashboardData,
   CriticalAlertItem,
@@ -17,7 +19,7 @@ import type {
 
 export class DashboardService {
   /**
-   * Fetch fully aggregated Dashboard Command Centre data
+   * Fetch fully aggregated Dashboard Command Centre data with server-side tenant isolation
    */
   public static async getAggregatedDashboardData(
     filters: DashboardFilterState = {},
@@ -32,8 +34,17 @@ export class DashboardService {
       batchInvoices?: any[];
       validationIssues?: any[];
     },
+    context?: UserSecurityContext,
   ): Promise<AggregatedDashboardData> {
     const timestamp = new Date().toISOString();
+
+    // 0. Enforce server-side security context if provided
+    if (context && context.role !== "SUPER_ADMIN") {
+      if (filters.organisationId && filters.organisationId !== context.organisationId) {
+        throw new TenantIsolationViolationError(context.organisationId, filters.organisationId);
+      }
+      filters.organisationId = context.organisationId;
+    }
 
     // 1. If explicit invalid organization filter is provided, enforce strict tenant isolation check
     if (filters.organisationId === "00000000-0000-0000-0000-000000000000") {

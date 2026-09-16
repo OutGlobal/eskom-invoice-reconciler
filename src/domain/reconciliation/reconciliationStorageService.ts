@@ -6,6 +6,8 @@
 
 import Decimal from "decimal.js-light";
 import { supabase } from "@/integrations/supabase/client";
+import type { UserSecurityContext } from "../security/types";
+import { TenantIsolationViolationError } from "../security/tenantContextService";
 import type { AuthoritativeReconciliationPayload, DeterminantComparisonItem, ToleranceConfig } from "./types";
 import { DEFAULT_TOLERANCE_CONFIG } from "./reconciliationEngine";
 
@@ -13,16 +15,28 @@ export class ReconciliationStorageService {
   private static inMemoryRuns: Map<string, any> = new Map();
 
   /**
-   * Save an authoritative or enterprise reconciliation run to Supabase with in-memory fallback
+   * Save an authoritative or enterprise reconciliation run to Supabase with in-memory fallback & tenant isolation
    */
   public static async saveRun(
-    payload: AuthoritativeReconciliationPayload | any
+    payload: AuthoritativeReconciliationPayload | any,
+    context?: UserSecurityContext,
   ): Promise<{ success: boolean; message: string }> {
     try {
+      // Enforce caller security context if provided
+      if (context && context.role !== "SUPER_ADMIN") {
+        const payloadOrg = payload.organisation_id || payload.tenant_id;
+        if (payloadOrg && payloadOrg !== "DEFAULT_TENANT" && payloadOrg !== "TENANT_DEFAULT" && payloadOrg !== context.organisationId) {
+          throw new TenantIsolationViolationError(context.organisationId, payloadOrg);
+        }
+        payload.organisation_id = context.organisationId;
+        payload.tenant_id = context.organisationId;
+      }
+
       const runId = payload.run_id || `RUN-${Date.now()}`;
       ReconciliationStorageService.inMemoryRuns.set(runId, payload);
 
-      const tenantId = payload.tenant_id || "TENANT_DEFAULT";
+      const tenantId = payload.tenant_id || context?.organisationId || "TENANT_DEFAULT";
+      const orgId = payload.organisation_id || (tenantId.includes("-") ? tenantId : null) || context?.organisationId || null;
       const invoiceId = payload.invoice_id || payload.invoice_record_id || "INV_DEFAULT";
       const status = payload.status;
       const billedTotal = payload.billed_total_zar instanceof Decimal
@@ -41,6 +55,7 @@ export class ReconciliationStorageService {
       const runRecord = {
         run_id: runId,
         tenant_id: tenantId,
+        organisation_id: orgId,
         invoice_id: invoiceId,
         telemetry_batch_id: payload.telemetry_batch_id || "BATCH_DEFAULT",
         tariff_version_id: payload.tariff_version_id || "TARIFF_DEFAULT",
@@ -90,28 +105,46 @@ export class ReconciliationStorageService {
 
       return { success: true, message: "Reconciliation run saved successfully." };
     } catch (e: any) {
+      if (e instanceof TenantIsolationViolationError) {
+        throw e;
+      }
       console.error("[ReconciliationStorageService] Exception saving reconciliation run:", e);
       return { success: true, message: "Reconciliation run saved successfully." };
     }
   }
 
   /**
-   * Fetch all historical reconciliation runs
+   * Fetch all historical reconciliation runs with tenant isolation
    */
-  public static async getAllRuns(): Promise<AuthoritativeReconciliationPayload[]> {
+  public static async getAllRuns(context?: UserSecurityContext): Promise<AuthoritativeReconciliationPayload[]> {
     try {
-      const { data: dbRuns, error } = await supabase
+      let query = supabase
         .from("reconciliation_runs")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error || !dbRuns || dbRuns.length === 0) {
-        return Array.from(this.inMemoryRuns.values());
+      if (context && context.role !== "SUPER_ADMIN") {
+        query = query.or(`organisation_id.eq.${context.organisationId},tenant_id.eq.${context.organisationId}`);
       }
 
-      return dbRuns.map((row: any) => ({
+      const { data: dbRuns, error } = await query;
+
+      if (error || !dbRuns || dbRuns.length === 0) {
+        let inMemory = Array.from(this.inMemoryRuns.values());
+        if (context && context.role !== "SUPER_ADMIN") {
+          inMemory = inMemory.filter(
+            (r: any) =>
+              r.organisation_id === context.organisationId ||
+              r.tenant_id === context.organisationId,
+          );
+        }
+        return inMemory;
+      }
+
+      let runs = dbRuns.map((row: any) => ({
         run_id: row.run_id,
         tenant_id: row.tenant_id,
+        organisation_id: row.organisation_id,
         invoice_id: row.invoice_id,
         telemetry_batch_id: row.telemetry_batch_id || "BATCH_01",
         tariff_version_id: row.tariff_version_id,
@@ -129,9 +162,27 @@ export class ReconciliationStorageService {
         variance_percentage: new Decimal(row.variance_percentage || 0),
         determinant_comparisons: [],
       }));
+
+      if (context && context.role !== "SUPER_ADMIN") {
+        runs = runs.filter(
+          (r: any) =>
+            r.organisation_id === context.organisationId ||
+            r.tenant_id === context.organisationId,
+        );
+      }
+
+      return runs;
     } catch (e) {
       console.warn("[ReconciliationStorageService] Exception fetching reconciliation runs:", e);
-      return Array.from(this.inMemoryRuns.values());
+      let inMemory = Array.from(this.inMemoryRuns.values());
+      if (context && context.role !== "SUPER_ADMIN") {
+        inMemory = inMemory.filter(
+          (r: any) =>
+            r.organisation_id === context.organisationId ||
+            r.tenant_id === context.organisationId,
+        );
+      }
+      return inMemory;
     }
   }
 }

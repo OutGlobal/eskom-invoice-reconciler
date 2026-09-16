@@ -1,28 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { InvoiceSelector } from "@/components/InvoiceSelector";
-import { SecureUploadGateway } from "@/components/upload/SecureUploadGateway";
+import { createFileRoute } from '@tanstack/react-router'
 
-export const Route = createFileRoute("/upload")({
-  head: () => ({
-    meta: [
-      {
-        title: "Enterprise Ingestion Gateway — Eskom Bill Balancer",
-      },
-    ],
-  }),
-  component: UploadPage,
-});
+export const Route = createFileRoute('/upload')({
+  component: RouteComponent,
+})
 
-function UploadPage() {
-  return (
-    <div className="space-y-6">
-      {/* Invoice Period Selector Banner */}
-      <div className="rounded-lg border border-primary/20 bg-card p-3 shadow-sm">
-        <InvoiceSelector />
-      </div>
-
-      {/* Enterprise Secure Document & Telemetry Ingestion Gateway */}
-      <SecureUploadGateway />
-    </div>
-  );
+function RouteComponent() {
+  return <div>Hello "/upload"!</div>
 }

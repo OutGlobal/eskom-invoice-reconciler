@@ -5,6 +5,8 @@
  */
 
 import { supabase } from "../../lib/supabase";
+import type { UserSecurityContext } from "../security/types";
+import { TenantIsolationViolationError } from "../security/tenantContextService";
 import type {
   ExtractedInvoiceDocument,
   InvoiceLifecycleState,
@@ -13,6 +15,7 @@ import type {
 import { InvoiceLifecycleService } from "./invoiceLifecycleService";
 
 export interface InvoiceSearchFilter {
+  organisationId?: string;
   clientId?: string;
   accountNumber?: string;
   podId?: string;
@@ -47,14 +50,31 @@ export class InvoiceStorageService {
   }
 
   /**
-   * Persist extracted invoice document to Supabase database tables
+   * Persist extracted invoice document to Supabase database tables with strict tenant stamping
    */
-  public static async saveExtractedInvoice(doc: ExtractedInvoiceDocument): Promise<{
+  public static async saveExtractedInvoice(
+    doc: ExtractedInvoiceDocument,
+    organisationId?: string,
+    context?: UserSecurityContext,
+  ): Promise<{
     success: boolean;
     invoiceId?: string;
     error?: string;
   }> {
     try {
+      // Enforce caller security context if provided
+      let effectiveOrgId = organisationId || (doc as any).organisation_id || null;
+      if (context) {
+        if (context.role !== "SUPER_ADMIN") {
+          if (organisationId && organisationId !== context.organisationId) {
+            throw new TenantIsolationViolationError(context.organisationId, organisationId);
+          }
+          effectiveOrgId = context.organisationId;
+        } else if (!effectiveOrgId) {
+          effectiveOrgId = context.organisationId;
+        }
+      }
+
       const invoiceNumber = doc.invoice_number.value || `INV-DRAFT-${Date.now()}`;
       const accountNumber = doc.account_number.value || "ACC-UNKNOWN";
       const billingStart =
@@ -66,6 +86,7 @@ export class InvoiceStorageService {
       const recordPayload = {
         invoice_number: invoiceNumber,
         account_number: accountNumber,
+        organisation_id: effectiveOrgId,
         customer_name: doc.customer_name.value || "Unknown Client",
         premise_id: doc.premise_id.value || null,
         meter_number: doc.meter_number.value || null,
@@ -115,6 +136,7 @@ export class InvoiceStorageService {
       if (doc.line_items.length > 0 && record?.id) {
         const lineItemPayloads = doc.line_items.map((item) => ({
           invoice_record_id: record.id,
+          organisation_id: effectiveOrgId,
           line_item_number: item.line_item_number,
           charge_code: item.charge_code || null,
           charge_label: item.charge_label,
@@ -132,6 +154,9 @@ export class InvoiceStorageService {
         invoiceId,
       };
     } catch (err: any) {
+      if (err instanceof TenantIsolationViolationError) {
+        throw err;
+      }
       return {
         success: false,
         error: err.message || "Failed to save extracted invoice",
@@ -167,14 +192,26 @@ export class InvoiceStorageService {
   }
 
   /**
-   * Query invoice records with multi-criteria filtering
+   * Query invoice records with multi-criteria filtering and server-side tenant isolation
    */
   public static async queryInvoices(
     filter: InvoiceSearchFilter,
+    context?: UserSecurityContext,
   ): Promise<InvoiceHeaderMeta[]> {
     try {
+      // Enforce caller security context if provided
+      if (context && context.role !== "SUPER_ADMIN") {
+        if (filter.organisationId && filter.organisationId !== context.organisationId) {
+          throw new TenantIsolationViolationError(context.organisationId, filter.organisationId);
+        }
+        filter.organisationId = context.organisationId;
+      }
+
       let query = supabase.from("invoice_records").select("*");
 
+      if (filter.organisationId) {
+        query = query.eq("organisation_id", filter.organisationId);
+      }
       if (filter.accountNumber) {
         query = query.ilike("account_number", `%${filter.accountNumber}%`);
       }
@@ -203,7 +240,7 @@ export class InvoiceStorageService {
 
       if (!data) return [];
 
-      return data.map((item: any) => ({
+      let results: InvoiceHeaderMeta[] = data.map((item: any) => ({
         invoice_id: item.id,
         account_number: item.account_number,
         organisation_id: item.organisation_id,
@@ -226,7 +263,19 @@ export class InvoiceStorageService {
         reconciliation_status: item.reconciliation_status || "unprocessed",
         lifecycle_state: (item.lifecycle_state as InvoiceLifecycleState) || "EXTRACTED",
       }));
+
+      // In-memory defense-in-depth filter against leaks
+      if (context && context.role !== "SUPER_ADMIN") {
+        results = results.filter(
+          (r) => !r.organisation_id || r.organisation_id === context.organisationId,
+        );
+      }
+
+      return results;
     } catch (err: any) {
+      if (err instanceof TenantIsolationViolationError) {
+        throw err;
+      }
       console.warn("Query invoices error:", err.message);
       return [];
     }
