@@ -9,115 +9,30 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AnomaliesRouteImport } from './routes/anomalies'
-import { Route as AuditRouteImport } from './routes/audit'
-import { Route as CalendarRouteImport } from './routes/calendar'
-import { Route as CustomersRouteImport } from './routes/customers'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as DemandRouteImport } from './routes/demand'
-import { Route as EnergyRouteImport } from './routes/energy'
-import { Route as InvoicesRouteImport } from './routes/invoices'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as MetersRouteImport } from './routes/meters'
-import { Route as MunicipalRouteImport } from './routes/municipal'
-import { Route as QualityRouteImport } from './routes/quality'
-import { Route as ReconciliationRouteImport } from './routes/reconciliation'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as TariffRouteImport } from './routes/tariff'
-import { Route as TelemetryRouteImport } from './routes/telemetry'
-import { Route as TrendsRouteImport } from './routes/trends'
 import { Route as UploadRouteImport } from './routes/upload'
+import { Route as TrendsRouteImport } from './routes/trends'
+import { Route as TelemetryRouteImport } from './routes/telemetry'
+import { Route as TariffRouteImport } from './routes/tariff'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as ReconciliationRouteImport } from './routes/reconciliation'
+import { Route as QualityRouteImport } from './routes/quality'
+import { Route as MunicipalRouteImport } from './routes/municipal'
+import { Route as MetersRouteImport } from './routes/meters'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as InvoicesRouteImport } from './routes/invoices'
+import { Route as EnergyRouteImport } from './routes/energy'
+import { Route as DemandRouteImport } from './routes/demand'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CustomersRouteImport } from './routes/customers'
+import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as AuditRouteImport } from './routes/audit'
+import { Route as AnomaliesRouteImport } from './routes/anomalies'
+import { Route as IndexRouteImport } from './routes/index'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AnomaliesRoute = AnomaliesRouteImport.update({
-  id: '/anomalies',
-  path: '/anomalies',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuditRoute = AuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CalendarRoute = CalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CustomersRoute = CustomersRouteImport.update({
-  id: '/customers',
-  path: '/customers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DemandRoute = DemandRouteImport.update({
-  id: '/demand',
-  path: '/demand',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EnergyRoute = EnergyRouteImport.update({
-  id: '/energy',
-  path: '/energy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InvoicesRoute = InvoicesRouteImport.update({
-  id: '/invoices',
-  path: '/invoices',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MetersRoute = MetersRouteImport.update({
-  id: '/meters',
-  path: '/meters',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MunicipalRoute = MunicipalRouteImport.update({
-  id: '/municipal',
-  path: '/municipal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const QualityRoute = QualityRouteImport.update({
-  id: '/quality',
-  path: '/quality',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReconciliationRoute = ReconciliationRouteImport.update({
-  id: '/reconciliation',
-  path: '/reconciliation',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TariffRoute = TariffRouteImport.update({
-  id: '/tariff',
-  path: '/tariff',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TelemetryRoute = TelemetryRouteImport.update({
-  id: '/telemetry',
-  path: '/telemetry',
+const UploadRoute = UploadRouteImport.update({
+  id: '/upload',
+  path: '/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TrendsRoute = TrendsRouteImport.update({
@@ -125,9 +40,94 @@ const TrendsRoute = TrendsRouteImport.update({
   path: '/trends',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UploadRoute = UploadRouteImport.update({
-  id: '/upload',
-  path: '/upload',
+const TelemetryRoute = TelemetryRouteImport.update({
+  id: '/telemetry',
+  path: '/telemetry',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TariffRoute = TariffRouteImport.update({
+  id: '/tariff',
+  path: '/tariff',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReconciliationRoute = ReconciliationRouteImport.update({
+  id: '/reconciliation',
+  path: '/reconciliation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QualityRoute = QualityRouteImport.update({
+  id: '/quality',
+  path: '/quality',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MunicipalRoute = MunicipalRouteImport.update({
+  id: '/municipal',
+  path: '/municipal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MetersRoute = MetersRouteImport.update({
+  id: '/meters',
+  path: '/meters',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvoicesRoute = InvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnergyRoute = EnergyRouteImport.update({
+  id: '/energy',
+  path: '/energy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemandRoute = DemandRouteImport.update({
+  id: '/demand',
+  path: '/demand',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomersRoute = CustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalendarRoute = CalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditRoute = AuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnomaliesRoute = AnomaliesRouteImport.update({
+  id: '/anomalies',
+  path: '/anomalies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -292,130 +292,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/anomalies': {
-      id: '/anomalies'
-      path: '/anomalies'
-      fullPath: '/anomalies'
-      preLoaderRoute: typeof AnomaliesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/audit': {
-      id: '/audit'
-      path: '/audit'
-      fullPath: '/audit'
-      preLoaderRoute: typeof AuditRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/calendar': {
-      id: '/calendar'
-      path: '/calendar'
-      fullPath: '/calendar'
-      preLoaderRoute: typeof CalendarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/customers': {
-      id: '/customers'
-      path: '/customers'
-      fullPath: '/customers'
-      preLoaderRoute: typeof CustomersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/demand': {
-      id: '/demand'
-      path: '/demand'
-      fullPath: '/demand'
-      preLoaderRoute: typeof DemandRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/energy': {
-      id: '/energy'
-      path: '/energy'
-      fullPath: '/energy'
-      preLoaderRoute: typeof EnergyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/invoices': {
-      id: '/invoices'
-      path: '/invoices'
-      fullPath: '/invoices'
-      preLoaderRoute: typeof InvoicesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/meters': {
-      id: '/meters'
-      path: '/meters'
-      fullPath: '/meters'
-      preLoaderRoute: typeof MetersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/municipal': {
-      id: '/municipal'
-      path: '/municipal'
-      fullPath: '/municipal'
-      preLoaderRoute: typeof MunicipalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/quality': {
-      id: '/quality'
-      path: '/quality'
-      fullPath: '/quality'
-      preLoaderRoute: typeof QualityRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reconciliation': {
-      id: '/reconciliation'
-      path: '/reconciliation'
-      fullPath: '/reconciliation'
-      preLoaderRoute: typeof ReconciliationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tariff': {
-      id: '/tariff'
-      path: '/tariff'
-      fullPath: '/tariff'
-      preLoaderRoute: typeof TariffRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/telemetry': {
-      id: '/telemetry'
-      path: '/telemetry'
-      fullPath: '/telemetry'
-      preLoaderRoute: typeof TelemetryRouteImport
+    '/upload': {
+      id: '/upload'
+      path: '/upload'
+      fullPath: '/upload'
+      preLoaderRoute: typeof UploadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/trends': {
@@ -425,11 +306,130 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TrendsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/upload': {
-      id: '/upload'
-      path: '/upload'
-      fullPath: '/upload'
-      preLoaderRoute: typeof UploadRouteImport
+    '/telemetry': {
+      id: '/telemetry'
+      path: '/telemetry'
+      fullPath: '/telemetry'
+      preLoaderRoute: typeof TelemetryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tariff': {
+      id: '/tariff'
+      path: '/tariff'
+      fullPath: '/tariff'
+      preLoaderRoute: typeof TariffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reconciliation': {
+      id: '/reconciliation'
+      path: '/reconciliation'
+      fullPath: '/reconciliation'
+      preLoaderRoute: typeof ReconciliationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quality': {
+      id: '/quality'
+      path: '/quality'
+      fullPath: '/quality'
+      preLoaderRoute: typeof QualityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/municipal': {
+      id: '/municipal'
+      path: '/municipal'
+      fullPath: '/municipal'
+      preLoaderRoute: typeof MunicipalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meters': {
+      id: '/meters'
+      path: '/meters'
+      fullPath: '/meters'
+      preLoaderRoute: typeof MetersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invoices': {
+      id: '/invoices'
+      path: '/invoices'
+      fullPath: '/invoices'
+      preLoaderRoute: typeof InvoicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/energy': {
+      id: '/energy'
+      path: '/energy'
+      fullPath: '/energy'
+      preLoaderRoute: typeof EnergyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demand': {
+      id: '/demand'
+      path: '/demand'
+      fullPath: '/demand'
+      preLoaderRoute: typeof DemandRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customers': {
+      id: '/customers'
+      path: '/customers'
+      fullPath: '/customers'
+      preLoaderRoute: typeof CustomersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calendar': {
+      id: '/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof CalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit': {
+      id: '/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/anomalies': {
+      id: '/anomalies'
+      path: '/anomalies'
+      fullPath: '/anomalies'
+      preLoaderRoute: typeof AnomaliesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
   }

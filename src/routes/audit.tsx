@@ -1,9 +1,20 @@
-import { createFileRoute } from '@tanstack/react-router'
+/**
+ * Audit & Lineage Route (/audit)
+ * Eskom Management Platform
+ */
 
-export const Route = createFileRoute('/audit')({
-  component: RouteComponent,
-})
+import { createFileRoute } from "@tanstack/react-router";
+import { AuditViewer } from "@/components/audit/AuditViewer";
 
-function RouteComponent() {
-  return <div>Hello "/audit"!</div>
+export const Route = createFileRoute("/audit")({
+  head: () => ({ meta: [{ title: "Audit & Lineage — Meter Reconciliation" }] }),
+  component: AuditPage,
+});
+
+function AuditPage() {
+  return (
+    <div className="container mx-auto p-6 max-w-7xl">
+      <AuditViewer />
+    </div>
+  );
 }

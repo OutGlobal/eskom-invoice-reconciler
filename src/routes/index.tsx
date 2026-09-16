@@ -1,9 +1,235 @@
-import { createFileRoute } from '@tanstack/react-router'
+import React, { Suspense, lazy } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { EneraNav } from "@/components/landing/enera/EneraNav";
+import { EneraHeroSection } from "@/components/landing/enera/EneraHeroSection";
 
-export const Route = createFileRoute('/')({
-  component: RouteComponent,
-})
+// Lazy-load all below-the-fold sections for optimal critical path rendering & code splitting
+const EneraCapabilitiesSection = lazy(() =>
+  import("@/components/landing/enera/EneraCapabilitiesSection").then((m) => ({
+    default: m.EneraCapabilitiesSection,
+  })),
+);
+const EneraProductSignalsSection = lazy(() =>
+  import("@/components/landing/enera/EneraProductSignalsSection").then((m) => ({
+    default: m.EneraProductSignalsSection,
+  })),
+);
+const EneraProductInterfacePreviewSection = lazy(() =>
+  import("@/components/landing/enera/EneraProductInterfacePreviewSection").then((m) => ({
+    default: m.EneraProductInterfacePreviewSection,
+  })),
+);
+const EneraBillSignalSection = lazy(() =>
+  import("@/components/landing/enera/EneraBillSignalSection").then((m) => ({
+    default: m.EneraBillSignalSection,
+  })),
+);
+const EneraAudienceSection = lazy(() =>
+  import("@/components/landing/enera/EneraAudienceSection").then((m) => ({
+    default: m.EneraAudienceSection,
+  })),
+);
+const EneraAISection = lazy(() =>
+  import("@/components/landing/enera/EneraAISection").then((m) => ({
+    default: m.EneraAISection,
+  })),
+);
+const EneraCopilotSection = lazy(() =>
+  import("@/components/landing/enera/EneraCopilotSection").then((m) => ({
+    default: m.EneraCopilotSection,
+  })),
+);
+const EneraTrustSection = lazy(() =>
+  import("@/components/landing/enera/EneraTrustSection").then((m) => ({
+    default: m.EneraTrustSection,
+  })),
+);
+const EneraContactSection = lazy(() =>
+  import("@/components/landing/enera/EneraContactSection").then((m) => ({
+    default: m.EneraContactSection,
+  })),
+);
+const EneraFaqSection = lazy(() =>
+  import("@/components/landing/enera/EneraFaqSection").then((m) => ({
+    default: m.EneraFaqSection,
+  })),
+);
+const EneraFooter = lazy(() =>
+  import("@/components/landing/enera/EneraFooter").then((m) => ({
+    default: m.EneraFooter,
+  })),
+);
 
-function RouteComponent() {
-  return <div>Hello "/"!</div>
+function SectionFallback() {
+  return (
+    <div
+      className="w-full py-20 bg-[#0c121e] flex items-center justify-center min-h-[220px]"
+      aria-hidden="true"
+    >
+      <div className="w-5 h-5 rounded-full border-2 border-cyan-500/20 border-t-cyan-400 animate-spin" />
+    </div>
+  );
 }
+
+export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      {
+        title: "ENERA | Energy Financial Intelligence",
+      },
+      {
+        name: "description",
+        content:
+          "ENERA transforms complex energy and billing information into clear, actionable intelligence for better financial and operational decisions.",
+      },
+      {
+        property: "og:site_name",
+        content: "ENERA",
+      },
+      {
+        property: "og:title",
+        content: "ENERA | Energy Financial Intelligence",
+      },
+      {
+        property: "og:description",
+        content:
+          "ENERA transforms complex energy and billing information into clear, actionable intelligence for better financial and operational decisions.",
+      },
+      {
+        property: "og:type",
+        content: "website",
+      },
+      {
+        name: "twitter:card",
+        content: "summary_large_image",
+      },
+      {
+        name: "twitter:title",
+        content: "ENERA | Energy Financial Intelligence",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "ENERA transforms complex energy and billing information into clear, actionable intelligence for better financial and operational decisions.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/52505294-a8b7-405f-bd46-268d13880296/id-preview-99af2560--d4e14f91-1593-4534-bd09-833873bc7bd1.lovable.app-1785402555429.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/52505294-a8b7-405f-bd46-268d13880296/id-preview-99af2560--d4e14f91-1593-4534-bd09-833873bc7bd1.lovable.app-1785402555429.png",
+      },
+    ],
+  }),
+  component: EneraLandingPage,
+});
+
+function EneraLandingPage() {
+  return (
+    <div className="min-h-screen bg-white text-slate-900 selection:bg-cyan-500/20 selection:text-cyan-950 font-sans antialiased overflow-x-hidden">
+      {/* Keyboard Accessibility Skip Link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-cyan-400 focus:text-slate-950 focus:font-mono focus:font-bold focus:rounded-lg focus:shadow-2xl focus:border focus:border-cyan-300"
+      >
+        Skip to main content
+      </a>
+
+      {/* 1. Header Navigation (Above-the-fold critical) */}
+      <EneraNav />
+
+      {/* 2. Main Narrative Flow */}
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="outline-none"
+        aria-label="ENERA Energy Financial Intelligence"
+      >
+        {/* 2. Hero: SEE BEYOND THE BILL. */}
+        <EneraHeroSection />
+
+        {/* Below-the-fold Deferred Rendering Sections */}
+        {/* 3. Short product introduction & 4. Core capabilities: FROM ENERGY DATA TO DECISION (RECONCILE, UNDERSTAND, DETECT, ACT) */}
+        <div className="enera-section-deferred">
+          <Suspense fallback={<SectionFallback />}>
+            <EneraCapabilitiesSection />
+          </Suspense>
+        </div>
+
+        {/* 5. Platform capabilities: Billing, Energy, Tariff, Demand, Anomaly, Reporting, Multi-site */}
+        <div className="enera-section-deferred">
+          <Suspense fallback={<SectionFallback />}>
+            <EneraProductSignalsSection />
+          </Suspense>
+        </div>
+
+        {/* 6. Product visual: SEE THE SIGNAL BEHIND THE NUMBER. */}
+        <div className="enera-section-deferred">
+          <Suspense fallback={<SectionFallback />}>
+            <EneraProductInterfacePreviewSection />
+          </Suspense>
+        </div>
+
+        {/* 7. How it works: CONNECT, ANALYSE, UNDERSTAND, ACT */}
+        <div className="enera-section-deferred">
+          <Suspense fallback={<SectionFallback />}>
+            <EneraBillSignalSection />
+          </Suspense>
+        </div>
+
+        {/* 8. Who it is for: Energy, Finance, Facilities, Audit, Executives */}
+        <div className="enera-section-deferred">
+          <Suspense fallback={<SectionFallback />}>
+            <EneraAudienceSection />
+          </Suspense>
+        </div>
+
+        {/* 9. AI: ASK BETTER QUESTIONS. */}
+        <div className="enera-section-deferred">
+          <Suspense fallback={<SectionFallback />}>
+            <EneraAISection />
+          </Suspense>
+        </div>
+
+        {/* 10. Financial intelligence: SEE THE FINANCIAL SIGNAL. */}
+        <div className="enera-section-deferred">
+          <Suspense fallback={<SectionFallback />}>
+            <EneraCopilotSection />
+          </Suspense>
+        </div>
+
+        {/* 11. Trust: INTELLIGENCE YOU CAN TRACE. */}
+        <div className="enera-section-deferred">
+          <Suspense fallback={<SectionFallback />}>
+            <EneraTrustSection />
+          </Suspense>
+        </div>
+
+        {/* 12. CTA: REQUEST A DEMO */}
+        <div className="enera-section-deferred">
+          <Suspense fallback={<SectionFallback />}>
+            <EneraContactSection />
+          </Suspense>
+        </div>
+
+        {/* 13. Resources / FAQ */}
+        <div className="enera-section-deferred">
+          <Suspense fallback={<SectionFallback />}>
+            <EneraFaqSection />
+          </Suspense>
+        </div>
+      </main>
+
+      {/* 14. Institutional Footer */}
+      <div className="enera-section-deferred">
+        <Suspense fallback={<SectionFallback />}>
+          <EneraFooter />
+        </Suspense>
+      </div>
+    </div>
+  );
+}
+

@@ -1,15 +1,217 @@
-import * as React from 'react'
-import { Outlet, createRootRoute } from '@tanstack/react-router'
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  Outlet,
+  Link,
+  createRootRouteWithContext,
+  useRouter,
+  useRouterState,
+  HeadContent,
+  Scripts,
+} from "@tanstack/react-router";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Toaster } from "react-hot-toast";
 
-export const Route = createRootRoute({
+import appCss from "../styles.css?url";
+import { reportLovableError } from "../lib/lovable-error-reporting";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { AuthGate, SignOutButton } from "@/components/AuthGate";
+import { AiCopilotModal } from "@/components/AiCopilotModal";
+import { Sparkles } from "lucide-react";
+
+function NotFoundComponent() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="max-w-md text-center">
+        <h1 className="text-7xl font-bold text-foreground">404</h1>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          The page you're looking for doesn't exist or has been moved.
+        </p>
+        <div className="mt-6">
+          <Link
+            to="/"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Go home
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+  console.error(error);
+  const router = useRouter();
+  useEffect(() => {
+    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+  }, [error]);
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="max-w-md text-center space-y-3">
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">
+          This page didn't load
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {error?.message || "Something went wrong. Try refreshing or returning home."}
+        </p>
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <button
+            onClick={() => {
+              try {
+                router.invalidate();
+              } catch (e) {
+                // Ignore router invalidation error on hard refresh
+              }
+              reset();
+              if (typeof window !== "undefined") window.location.reload();
+            }}
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Try again
+          </button>
+          <a
+            href="/"
+            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          >
+            Go home
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  head: () => ({
+    meta: [
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { title: "ENERA | Energy Financial Intelligence" },
+      {
+        name: "description",
+        content:
+          "ENERA transforms complex energy and billing information into clear, actionable intelligence for better financial and operational decisions.",
+      },
+      { property: "og:site_name", content: "ENERA" },
+      { property: "og:title", content: "ENERA | Energy Financial Intelligence" },
+      {
+        property: "og:description",
+        content:
+          "ENERA transforms complex energy and billing information into clear, actionable intelligence for better financial and operational decisions.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "ENERA | Energy Financial Intelligence" },
+      {
+        name: "twitter:description",
+        content:
+          "ENERA transforms complex energy and billing information into clear, actionable intelligence for better financial and operational decisions.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/52505294-a8b7-405f-bd46-268d13880296/id-preview-99af2560--d4e14f91-1593-4534-bd09-833873bc7bd1.lovable.app-1785402555429.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/52505294-a8b7-405f-bd46-268d13880296/id-preview-99af2560--d4e14f91-1593-4534-bd09-833873bc7bd1.lovable.app-1785402555429.png",
+      },
+    ],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+    ],
+  }),
+  shellComponent: RootShell,
   component: RootComponent,
-})
+  notFoundComponent: NotFoundComponent,
+  errorComponent: ErrorComponent,
+});
+
+function RootShell({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        {children}
+        <Scripts />
+      </body>
+    </html>
+  );
+}
 
 function RootComponent() {
+  const routeContext = Route.useRouteContext();
+  const queryClient = useMemo(() => routeContext?.queryClient || new QueryClient(), [routeContext]);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  // Dedicated public routes: Landing page and Login
+  const isPublicPage = pathname === "/" || pathname === "/login";
+
   return (
-    <React.Fragment>
-      <div>Hello "__root"!</div>
-      <Outlet />
-    </React.Fragment>
-  )
+    <QueryClientProvider client={queryClient}>
+      {isPublicPage ? (
+        <main className="min-h-screen w-full bg-background text-foreground animate-in fade-in duration-200">
+          <Outlet />
+        </main>
+      ) : (
+        <AuthGate>
+          <SidebarProvider>
+            <div className="min-h-screen flex w-full bg-background text-foreground">
+              <AppSidebar />
+              <div className="flex-1 flex flex-col min-w-0">
+                <header className="h-12 flex items-center gap-2 border-b border-border bg-card px-3 sticky top-0 z-10">
+                  <SidebarTrigger />
+                  <div className="text-sm font-medium flex items-center gap-2 min-w-0">
+                    <Link
+                      to="/"
+                      className="text-xs font-mono font-bold text-cyan-500 hover:text-cyan-400 transition-colors flex items-center gap-1 shrink-0"
+                      title="Return to ENERA Public Landing Page"
+                    >
+                      <span>ENERA</span>
+                      <span className="text-muted-foreground/40 font-normal">/</span>
+                    </Link>
+                    <span className="truncate">Eskom Meter Data Reconciliation</span>
+                  </div>
+                  <div className="ml-auto flex items-center gap-2 sm:gap-3">
+                    <button
+                      onClick={() => setAiModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 border border-primary/30 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition shadow-2xs"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 animate-pulse text-primary" />
+                      <span>AI Copilot</span>
+                    </button>
+                    <div className="text-xs text-muted-foreground hidden lg:block">
+                      2025/2026 Tariff Book · 30-min analytics
+                    </div>
+                    <SignOutButton />
+                  </div>
+                </header>
+                <main className="flex-1 min-w-0 p-4 md:p-6 animate-in fade-in duration-200">
+                  <Outlet />
+                </main>
+              </div>
+            </div>
+            <AiCopilotModal isOpen={aiModalOpen} onClose={() => setAiModalOpen(false)} />
+          </SidebarProvider>
+        </AuthGate>
+      )}
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: "var(--color-popover)",
+            color: "var(--color-popover-foreground)",
+            border: "1px solid var(--color-border)",
+          },
+        }}
+      />
+    </QueryClientProvider>
+  );
 }
