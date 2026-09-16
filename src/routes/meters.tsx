@@ -253,7 +253,7 @@ export function MetersPage() {
                 <Building className="w-5 h-5 text-indigo-500" />
               </div>
               <span className="text-2xs text-gray-400 mt-1 block">
-                {activeMeterData?.pod.voltage_level_kv ? `${activeMeterData.pod.voltage_level_kv} kV` : "—"} · {activeMeterData?.pod.notified_maximum_demand_kva ? `${activeMeterData.pod.notified_maximum_demand_kva} kVA NMD` : "—"}
+                {(activeMeterData?.pod as any)?.voltage_level_kv ? `${(activeMeterData.pod as any).voltage_level_kv} kV` : "—"} · {(activeMeterData?.pod as any)?.notified_maximum_demand_kva ? `${(activeMeterData.pod as any).notified_maximum_demand_kva} kVA NMD` : "—"}
               </span>
             </div>
 

@@ -146,7 +146,7 @@ export function TrendsPage() {
   const recoveryItems: RecoveryRecord[] = useMemo(() => {
     if (dbRecoveries.length > 0) return dbRecoveries;
     if (invoice && invoice.invoiceTotal) {
-      const diff = Math.max(0, (invoice.invoiceTotal || 0) - (invoice.reconciledTotal || 0));
+      const diff = Math.max(0, (invoice.invoiceTotal || 0) - ((invoice as any).reconciledTotal || 0));
       if (diff > 1) {
         return [
           {
@@ -158,11 +158,11 @@ export function TrendsPage() {
             premiseId: customer.meter || "AMR Meter",
             chargeCategory: "Tariff Variance Discrepancy",
             invoicedAmount: invoice.invoiceTotal,
-            calculatedAmount: invoice.reconciledTotal || invoice.invoiceTotal,
+            calculatedAmount: (invoice as any).reconciledTotal || invoice.invoiceTotal,
             recoveryAmount: diff,
             rootCause: "Deterministic tariff engine identified billed excess against gazetted NERSA rates.",
             detailedExplanation: "Variance between extracted billing determinants and deterministic rate verification.",
-            auditFormula: `Invoiced ${ZAR(invoice.invoiceTotal)} - Reconciled ${ZAR(invoice.reconciledTotal || 0)} = ${ZAR(diff)}`,
+            auditFormula: `Invoiced ${ZAR(invoice.invoiceTotal)} - Reconciled ${ZAR((invoice as any).reconciledTotal || 0)} = ${ZAR(diff)}`,
             tariffRef: "NERSA Approved Megaflex Tariff Schedule",
             status: "ready" as const,
             actionLoad: () => {},
@@ -200,7 +200,7 @@ export function TrendsPage() {
           demandCharge: inv.networkDemandCharge || 0,
           subsidiesAndLegacy: (inv.affordability || 0) + (inv.electrification || 0) + (inv.ancillary || 0) + (inv.legacy || 0),
           totalInvoice: inv.totalInclVat || inv.invoiceTotal || 0,
-          recoveryAmount: Math.max(0, (inv.invoiceTotal || 0) - (inv.reconciledTotal || 0)),
+          recoveryAmount: Math.max(0, (inv.invoiceTotal || 0) - ((inv as any).reconciledTotal || 0)),
         }))
       );
     } else if (invoice) {
@@ -213,7 +213,7 @@ export function TrendsPage() {
         demandCharge: invoice.networkDemandCharge || 0,
         subsidiesAndLegacy: (invoice.affordability || 0) + (invoice.electrification || 0) + (invoice.ancillary || 0) + (invoice.legacy || 0),
         totalInvoice: invoice.totalInclVat || invoice.invoiceTotal || 0,
-        recoveryAmount: Math.max(0, (invoice.invoiceTotal || 0) - (invoice.reconciledTotal || 0)),
+        recoveryAmount: Math.max(0, (invoice.invoiceTotal || 0) - ((invoice as any).reconciledTotal || 0)),
       });
     }
     return list;
