@@ -36,6 +36,8 @@ import type {
 } from "./types";
 import type { AutomatedPipelineFile } from "../pipeline/types";
 import { RealtimeRefreshManager } from "../realtime/realtimeRefreshManager";
+import { DuplicateProtectionService } from "../ingestion/duplicateProtectionService";
+import type { DuplicateEvaluationCandidate } from "../ingestion/duplicateTypes";
 
 export class ProcessingJobEngine {
   // Authoritative in-memory registry of active and completed jobs
@@ -607,6 +609,45 @@ export class ProcessingJobEngine {
     const startTime = job.startedAt ? new Date(job.startedAt).getTime() : Date.now();
     const durationMs = Date.now() - startTime;
 
+    // Stage 21: Multi-criteria duplicate evaluation on completed dataset
+    let duplicateStatus: import("../ingestion/duplicateTypes").DuplicateHandlingStatus = "NEW";
+    let duplicateResult: import("../ingestion/duplicateTypes").DuplicateCheckResult | undefined;
+
+    try {
+      const candidate: DuplicateEvaluationCandidate = {
+        organisationId: orgId,
+        sourceType: "INVOICE",
+        sourceFile: {
+          name: invoiceName,
+          sizeBytes: invoiceSize,
+          sha256Hash: `hash-${jobId}`,
+        },
+        accountNumber: extractedInvoice.accountNumber,
+        meterNumber: extractedInvoice.meterNumber,
+        invoiceNumber: extractedInvoice.invoiceNumber,
+        billingPeriod: {
+          startDate: extractedInvoice.billingPeriodStart,
+          endDate: extractedInvoice.billingPeriodEnd,
+          periodName: extractedInvoice.billingPeriod,
+        },
+        metrics: {
+          totalAmount: extractedInvoice.totalInvoice,
+          vatAmount: extractedInvoice.vat,
+          totalKwh: extractedInvoice.totalKwh,
+          peakKwh: extractedInvoice.peakKwh,
+          standardKwh: extractedInvoice.standardKwh,
+          offPeakKwh: extractedInvoice.offPeakKwh,
+          maxDemandKva: extractedInvoice.maximumDemandKva,
+          intervalCount: totalRecords,
+        },
+      };
+
+      duplicateResult = await DuplicateProtectionService.evaluateCandidate(candidate);
+      duplicateStatus = duplicateResult.status;
+    } catch {
+      // Fallback
+    }
+
     job.status = "COMPLETED";
     job.currentStage = "COMPLETED";
     job.progressPercentage = 100;
@@ -628,6 +669,8 @@ export class ProcessingJobEngine {
       },
       reportDownloadUrl: `/api/jobs/${jobId}/result`,
       processingDurationMs: durationMs,
+      duplicateStatus,
+      duplicateResult,
     };
 
     this.updateProgress(
@@ -809,5 +852,6 @@ export class ProcessingJobEngine {
     this.jobs.clear();
     this.progressListeners.clear();
     this.pendingJobInputs.clear();
+    DuplicateProtectionService.clearState();
   }
 }

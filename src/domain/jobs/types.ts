@@ -76,6 +76,8 @@ export interface ProcessingJob {
     };
     reportDownloadUrl?: string;
     processingDurationMs?: number;
+    duplicateStatus?: import("../ingestion/duplicateTypes").DuplicateHandlingStatus;
+    duplicateResult?: import("../ingestion/duplicateTypes").DuplicateCheckResult;
   };
   sourceInvoiceFile?: {
     name: string;

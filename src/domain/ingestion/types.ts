@@ -2,6 +2,8 @@
  * Enterprise Secure Document & Telemetry Ingestion Gateway Domain Types
  */
 
+import type { DuplicateCheckResult, DuplicateHandlingStatus } from "./duplicateTypes";
+
 export type SupportedFileExtension =
   "pdf" | "csv" | "xls" | "xlsx" | "xml" | "log" | "txt" | "tsv" | "json" | "tariff";
 
@@ -40,6 +42,7 @@ export interface FileMetadataHeader {
   organisationId: string;
   uploadedAt: string;
   isDuplicate: boolean;
+  duplicateStatus?: DuplicateHandlingStatus;
   duplicateOfDocumentId?: string;
 }
 
@@ -163,5 +166,6 @@ export interface IngestionGatewayResult {
   logs?: IngestionAuditLogEntry[];
   signedDownloadUrl?: string;
   isIdempotentDuplicate: boolean;
+  duplicateResult?: DuplicateCheckResult;
   uploadRecord?: import("../upload/types").UploadRecord;
 }

@@ -22,9 +22,18 @@ import {
   Filter,
   AlertCircle,
   FolderOpen,
+  Copy,
+  Sparkles,
+  History,
 } from "lucide-react";
 import { SecureIngestionGateway } from "@/domain/ingestion/secureIngestionGateway";
 import { UploadStorageService } from "@/domain/upload/uploadStorageService";
+import { DuplicateProtectionService } from "@/domain/ingestion/duplicateProtectionService";
+import type {
+  DuplicateCheckResult,
+  DuplicateHandlingStatus,
+  DuplicateResolutionAction,
+} from "@/domain/ingestion/duplicateTypes";
 import type { UploadRecord, UploadFileType, UploadProcessingStatus } from "@/domain/upload/types";
 import type { IngestionGatewayResult, IngestionLifecycleState } from "@/domain/ingestion/types";
 import { useApp, type InvoiceData } from "@/lib/store";
@@ -129,6 +138,55 @@ export function SecureUploadGateway() {
   const [activeMeterFile, setActiveMeterFile] = useState<File | null>(null);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [recordsProcessedCount, setRecordsProcessedCount] = useState<number>(0);
+
+  // Stage 21: Controlled Duplicate Handling State
+  const [duplicateResolutionMessage, setDuplicateResolutionMessage] = useState<string | null>(null);
+
+  const handleDuplicateResolution = async (
+    candidateResult: IngestionGatewayResult,
+    action: DuplicateResolutionAction,
+  ) => {
+    if (!candidateResult.duplicateResult) return;
+    const file = files[0];
+    const candidate: DuplicateEvaluationCandidate = {
+      organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
+      sourceType: candidateResult.fileHeader.fileExtension === "pdf" ? "INVOICE" : "TELEMETRY",
+      sourceFile: {
+        name: file?.name || candidateResult.fileHeader.filename,
+        sizeBytes: file?.size || candidateResult.fileHeader.fileSizeBytes,
+        sha256Hash: candidateResult.fileHeader.sha256Checksum,
+      },
+      accountNumber: candidateResult.extractedInvoice?.accountNumber,
+      meterNumber: candidateResult.extractedInvoice?.meterNumber,
+      invoiceNumber: candidateResult.extractedInvoice?.invoiceNumber,
+      billingPeriod: {
+        startDate: candidateResult.extractedInvoice?.billingStart,
+        endDate: candidateResult.extractedInvoice?.billingEnd,
+        periodName: candidateResult.extractedInvoice?.billingPeriod,
+      },
+      metrics: {
+        totalAmount: candidateResult.extractedInvoice?.totalInvoice,
+        vatAmount: candidateResult.extractedInvoice?.vat,
+        totalKwh: candidateResult.extractedInvoice?.totalKwh,
+        peakKwh: candidateResult.extractedInvoice?.peakKwh,
+        standardKwh: candidateResult.extractedInvoice?.standardKwh,
+        offPeakKwh: candidateResult.extractedInvoice?.offPeakKwh,
+      },
+    };
+
+    const res = await DuplicateProtectionService.applyResolution(
+      candidate,
+      candidateResult.duplicateResult,
+      action,
+    );
+
+    setDuplicateResolutionMessage(res.message);
+    RealtimeRefreshManager.notifyProcessingComplete({
+      entityType: "invoice",
+      timestamp: new Date().toISOString(),
+    });
+    await loadHistory();
+  };
 
   const runAutomatedPipeline = async (
     invoiceFile: File,
@@ -946,6 +1004,159 @@ export function SecureUploadGateway() {
                 </a>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Stage 21: Controlled Duplicate Protection & Correction Handling Card */}
+        {ingestionResult?.duplicateResult && ingestionResult.duplicateResult.status !== "NEW" && !processing && (
+          <div
+            className={`mt-4 p-5 rounded-xl border space-y-4 backdrop-blur-sm ${
+              ingestionResult.duplicateResult.status === "CORRECTION"
+                ? "border-purple-500/40 bg-purple-500/5 text-purple-200"
+                : ingestionResult.duplicateResult.status === "DUPLICATE"
+                ? "border-amber-500/40 bg-amber-500/5 text-amber-200"
+                : "border-cyan-500/40 bg-cyan-500/5 text-cyan-200"
+            }`}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/30 pb-3">
+              <div className="flex items-center gap-2.5">
+                {ingestionResult.duplicateResult.status === "CORRECTION" ? (
+                  <Sparkles className="w-5 h-5 text-purple-400 shrink-0" />
+                ) : ingestionResult.duplicateResult.status === "DUPLICATE" ? (
+                  <Copy className="w-5 h-5 text-amber-400 shrink-0" />
+                ) : (
+                  <History className="w-5 h-5 text-cyan-400 shrink-0" />
+                )}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-foreground">
+                      {ingestionResult.duplicateResult.status === "CORRECTION"
+                        ? "Legitimate Billing Correction Detected"
+                        : ingestionResult.duplicateResult.status === "DUPLICATE"
+                        ? "Accidental Duplicate Import Detected"
+                        : "Controlled Dataset Replacement"}
+                    </h3>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
+                        ingestionResult.duplicateResult.status === "CORRECTION"
+                          ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                          : ingestionResult.duplicateResult.status === "DUPLICATE"
+                          ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                          : "bg-cyan-500/20 text-cyan-300 border-cyan-500/30"
+                      }`}
+                    >
+                      {ingestionResult.duplicateResult.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {ingestionResult.duplicateResult.summary}
+                  </p>
+                </div>
+              </div>
+
+              {ingestionResult.duplicateResult.existingRecord && (
+                <div className="text-right text-[11px] text-muted-foreground font-mono">
+                  <div>Matched Record:</div>
+                  <div className="font-semibold text-foreground">
+                    {ingestionResult.duplicateResult.existingRecord.invoiceNumber ||
+                      ingestionResult.duplicateResult.existingRecord.id}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Differences Table for Corrections */}
+            {ingestionResult.duplicateResult.differences.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-foreground flex items-center justify-between">
+                  <span>Detected Metric Variances &amp; Adjustments:</span>
+                  <span className="text-[10px] text-purple-300">
+                    {ingestionResult.duplicateResult.differences.length} determinant adjustment(s)
+                  </span>
+                </div>
+                <div className="rounded-lg border border-border/40 overflow-hidden bg-card/40">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-muted/30 text-muted-foreground text-[10px] uppercase font-semibold">
+                      <tr>
+                        <th className="py-2 px-3">Determinant Field</th>
+                        <th className="py-2 px-3 text-right">Prior Registered Value</th>
+                        <th className="py-2 px-3 text-right">Corrected Value</th>
+                        <th className="py-2 px-3 text-right">Calculated Delta</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/20 font-mono">
+                      {ingestionResult.duplicateResult.differences.map((diff, i) => (
+                        <tr key={i} className="hover:bg-muted/10">
+                          <td className="py-2 px-3 font-sans font-medium text-foreground">
+                            {diff.label}
+                          </td>
+                          <td className="py-2 px-3 text-right text-muted-foreground">
+                            {typeof diff.existingValue === "number"
+                              ? diff.existingValue.toLocaleString("en-ZA", { maximumFractionDigits: 2 })
+                              : String(diff.existingValue)}
+                          </td>
+                          <td className="py-2 px-3 text-right font-bold text-foreground">
+                            {typeof diff.incomingValue === "number"
+                              ? diff.incomingValue.toLocaleString("en-ZA", { maximumFractionDigits: 2 })
+                              : String(diff.incomingValue)}
+                          </td>
+                          <td
+                            className={`py-2 px-3 text-right font-bold ${
+                              (diff.delta || 0) < 0
+                                ? "text-emerald-400"
+                                : (diff.delta || 0) > 0
+                                ? "text-amber-400"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {diff.formattedDelta || (diff.delta ? String(diff.delta) : "—")}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Controlled Resolution Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+              <p className="text-xs text-muted-foreground italic">
+                {ingestionResult.duplicateResult.recommendation}
+              </p>
+
+              <div className="flex items-center gap-2">
+                {ingestionResult.duplicateResult.resolutionOptions.map((opt) => (
+                  <button
+                    key={opt.action}
+                    aria-label={
+                      opt.action === "ACCEPT_CORRECTION"
+                        ? "Accept Legitimate Correction"
+                        : opt.action === "KEEP_EXISTING_SKIP"
+                        ? "Skip Duplicate"
+                        : opt.title
+                    }
+                    onClick={() => handleDuplicateResolution(ingestionResult, opt.action)}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+                      opt.isRecommended
+                        ? ingestionResult.duplicateResult.status === "CORRECTION"
+                          ? "bg-purple-600 hover:bg-purple-500 text-white border-purple-400 shadow-md"
+                          : "bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-400 shadow-md"
+                        : "bg-card/70 hover:bg-card border-border text-foreground"
+                    }`}
+                  >
+                    {opt.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {duplicateResolutionMessage && (
+              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{duplicateResolutionMessage}</span>
+              </div>
+            )}
           </div>
         )}
 

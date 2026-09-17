@@ -18,6 +18,8 @@ import { TariffDocumentAdapter } from "./adapters/tariffDocumentAdapter";
 import { UploadStorageService } from "../upload/uploadStorageService";
 import { InvoiceStorageService } from "../invoice/invoiceStorageService";
 import { TelemetryStorageService } from "../telemetry/telemetryStorageService";
+import { DuplicateProtectionService } from "./duplicateProtectionService";
+import type { DuplicateEvaluationCandidate } from "./duplicateTypes";
 import type {
   UploadFileType,
   UploadRecord,
@@ -921,6 +923,48 @@ export class SecureIngestionGateway {
       createdRecordId: documentId,
     };
 
+    // Stage 21: Multi-Criteria Duplicate Protection Evaluation
+    const duplicateCandidate: DuplicateEvaluationCandidate = {
+      organisationId,
+      sourceType: resolvedFileType === "PDF_INVOICE" ? "INVOICE" : "TELEMETRY",
+      sourceFile: {
+        name: sanitizedFilename,
+        sizeBytes: fileSize,
+        sha256Hash: sha256Checksum,
+      },
+      accountNumber: extractRes.extractedFields?.accountNumber,
+      meterNumber: extractRes.extractedFields?.meterNumber,
+      invoiceNumber: extractRes.extractedFields?.invoiceNumber,
+      billingPeriod: {
+        startDate: extractRes.extractedFields?.billingStart,
+        endDate: extractRes.extractedFields?.billingEnd,
+        periodName: extractRes.extractedFields?.billingPeriod,
+      },
+      metrics: {
+        totalAmount: extractRes.extractedFields?.totalInvoice,
+        vatAmount: extractRes.extractedFields?.vat,
+        totalKwh: extractRes.extractedFields?.totalKwh,
+        peakKwh: extractRes.extractedFields?.peakKwh,
+        standardKwh: extractRes.extractedFields?.standardKwh,
+        offPeakKwh: extractRes.extractedFields?.offPeakKwh,
+        maxDemandKva: extractRes.extractedFields?.billedMaximumDemand || extractRes.extractedFields?.kva,
+        intervalCount: extractRes.intervals?.length,
+      },
+    };
+
+    const duplicateResult = await DuplicateProtectionService.evaluateCandidate(duplicateCandidate, context);
+    fileHeader.duplicateStatus = duplicateResult.status;
+    fileHeader.isDuplicate = duplicateResult.status === "DUPLICATE";
+
+    if (duplicateResult.status === "CORRECTION") {
+      addLog("CORRECTION" as any, "info", duplicateResult.summary);
+    } else if (duplicateResult.status === "DUPLICATE") {
+      addLog("DUPLICATE" as any, "warn", duplicateResult.summary);
+      batchJob.rowsDuplicate = rowCount;
+    } else if (duplicateResult.status === "REPLACEMENT") {
+      addLog("REPLACEMENT" as any, "info", duplicateResult.summary);
+    }
+
     const result: IngestionGatewayResult = {
       success: true,
       fileHeader,
@@ -932,7 +976,8 @@ export class SecureIngestionGateway {
       confidenceScore: extractRes.confidenceScore,
       errors: extractRes.errors,
       signedDownloadUrl: signedUrl,
-      isIdempotentDuplicate: false,
+      isIdempotentDuplicate: duplicateResult.status === "DUPLICATE",
+      duplicateResult,
       uploadRecord,
     };
 
@@ -953,5 +998,6 @@ export class SecureIngestionGateway {
     FileStorageSecurityService.clearStorageCache();
     LineageTrackingService.clearCache();
     TelemetryStorageService.clearMemoryStore();
+    DuplicateProtectionService.clearState();
   }
 }

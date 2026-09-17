@@ -9,6 +9,7 @@ import type { UserSecurityContext } from "../security/types";
 import { TenantIsolationViolationError } from "../security/tenantContextService";
 import type { ExtractedInvoiceDocument, InvoiceLifecycleState, InvoiceHeaderMeta } from "./types";
 import { InvoiceLifecycleService } from "./invoiceLifecycleService";
+import { DuplicateProtectionService } from "../ingestion/duplicateProtectionService";
 
 export interface InvoiceSearchFilter {
   organisationId?: string;
@@ -46,6 +47,27 @@ export class InvoiceStorageService {
     if (payload.invoice_number) {
       this.memoryStore.set(payload.invoice_number, payload);
     }
+    const orgId = payload.organisation_id || "DEFAULT_ORG";
+    DuplicateProtectionService.registerRecordInMemory(orgId, {
+      id: payload.id || key,
+      invoiceNumber: payload.invoice_number,
+      accountNumber: payload.account_number,
+      meterNumber: payload.meter_number,
+      billingPeriod: payload.billing_period_name,
+      billingStart: payload.billing_start,
+      billingEnd: payload.billing_end,
+      totalAmount: payload.invoiced_total !== undefined ? Number(payload.invoiced_total) : undefined,
+      totalKwh: payload.total_kwh !== undefined ? Number(payload.total_kwh) : undefined,
+      peakKwh: payload.peak_kwh !== undefined ? Number(payload.peak_kwh) : undefined,
+      standardKwh: payload.standard_kwh !== undefined ? Number(payload.standard_kwh) : undefined,
+      offPeakKwh: payload.off_peak_kwh !== undefined ? Number(payload.off_peak_kwh) : undefined,
+      maxDemandKva: payload.max_demand_kva !== undefined ? Number(payload.max_demand_kva) : undefined,
+      sha256Hash: payload.sha256_hash,
+      sourceFileName: payload.source_file_name || payload.source,
+      importedAt: payload.created_at || new Date().toISOString(),
+      duplicateStatus: payload.duplicate_status || "NEW",
+      supersedesId: payload.supersedes_id,
+    });
   }
 
   public static getInvoiceRecord(key: string): any {
@@ -63,6 +85,7 @@ export class InvoiceStorageService {
   public static clearMemoryStore(): void {
     this.memoryStore.clear();
     this.lineItemStore.clear();
+    DuplicateProtectionService.clearState();
   }
 
   /**
@@ -212,6 +235,8 @@ export class InvoiceStorageService {
         validation_status: doc.validation_summary.status === "valid" ? "passed" : "warnings",
         lifecycle_state: initialState,
         status: initialState.toLowerCase(),
+        duplicate_status: (doc as any).duplicate_status || "NEW",
+        supersedes_id: (doc as any).supersedes_id || null,
         raw_data: doc as any,
       };
 
