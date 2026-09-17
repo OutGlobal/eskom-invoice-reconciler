@@ -60,6 +60,8 @@ export interface AmbiguityReport {
   title: string;
   summary: string;
   whatNeedsAttention: string;
+  requiresAttention?: boolean;
+  humanAttentionPrompt?: string;
   affectedFields: string[];
   suggestedResolutions: AmbiguityResolutionOption[];
   nonInventionPolicy: string;

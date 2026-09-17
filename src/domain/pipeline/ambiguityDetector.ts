@@ -114,6 +114,9 @@ export class AmbiguityDetector {
         summary: `The uploaded meter file contains ${meterIds.size} different meter identifiers: ${Array.from(meterIds).join(", ")}.`,
         whatNeedsAttention:
           "Please select which meter identifier corresponds to this invoice reconciliation. ENERA will not guess meter assignment.",
+        requiresAttention: true,
+        humanAttentionPrompt:
+          "Please select which meter identifier corresponds to this invoice reconciliation. ENERA will not guess meter assignment.",
         affectedFields: ["meter_id", "meterNumber"],
         suggestedResolutions: options,
         nonInventionPolicy: this.NON_INVENTION_POLICY,
@@ -133,6 +136,9 @@ export class AmbiguityDetector {
         title: "Meter Identifier Discrepancy",
         summary: `Invoice specifies meter '${invoiceMeter}', but meter file contains records for '${intervalMeter}'.`,
         whatNeedsAttention:
+          `Confirm whether meter '${intervalMeter}' is an associated feeder meter or whether a different telemetry file should be provided.`,
+        requiresAttention: true,
+        humanAttentionPrompt:
           `Confirm whether meter '${intervalMeter}' is an associated feeder meter or whether a different telemetry file should be provided.`,
         affectedFields: ["meterNumber", "meter_id"],
         suggestedResolutions: [
@@ -212,6 +218,9 @@ export class AmbiguityDetector {
         summary: `Invoice period (${invStartFmt} to ${invEndFmt}) has zero overlap with meter intervals (${intStartFmt} to ${intEndFmt}).`,
         whatNeedsAttention:
           "The uploaded meter intervals do not correspond to the billing dates on the invoice. Reconciling unrelated dates will produce misleading variance results. Please upload intervals for the correct billing cycle.",
+        requiresAttention: true,
+        humanAttentionPrompt:
+          "The uploaded meter intervals do not correspond to the billing dates on the invoice. Reconciling unrelated dates will produce misleading variance results. Please upload intervals for the correct billing cycle.",
         affectedFields: ["billingStart", "billingEnd", "timestamp_utc"],
         suggestedResolutions: [
           {
@@ -253,6 +262,9 @@ export class AmbiguityDetector {
         title: "Unresolved Tariff Schedule",
         summary: `Invoice document did not state a recognizable gazetted tariff schedule (found: '${tariffRaw || "None"}').`,
         whatNeedsAttention:
+          "Select the applicable Eskom or Municipal gazetted tariff structure to calculate authoritative charges. ENERA will not guess tariff rates.",
+        requiresAttention: true,
+        humanAttentionPrompt:
           "Select the applicable Eskom or Municipal gazetted tariff structure to calculate authoritative charges. ENERA will not guess tariff rates.",
         affectedFields: ["tariff", "tariff_code"],
         suggestedResolutions: [
@@ -302,6 +314,9 @@ export class AmbiguityDetector {
         title: "No Meter Intervals Found",
         summary: "The meter data file yielded 0 valid interval readings.",
         whatNeedsAttention:
+          "Provide an interval telemetry file with valid timestamp and consumption columns.",
+        requiresAttention: true,
+        humanAttentionPrompt:
           "Provide an interval telemetry file with valid timestamp and consumption columns.",
         affectedFields: ["intervals"],
         suggestedResolutions: [],

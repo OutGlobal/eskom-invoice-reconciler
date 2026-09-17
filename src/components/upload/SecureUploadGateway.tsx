@@ -30,6 +30,7 @@ import type { IngestionGatewayResult, IngestionLifecycleState } from "@/domain/i
 import { useApp, type InvoiceData } from "@/lib/store";
 import type { Measurement } from "@/lib/parseMeter";
 import { AutomaticProcessingPipeline } from "@/domain/pipeline/automaticProcessingPipeline";
+import { ProcessingJobEngine } from "@/domain/jobs/processingJobEngine";
 import type {
   AutomatedPipelineStage,
   AmbiguityReport,
@@ -125,6 +126,8 @@ export function SecureUploadGateway() {
   // Active files stored for automated resumption
   const [activeInvoiceFile, setActiveInvoiceFile] = useState<File | null>(null);
   const [activeMeterFile, setActiveMeterFile] = useState<File | null>(null);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [recordsProcessedCount, setRecordsProcessedCount] = useState<number>(0);
 
   const runAutomatedPipeline = async (
     invoiceFile: File,
@@ -138,95 +141,169 @@ export function SecureUploadGateway() {
     setAutomatedResult(null);
     setAutomatedStage("UPLOAD_SUCCESSFUL");
     setAutomatedProgressPct(10);
-    setAutomatedMessage("Upload successful: Invoice and Meter files secured");
+    setAutomatedMessage("Upload successful: Processing job submitted to backend engine");
 
     try {
-      const res = await AutomaticProcessingPipeline.execute(
-        {
-          invoiceFile,
-          meterFile,
-          tenantId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
-          userId: "user-system-admin",
-          ...overrides,
-        },
-        (stage, pct, msg, ambiguity) => {
-          setAutomatedStage(stage);
-          setAutomatedProgressPct(pct);
-          setAutomatedMessage(msg);
-          if (ambiguity) {
-            setAmbiguityReport(ambiguity);
+      // Stage 16: Asynchronous Server-Side Processing Job Execution
+      const job = await ProcessingJobEngine.submitJob({
+        invoiceFile,
+        meterFile,
+        organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
+        userId: "user-system-admin",
+        metadata: overrides,
+      });
+
+      setActiveJobId(job.jobId);
+
+      const mapStage = (stage: string): AutomatedPipelineStage => {
+        switch (stage) {
+          case "UPLOAD_VERIFICATION":
+            return "VALIDATING";
+          case "PDF_EXTRACTION":
+          case "OCR_PROCESSING":
+            return "EXTRACTING";
+          case "TELEMETRY_PARSING":
+            return "PROCESSING";
+          case "NORMALISATION":
+            return "NORMALISING";
+          case "AGGREGATION":
+          case "RECONCILIATION":
+            return "RECONCILING";
+          case "ANOMALY_ANALYSIS":
+            return "ANALYSING";
+          case "REPORT_GENERATION":
+          case "COMPLETED":
+            return "COMPLETE";
+          default:
+            return "PROCESSING";
+        }
+      };
+
+      const unsubscribe = ProcessingJobEngine.onJobProgress(job.jobId, (upd) => {
+        setAutomatedStage(mapStage(upd.stage));
+        setAutomatedProgressPct(upd.progressPercentage);
+        setAutomatedMessage(upd.stageMessage);
+        setRecordsProcessedCount(upd.recordsProcessed);
+      });
+
+      const pollStatus = async () => {
+        const current = await ProcessingJobEngine.getJobStatus(job.jobId);
+        if (!current) return;
+
+        setAutomatedProgressPct(current.progressPercentage);
+        setAutomatedMessage(current.stageMessage);
+        setRecordsProcessedCount(current.recordsProcessed);
+        setAutomatedStage(mapStage(current.currentStage));
+
+        if (current.status === "PAUSED_AMBIGUITY") {
+          unsubscribe();
+          setAutomatedPipelineRunning(false);
+          if (current.ambiguityReport) {
+            setAmbiguityReport(current.ambiguityReport);
           }
-        },
-      );
+        } else if (current.status === "COMPLETED") {
+          unsubscribe();
+          setAutomatedPipelineRunning(false);
 
-      setAutomatedResult(res);
-
-      if (res.status === "COMPLETED") {
-        const store = useApp.getState();
-        if (res.extractedInvoice) {
-          const ext = res.extractedInvoice;
-          const mappedInvoice: InvoiceData = {
-            source: invoiceFile.name,
-            invoiceNumber: ext.accountNumber ? `INV-${ext.accountNumber}` : `INV-${Date.now()}`,
-            customerName: ext.pod || ext.premiseId || "Commercial Customer",
-            accountNumber: ext.accountNumber || "",
-            meterNumber: ext.meterNumber || ext.meterSerial || "",
-            tariffName: ext.tariff || "Megaflex Non-Local Authority",
-            voltage: ext.voltage || ">= 500V & < 66kV",
-            nmd: ext.notifiedMaximumDemand || 2000,
-            billingPeriod: ext.billingPeriod || "Current Period",
-            billingPeriodStart: ext.billingStart,
-            billingPeriodEnd: ext.billingEnd,
-            peakKWh: ext.peakKwh || 0,
-            standardKWh: ext.standardKwh || 0,
-            offPeakKWh: ext.offPeakKwh || 0,
-            totalKWh: ext.totalKwh || 0,
-            maxDemandKVA: ext.billedMaximumDemand || 0,
-            transmissionNetworkCharge: (ext.networkCharges || 0) * 0.3,
-            networkCapacityCharge: (ext.networkCharges || 0) * 0.4,
-            generationCapacityCharge: 0,
-            networkDemandCharge: (ext.networkCharges || 0) * 0.3,
-            ancillary: ext.ancillaryCharges || 0,
-            legacy: 0,
-            affordability: (ext.subsidies || 0) * 0.7,
-            electrification: (ext.subsidies || 0) * 0.3,
-            reactive: 0,
-            peakEnergyCharge: (ext.energyCharges || 0) * 0.45,
-            standardEnergyCharge: (ext.energyCharges || 0) * 0.4,
-            offPeakEnergyCharge: (ext.energyCharges || 0) * 0.15,
-            vat: ext.vat || (ext.totalInvoice ? ext.totalInvoice * 0.15 : 0),
-            invoiceTotal: (ext.totalInvoice || 0) - (ext.vat || 0),
-            totalInclVat: ext.totalInvoice || 0,
+          const syntheticResult: AutomatedPipelineResult = {
+            pipelineRunId: current.jobId,
+            status: "COMPLETED",
+            currentStage: "COMPLETE",
+            invoiceIngestion: {} as any,
+            meterIngestion: { intervals: [] } as any,
+            extractedInvoice: current.resultPayload?.invoiceDeterminants as any,
+            reconciliation: current.resultPayload?.reconciliation as any,
+            discrepancySummary: current.resultPayload?.diagnostics as any,
+            lineageGraphId: `LINEAGE-${current.jobId}`,
+            processingDurationMs: current.resultPayload?.processingDurationMs || 0,
+            completedAt: current.completedAt || new Date().toISOString(),
           };
-          store.setInvoice(mappedInvoice);
-        }
+          setAutomatedResult(syntheticResult);
 
-        if (res.meterIngestion?.intervals && res.meterIngestion.intervals.length > 0) {
-          const measurements: Measurement[] = res.meterIngestion.intervals.map((r: any) => ({
-            ts: r.ts || new Date(r.timestamp_utc),
-            kW: r.kW ?? r.active_power_kw ?? 0,
-            kVAr: r.kVAr ?? 0,
-            kVA: r.kVA ?? r.apparent_power_kva ?? 0,
-            pf: r.pf ?? r.power_factor ?? 0.96,
-            tou: (r.tou || r.tou_period || "peak") as any,
-            estimated: r.quality_status === "estimated",
-          }));
-          store.setRows(measurements);
-        }
+          if (current.resultPayload?.invoiceDeterminants) {
+            const ext = current.resultPayload.invoiceDeterminants;
+            const mappedInvoice: InvoiceData = {
+              source: invoiceFile.name,
+              invoiceNumber:
+                ext.invoiceNumber ||
+                (ext.accountNumber ? `INV-${ext.accountNumber}` : `INV-${Date.now()}`),
+              customerName: ext.pod || ext.premiseId || "Commercial Customer",
+              accountNumber: ext.accountNumber || "",
+              meterNumber: ext.meterNumber || ext.meterSerial || "",
+              tariffName: ext.tariffName || ext.tariff || "Megaflex Non-Local Authority",
+              voltage: ext.voltage || ">= 500V & < 66kV",
+              nmd: ext.notifiedMaximumDemand || 2000,
+              billingPeriod: ext.billingPeriod || "Current Period",
+              billingPeriodStart: ext.billingPeriodStart,
+              billingPeriodEnd: ext.billingPeriodEnd,
+              peakKWh: ext.peakKwh || 0,
+              standardKWh: ext.standardKwh || 0,
+              offPeakKWh: ext.offPeakKwh || 0,
+              totalKWh: ext.totalKwh || 0,
+              maxDemandKVA: ext.maximumDemandKva || 0,
+              transmissionNetworkCharge: (ext.networkCharges || 0) * 0.3,
+              networkCapacityCharge: (ext.networkCharges || 0) * 0.4,
+              generationCapacityCharge: 0,
+              networkDemandCharge: (ext.networkCharges || 0) * 0.3,
+              ancillary: ext.ancillaryCharges || 0,
+              legacy: 0,
+              affordability: (ext.subsidies || 0) * 0.7,
+              electrification: (ext.subsidies || 0) * 0.3,
+              reactive: 0,
+              peakEnergyCharge: (ext.energyCharges || 0) * 0.45,
+              standardEnergyCharge: (ext.energyCharges || 0) * 0.4,
+              offPeakEnergyCharge: (ext.energyCharges || 0) * 0.15,
+              vat: ext.vat || (ext.totalInvoice ? ext.totalInvoice * 0.15 : 0),
+              invoiceTotal: (ext.totalInvoice || 0) - (ext.vat || 0),
+              totalInclVat: ext.totalInvoice || 0,
+            };
+            useApp.getState().setInvoice(mappedInvoice);
+          }
 
-        await loadHistory();
-      }
+          await loadHistory();
+        } else if (current.status === "FAILED") {
+          unsubscribe();
+          setAutomatedPipelineRunning(false);
+          setAutomatedMessage(current.errorSummary || "Server background processing failed");
+        } else {
+          setTimeout(pollStatus, 200);
+        }
+      };
+
+      setTimeout(pollStatus, 150);
     } catch (err: any) {
-      console.error("Automated pipeline execution failure:", err);
-      setAutomatedStage("FAILED");
-      setAutomatedMessage(err.message);
-    } finally {
-      setAutomatedPipelineRunning(false);
+      console.warn("Server job execution fallback to client pipeline:", err);
+      try {
+        const res = await AutomaticProcessingPipeline.execute(
+          {
+            invoiceFile,
+            meterFile,
+            tenantId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
+            userId: "user-system-admin",
+            ...overrides,
+          },
+          (stage, pct, msg, ambiguity) => {
+            setAutomatedStage(stage);
+            setAutomatedProgressPct(pct);
+            setAutomatedMessage(msg);
+            if (ambiguity) {
+              setAmbiguityReport(ambiguity);
+            }
+          },
+        );
+
+        setAutomatedResult(res);
+        setAutomatedPipelineRunning(false);
+      } catch (fallbackErr: any) {
+        setAutomatedStage("FAILED");
+        setAutomatedMessage(fallbackErr.message);
+        setAutomatedPipelineRunning(false);
+      }
     }
   };
 
   const handleResolveAmbiguity = async (actionValue: any) => {
-    if (!automatedResult?.pipelineRunId || !activeInvoiceFile || !activeMeterFile) return;
+    if (!activeInvoiceFile || !activeMeterFile) return;
     setAutomatedPipelineRunning(true);
     setAmbiguityReport(null);
 
@@ -238,7 +315,15 @@ export function SecureUploadGateway() {
         overrides.overrideMeterId = actionValue;
       }
 
-      await runAutomatedPipeline(activeInvoiceFile, activeMeterFile, overrides);
+      if (activeJobId) {
+        await ProcessingJobEngine.resolveJobAmbiguity({
+          jobId: activeJobId,
+          resolvedMeterId: overrides.overrideMeterId,
+          confirmedTariffCode: overrides.overrideTariffCode,
+        });
+      } else {
+        await runAutomatedPipeline(activeInvoiceFile, activeMeterFile, overrides);
+      }
     } catch (e: any) {
       console.error("Resume failure:", e);
       setAutomatedPipelineRunning(false);
@@ -569,17 +654,29 @@ export function SecureUploadGateway() {
         {/* Automated End-to-End Processing Stepper (Stage 15) */}
         {(automatedPipelineRunning || automatedStage) && (
           <div className="mt-6 p-5 rounded-2xl border border-primary/30 bg-primary/5 space-y-4 animate-in fade-in duration-300">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-primary flex items-center gap-2">
-                {automatedStage === "COMPLETE" ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                ) : automatedStage === "STOPPED_FOR_AMBIGUITY" ? (
-                  <AlertTriangle className="w-4 h-4 text-amber-400" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-primary flex items-center gap-2">
+                  {automatedStage === "COMPLETE" ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  ) : automatedStage === "STOPPED_FOR_AMBIGUITY" ? (
+                    <AlertTriangle className="w-4 h-4 text-amber-400" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+                  )}
+                  Pipeline: {automatedStage?.replace(/_/g, " ") || "INITIALIZING"}
+                </span>
+                {activeJobId && (
+                  <span className="px-2 py-0.5 rounded bg-muted/60 border border-border/40 font-mono text-[10px] text-muted-foreground">
+                    Backend Job: {activeJobId}
+                  </span>
                 )}
-                Pipeline: {automatedStage?.replace(/_/g, " ") || "INITIALIZING"}
-              </span>
+                {recordsProcessedCount > 0 && (
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    ({recordsProcessedCount.toLocaleString()} intervals streamed)
+                  </span>
+                )}
+              </div>
               <span className="font-mono font-bold text-foreground">{automatedProgressPct}%</span>
             </div>
 

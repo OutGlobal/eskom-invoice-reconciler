@@ -450,6 +450,339 @@ export default {
       }
     }
 
+    // =========================================================================
+    // STAGE 16: SERVER-SIDE PROCESSING JOBS API
+    // =========================================================================
+
+    // 1. Submit a background processing job
+    if (url.pathname === "/api/jobs" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const { ProcessingJobEngine } = await import("./domain/jobs/processingJobEngine");
+        const { createSecurityContext, validateTenantAccess } =
+          await import("./domain/security/tenantContextService");
+
+        const headerTenantId =
+          request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
+        const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
+        const headerUserId = request.headers.get("X-User-ID") || "user-session";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+
+        const targetOrgId =
+          body.organisation_id || headerTenantId || "DEFAULT_TENANT";
+
+        let context;
+        if (headerTenantId) {
+          context = createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole);
+          const access = validateTenantAccess(context, targetOrgId);
+          if (!access.allowed) {
+            return new Response(
+              JSON.stringify({
+                error: "UNAUTHORIZED_TENANT_ACCESS",
+                message: access.reason || "Cross-tenant job submission denied",
+                status: 403,
+              }),
+              { status: 403, headers: { "content-type": "application/json" } },
+            );
+          }
+        }
+
+        // Convert file payloads if provided
+        let invoiceFile;
+        if (body.invoice_file) {
+          const rawBytes = body.invoice_file.content_base64
+            ? Uint8Array.from(atob(body.invoice_file.content_base64), (c) => c.charCodeAt(0))
+            : new TextEncoder().encode(body.invoice_file.text || "");
+          invoiceFile = {
+            name: body.invoice_file.name || "invoice.pdf",
+            size: rawBytes.byteLength,
+            type: body.invoice_file.type || "application/pdf",
+            data: rawBytes,
+          };
+        }
+
+        let meterFile;
+        if (body.meter_file) {
+          const rawBytes = body.meter_file.content_base64
+            ? Uint8Array.from(atob(body.meter_file.content_base64), (c) => c.charCodeAt(0))
+            : new TextEncoder().encode(body.meter_file.text || "");
+          meterFile = {
+            name: body.meter_file.name || "meter_intervals.csv",
+            size: rawBytes.byteLength,
+            type: body.meter_file.type || "text/csv",
+            data: rawBytes,
+          };
+        }
+
+        const job = await ProcessingJobEngine.submitJob(
+          {
+            organisationId: targetOrgId,
+            userId: headerUserId,
+            jobType: body.job_type || "FULL_PIPELINE",
+            invoiceFile,
+            meterFile,
+            invoiceStoragePath: body.invoice_storage_path,
+            meterStoragePath: body.meter_storage_path,
+            metadata: body.metadata,
+            correlationId: body.correlation_id,
+          },
+          context,
+        );
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            job_id: job.jobId,
+            status: job.status,
+            tracking_url: `/api/jobs/${job.jobId}/status`,
+            job,
+          }),
+          {
+            status: 202,
+            headers: {
+              "content-type": "application/json",
+              "X-Content-Type-Options": "nosniff",
+            },
+          },
+        );
+      } catch (err: any) {
+        return new Response(
+          JSON.stringify({ error: "Failed to submit processing job", details: err?.message }),
+          { status: 500, headers: { "content-type": "application/json" } },
+        );
+      }
+    }
+
+    // 2. Query Job Status
+    if (
+      url.pathname.startsWith("/api/jobs/") &&
+      (url.pathname.endsWith("/status") || !url.pathname.includes("/", 10)) &&
+      request.method === "GET"
+    ) {
+      try {
+        const jobId = url.pathname.replace("/api/jobs/", "").replace("/status", "");
+        const { ProcessingJobEngine } = await import("./domain/jobs/processingJobEngine");
+        const { createSecurityContext } = await import("./domain/security/tenantContextService");
+
+        const headerTenantId =
+          request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
+        const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
+        const headerUserId = request.headers.get("X-User-ID") || "user-session";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+
+        const context = headerTenantId
+          ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
+          : undefined;
+
+        const job = await ProcessingJobEngine.getJobStatus(jobId, context);
+        if (!job) {
+          return new Response(JSON.stringify({ error: `Job '${jobId}' not found` }), {
+            status: 404,
+            headers: { "content-type": "application/json" },
+          });
+        }
+
+        return new Response(JSON.stringify({ success: true, job }), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+            "X-Content-Type-Options": "nosniff",
+          },
+        });
+      } catch (err: any) {
+        const status = err?.name === "TenantIsolationViolationError" ? 403 : 500;
+        return new Response(
+          JSON.stringify({ error: "Failed to retrieve job status", details: err?.message }),
+          { status, headers: { "content-type": "application/json" } },
+        );
+      }
+    }
+
+    // 3. Resolve Ambiguity for Paused Job
+    if (
+      url.pathname.startsWith("/api/jobs/") &&
+      url.pathname.endsWith("/resolve") &&
+      request.method === "POST"
+    ) {
+      try {
+        const jobId = url.pathname.replace("/api/jobs/", "").replace("/resolve", "");
+        const body = await request.json();
+        const { ProcessingJobEngine } = await import("./domain/jobs/processingJobEngine");
+        const { createSecurityContext } = await import("./domain/security/tenantContextService");
+
+        const headerTenantId =
+          request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
+        const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
+        const headerUserId = request.headers.get("X-User-ID") || "user-session";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+
+        const context = headerTenantId
+          ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
+          : undefined;
+
+        const updatedJob = await ProcessingJobEngine.resolveJobAmbiguity(
+          {
+            jobId,
+            resolvedMeterId: body.resolvedMeterId,
+            resolvedBillingPeriod: body.resolvedBillingPeriod,
+            confirmedTariffCode: body.confirmedTariffCode,
+            notes: body.notes,
+          },
+          context,
+        );
+
+        return new Response(JSON.stringify({ success: true, job: updatedJob }), {
+          status: 200,
+          headers: { "content-type": "application/json", "X-Content-Type-Options": "nosniff" },
+        });
+      } catch (err: any) {
+        const status = err?.name === "TenantIsolationViolationError" ? 403 : 400;
+        return new Response(
+          JSON.stringify({ error: "Failed to resolve job ambiguity", details: err?.message }),
+          { status, headers: { "content-type": "application/json" } },
+        );
+      }
+    }
+
+    // 4. Retrieve Authoritative Reconciliation Result of Completed Job
+    if (
+      url.pathname.startsWith("/api/jobs/") &&
+      url.pathname.endsWith("/result") &&
+      request.method === "GET"
+    ) {
+      try {
+        const jobId = url.pathname.replace("/api/jobs/", "").replace("/result", "");
+        const { ProcessingJobEngine } = await import("./domain/jobs/processingJobEngine");
+        const { createSecurityContext } = await import("./domain/security/tenantContextService");
+
+        const headerTenantId =
+          request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
+        const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
+        const headerUserId = request.headers.get("X-User-ID") || "user-session";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+
+        const context = headerTenantId
+          ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
+          : undefined;
+
+        const job = await ProcessingJobEngine.getJobStatus(jobId, context);
+        if (!job) {
+          return new Response(JSON.stringify({ error: `Job '${jobId}' not found` }), {
+            status: 404,
+            headers: { "content-type": "application/json" },
+          });
+        }
+
+        if (job.status !== "COMPLETED") {
+          return new Response(
+            JSON.stringify({
+              error: "JOB_NOT_COMPLETED",
+              message: `Job is currently in status '${job.status}' (stage: '${job.currentStage}')`,
+              progressPercentage: job.progressPercentage,
+            }),
+            { status: 409, headers: { "content-type": "application/json" } },
+          );
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            job_id: job.jobId,
+            status: job.status,
+            result: job.resultPayload,
+          }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json", "X-Content-Type-Options": "nosniff" },
+          },
+        );
+      } catch (err: any) {
+        const status = err?.name === "TenantIsolationViolationError" ? 403 : 500;
+        return new Response(
+          JSON.stringify({ error: "Failed to retrieve job result", details: err?.message }),
+          { status, headers: { "content-type": "application/json" } },
+        );
+      }
+    }
+
+    // 5. Cancel a Job
+    if (
+      url.pathname.startsWith("/api/jobs/") &&
+      url.pathname.endsWith("/cancel") &&
+      request.method === "POST"
+    ) {
+      try {
+        const jobId = url.pathname.replace("/api/jobs/", "").replace("/cancel", "");
+        const { ProcessingJobEngine } = await import("./domain/jobs/processingJobEngine");
+        const { createSecurityContext } = await import("./domain/security/tenantContextService");
+
+        const headerTenantId =
+          request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
+        const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
+        const headerUserId = request.headers.get("X-User-ID") || "user-session";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+
+        const context = headerTenantId
+          ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
+          : undefined;
+
+        const cancelled = await ProcessingJobEngine.cancelJob(jobId, context);
+        return new Response(JSON.stringify({ success: true, cancelled }), {
+          status: 200,
+          headers: { "content-type": "application/json", "X-Content-Type-Options": "nosniff" },
+        });
+      } catch (err: any) {
+        const status = err?.name === "TenantIsolationViolationError" ? 403 : 500;
+        return new Response(
+          JSON.stringify({ error: "Failed to cancel job", details: err?.message }),
+          { status, headers: { "content-type": "application/json" } },
+        );
+      }
+    }
+
+    // 6. List Jobs for Tenant
+    if (url.pathname === "/api/jobs" && request.method === "GET") {
+      try {
+        const { ProcessingJobEngine } = await import("./domain/jobs/processingJobEngine");
+        const { createSecurityContext } = await import("./domain/security/tenantContextService");
+
+        const headerTenantId =
+          request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
+        const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
+        const headerUserId = request.headers.get("X-User-ID") || "user-session";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+
+        const context = headerTenantId
+          ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
+          : undefined;
+
+        const status = (url.searchParams.get("status") as any) || undefined;
+        const jobType = (url.searchParams.get("jobType") as any) || undefined;
+        const limit = Number(url.searchParams.get("limit") || 50);
+
+        const jobs = await ProcessingJobEngine.listJobs(
+          {
+            organisationId: headerTenantId || undefined,
+            status,
+            jobType,
+            limit,
+          },
+          context,
+        );
+
+        return new Response(JSON.stringify({ success: true, jobs, count: jobs.length }), {
+          status: 200,
+          headers: { "content-type": "application/json", "X-Content-Type-Options": "nosniff" },
+        });
+      } catch (err: any) {
+        const status = err?.name === "TenantIsolationViolationError" ? 403 : 500;
+        return new Response(
+          JSON.stringify({ error: "Failed to list jobs", details: err?.message }),
+          { status, headers: { "content-type": "application/json" } },
+        );
+      }
+    }
+
     try {
       const handler = await getServerEntry();
       const rawResponse = await handler.fetch(request, env, ctx);

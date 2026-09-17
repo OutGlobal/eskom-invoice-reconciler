@@ -37,6 +37,7 @@ export default defineConfig({
       "src/lib/__tests__/stage13_tariff_engine.test.ts",
       "src/lib/__tests__/stage14_financial_integrity.test.ts",
       "src/lib/__tests__/stage15_automatic_processing.test.ts",
+      "src/lib/__tests__/stage16_processing_jobs.test.ts",
     ],
     testTimeout: 30000,
     fileParallelism: false,
