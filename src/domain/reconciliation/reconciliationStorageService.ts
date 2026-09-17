@@ -209,6 +209,27 @@ export class ReconciliationStorageService {
         timestamp: new Date().toISOString(),
       });
 
+      try {
+        const { AuditTrailService } = await import("../audit/auditTrailService");
+        await AuditTrailService.recordAction({
+          organisationId: orgId || "DEFAULT_TENANT",
+          category: "reconciliation",
+          action: "RECONCILIATION_RUN_SAVED",
+          description: `Authoritative reconciliation run ${runId} saved. Billed: R ${billedTotal.toFixed(2)}, Reconciled: R ${calculatedTotal.toFixed(2)}, Variance: R ${varianceTotal.toFixed(2)} (${status})`,
+          actor: { userId: context?.userId },
+          record: { entityType: "reconciliation_run", recordId: runId, recordLabel: `Recon Run ${runId}` },
+          newState: {
+            runId,
+            status,
+            billedTotal,
+            calculatedTotal,
+            varianceTotal,
+            variancePercentage,
+            invoiceId,
+          },
+        });
+      } catch {}
+
       return { success: true, message: "Reconciliation run saved successfully." };
     } catch (e: any) {
       if (e instanceof TenantIsolationViolationError) {

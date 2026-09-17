@@ -43,6 +43,7 @@ export default defineConfig({
       "src/lib/__tests__/stage19_real_charts.test.ts",
       "src/lib/__tests__/stage20_automatic_refresh.test.ts",
       "src/lib/__tests__/stage21_duplicate_protection.test.ts",
+      "src/lib/__tests__/stage22_audit_trail.test.ts",
     ],
     testTimeout: 60000,
     fileParallelism: false,

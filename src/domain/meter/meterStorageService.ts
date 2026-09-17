@@ -301,6 +301,38 @@ export class MeterStorageService {
         console.warn("Supabase meter_configurations insert warning:", error.message);
       }
 
+      try {
+        const { AuditTrailService } = await import("../audit/auditTrailService");
+        const prevConfig = existingConfigs.length > 0 ? existingConfigs[existingConfigs.length - 1] : null;
+        await AuditTrailService.recordAction({
+          organisationId: "DEFAULT_TENANT",
+          category: "configuration_changes",
+          action: "METER_CONFIGURATION_CHANGED",
+          description: `Meter ${newConfigRecord.meter_id} configuration v${newConfigRecord.version_number} saved. Reason: ${newConfigRecord.change_reason}`,
+          actor: { displayName: newConfigRecord.configured_by },
+          record: {
+            entityType: "meter_configuration",
+            recordId: newConfigRecord.id,
+            recordLabel: `Meter ${newConfigRecord.meter_id} (v${newConfigRecord.version_number})`,
+          },
+          previousState: prevConfig
+            ? {
+                version_number: prevConfig.version_number,
+                ct_ratio: prevConfig.ct_ratio,
+                vt_ratio: prevConfig.vt_ratio,
+                overall_multiplier: prevConfig.overall_multiplier,
+              }
+            : null,
+          newState: {
+            version_number: newConfigRecord.version_number,
+            ct_ratio: newConfigRecord.ct_ratio,
+            vt_ratio: newConfigRecord.vt_ratio,
+            overall_multiplier: newConfigRecord.overall_multiplier,
+            change_reason: newConfigRecord.change_reason,
+          },
+        });
+      } catch {}
+
       return {
         success: true,
         config: newConfigRecord,

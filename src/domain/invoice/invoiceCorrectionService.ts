@@ -111,6 +111,31 @@ export class InvoiceCorrectionService {
         console.warn("Supabase invoice_corrections insert warning:", error.message);
       }
 
+      // Stage 22: Persistent Audit Trail Subsystem Integration
+      try {
+        const { AuditTrailService } = await import("../audit/auditTrailService");
+        await AuditTrailService.recordAction({
+          organisationId: "DEFAULT_TENANT",
+          category: "data_correction",
+          action: "INVOICE_FIELD_CORRECTED",
+          description: `Field "${String(params.fieldName)}" corrected from "${params.originalValue}" to "${params.correctedValue}". Reason: ${params.reason}`,
+          actor: {
+            userId: params.userId || "user-auditor",
+            displayName: params.userName,
+          },
+          record: {
+            entityType: "invoice",
+            recordId: params.invoiceRecordId,
+            recordLabel: `Field ${String(params.fieldName)}`,
+          },
+          previousState: { [String(params.fieldName)]: params.originalValue },
+          newState: { [String(params.fieldName)]: params.correctedValue },
+          metadata: { reason: params.reason, approvedBy: params.approvedBy },
+        });
+      } catch (auditErr) {
+        console.warn("[InvoiceCorrectionService] AuditTrailService fallback:", auditErr);
+      }
+
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };

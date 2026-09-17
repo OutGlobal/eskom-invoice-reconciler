@@ -4,17 +4,17 @@
  */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { AuditViewer } from "@/components/audit/AuditViewer";
+import { AuditTrailWorkspace } from "@/components/audit/AuditTrailWorkspace";
 
 export const Route = createFileRoute("/audit")({
-  head: () => ({ meta: [{ title: "Audit & Lineage — Meter Reconciliation" }] }),
+  head: () => ({ meta: [{ title: "Audit & Governance Trail — Eskom Bill Balancer" }] }),
   component: AuditPage,
 });
 
 function AuditPage() {
   return (
     <div className="container mx-auto p-6 max-w-7xl">
-      <AuditViewer />
+      <AuditTrailWorkspace />
     </div>
   );
 }

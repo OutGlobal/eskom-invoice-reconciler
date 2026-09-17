@@ -155,4 +155,47 @@ export class TenantContextService {
   public static enforceTenantScope = enforceTenantScope;
   public static isRecordAuthorized = isRecordAuthorized;
   public static filterRecordsForTenant = filterRecordsForTenant;
+
+  /**
+   * Assign or update a user's security role, recording permission changes to the audit trail
+   */
+  public static async updateUserRole(
+    targetUserId: string,
+    newRole: AppRole,
+    actorContext: UserSecurityContext,
+    targetOrgId?: string,
+    previousRole: AppRole = "READ_ONLY",
+  ): Promise<{ success: boolean; previousRole: AppRole; newRole: AppRole }> {
+    if (!hasPermission(actorContext, "PERM_MANAGE_USERS")) {
+      throw new Error("UNAUTHORIZED: Actor does not possess PERM_MANAGE_USERS to change user roles");
+    }
+
+    const orgId = targetOrgId || actorContext.organisationId || "DEFAULT_TENANT";
+    const previousPermissions = ROLE_PERMISSIONS_MAP[previousRole];
+    const newPermissions = ROLE_PERMISSIONS_MAP[newRole];
+
+    try {
+      const { AuditTrailService } = await import("../audit/auditTrailService");
+      await AuditTrailService.recordAction({
+        organisationId: orgId,
+        category: "permission_changes",
+        action: "USER_ROLE_ASSIGNED",
+        description: `Security role for user ${targetUserId} updated from ${previousRole} to ${newRole}`,
+        actor: {
+          userId: actorContext.userId,
+          email: actorContext.email,
+          role: actorContext.role,
+        },
+        record: {
+          entityType: "user_profile",
+          recordId: targetUserId,
+          recordLabel: `User ${targetUserId}`,
+        },
+        previousState: { role: previousRole, permissions: previousPermissions },
+        newState: { role: newRole, permissions: newPermissions },
+      });
+    } catch {}
+
+    return { success: true, previousRole, newRole };
+  }
 }

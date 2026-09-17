@@ -38,6 +38,7 @@ import type { AutomatedPipelineFile } from "../pipeline/types";
 import { RealtimeRefreshManager } from "../realtime/realtimeRefreshManager";
 import { DuplicateProtectionService } from "../ingestion/duplicateProtectionService";
 import type { DuplicateEvaluationCandidate } from "../ingestion/duplicateTypes";
+import { AuditTrailService } from "../audit/auditTrailService";
 
 export class ProcessingJobEngine {
   // Authoritative in-memory registry of active and completed jobs
@@ -112,6 +113,18 @@ export class ProcessingJobEngine {
 
     // Persist job to database if connected
     this.persistJobAsync(job);
+
+    try {
+      void AuditTrailService.recordAction({
+        organisationId: orgId,
+        category: "processing",
+        action: "PROCESSING_JOB_QUEUED",
+        description: `Processing job ${jobId} queued (${jobType})`,
+        actor: { userId: context?.userId },
+        record: { entityType: "processing_job", recordId: jobId, recordLabel: `Job ${jobId}` },
+        newState: { jobId, jobType, status: "QUEUED", stage: "QUEUED" },
+      });
+    } catch {}
 
     // Trigger asynchronous background execution (does not block caller)
     setTimeout(() => {
@@ -684,6 +697,17 @@ export class ProcessingJobEngine {
 
     this.persistJobAsync(job);
 
+    try {
+      void AuditTrailService.recordAction({
+        organisationId: job.organisationId,
+        category: "processing",
+        action: "PROCESSING_JOB_COMPLETED",
+        description: `Processing job ${jobId} completed successfully. Records processed: ${totalRecords}.`,
+        record: { entityType: "processing_job", recordId: jobId, recordLabel: `Job ${jobId}` },
+        newState: { jobId, status: "COMPLETED", totalRecords, errorCount: job.errors.length },
+      });
+    } catch {}
+
     RealtimeRefreshManager.notifyProcessingComplete({
       jobId,
       organisationId: job.organisationId,
@@ -715,6 +739,17 @@ export class ProcessingJobEngine {
     );
 
     this.persistJobAsync(job);
+
+    try {
+      void AuditTrailService.recordAction({
+        organisationId: job.organisationId,
+        category: "processing",
+        action: "PROCESSING_JOB_FAILED",
+        description: `Processing job ${jobId} failed: ${errorSummary}`,
+        record: { entityType: "processing_job", recordId: jobId, recordLabel: `Job ${jobId}` },
+        newState: { jobId, status: "FAILED", errorSummary },
+      });
+    } catch {}
   }
 
   /**

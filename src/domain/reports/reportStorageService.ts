@@ -41,10 +41,28 @@ export async function saveGeneratedReportMetadata(
 
     if (error) {
       console.warn("Supabase generated_reports insert warning:", error.message);
-      return { success: true, id: meta.reportId, warning: error.message };
     }
 
-    return { success: true, id: data?.id || meta.reportId };
+    try {
+      const { AuditTrailService } = await import("../audit/auditTrailService");
+      await AuditTrailService.recordAction({
+        organisationId: "DEFAULT_TENANT",
+        category: "report_generation",
+        action: meta.reportType === "DISPUTE_PACK_EXCEL" ? "DISPUTE_PACK_EXCEL_GENERATED" : "DISPUTE_PACK_PDF_GENERATED",
+        description: `Generated dispute report ${meta.fileName} for run ${meta.runId}`,
+        actor: { userId: meta.createdBy },
+        record: { entityType: "report", recordId: meta.reportId, recordLabel: meta.fileName },
+        newState: {
+          fileName: meta.fileName,
+          reportType: meta.reportType,
+          runId: meta.runId,
+          fileSizeBytes: meta.fileSizeBytes,
+          sha256Hash: meta.sha256Hash,
+        },
+      });
+    } catch {}
+
+    return { success: true, id: data?.id || meta.reportId, warning: error?.message };
   } catch (err: any) {
     return { success: true, id: meta.reportId, warning: err.message };
   }

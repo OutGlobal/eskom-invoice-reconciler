@@ -147,6 +147,19 @@ export class SecureIngestionGateway {
     const sha256Checksum = await this.computeSha256(bytes);
     const resolvedFileType = this.resolveUploadFileType(filename, extFromFilename);
 
+    try {
+      const { AuditTrailService } = await import("../audit/auditTrailService");
+      await AuditTrailService.recordAction({
+        organisationId,
+        category: "upload",
+        action: "UPLOAD_INITIATED",
+        description: `Upload initiated for ${sanitizedFilename} (${fileSize} bytes)`,
+        actor: { userId: uploaderId },
+        record: { entityType: "source_file", recordId: documentId, recordLabel: sanitizedFilename },
+        newState: { filename: sanitizedFilename, fileSize, sha256Checksum, fileType: resolvedFileType },
+      });
+    } catch {}
+
     // If filename has path traversal or malicious characters, reject immediately
     if (!fnCheck.valid) {
       addLog("SECURITY", "error", `Filename security rejected: ${fnCheck.errors.join("; ")}`);
@@ -780,6 +793,27 @@ export class SecureIngestionGateway {
           LineageTrackingService.recordExtractedData(fields.accountNumber, extractedDto);
         }
 
+        try {
+          const { AuditTrailService } = await import("../audit/auditTrailService");
+          await AuditTrailService.recordAction({
+            organisationId,
+            category: "data_extraction",
+            action: "INVOICE_DATA_EXTRACTED",
+            description: `Extracted billing determinants for invoice ${invNum}`,
+            actor: { userId: uploaderId },
+            record: { entityType: "invoice", recordId: persistedInvoiceId, recordLabel: invNum },
+            newState: {
+              invoiceNumber: invNum,
+              accountNumber: fields.accountNumber,
+              invoicedTotal: fields.totalInvoice ?? 0,
+              totalKwh: fields.totalKwh ?? null,
+              peakKwh: fields.peakKwh ?? null,
+              standardKwh: fields.standardKwh ?? null,
+              offPeakKwh: fields.offPeakKwh ?? null,
+            },
+          });
+        } catch {}
+
         // Step 10: Mark processing job result
         await supabase
           .from("ingestion_jobs")
@@ -842,6 +876,23 @@ export class SecureIngestionGateway {
             TelemetryStorageService.recordGapsMemory(primaryMeter, extractRes.intervalSummary.gaps);
           }
         }
+
+        try {
+          const { AuditTrailService } = await import("../audit/auditTrailService");
+          await AuditTrailService.recordAction({
+            organisationId,
+            category: "data_extraction",
+            action: "INTERVAL_TELEMETRY_EXTRACTED",
+            description: `Extracted ${intervalPayloads.length} interval telemetry readings from ${sanitizedFilename}`,
+            actor: { userId: uploaderId },
+            record: { entityType: "source_file", recordId: documentId, recordLabel: sanitizedFilename },
+            newState: {
+              readingsCount: intervalPayloads.length,
+              meterId: primaryMeter,
+              gapsCount: extractRes.intervalSummary?.gaps?.length || 0,
+            },
+          });
+        } catch {}
       }
     } catch (dbErr) {
       addLog("DB", "warn", "Supabase offline mode active. Using local memory reflection.");
@@ -905,6 +956,24 @@ export class SecureIngestionGateway {
       "info",
       `File successfully processed. Rows: ${rowCount}, Records: ${recordCount}`,
     );
+
+    try {
+      const { AuditTrailService } = await import("../audit/auditTrailService");
+      await AuditTrailService.recordAction({
+        organisationId,
+        category: "upload",
+        action: "UPLOAD_COMPLETED",
+        description: `File upload completed for ${sanitizedFilename}. Status: ${finalProcessingStatus}`,
+        actor: { userId: uploaderId },
+        record: { entityType: "source_file", recordId: documentId, recordLabel: sanitizedFilename },
+        newState: {
+          processingStatus: finalProcessingStatus,
+          validationStatus: finalValidationStatus,
+          rowCount,
+          recordCount,
+        },
+      });
+    } catch {}
 
     const batchJob: IngestionBatchJob = {
       batchId,

@@ -276,6 +276,23 @@ export class DuplicateProtectionService {
           actor,
         );
 
+        try {
+          const { AuditTrailService } = await import("../audit/auditTrailService");
+          await AuditTrailService.recordAction({
+            organisationId: candidate.organisationId,
+            category: "upload",
+            action: "UPLOAD_DUPLICATE_RESOLVED",
+            description: `Accidental duplicate detected and skipped for ${candidate.sourceFile.name}`,
+            actor: { email: actor },
+            record: {
+              entityType: candidate.sourceType === "INVOICE_PDF" ? "invoice" : "source_file",
+              recordId: checkResult.existingRecord?.id || "unknown",
+              recordLabel: candidate.sourceFile.name,
+            },
+            metadata: { matchedCriteria: checkResult.matchedCriteria, actionTaken: "KEEP_EXISTING_SKIP" },
+          });
+        } catch {}
+
         return {
           success: true,
           status: "DUPLICATE",
@@ -302,6 +319,25 @@ export class DuplicateProtectionService {
           },
           actor,
         );
+
+        try {
+          const { AuditTrailService } = await import("../audit/auditTrailService");
+          await AuditTrailService.recordAction({
+            organisationId: candidate.organisationId,
+            category: "data_correction",
+            action: "DUPLICATE_CORRECTION_ACCEPTED",
+            description: `Accepted legitimate correction for ${candidate.invoiceNumber || candidate.sourceFile.name}, superseding prior version`,
+            actor: { email: actor },
+            record: {
+              entityType: candidate.sourceType === "INVOICE_PDF" ? "invoice" : "source_file",
+              recordId: priorId || candidate.invoiceNumber || "unknown",
+              recordLabel: candidate.invoiceNumber || candidate.sourceFile.name,
+            },
+            previousState: checkResult.existingRecord?.metrics || null,
+            newState: candidate.metrics || null,
+            metadata: { differences: checkResult.differences, supersedesId: priorId },
+          });
+        } catch {}
 
         return {
           success: true,

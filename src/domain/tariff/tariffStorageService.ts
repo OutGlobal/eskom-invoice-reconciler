@@ -328,6 +328,35 @@ export class TariffStorageService {
           components_count: version.components.length,
         },
       } as any);
+
+      try {
+        const { AuditTrailService } = await import("../audit/auditTrailService");
+        await AuditTrailService.recordAction({
+          organisationId: "DEFAULT_TENANT",
+          category: "tariff_changes",
+          action: "TARIFF_VERSION_ASSIGNED",
+          description: `Tariff version ${version.header.tariff_code} v${version.header.version} published/updated`,
+          actor: { userId: options.userId },
+          record: {
+            entityType: "tariff_structure",
+            recordId: key,
+            recordLabel: `${version.header.tariff_name} (v${version.header.version})`,
+          },
+          previousState: existing
+            ? {
+                version: existing.header.version,
+                componentsCount: existing.components.length,
+                status: existing.header.status,
+              }
+            : null,
+          newState: {
+            version: version.header.version,
+            componentsCount: version.components.length,
+            status: version.header.status,
+            effectiveDate: version.header.effective_date,
+          },
+        });
+      } catch {}
     } catch (e: any) {
       console.warn("[TariffStorageService] Background Supabase persist warning:", e?.message);
     }
