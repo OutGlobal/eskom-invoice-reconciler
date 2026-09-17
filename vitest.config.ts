@@ -29,6 +29,7 @@ export default defineConfig({
       "src/lib/__tests__/upload_ingestion_pipeline.test.ts",
       "src/lib/__tests__/file_security_adversarial.test.ts",
       "src/lib/__tests__/persistent_storage_lineage.test.ts",
+      "src/lib/__tests__/pdf_invoice_ingestion.test.ts",
     ],
     testTimeout: 30000,
     fileParallelism: false,

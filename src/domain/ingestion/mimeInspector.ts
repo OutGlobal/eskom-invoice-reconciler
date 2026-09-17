@@ -27,6 +27,22 @@ export class MimeInspector {
       File | Uint8Array | { size?: number; byteLength?: number; slice?: any; arrayBuffer?: any },
     filename: string,
   ): Promise<MimeInspectionResult> {
+    const fileSize =
+      typeof (file as any)?.size === "number"
+        ? (file as any).size
+        : typeof (file as any)?.byteLength === "number"
+          ? (file as any).byteLength
+          : 0;
+
+    if (fileSize > this.MAX_FILE_SIZE_BYTES) {
+      return {
+        isValid: false,
+        detectedMimeType: "unknown",
+        fileExtension: "unknown",
+        errorMessage: `File size exceeds maximum limit of 50MB (${(fileSize / (1024 * 1024)).toFixed(1)}MB uploaded)`,
+      };
+    }
+
     let bytes: Uint8Array;
 
     if (file instanceof Uint8Array) {

@@ -51,30 +51,32 @@ export interface ExtractedInvoiceDeterminant {
 }
 
 export interface BillingDeterminantRecord {
-  // Energy Determinants
-  peak_kwh: number;
-  standard_kwh: number;
-  off_peak_kwh: number;
-  total_kwh: number;
+  // Energy Determinants (Nullable when not billed or absent on non-TOU/single-rate tariffs)
+  peak_kwh: number | null;
+  standard_kwh: number | null;
+  off_peak_kwh: number | null;
+  total_kwh: number | null;
+  opening_reading?: number | null;
+  closing_reading?: number | null;
 
-  // Demand & Reactive Determinants
-  maximum_demand_kva: number;
-  notified_maximum_demand_kva: number;
-  utilised_capacity_kva: number;
-  reactive_energy_kvarh: number;
-  power_factor: number;
+  // Demand & Reactive Determinants (Nullable when unmeasured or unbilled)
+  maximum_demand_kva: number | null;
+  notified_maximum_demand_kva: number | null;
+  utilised_capacity_kva: number | null;
+  reactive_energy_kvarh: number | null;
+  power_factor: number | null;
 
-  // Financial Charges Breakdown
-  energy_charges_zar: number;
-  network_charges_zar: number;
-  demand_charges_zar: number;
-  service_charges_zar: number;
-  ancillary_charges_zar: number;
-  subsidies_adjustments_zar: number;
+  // Financial Charges Breakdown (Nullable when not levied)
+  energy_charges_zar: number | null;
+  network_charges_zar: number | null;
+  demand_charges_zar: number | null;
+  service_charges_zar: number | null;
+  ancillary_charges_zar: number | null;
+  subsidies_adjustments_zar: number | null;
 
   // Totals
-  subtotal_zar: number;
-  vat_zar: number;
+  subtotal_zar: number | null;
+  vat_zar: number | null;
   total_invoice_zar: number;
 }
 
@@ -175,38 +177,42 @@ export interface ExtractedInvoiceDocument {
   tariff_name: ExtractedField<string>;
   tariff_code: ExtractedField<string>;
 
-  // Demand & Capacity Determinants
-  notified_maximum_demand: ExtractedField<number>;
-  utilised_capacity: ExtractedField<number>;
-  maximum_demand: ExtractedField<number>;
+  // Meter Dial Readings (Opening & Closing)
+  opening_reading?: ExtractedField<number | null>;
+  closing_reading?: ExtractedField<number | null>;
 
-  // Active & Reactive Energy Determinants
-  active_energy: ExtractedField<number>;
-  peak_kwh: ExtractedField<number>;
-  standard_kwh: ExtractedField<number>;
-  off_peak_kwh: ExtractedField<number>;
-  total_kwh: ExtractedField<number>;
-  reactive_energy_kvarh: ExtractedField<number>;
-  power_factor: ExtractedField<number>;
+  // Demand & Capacity Determinants (Nullable when unmeasured or unbilled)
+  notified_maximum_demand: ExtractedField<number | null>;
+  utilised_capacity: ExtractedField<number | null>;
+  maximum_demand: ExtractedField<number | null>;
+
+  // Active & Reactive Energy Determinants (Nullable when unmeasured or unbilled)
+  active_energy: ExtractedField<number | null>;
+  peak_kwh: ExtractedField<number | null>;
+  standard_kwh: ExtractedField<number | null>;
+  off_peak_kwh: ExtractedField<number | null>;
+  total_kwh: ExtractedField<number | null>;
+  reactive_energy_kvarh: ExtractedField<number | null>;
+  power_factor: ExtractedField<number | null>;
 
   // Itemized Charge Totals
-  demand_charges: ExtractedField<number>;
-  network_charges: ExtractedField<number>;
-  capacity_charges: ExtractedField<number>;
-  service_charges: ExtractedField<number>;
-  reliability_services: ExtractedField<number>;
-  levies: ExtractedField<number>;
-  adjustments: ExtractedField<number>;
+  demand_charges: ExtractedField<number | null>;
+  network_charges: ExtractedField<number | null>;
+  capacity_charges: ExtractedField<number | null>;
+  service_charges: ExtractedField<number | null>;
+  reliability_services: ExtractedField<number | null>;
+  levies: ExtractedField<number | null>;
+  adjustments: ExtractedField<number | null>;
 
   // Financial Header Totals
-  subtotal_amount: ExtractedField<number>;
-  vat_amount: ExtractedField<number>;
+  subtotal_amount: ExtractedField<number | null>;
+  vat_amount: ExtractedField<number | null>;
   total_invoice_amount: ExtractedField<number>;
-  opening_balance: ExtractedField<number>;
-  closing_balance: ExtractedField<number>;
-  payments: ExtractedField<number>;
-  credits: ExtractedField<number>;
-  other_charges: ExtractedField<number>;
+  opening_balance: ExtractedField<number | null>;
+  closing_balance: ExtractedField<number | null>;
+  payments: ExtractedField<number | null>;
+  credits: ExtractedField<number | null>;
+  other_charges: ExtractedField<number | null>;
 
   // Detailed Tables & Determinants
   line_items: ExtractedInvoiceLineItem[];
@@ -215,6 +221,14 @@ export interface ExtractedInvoiceDocument {
   // Document Metadata & Validation Results
   metadata: InvoiceExtractionMetadata;
   validation_summary: InvoiceValidationSummary;
+
+  // Explicit tracking of missing fields (Never silently coerce to 0)
+  missing_fields?: string[];
+
+  // Entity Links
+  customer_id?: string;
+  site_id?: string;
+  meter_id?: string;
 
   // Human Review Audit Log
   corrections_log?: InvoiceCorrectionEntry[];

@@ -11,7 +11,7 @@ describe("Enterprise Secure Document & Telemetry Ingestion Gateway Suite", () =>
 
   it("Scenario 1: Valid Digital PDF Invoice Ingestion", async () => {
     const pdfBytes = new TextEncoder().encode(
-      "%PDF-1.7 Valid Eskom Megaflex Invoice Sample Payload",
+      "%PDF-1.7 Valid Eskom Megaflex Invoice Sample Payload\n%%EOF",
     );
     const file = new File([pdfBytes], "Impala_March_2026.pdf", { type: "application/pdf" });
 
@@ -28,7 +28,9 @@ describe("Enterprise Secure Document & Telemetry Ingestion Gateway Suite", () =>
   });
 
   it("Scenario 2: Scanned PDF Invoice with OCR Fallback Detection", async () => {
-    const pdfBytes = new TextEncoder().encode("%PDF-1.4 Scanned Image Stream /Image /Type /Page");
+    const pdfBytes = new TextEncoder().encode(
+      "%PDF-1.4 Scanned Image Stream /Image /Type /Page\n%%EOF",
+    );
     const file = new File([pdfBytes], "Scanned_Eskom_Bill.pdf", { type: "application/pdf" });
 
     const result = await SecureIngestionGateway.processUpload(file, "Scanned_Eskom_Bill.pdf");
@@ -52,7 +54,7 @@ describe("Enterprise Secure Document & Telemetry Ingestion Gateway Suite", () =>
 
   it("Scenario 4: Duplicate PDF Upload (SHA-256 Idempotency Guarantee)", async () => {
     const pdfBytes = new TextEncoder().encode(
-      "%PDF-1.7 Unique Eskom Document Content For Idempotency Test",
+      "%PDF-1.7 Unique Eskom Document Content For Idempotency Test\n%%EOF",
     );
     const file1 = new File([pdfBytes], "Invoice_Duplicate.pdf", { type: "application/pdf" });
     const file2 = new File([pdfBytes], "Invoice_Duplicate.pdf", { type: "application/pdf" });
