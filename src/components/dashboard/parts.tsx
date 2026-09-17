@@ -27,6 +27,7 @@ import { useApp } from "@/lib/store";
 import { validateMeterRows } from "@/lib/validation";
 import { lttb } from "@/lib/downsample";
 import { FinancialMath } from "@/domain/services/financialMath";
+import { ChartEmptyState } from "@/components/charts/ChartEmptyState";
 
 export const ZAR = (n: number) =>
   "R " +
@@ -379,6 +380,20 @@ export function NmdAlertCard({
 
 export function EnergyLineChart({ rows }: { rows: Measurement[] }) {
   const data = useChartData(rows);
+
+  if (!data || data.length === 0) {
+    return (
+      <ChartEmptyState
+        title="No Interval Energy Measurements"
+        message="No active power telemetry available. Upload AMR interval CSV or XLSX data to visualize active power (kW) curves."
+        actionText="Upload AMR Intervals"
+        actionLink="/invoices"
+        icon="chart"
+        minHeight="340px"
+      />
+    );
+  }
+
   return (
     <ResponsiveContainer width="100%" height={340}>
       <LineChart data={data} margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
@@ -442,6 +457,19 @@ export function DemandLineChart({
     });
     return bestIdx;
   }, [data, maxDemandAt]);
+
+  if (!data || data.length === 0) {
+    return (
+      <ChartEmptyState
+        title="No Demand Telemetry Recorded"
+        message="No apparent demand measurements available. Ingest 30-minute interval data to monitor kVA exceedances against contracted NMD."
+        actionText="Upload AMR Dataset"
+        actionLink="/invoices"
+        icon="upload"
+        minHeight="340px"
+      />
+    );
+  }
 
   return (
     <>
@@ -541,6 +569,16 @@ export function TouBarChart({
   data: Array<{ period: string; value: number; color: string }>;
   unit: string;
 }) {
+  if (!data || data.length === 0 || data.every((d) => !d.value || d.value === 0)) {
+    return (
+      <ChartEmptyState
+        title="No TOU Determinants"
+        message="No Time-of-Use consumption determinants recorded for this billing cycle."
+        minHeight="260px"
+      />
+    );
+  }
+
   return (
     <ResponsiveContainer width="100%" height={260}>
       <BarChart data={data} margin={{ top: 12, right: 12, left: 12, bottom: 8 }}>

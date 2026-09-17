@@ -21,6 +21,7 @@ import {
 import { useApp } from "@/lib/store";
 import { useDerived, ZAR, NUM } from "@/components/dashboard/parts";
 import { DashboardService } from "@/domain/dashboard/dashboardService";
+import { EnterpriseAnalyticsCharts } from "@/components/charts/EnterpriseAnalyticsCharts";
 import type {
   AggregatedDashboardData,
   CriticalAlertItem,
@@ -648,12 +649,17 @@ export function CommandCentreDashboard() {
             </div>
           </section>
 
-          {/* 6. Stage 18: Monthly Consumption & Billing Lineage */}
+          {/* 5. Stage 19: Enterprise Real Database Analytics Charts */}
+          <section>
+            <EnterpriseAnalyticsCharts filters={filters} />
+          </section>
+
+          {/* 6. Monthly Consumption & Billing Lineage */}
           <section className="rounded-lg border border-border bg-card p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-semibold tracking-tight uppercase flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4 text-primary" /> 5. Monthly Consumption & Billing Lineage
+                  <Calendar className="h-4 w-4 text-primary" /> 6. Monthly Consumption & Billing Lineage
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Verified database billing periods, TOU consumption determinants & reconciliation outcomes
@@ -747,7 +753,7 @@ export function CommandCentreDashboard() {
           <section className="rounded-lg border border-border bg-card p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold tracking-tight uppercase flex items-center gap-1.5">
-                <AlertTriangle className="h-4 w-4 text-red-500" /> 6. Actionable Critical Billing Alerts
+                <AlertTriangle className="h-4 w-4 text-red-500" /> 7. Actionable Critical Billing Alerts
               </h2>
               <span className="text-xs font-semibold px-2 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20">
                 {criticalAlerts.length} Active Alerts

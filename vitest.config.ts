@@ -40,6 +40,7 @@ export default defineConfig({
       "src/lib/__tests__/stage16_processing_jobs.test.ts",
       "src/lib/__tests__/stage17_large_datasets.test.ts",
       "src/lib/__tests__/stage18_real_dashboard.test.ts",
+      "src/lib/__tests__/stage19_real_charts.test.ts",
     ],
     testTimeout: 60000,
     fileParallelism: false,

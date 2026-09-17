@@ -71,10 +71,11 @@ export function EnergyPage() {
     bucket === "period" ? (bucketTotals.totalKWh > 0 ? bucketTotals : totals) : bucketTotals;
 
   // Comparison figures with Eskom Invoice
-  const invoicePeakKWh = invoice?.peakKWh ?? 6401924.4;
-  const invoiceStdKWh = invoice?.standardKWh ?? 19432557.6;
-  const invoiceOffKWh = invoice?.offPeakKWh ?? 23429967.6;
-  const invoiceTotalKWh = invoice?.totalKWh ?? invoicePeakKWh + invoiceStdKWh + invoiceOffKWh;
+  const invoicePeakKWh = invoice?.peakKWh ?? 0;
+  const invoiceStdKWh = invoice?.standardKWh ?? 0;
+  const invoiceOffKWh = invoice?.offPeakKWh ?? 0;
+  const invoiceTotalKWh =
+    invoice?.totalKWh ?? (invoicePeakKWh + invoiceStdKWh + invoiceOffKWh);
 
   const comparisonData = [
     {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -18,27 +18,34 @@ import {
   ReferenceLine,
 } from "recharts";
 import { TOU_COLOR } from "@/lib/tariff";
+import { ChartEmptyState } from "@/components/charts/ChartEmptyState";
 
-interface ChartProps {
-  dailyData?: Array<{
-    date: string;
-    peakKwh: number;
-    standardKwh: number;
-    offPeakKwh: number;
-    totalKwh: number;
-    peakKw: number;
-    peakKva: number;
-    nmdKva: number;
-    pf: number;
-    actualKvarh: number;
-    allowedKvarh: number;
-    billedZar: number;
-    calculatedZar: number;
-    varianceZar: number;
-  }>;
+interface DailyReconciliationRecord {
+  date: string;
+  peakKwh: number;
+  standardKwh: number;
+  offPeakKwh: number;
+  totalKwh: number;
+  peakKw: number;
+  peakKva: number;
+  nmdKva: number;
+  pf: number;
+  actualKvarh: number;
+  allowedKvarh: number;
+  billedZar: number;
+  calculatedZar: number;
+  varianceZar: number;
 }
 
-export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData = [] }) => {
+interface ChartProps {
+  dailyData?: DailyReconciliationRecord[];
+  nmdBaselineKva?: number;
+}
+
+export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({
+  dailyData = [],
+  nmdBaselineKva = 250,
+}) => {
   const [activeTab, setActiveTab] = useState<
     | "monthly"
     | "tou"
@@ -50,66 +57,84 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
     | "financialimpact"
   >("monthly");
 
-  // Fallback synthetic data if dailyData is empty
-  const chartData =
-    dailyData.length > 0
-      ? dailyData
-      : Array.from({ length: 31 }, (_, i) => {
-          const day = i + 1;
-          const date = `2026-03-${day.toString().padStart(2, "0")}`;
-          const peak = 1200 + Math.sin(i) * 300;
-          const std = 2200 + Math.cos(i) * 400;
-          const off = 1800 + Math.sin(i * 0.5) * 200;
-          const total = peak + std + off;
-          const kw = 180 + Math.random() * 40;
-          const kva = kw / 0.95;
-          const pf = 0.94 + Math.random() * 0.05;
-          const actualKvarh = total * 0.35;
-          const allowedKvarh = total * 0.329;
-          const billedZar = total * 1.85 + 450;
-          const calculatedZar = total * 1.82 + 450;
-          const varianceZar = billedZar - calculatedZar;
+  // Dynamically derive monthly data from daily reconciliation records
+  const monthlyData = useMemo(() => {
+    if (!dailyData || dailyData.length === 0) return [];
+    const map = new Map<string, { name: string; Billed: number; Calculated: number; Variance: number }>();
 
-          return {
-            date: date.substring(8),
-            peakKwh: Math.round(peak),
-            standardKwh: Math.round(std),
-            offPeakKwh: Math.round(off),
-            totalKwh: Math.round(total),
-            peakKw: Math.round(kw),
-            peakKva: Math.round(kva),
-            nmdKva: 250,
-            pf: Number(pf.toFixed(3)),
-            actualKvarh: Math.round(actualKvarh),
-            allowedKvarh: Math.round(allowedKvarh),
-            billedZar: Number(billedZar.toFixed(2)),
-            calculatedZar: Number(calculatedZar.toFixed(2)),
-            varianceZar: Number(varianceZar.toFixed(2)),
-          };
-        });
+    for (const d of dailyData) {
+      const monthKey = d.date.length >= 7 ? d.date.substring(0, 7) : "Active Period";
+      const existing = map.get(monthKey) || { name: monthKey, Billed: 0, Calculated: 0, Variance: 0 };
+      existing.Billed += d.billedZar;
+      existing.Calculated += d.calculatedZar;
+      existing.Variance += d.varianceZar;
+      map.set(monthKey, existing);
+    }
 
-  // Monthly summary bar chart data
-  const monthlyData = [
-    { name: "Jan 2026", Billed: 425000, Calculated: 421000, Variance: 4000 },
-    { name: "Feb 2026", Billed: 438000, Calculated: 438200, Variance: -200 },
-    { name: "Mar 2026", Billed: 495000, Calculated: 472500, Variance: 22500 },
-  ];
+    return Array.from(map.values()).map((m) => ({
+      ...m,
+      Billed: Math.round(m.Billed),
+      Calculated: Math.round(m.Calculated),
+      Variance: Math.round(m.Variance),
+    }));
+  }, [dailyData]);
 
-  // Financial Impact Distribution Data
-  const financialImpactData = [
-    { name: "Peak Energy TOU", value: 12450, color: "#ef4444" },
-    { name: "Standard Energy TOU", value: 4200, color: "#f59e0b" },
-    { name: "Demand Ratchet kVA", value: 5800, color: "#3b82f6" },
-    { name: "Reactive Penalty", value: 2450, color: "#8b5cf6" },
-    { name: "VAT Calculation Delta", value: 3735, color: "#10b981" },
-  ];
+  // Dynamically derive financial impact distribution from real daily variance
+  const financialImpactData = useMemo(() => {
+    if (!dailyData || dailyData.length === 0) return [];
+    let peakVar = 0;
+    let stdVar = 0;
+    let offVar = 0;
+    let demandVar = 0;
+    let reactiveVar = 0;
+
+    for (const d of dailyData) {
+      if (d.varianceZar > 0) {
+        const totKwh = d.totalKwh || 1;
+        peakVar += (d.peakKwh / totKwh) * d.varianceZar;
+        stdVar += (d.standardKwh / totKwh) * d.varianceZar;
+        offVar += (d.offPeakKwh / totKwh) * d.varianceZar;
+      }
+      if (d.peakKva > d.nmdKva) {
+        demandVar += (d.peakKva - d.nmdKva) * 54.32;
+      }
+      if (d.actualKvarh > d.allowedKvarh) {
+        reactiveVar += (d.actualKvarh - d.allowedKvarh) * 0.28;
+      }
+    }
+
+    const items = [
+      { name: "Peak Energy Discrepancy", value: Math.round(peakVar), color: TOU_COLOR.peak },
+      { name: "Standard Energy Discrepancy", value: Math.round(stdVar), color: TOU_COLOR.standard },
+      { name: "Off-Peak Energy Discrepancy", value: Math.round(offVar), color: TOU_COLOR.offPeak },
+      { name: "Demand Ratchet Exposure", value: Math.round(demandVar), color: "#3b82f6" },
+      { name: "Reactive Penalty Impact", value: Math.round(reactiveVar), color: "#8b5cf6" },
+    ].filter((i) => i.value > 0);
+
+    return items;
+  }, [dailyData]);
+
+  if (!dailyData || dailyData.length === 0) {
+    return (
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl mb-6">
+        <ChartEmptyState
+          title="No Reconciliation Telemetry Data"
+          message="No daily telemetry interval records available for enterprise reconciliation analytics. Ingest AMR intervals to view reconciliation curves."
+          actionText="Upload AMR Data"
+          actionLink="/invoices"
+          icon="chart"
+          minHeight="240px"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl mb-6">
       {/* Chart Navigation Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
         <h3 className="text-sm font-semibold text-slate-200 uppercase tracking-wider">
-          Enterprise Analytics & Consumption Visualizations
+          Enterprise Analytics &amp; Consumption Visualizations
         </h3>
         <div className="flex flex-wrap gap-1">
           {[
@@ -141,34 +166,42 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
       <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
           {activeTab === "monthly" ? (
-            <BarChart data={monthlyData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
-              <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `R${v / 1000}k`} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#0f172a",
-                  borderColor: "#334155",
-                  color: "#f8fafc",
-                }}
-                formatter={(v: any) => [`R ${Number(v).toLocaleString()}`, ""]}
+            monthlyData.length > 0 ? (
+              <BarChart data={monthlyData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
+                <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `R${v / 1000}k`} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#0f172a",
+                    borderColor: "#334155",
+                    color: "#f8fafc",
+                  }}
+                  formatter={(v: any) => [`R ${Number(v).toLocaleString()}`, ""]}
+                />
+                <Legend />
+                <Bar
+                  dataKey="Billed"
+                  fill="#3b82f6"
+                  name="Billed Amount (ZAR)"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="Calculated"
+                  fill="#10b981"
+                  name="Calculated Tariff (ZAR)"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            ) : (
+              <ChartEmptyState
+                title="No Monthly Aggregates"
+                message="No monthly billing determinants extracted from daily intervals."
+                minHeight="220px"
               />
-              <Legend />
-              <Bar
-                dataKey="Billed"
-                fill="#3b82f6"
-                name="Billed Amount (ZAR)"
-                radius={[4, 4, 0, 0]}
-              />
-              <Bar
-                dataKey="Calculated"
-                fill="#10b981"
-                name="Calculated Tariff (ZAR)"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
+            )
           ) : activeTab === "tou" ? (
-            <BarChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+            <BarChart data={dailyData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
               <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `${v} kWh`} />
@@ -184,7 +217,7 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
               <Bar dataKey="offPeakKwh" fill={TOU_COLOR.offPeak} name="Off-Peak kWh" stackId="a" />
             </BarChart>
           ) : activeTab === "daily" ? (
-            <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+            <AreaChart data={dailyData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
               <YAxis stroke="#94a3b8" fontSize={12} />
@@ -200,18 +233,20 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
               />
             </AreaChart>
           ) : activeTab === "demand" ? (
-            <LineChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+            <LineChart data={dailyData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
               <YAxis stroke="#94a3b8" fontSize={12} />
               <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
               <Legend />
-              <ReferenceLine
-                y={250}
-                label="NMD Limit (250 kVA)"
-                stroke="#ef4444"
-                strokeDasharray="3 3"
-              />
+              {nmdBaselineKva > 0 && (
+                <ReferenceLine
+                  y={nmdBaselineKva}
+                  label={`NMD Limit (${nmdBaselineKva} kVA)`}
+                  stroke="#ef4444"
+                  strokeDasharray="3 3"
+                />
+              )}
               <Line
                 type="monotone"
                 dataKey="peakKw"
@@ -230,7 +265,7 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
               />
             </LineChart>
           ) : activeTab === "powerfactor" ? (
-            <LineChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+            <LineChart data={dailyData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
               <YAxis domain={[0.85, 1.0]} stroke="#94a3b8" fontSize={12} />
@@ -252,7 +287,7 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
               />
             </LineChart>
           ) : activeTab === "reactive" ? (
-            <BarChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+            <BarChart data={dailyData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
               <YAxis stroke="#94a3b8" fontSize={12} />
@@ -267,7 +302,7 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
               />
             </BarChart>
           ) : activeTab === "variancetrend" ? (
-            <LineChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+            <LineChart data={dailyData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
               <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `R${v}`} />
@@ -282,7 +317,7 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
                 strokeWidth={2.5}
               />
             </LineChart>
-          ) : (
+          ) : financialImpactData.length > 0 ? (
             <PieChart>
               <Pie
                 data={financialImpactData}
@@ -300,6 +335,12 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({ dailyData
               </Pie>
               <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
             </PieChart>
+          ) : (
+            <ChartEmptyState
+              title="No Financial Variance"
+              message="No daily financial variance detected in the telemetry dataset."
+              minHeight="220px"
+            />
           )}
         </ResponsiveContainer>
       </div>

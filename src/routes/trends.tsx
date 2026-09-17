@@ -46,6 +46,8 @@ import { InvoiceSelector } from "@/components/InvoiceSelector";
 import { useApp } from "@/lib/store";
 import { exportCustomCsv } from "@/lib/exportReports";
 import { fetchSupabaseRecoveries, fetchSupabaseInvoices } from "@/lib/supabase";
+import { TARIFF } from "@/lib/tariff";
+import { ChartEmptyState } from "@/components/charts/ChartEmptyState";
 
 export const Route = createFileRoute("/trends")({
   head: () => ({ meta: [{ title: "Trends & Overcharge Recoveries — Eskom Bill Balancer" }] }),
@@ -181,12 +183,29 @@ export function TrendsPage() {
       list.push(
         ...dbInvoices.map((inv) => ({
           period: inv.billing_period || inv.invoice_number,
-          peakEnergy: inv.peak_kwh ? inv.peak_kwh * 0.95 : 0,
-          standardEnergy: inv.standard_kwh ? inv.standard_kwh * 0.65 : 0,
-          offPeakEnergy: inv.off_peak_kwh ? inv.off_peak_kwh * 0.45 : 0,
-          networkCapacity: 0,
-          demandCharge: inv.max_demand_kva ? inv.max_demand_kva * 24.17 : 0,
-          subsidiesAndLegacy: 0,
+          peakEnergy:
+            inv.peak_energy_charge ??
+            (inv.peak_kwh ? inv.peak_kwh * (TARIFF.energy.low.peak / 100) : 0),
+          standardEnergy:
+            inv.standard_energy_charge ??
+            (inv.standard_kwh ? inv.standard_kwh * (TARIFF.energy.low.standard / 100) : 0),
+          offPeakEnergy:
+            inv.off_peak_energy_charge ??
+            (inv.off_peak_kwh ? inv.off_peak_kwh * (TARIFF.energy.low.offPeak / 100) : 0),
+          networkCapacity: inv.network_capacity_charge ?? 0,
+          demandCharge:
+            inv.network_demand_charge ??
+            (inv.max_demand_kva ? inv.max_demand_kva * TARIFF.networkDemand : 0),
+          subsidiesAndLegacy:
+            inv.subsidies_and_legacy ??
+            (inv.total_kwh
+              ? inv.total_kwh *
+                ((TARIFF.affordability +
+                  TARIFF.electrification +
+                  TARIFF.ancillary +
+                  TARIFF.legacy) /
+                  100)
+              : 0),
           totalInvoice: inv.invoiced_total || 0,
           recoveryAmount: inv.variance_amount || 0,
         })),
@@ -508,14 +527,14 @@ export function TrendsPage() {
 
       {/* Trend Visualizations */}
       {trendsData.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-8 text-center text-xs text-muted-foreground">
-          <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p className="font-semibold text-foreground">No Multi-Period Trend Data Available</p>
-          <p className="mt-1 max-w-md mx-auto">
-            Upload Eskom invoices or AMR CSV intervals to visualize charge component trends and
-            overcharge recovery timelines.
-          </p>
-        </div>
+        <ChartEmptyState
+          title="No Multi-Period Trend Data Available"
+          message="Upload Eskom invoices or AMR CSV intervals to visualize charge component trends and overcharge recovery timelines."
+          actionText="Upload Energy Invoices"
+          actionLink="/invoices"
+          icon="chart"
+          minHeight="220px"
+        />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Charge Breakdown Trend Chart */}
