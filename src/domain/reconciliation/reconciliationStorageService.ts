@@ -14,6 +14,7 @@ import type {
   ToleranceConfig,
 } from "./types";
 import { DEFAULT_TOLERANCE_CONFIG } from "./reconciliationEngine";
+import { LineageTrackingService } from "../lineage/lineageTrackingService";
 
 export class ReconciliationStorageService {
   private static inMemoryRuns: Map<string, any> = new Map();
@@ -89,6 +90,57 @@ export class ReconciliationStorageService {
         completed_at: payload.completed_at || payload.run_at || new Date().toISOString(),
       };
 
+      // Record in canonical 6-tier lineage graph (unconditionally persisted)
+      LineageTrackingService.recordAnalysis(runId, {
+        reconciliationRunId: runId,
+        status: status,
+        runAt: runRecord.completed_at,
+      });
+      LineageTrackingService.recordResults(runId, {
+        resultId: `RES-${runId}`,
+        totalInvoiced: billedTotal,
+        totalReconciled: calculatedTotal,
+        variance: varianceTotal,
+        status: status === "COMPLETED" ? "PASS" : "DISCREPANCY",
+      });
+
+      if (invoiceId && invoiceId !== "INV_DEFAULT") {
+        LineageTrackingService.recordAnalysis(invoiceId, {
+          reconciliationRunId: runId,
+          status: status,
+          runAt: runRecord.completed_at,
+        });
+        LineageTrackingService.recordResults(invoiceId, {
+          resultId: `RES-${runId}`,
+          totalInvoiced: billedTotal,
+          totalReconciled: calculatedTotal,
+          variance: varianceTotal,
+          status: status === "COMPLETED" ? "PASS" : "DISCREPANCY",
+        });
+      }
+
+      if (payload.upload_id) {
+        LineageTrackingService.recordAnalysis(payload.upload_id, {
+          reconciliationRunId: runId,
+          status: status,
+          runAt: runRecord.completed_at,
+        });
+        LineageTrackingService.recordResults(payload.upload_id, {
+          resultId: `RES-${runId}`,
+          totalInvoiced: billedTotal,
+          totalReconciled: calculatedTotal,
+          variance: varianceTotal,
+          status: status === "COMPLETED" ? "PASS" : "DISCREPANCY",
+        });
+        LineageTrackingService.recordLineageLink({
+          uploadId: payload.upload_id,
+          sourceFileId: payload.upload_id,
+          organisationId: orgId || "DEFAULT",
+          invoiceRecordId: invoiceId,
+          reconciliationRunId: runId,
+        });
+      }
+
       try {
         const { error: runErr } = await supabase
           .from("reconciliation_runs")
@@ -101,7 +153,6 @@ export class ReconciliationStorageService {
             "[ReconciliationStorageService] Supabase unavailable, cached in-memory:",
             runErr.message,
           );
-          return { success: true, message: "Reconciliation run saved successfully." };
         }
 
         const rawComparisons = payload.determinant_comparisons || payload.comparisons || [];

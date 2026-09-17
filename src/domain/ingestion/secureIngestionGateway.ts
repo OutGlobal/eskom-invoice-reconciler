@@ -25,6 +25,7 @@ import type {
 } from "../upload/types";
 import { FileSecurityValidator } from "../security/fileSecurityValidator";
 import { FileStorageSecurityService } from "../security/fileStorageSecurityService";
+import { LineageTrackingService } from "../lineage/lineageTrackingService";
 import type { UserSecurityContext } from "../security/types";
 import { TenantIsolationViolationError } from "../security/tenantContextService";
 import type { ILayoutAdapter } from "./adapters/baseAdapter";
@@ -360,6 +361,32 @@ export class SecureIngestionGateway {
       `Validated format '${mimeResult.fileExtension}' (${mimeResult.detectedMimeType})`,
     );
 
+    // Persist original file bytes to Object Storage (Stage 7 Non-Destruction & Persistent Object Storage)
+    await FileStorageSecurityService.uploadOriginalFile(
+      storageLocation,
+      bytes,
+      mimeResult.detectedMimeType,
+      context,
+    );
+
+    // Register Source File metadata with statutory PERMANENT retention policy
+    FileStorageSecurityService.registerSourceFileMetadata({
+      id: documentId,
+      organisationId,
+      uploadId: documentId,
+      filename,
+      fileSizeBytes: fileSize,
+      mimeType: mimeResult.detectedMimeType,
+      storageBucket: FileStorageSecurityService.BUCKET_NAME,
+      storagePath: storageLocation,
+      fileHashSha256: sha256Checksum,
+      retentionPolicy: "PERMANENT",
+      isArchived: false,
+      isDeleted: false,
+      createdAt: new Date().toISOString(),
+      status: "stored",
+    });
+
     uploadRecord = await UploadStorageService.updateUploadStatus(
       documentId,
       {
@@ -404,7 +431,11 @@ export class SecureIngestionGateway {
       this.adapters.find((a) =>
         a.canHandle(mimeResult.fileExtension, mimeResult.detectedMimeType),
       ) || this.adapters[0];
-    const extractRes = await adapter.extract(file as File, bytes, jobId);
+    const fileObj =
+      file instanceof File
+        ? file
+        : new File([bytes], sanitizedFilename, { type: mimeResult.detectedMimeType });
+    const extractRes = await adapter.extract(fileObj, bytes, jobId);
 
     if (!extractRes.success) {
       addLog("PARSER", "error", "Layout adapter extraction failed");
@@ -469,15 +500,20 @@ export class SecureIngestionGateway {
         parser_type: mimeResult.isScannedPdf ? "tesseract_ocr" : adapter.constructor.name,
       });
 
-      // 2. Insert into source_files (Private Storage Metadata)
+      // 2. Insert into source_files (Private Storage Metadata & Retention Policy)
       await supabase.from("source_files").insert({
         id: documentId,
         organisation_id: organisationId,
+        upload_id: documentId,
         filename,
         file_size_bytes: fileSize,
         mime_type: mimeResult.detectedMimeType,
         storage_path: storageLocation,
+        storage_bucket: FileStorageSecurityService.BUCKET_NAME,
         file_hash_sha256: sha256Checksum,
+        retention_policy: "PERMANENT",
+        is_archived: false,
+        is_deleted: false,
         status: "parsed",
       });
 
@@ -519,6 +555,8 @@ export class SecureIngestionGateway {
               (extractRes.extractedFields as any).customerName ||
               "Enterprise Client",
             organisation_id: organisationId,
+            upload_id: documentId,
+            source_file_id: documentId,
             premise_id: extractRes.extractedFields.premiseId || null,
             meter_number: extractRes.extractedFields.meterNumber || null,
             billing_period_name: `${bStart} to ${bEnd}`,
@@ -538,12 +576,45 @@ export class SecureIngestionGateway {
           },
           { onConflict: "invoice_number" },
         );
+
+        LineageTrackingService.recordLineageLink({
+          uploadId: documentId,
+          sourceFileId: documentId,
+          organisationId,
+          invoiceRecordId: invNum,
+        });
+        if (extractRes.extractedFields.accountNumber) {
+          LineageTrackingService.recordLineageLink({
+            uploadId: documentId,
+            sourceFileId: documentId,
+            organisationId,
+            invoiceRecordId: extractRes.extractedFields.accountNumber,
+          });
+        }
+        const extractedDto = {
+          invoiceRecordId: invNum,
+          invoiceNumber: invNum,
+          accountNumber: extractRes.extractedFields.accountNumber,
+          billingPeriod: `${bStart} to ${bEnd}`,
+          invoicedTotal: extractRes.extractedFields.totalInvoice || 0,
+        };
+        LineageTrackingService.recordExtractedData(documentId, extractedDto);
+        LineageTrackingService.recordExtractedData(invNum, extractedDto);
+        if (extractRes.extractedFields.accountNumber) {
+          LineageTrackingService.recordExtractedData(
+            extractRes.extractedFields.accountNumber,
+            extractedDto,
+          );
+        }
       }
 
       // 5. Persist extracted telemetry intervals to telemetry_intervals
       if (extractRes.intervals && extractRes.intervals.length > 0) {
         const intervalPayloads = extractRes.intervals.slice(0, 5000).map((intv) => ({
           meter_id: intv.meter_id || "7856504226",
+          organisation_id: organisationId,
+          upload_id: documentId,
+          source_file_id: documentId,
           timestamp_utc: intv.timestamp_utc,
           local_timestamp: intv.local_timestamp || intv.timestamp_utc,
           source_timezone: intv.timezone || "Africa/Johannesburg",
@@ -557,6 +628,15 @@ export class SecureIngestionGateway {
         }));
         await supabase.from("telemetry_intervals").upsert(intervalPayloads, {
           onConflict: "meter_id,timestamp_utc",
+        });
+
+        LineageTrackingService.recordLineageLink({
+          uploadId: documentId,
+          sourceFileId: documentId,
+          organisationId,
+        });
+        LineageTrackingService.recordExtractedData(documentId, {
+          intervalCount: extractRes.intervals.length,
         });
       }
     } catch (dbErr) {
@@ -666,5 +746,7 @@ export class SecureIngestionGateway {
     this.processedHashes.clear();
     QuarantineManager.clearMemory();
     UploadStorageService.clearCache();
+    FileStorageSecurityService.clearStorageCache();
+    LineageTrackingService.clearCache();
   }
 }
