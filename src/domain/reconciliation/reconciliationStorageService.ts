@@ -16,6 +16,7 @@ import type {
 } from "./types";
 import { DEFAULT_TOLERANCE_CONFIG } from "./reconciliationEngine";
 import { LineageTrackingService } from "../lineage/lineageTrackingService";
+import { RealtimeRefreshManager } from "../realtime/realtimeRefreshManager";
 
 export class ReconciliationStorageService {
   private static inMemoryRuns: Map<string, any> = new Map();
@@ -199,6 +200,14 @@ export class ReconciliationStorageService {
           dbErr,
         );
       }
+
+      // Stage 20: Broadcast reconciliation completion for automatic dashboard & chart refresh
+      RealtimeRefreshManager.notifyProcessingComplete({
+        entityType: "reconciliation",
+        organisationId: orgId,
+        metadata: { runId, invoiceId },
+        timestamp: new Date().toISOString(),
+      });
 
       return { success: true, message: "Reconciliation run saved successfully." };
     } catch (e: any) {

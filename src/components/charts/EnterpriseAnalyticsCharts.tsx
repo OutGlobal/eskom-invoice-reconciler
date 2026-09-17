@@ -36,6 +36,7 @@ import type { DashboardFilterState } from "@/domain/dashboard/types";
 import { ChartEmptyState } from "./ChartEmptyState";
 import { useApp } from "@/lib/store";
 import { useDerived } from "@/components/dashboard/parts";
+import { useAutoRefresh } from "@/domain/realtime/useAutoRefresh";
 
 export type ChartTabKey =
   | "monthly_consumption"
@@ -109,6 +110,11 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
     batchInvoices?.length,
   ]);
 
+  // Stage 20: Auto-refresh charts on automated processing completion and database mutations
+  const { isAutoRefreshActive } = useAutoRefresh(loadData, {
+    organisationId: filters.organisationId,
+  });
+
   const tabs: Array<{ id: ChartTabKey; label: string; icon: any }> = [
     { id: "monthly_consumption", label: "1. Monthly Consumption", icon: BarChart3 },
     { id: "monthly_cost", label: "2. Monthly Cost", icon: DollarSign },
@@ -135,6 +141,16 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
         </div>
 
         <div className="flex items-center gap-2">
+          {isAutoRefreshActive && (
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 text-[10px] font-semibold uppercase tracking-wider">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+              </span>
+              <span>Live Auto-Sync</span>
+            </span>
+          )}
+
           {chartsData && (
             <span
               className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border ${

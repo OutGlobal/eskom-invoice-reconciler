@@ -22,6 +22,7 @@ import { useApp } from "@/lib/store";
 import { useDerived, ZAR, NUM } from "@/components/dashboard/parts";
 import { DashboardService } from "@/domain/dashboard/dashboardService";
 import { EnterpriseAnalyticsCharts } from "@/components/charts/EnterpriseAnalyticsCharts";
+import { useAutoRefresh } from "@/domain/realtime/useAutoRefresh";
 import type {
   AggregatedDashboardData,
   CriticalAlertItem,
@@ -80,6 +81,11 @@ export function CommandCentreDashboard() {
     loadData();
   }, [filters, invoice, calculatedTotal, invoiceTotal, rows.length]);
 
+  // Stage 20: Auto-refresh data on automated processing completion and database mutations
+  const { lastRefreshedAt, isAutoRefreshActive } = useAutoRefresh(loadData, {
+    organisationId: filters.organisationId,
+  });
+
   if (loading && !dashboardData) {
     return (
       <div className="p-8 space-y-4">
@@ -127,10 +133,20 @@ export function CommandCentreDashboard() {
         </div>
 
         <div className="flex items-center gap-3">
+          {isAutoRefreshActive && (
+            <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 text-[10px] font-semibold uppercase tracking-wider">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+              </span>
+              <span>Live Auto-Refresh</span>
+            </div>
+          )}
+
           <div className="text-right text-xs text-muted-foreground hidden sm:block">
             <div>Data Freshness:</div>
             <div className="font-mono font-medium text-foreground">
-              {format(new Date(data.lastUpdated), "dd MMM yyyy HH:mm:ss")}
+              {format(new Date(lastRefreshedAt || data.lastUpdated), "dd MMM yyyy HH:mm:ss")}
             </div>
           </div>
           <button

@@ -36,6 +36,7 @@ import type {
   AmbiguityReport,
   AutomatedPipelineResult,
 } from "@/domain/pipeline/types";
+import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
 
 const AUTOMATED_STAGES: { id: AutomatedPipelineStage; label: string }[] = [
   { id: "UPLOAD_SUCCESSFUL", label: "Upload successful" },
@@ -260,6 +261,12 @@ export function SecureUploadGateway() {
             useApp.getState().setInvoice(mappedInvoice);
           }
 
+          RealtimeRefreshManager.notifyProcessingComplete({
+            jobId: current.jobId,
+            entityType: "invoice",
+            timestamp: new Date().toISOString(),
+          });
+
           await loadHistory();
         } else if (current.status === "FAILED") {
           unsubscribe();
@@ -445,6 +452,12 @@ export function SecureUploadGateway() {
             uploadedAt: new Date(),
           });
         }
+
+        // Notify realtime refresh manager for automatic dashboard/charts update
+        RealtimeRefreshManager.notifyProcessingComplete({
+          entityType: file.name.toLowerCase().endsWith(".pdf") ? "invoice" : "meter_telemetry",
+          timestamp: new Date().toISOString(),
+        });
 
         // Refresh database history
         await loadHistory();

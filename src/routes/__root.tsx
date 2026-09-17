@@ -18,6 +18,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { AuthGate, SignOutButton } from "@/components/AuthGate";
 import { AiCopilotModal } from "@/components/AiCopilotModal";
 import { Sparkles } from "lucide-react";
+import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
 
 function NotFoundComponent() {
   return (
@@ -148,6 +149,11 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const routeContext = Route.useRouteContext();
   const queryClient = useMemo(() => routeContext?.queryClient || new QueryClient(), [routeContext]);
+
+  useEffect(() => {
+    RealtimeRefreshManager.setQueryClient(queryClient);
+  }, [queryClient]);
+
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 

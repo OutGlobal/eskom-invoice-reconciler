@@ -35,6 +35,7 @@ import type {
   JobListFilter,
 } from "./types";
 import type { AutomatedPipelineFile } from "../pipeline/types";
+import { RealtimeRefreshManager } from "../realtime/realtimeRefreshManager";
 
 export class ProcessingJobEngine {
   // Authoritative in-memory registry of active and completed jobs
@@ -639,6 +640,14 @@ export class ProcessingJobEngine {
     );
 
     this.persistJobAsync(job);
+
+    RealtimeRefreshManager.notifyProcessingComplete({
+      jobId,
+      organisationId: job.organisationId,
+      entityType: "job",
+      recordCount: totalRecords,
+      timestamp: job.completedAt,
+    });
   }
 
   /**
