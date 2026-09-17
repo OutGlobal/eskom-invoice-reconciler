@@ -375,8 +375,11 @@ export class FileStorageSecurityService {
     context: UserSecurityContext,
     reason: string,
   ): Promise<{ success: boolean; error?: string }> {
-    // Only ADMIN or SUPER_ADMIN may request file deletion
-    if (context.role !== "ADMIN" && context.role !== "SUPER_ADMIN") {
+    if (
+      context.role !== "ORGANISATION_ADMIN" &&
+      context.role !== "SUPER_ADMIN" &&
+      (context.role as string) !== "ADMIN"
+    ) {
       return {
         success: false,
         error: "Unauthorized: Only Organisation Admins or Super Admins may request file deletion.",

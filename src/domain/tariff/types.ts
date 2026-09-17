@@ -12,7 +12,7 @@ export type DayType = "weekday" | "saturday" | "sunday" | "public_holiday";
 export type VoltageCategory = "high" | "medium" | "low" | "transmission";
 export type CustomerClass =
   "urban_transmission" | "urban_distribution" | "rural" | "municipal_bulk" | "commercial";
-export type TariffStatus = "active" | "superseded" | "draft";
+export type TariffStatus = "active" | "superseded" | "draft" | "archived";
 export type TariffFamilyType =
   "megaflex" | "miniflex" | "nightsave" | "businessrate" | "municipal" | "custom";
 
@@ -21,7 +21,7 @@ export interface TariffScheduleHeader {
   tariff_name: string;
   utility: string; // e.g. 'Eskom', 'City of Johannesburg', 'City of Tshwane'
   tariff_family: TariffFamilyType;
-  version: string; // e.g. '2025.1', '2026.1'
+  version: string; // e.g. '2023.1', '2024.1', '2025.1', '2026.1'
   effective_date: string; // YYYY-MM-DD
   expiry_date?: string; // YYYY-MM-DD
   season: SeasonType;
@@ -31,6 +31,8 @@ export interface TariffScheduleHeader {
   vat_treatment: "standard_15" | "zero_rated";
   source_document: string; // e.g. 'NERSA Tariff Schedule Gazette 2025/26'
   source_hash: string; // SHA-256 fingerprint of source gazette
+  is_locked?: boolean; // When true, rates cannot be mutated in place
+  lock_reason?: string; // Audit notation for why the version is locked
 }
 
 export interface TouClockWindow {
@@ -172,4 +174,47 @@ export interface RateLineageExplanation {
   rule_id: string;
   gazette_reference: string;
   explanation_text: string;
+}
+
+/**
+ * Thrown when an attempt is made to mutate or overwrite an existing locked/published tariff version.
+ * Enforces the core invariant: Never overwrite a historical tariff in a way that changes historical reconciliation results.
+ */
+export class TariffImmutabilityViolationError extends Error {
+  constructor(
+    public readonly tariffCode: string,
+    public readonly version: string,
+    public readonly reason: string = "Historical tariff version is immutable and locked against modifications to protect historical reconciliation reproducibility.",
+  ) {
+    super(`TariffImmutabilityViolationError: [${tariffCode} v${version}] - ${reason}`);
+    this.name = "TariffImmutabilityViolationError";
+  }
+}
+
+/**
+ * Options for resolving the authoritative tariff version for an invoice
+ */
+export interface TariffResolutionOptions {
+  tariffCode?: string;
+  billingStart: string | Date;
+  billingEnd?: string | Date;
+  voltageLevel?: VoltageCategory;
+  customerClass?: CustomerClass;
+  explicitDefinition?: TariffVersionDefinition;
+}
+
+/**
+ * Formal determination output inspecting existing tariff capabilities
+ */
+export interface TariffFunctionalityClassification {
+  is_hardcoded: boolean;
+  is_database_driven: boolean;
+  is_manually_entered: boolean;
+  is_uploaded: boolean;
+  is_versioned: boolean;
+  primary_source: "CONTROLLED_PERSISTENT_STORE" | "DATABASE" | "FIXTURES" | "UPLOAD";
+  historical_immutability_enforced: boolean;
+  reproducibility_guaranteed: boolean;
+  supported_validity_periods: string[];
+  findings_summary: string[];
 }

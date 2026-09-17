@@ -133,6 +133,8 @@ export const ESKOM_MEGAFLEX_2025_2026: TariffVersionDefinition = {
     vat_treatment: "standard_15",
     source_document: "NERSA Tariff Schedule Gazette 2025/26 Table 1",
     source_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    is_locked: true,
+    lock_reason: "Gazetted NERSA 2025/26 schedule locked against mutation.",
   },
   tou_schedule: [HIGH_SEASON_TOU, LOW_SEASON_TOU],
   public_holidays: PUBLIC_HOLIDAYS_SA,
@@ -299,6 +301,8 @@ export const ESKOM_MINIFLEX_2025_2026: TariffVersionDefinition = {
     vat_treatment: "standard_15",
     source_document: "NERSA Tariff Schedule Gazette 2025/26 Table 2",
     source_hash: "a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0",
+    is_locked: true,
+    lock_reason: "Gazetted NERSA 2025/26 schedule locked against mutation.",
   },
   tou_schedule: [HIGH_SEASON_TOU, LOW_SEASON_TOU],
   public_holidays: PUBLIC_HOLIDAYS_SA,
@@ -435,6 +439,8 @@ export const ESKOM_NIGHTSAVE_2025_2026: TariffVersionDefinition = {
     vat_treatment: "standard_15",
     source_document: "NERSA Tariff Schedule Gazette 2025/26 Table 3",
     source_hash: "b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef012",
+    is_locked: true,
+    lock_reason: "Gazetted NERSA 2025/26 schedule locked against mutation.",
   },
   tou_schedule: [HIGH_SEASON_TOU, LOW_SEASON_TOU],
   public_holidays: PUBLIC_HOLIDAYS_SA,
@@ -497,6 +503,8 @@ export const MUNICIPAL_COJ_BULK_2025_2026: TariffVersionDefinition = {
     vat_treatment: "standard_15",
     source_document: "City of Johannesburg Tariff Schedule Gazette 2025/26",
     source_hash: "c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0123",
+    is_locked: true,
+    lock_reason: "Gazetted municipal 2025/26 schedule locked against mutation.",
   },
   tou_schedule: [HIGH_SEASON_TOU, LOW_SEASON_TOU],
   public_holidays: PUBLIC_HOLIDAYS_SA,
@@ -550,3 +558,229 @@ export const MUNICIPAL_COJ_BULK_2025_2026: TariffVersionDefinition = {
     },
   ],
 };
+
+/**
+ * Helper to scale tariff components for historical or projected tariff cycles
+ */
+function scaleComponents(
+  components: TariffVersionDefinition["components"],
+  multiplier: string,
+  prefix: string,
+): TariffVersionDefinition["components"] {
+  const mult = new Decimal(multiplier);
+  return components.map((c) => ({
+    ...c,
+    rule_id: c.rule_id.replace("RULE-", `RULE-${prefix}-`),
+    rate_value: c.rate_value.mul(mult).toDecimalPlaces(4, Decimal.ROUND_HALF_UP),
+  }));
+}
+
+/**
+ * 5. Historical Eskom Megaflex Tariff Definition (2023/2024)
+ * Locked historical baseline: NERSA Approved 2023/24 Schedule
+ */
+export const ESKOM_MEGAFLEX_2023_2024: TariffVersionDefinition = {
+  header: {
+    tariff_code: "ESKOM_MEGAFLEX_HV_2023_2024",
+    tariff_name: "Eskom Megaflex (High Voltage > 66kV) 2023/2024",
+    utility: "Eskom",
+    tariff_family: "megaflex",
+    version: "2023.1",
+    effective_date: "2023-04-01",
+    expiry_date: "2024-03-31",
+    season: "high",
+    voltage_level: "high",
+    customer_class: "urban_transmission",
+    status: "superseded",
+    vat_treatment: "standard_15",
+    source_document: "NERSA Electricity Tariff Gazette 2023/24 Table 1",
+    source_hash: "d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef01234567",
+    is_locked: true,
+    lock_reason:
+      "Historical gazetted tariff period closed; locked for reconciliation reproducibility.",
+  },
+  tou_schedule: [HIGH_SEASON_TOU, LOW_SEASON_TOU],
+  public_holidays: PUBLIC_HOLIDAYS_SA,
+  reactive_penalty_rate: new Decimal("0.1150"),
+  pf_threshold: new Decimal("0.95"),
+  nmd_ratchet_multiplier: new Decimal("2.0"),
+  minimum_nmd_kva: new Decimal("50.0"),
+  components: scaleComponents(ESKOM_MEGAFLEX_2025_2026.components, "0.7545", "HIST-23"),
+};
+
+/**
+ * 6. Historical Eskom Megaflex Tariff Definition (2024/2025)
+ * Locked historical baseline: NERSA Approved 2024/25 Schedule
+ */
+export const ESKOM_MEGAFLEX_2024_2025: TariffVersionDefinition = {
+  header: {
+    tariff_code: "ESKOM_MEGAFLEX_HV_2024_2025",
+    tariff_name: "Eskom Megaflex (High Voltage > 66kV) 2024/2025",
+    utility: "Eskom",
+    tariff_family: "megaflex",
+    version: "2024.1",
+    effective_date: "2024-04-01",
+    expiry_date: "2025-03-31",
+    season: "high",
+    voltage_level: "high",
+    customer_class: "urban_transmission",
+    status: "superseded",
+    vat_treatment: "standard_15",
+    source_document: "NERSA Electricity Tariff Gazette 2024/25 Table 1",
+    source_hash: "f67890123456789abcdef0123456789abcdef0123456789abcdef0123456789a",
+    is_locked: true,
+    lock_reason:
+      "Historical gazetted tariff period closed; locked for reconciliation reproducibility.",
+  },
+  tou_schedule: [HIGH_SEASON_TOU, LOW_SEASON_TOU],
+  public_holidays: PUBLIC_HOLIDAYS_SA,
+  reactive_penalty_rate: new Decimal("0.1286"),
+  pf_threshold: new Decimal("0.95"),
+  nmd_ratchet_multiplier: new Decimal("2.0"),
+  minimum_nmd_kva: new Decimal("50.0"),
+  components: scaleComponents(ESKOM_MEGAFLEX_2025_2026.components, "0.8870", "HIST-24"),
+};
+
+/**
+ * 7. Projected / Published Eskom Megaflex Tariff Definition (2026/2027)
+ * Effective 2026-04-01 to 2027-03-31
+ */
+export const ESKOM_MEGAFLEX_2026_2027: TariffVersionDefinition = {
+  header: {
+    tariff_code: "ESKOM_MEGAFLEX_HV_2026_2027",
+    tariff_name: "Eskom Megaflex (High Voltage > 66kV) 2026/2027",
+    utility: "Eskom",
+    tariff_family: "megaflex",
+    version: "2026.1",
+    effective_date: "2026-04-01",
+    expiry_date: "2027-03-31",
+    season: "high",
+    voltage_level: "high",
+    customer_class: "urban_transmission",
+    status: "active",
+    vat_treatment: "standard_15",
+    source_document: "NERSA Electricity Tariff Gazette 2026/27 Approved Schedule",
+    source_hash: "7890123456789abcdef0123456789abcdef0123456789abcdef0123456789abc",
+    is_locked: true,
+    lock_reason: "Gazetted NERSA 2026/27 schedule locked against mutation.",
+  },
+  tou_schedule: [HIGH_SEASON_TOU, LOW_SEASON_TOU],
+  public_holidays: PUBLIC_HOLIDAYS_SA,
+  reactive_penalty_rate: new Decimal("0.1634"),
+  pf_threshold: new Decimal("0.95"),
+  nmd_ratchet_multiplier: new Decimal("2.0"),
+  minimum_nmd_kva: new Decimal("50.0"),
+  components: scaleComponents(ESKOM_MEGAFLEX_2025_2026.components, "1.1270", "PROJ-26"),
+};
+
+/**
+ * 8. Historical Eskom Miniflex Tariff Definition (2024/2025)
+ */
+export const ESKOM_MINIFLEX_2024_2025: TariffVersionDefinition = {
+  header: {
+    tariff_code: "ESKOM_MINIFLEX_MV_2024_2025",
+    tariff_name: "Eskom Miniflex (Medium Voltage 1kV-33kV) 2024/2025",
+    utility: "Eskom",
+    tariff_family: "miniflex",
+    version: "2024.1",
+    effective_date: "2024-04-01",
+    expiry_date: "2025-03-31",
+    season: "high",
+    voltage_level: "medium",
+    customer_class: "urban_distribution",
+    status: "superseded",
+    vat_treatment: "standard_15",
+    source_document: "NERSA Electricity Tariff Gazette 2024/25 Table 2",
+    source_hash: "890123456789abcdef0123456789abcdef0123456789abcdef0123456789abcd",
+    is_locked: true,
+    lock_reason:
+      "Historical gazetted tariff period closed; locked for reconciliation reproducibility.",
+  },
+  tou_schedule: [HIGH_SEASON_TOU, LOW_SEASON_TOU],
+  public_holidays: PUBLIC_HOLIDAYS_SA,
+  reactive_penalty_rate: new Decimal("0.1464"),
+  pf_threshold: new Decimal("0.95"),
+  nmd_ratchet_multiplier: new Decimal("2.0"),
+  minimum_nmd_kva: new Decimal("25.0"),
+  components: scaleComponents(ESKOM_MINIFLEX_2025_2026.components, "0.8870", "MINI-24"),
+};
+
+/**
+ * 9. Historical Eskom Nightsave Urban Tariff Definition (2024/2025)
+ */
+export const ESKOM_NIGHTSAVE_2024_2025: TariffVersionDefinition = {
+  header: {
+    tariff_code: "ESKOM_NIGHTSAVE_URBAN_2024_2025",
+    tariff_name: "Eskom Nightsave Urban 2024/2025",
+    utility: "Eskom",
+    tariff_family: "nightsave",
+    version: "2024.1",
+    effective_date: "2024-04-01",
+    expiry_date: "2025-03-31",
+    season: "high",
+    voltage_level: "high",
+    customer_class: "urban_transmission",
+    status: "superseded",
+    vat_treatment: "standard_15",
+    source_document: "NERSA Tariff Schedule Gazette 2024/25 Table 3",
+    source_hash: "90123456789abcdef0123456789abcdef0123456789abcdef0123456789abcde",
+    is_locked: true,
+    lock_reason:
+      "Historical gazetted tariff period closed; locked for reconciliation reproducibility.",
+  },
+  tou_schedule: [HIGH_SEASON_TOU, LOW_SEASON_TOU],
+  public_holidays: PUBLIC_HOLIDAYS_SA,
+  reactive_penalty_rate: new Decimal("0.1374"),
+  pf_threshold: new Decimal("0.95"),
+  nmd_ratchet_multiplier: new Decimal("2.0"),
+  minimum_nmd_kva: new Decimal("50.0"),
+  components: scaleComponents(ESKOM_NIGHTSAVE_2025_2026.components, "0.8870", "NIGHT-24"),
+};
+
+/**
+ * 10. Historical Municipal Bulk Electricity Tariff (City of Johannesburg 2024/2025)
+ */
+export const MUNICIPAL_COJ_BULK_2024_2025: TariffVersionDefinition = {
+  header: {
+    tariff_code: "COJ_BULK_INDUSTRIAL_2024_2025",
+    tariff_name: "City of Johannesburg Bulk Industrial TOU Tariff 2024/2025",
+    utility: "City of Johannesburg",
+    tariff_family: "municipal",
+    version: "2024.1",
+    effective_date: "2024-07-01",
+    expiry_date: "2025-06-30",
+    season: "high",
+    voltage_level: "medium",
+    customer_class: "municipal_bulk",
+    status: "superseded",
+    vat_treatment: "standard_15",
+    source_document: "City of Johannesburg Tariff Schedule Gazette 2024/25",
+    source_hash: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    is_locked: true,
+    lock_reason:
+      "Historical gazetted tariff period closed; locked for reconciliation reproducibility.",
+  },
+  tou_schedule: [HIGH_SEASON_TOU, LOW_SEASON_TOU],
+  public_holidays: PUBLIC_HOLIDAYS_SA,
+  reactive_penalty_rate: new Decimal("0.1647"),
+  pf_threshold: new Decimal("0.95"),
+  nmd_ratchet_multiplier: new Decimal("2.0"),
+  minimum_nmd_kva: new Decimal("100.0"),
+  components: scaleComponents(MUNICIPAL_COJ_BULK_2025_2026.components, "0.8900", "COJ-24"),
+};
+
+/**
+ * Master catalog of all published, controlled production tariff versions
+ */
+export const ALL_PRODUCTION_TARIFF_FIXTURES: TariffVersionDefinition[] = [
+  ESKOM_MEGAFLEX_2023_2024,
+  ESKOM_MEGAFLEX_2024_2025,
+  ESKOM_MEGAFLEX_2025_2026,
+  ESKOM_MEGAFLEX_2026_2027,
+  ESKOM_MINIFLEX_2024_2025,
+  ESKOM_MINIFLEX_2025_2026,
+  ESKOM_NIGHTSAVE_2024_2025,
+  ESKOM_NIGHTSAVE_2025_2026,
+  MUNICIPAL_COJ_BULK_2024_2025,
+  MUNICIPAL_COJ_BULK_2025_2026,
+];

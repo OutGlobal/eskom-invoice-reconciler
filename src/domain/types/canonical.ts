@@ -150,3 +150,28 @@ export interface AuditLedgerEntry {
   details: Record<string, any>;
   hash?: string;
 }
+
+export type {
+  ActivePowerUnit,
+  ActiveEnergyUnit,
+  ApparentPowerUnit,
+  ApparentEnergyUnit,
+  ReactivePowerUnit,
+  ReactiveEnergyUnit,
+  PowerFactorUnit,
+  PowerUnit,
+  EnergyUnit,
+  SourceUnits,
+  NormalisedUnits,
+  SourceValues,
+  ConversionAuditTrail,
+  CanonicalEnergyRecord,
+} from "../telemetry/canonicalEnergyRecord";
+
+export { CANONICAL_NORMALISED_UNITS } from "../telemetry/canonicalEnergyRecord";
+
+export {
+  EnergyDataNormalizationEngine,
+  type RawEnergyIntervalInput,
+  type NormalizationEngineOptions,
+} from "../telemetry/energyDataNormalizationEngine";

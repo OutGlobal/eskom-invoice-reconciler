@@ -9,6 +9,7 @@ export interface AdapterExtractionResult {
   documentType: IngestionDocumentType;
   extractedFields?: ExtractedInvoiceFields;
   intervals?: any[];
+  intervalSummary?: any;
   rawTextPreview: string;
   confidenceScore: number; // 0.00 to 1.00
   needsHumanReview: boolean;

@@ -115,18 +115,38 @@ export interface CanonicalTelemetryRecord {
   timestamp_utc: string;
   local_timestamp: string;
   timezone: string;
-  interval_minutes: 15 | 30;
+  source_timezone?: string;
+  interval_minutes: 5 | 15 | 30 | 60;
+  interval_duration_minutes?: number;
   active_energy_kwh: number;
   reactive_energy_kvarh: number;
   apparent_power_kva: number;
   active_power_kw: number;
   power_factor?: number;
-  tou_period?: "PEAK" | "STANDARD" | "OFF_PEAK" | "peak" | "standard" | "off_peak";
+  tou_period?: "PEAK" | "STANDARD" | "OFF_PEAK" | "peak" | "standard" | "off_peak" | "offPeak";
   quality_status: TelemetryQualityStatus;
   source_file_id: string;
   source_row_number: number;
   parser_version: string;
   raw_payload?: Record<string, any>;
+
+  // Stage 10 Canonical Representations & Lineage
+  site_id?: string;
+  timestamp?: string;
+  kwh?: number;
+  kvah?: number;
+  peak_kwh?: number;
+  standard_kwh?: number;
+  off_peak_kwh?: number;
+  kw?: number;
+  kva?: number;
+  kvar?: number;
+  kvarh?: number;
+  source_units?: any;
+  normalised_units?: any;
+  source_values?: any;
+  conversion_multipliers?: Record<string, number>;
+  conversion_audit?: any;
 }
 
 export interface ParsedRawInterval {
@@ -181,3 +201,107 @@ export interface TelemetryQualityMetrics {
   clockConsistencyPercent: number;
   overallQualityScore: number;
 }
+
+export type DetectedSchemaType =
+  | "ESKOM_AMR_30M"
+  | "ESKOM_AMR_STANDARD"
+  | "MUNICIPAL_15MIN"
+  | "CUMULATIVE_REGISTERS"
+  | "CUMULATIVE_DIAL"
+  | "ENERGY_ONLY_KWH"
+  | "KWH_ENERGY_ONLY"
+  | "EXCEL_MULTI_SHEET"
+  | "GENERIC_INTERVAL";
+
+export interface DetectedFileStructure {
+  delimiter: string;
+  encoding: string;
+  sheetName?: string;
+  sheetNames?: string[];
+  headerRowIndex: number;
+  preambleRowCount?: number;
+  totalRows: number;
+  dataRows: number;
+  preambleLines: string[];
+}
+
+export interface DetectedHeaders {
+  rawHeaders: string[];
+  headerRowIndex?: number;
+  timestampColumn?: string;
+  dateColumn?: string;
+  timeColumn?: string;
+  meterColumn?: string;
+  activePowerColumn?: string;
+  activeEnergyColumn?: string;
+  reactiveEnergyColumn?: string;
+  apparentPowerColumn?: string;
+  powerFactorColumn?: string;
+  cumulativeRegisterColumn?: string;
+}
+
+export interface IntervalProcessingSummary {
+  meterId: string;
+  fileStructure: DetectedFileStructure;
+  headers: DetectedHeaders;
+  detectedDurationMinutes: 5 | 15 | 30 | 60;
+  intervals: {
+    total?: number;
+    totalParsed: number;
+    valid?: number;
+    validMeasured: number;
+    estimated: number;
+    duplicates: number;
+    suspect: number;
+    rollovers: number;
+  };
+  timeRange: {
+    startUtc: string;
+    endUtc: string;
+    startLocal: string;
+    endLocal: string;
+    durationDays: number;
+  };
+  gaps: {
+    gapCount: number;
+    totalMissingIntervals: number;
+    missingIntervalsTotal: number;
+    gapEvents: Array<
+      TelemetryGapEvent & {
+        startLocal?: string;
+        endLocal?: string;
+        missingCount?: number;
+      }
+    >;
+    missingIntervals: Array<{
+      expectedLocalTimestamp: string;
+      expectedUtcTimestamp: string;
+      meterId: string;
+    }>;
+  };
+  totals: {
+    totalActiveEnergyKwh: number;
+    totalReactiveEnergyKvarh: number;
+    peakDemandKw: number;
+    peakDemandKva: number;
+    averagePowerFactor: number;
+  };
+  qualityScore: number;
+  dataQualityScore?: number;
+  validationStatus: "VALID" | "PARTIALLY_PROCESSED" | "FAILED" | "REVIEW_REQUIRED";
+  validationErrors: string[];
+  validationWarnings: string[];
+  schemaType: DetectedSchemaType;
+}
+
+export interface IntervalIngestionOptions {
+  meterId?: string;
+  sourceFileId?: string;
+  organisationId?: string;
+  defaultTimezone?: string;
+  multiplier?: number;
+  allowEstimation?: boolean;
+}
+
+export * from "./canonicalEnergyRecord";
+export * from "./energyDataNormalizationEngine";

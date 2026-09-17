@@ -113,11 +113,18 @@ export type StructuredExtractedInvoice = {
   [K in keyof ExtractedInvoiceFields]: ExtractedFieldDetail<ExtractedInvoiceFields[K]>;
 };
 
+export interface IngestionAuditLogEntry {
+  stage: string;
+  level: "info" | "warn" | "error";
+  message: string;
+  timestamp: string;
+}
+
 export interface IngestionBatchJob {
   batchId: string;
   jobId: string;
   documentId: string;
-  documentType: IngestionDocumentType;
+  documentType: SupportedFileExtension | IngestionDocumentType | "UNKNOWN";
   state: IngestionLifecycleState;
   overallConfidenceScore: number; // 0.00 to 1.00
   processingDurationMs: number;
@@ -126,12 +133,7 @@ export interface IngestionBatchJob {
   rowsRejected: number;
   rowsDuplicate: number;
   errorCount: number;
-  logs: Array<{
-    stage: string;
-    level: "info" | "warn" | "error";
-    message: string;
-    timestamp: string;
-  }>;
+  logs: IngestionAuditLogEntry[];
   quarantineReason?: string;
   createdRecordId?: string;
 }
@@ -154,9 +156,11 @@ export interface IngestionGatewayResult {
   batchJob: IngestionBatchJob;
   extractedInvoice?: ExtractedInvoiceFields;
   intervals?: any[];
+  intervalSummary?: import("../telemetry/types").IntervalProcessingSummary;
   rawExtractionText?: string;
   confidenceScore: number;
   errors: IngestionErrorRecord[];
+  logs?: IngestionAuditLogEntry[];
   signedDownloadUrl?: string;
   isIdempotentDuplicate: boolean;
   uploadRecord?: import("../upload/types").UploadRecord;

@@ -28,6 +28,24 @@ import { UploadStorageService } from "@/domain/upload/uploadStorageService";
 import type { UploadRecord, UploadFileType, UploadProcessingStatus } from "@/domain/upload/types";
 import type { IngestionGatewayResult, IngestionLifecycleState } from "@/domain/ingestion/types";
 import { useApp, type InvoiceData } from "@/lib/store";
+import type { Measurement } from "@/lib/parseMeter";
+import { AutomaticProcessingPipeline } from "@/domain/pipeline/automaticProcessingPipeline";
+import type {
+  AutomatedPipelineStage,
+  AmbiguityReport,
+  AutomatedPipelineResult,
+} from "@/domain/pipeline/types";
+
+const AUTOMATED_STAGES: { id: AutomatedPipelineStage; label: string }[] = [
+  { id: "UPLOAD_SUCCESSFUL", label: "Upload successful" },
+  { id: "VALIDATING", label: "Validating" },
+  { id: "PROCESSING", label: "Processing" },
+  { id: "EXTRACTING", label: "Extracting" },
+  { id: "NORMALISING", label: "Normalising" },
+  { id: "RECONCILING", label: "Reconciling" },
+  { id: "ANALYSING", label: "Analysing" },
+  { id: "COMPLETE", label: "Complete" },
+];
 
 const SOURCE_TABS: { label: string; value: string; icon: any }[] = [
   { label: "All Formats", value: "ALL", icon: FolderOpen },
@@ -96,8 +114,161 @@ export function SecureUploadGateway() {
     loadHistory();
   }, []);
 
+  // Automated Pipeline State (Stage 15)
+  const [automatedPipelineRunning, setAutomatedPipelineRunning] = useState(false);
+  const [automatedStage, setAutomatedStage] = useState<AutomatedPipelineStage | null>(null);
+  const [automatedProgressPct, setAutomatedProgressPct] = useState(0);
+  const [automatedMessage, setAutomatedMessage] = useState("");
+  const [ambiguityReport, setAmbiguityReport] = useState<AmbiguityReport | null>(null);
+  const [automatedResult, setAutomatedResult] = useState<AutomatedPipelineResult | null>(null);
+
+  // Active files stored for automated resumption
+  const [activeInvoiceFile, setActiveInvoiceFile] = useState<File | null>(null);
+  const [activeMeterFile, setActiveMeterFile] = useState<File | null>(null);
+
+  const runAutomatedPipeline = async (
+    invoiceFile: File,
+    meterFile: File,
+    overrides?: { overrideMeterId?: string; overrideTariffCode?: string },
+  ) => {
+    setActiveInvoiceFile(invoiceFile);
+    setActiveMeterFile(meterFile);
+    setAutomatedPipelineRunning(true);
+    setAmbiguityReport(null);
+    setAutomatedResult(null);
+    setAutomatedStage("UPLOAD_SUCCESSFUL");
+    setAutomatedProgressPct(10);
+    setAutomatedMessage("Upload successful: Invoice and Meter files secured");
+
+    try {
+      const res = await AutomaticProcessingPipeline.execute(
+        {
+          invoiceFile,
+          meterFile,
+          tenantId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
+          userId: "user-system-admin",
+          ...overrides,
+        },
+        (stage, pct, msg, ambiguity) => {
+          setAutomatedStage(stage);
+          setAutomatedProgressPct(pct);
+          setAutomatedMessage(msg);
+          if (ambiguity) {
+            setAmbiguityReport(ambiguity);
+          }
+        },
+      );
+
+      setAutomatedResult(res);
+
+      if (res.status === "COMPLETED") {
+        const store = useApp.getState();
+        if (res.extractedInvoice) {
+          const ext = res.extractedInvoice;
+          const mappedInvoice: InvoiceData = {
+            source: invoiceFile.name,
+            invoiceNumber: ext.accountNumber ? `INV-${ext.accountNumber}` : `INV-${Date.now()}`,
+            customerName: ext.pod || ext.premiseId || "Commercial Customer",
+            accountNumber: ext.accountNumber || "",
+            meterNumber: ext.meterNumber || ext.meterSerial || "",
+            tariffName: ext.tariff || "Megaflex Non-Local Authority",
+            voltage: ext.voltage || ">= 500V & < 66kV",
+            nmd: ext.notifiedMaximumDemand || 2000,
+            billingPeriod: ext.billingPeriod || "Current Period",
+            billingPeriodStart: ext.billingStart,
+            billingPeriodEnd: ext.billingEnd,
+            peakKWh: ext.peakKwh || 0,
+            standardKWh: ext.standardKwh || 0,
+            offPeakKWh: ext.offPeakKwh || 0,
+            totalKWh: ext.totalKwh || 0,
+            maxDemandKVA: ext.billedMaximumDemand || 0,
+            transmissionNetworkCharge: (ext.networkCharges || 0) * 0.3,
+            networkCapacityCharge: (ext.networkCharges || 0) * 0.4,
+            generationCapacityCharge: 0,
+            networkDemandCharge: (ext.networkCharges || 0) * 0.3,
+            ancillary: ext.ancillaryCharges || 0,
+            legacy: 0,
+            affordability: (ext.subsidies || 0) * 0.7,
+            electrification: (ext.subsidies || 0) * 0.3,
+            reactive: 0,
+            peakEnergyCharge: (ext.energyCharges || 0) * 0.45,
+            standardEnergyCharge: (ext.energyCharges || 0) * 0.4,
+            offPeakEnergyCharge: (ext.energyCharges || 0) * 0.15,
+            vat: ext.vat || (ext.totalInvoice ? ext.totalInvoice * 0.15 : 0),
+            invoiceTotal: (ext.totalInvoice || 0) - (ext.vat || 0),
+            totalInclVat: ext.totalInvoice || 0,
+          };
+          store.setInvoice(mappedInvoice);
+        }
+
+        if (res.meterIngestion?.intervals && res.meterIngestion.intervals.length > 0) {
+          const measurements: Measurement[] = res.meterIngestion.intervals.map((r: any) => ({
+            ts: r.ts || new Date(r.timestamp_utc),
+            kW: r.kW ?? r.active_power_kw ?? 0,
+            kVAr: r.kVAr ?? 0,
+            kVA: r.kVA ?? r.apparent_power_kva ?? 0,
+            pf: r.pf ?? r.power_factor ?? 0.96,
+            tou: (r.tou || r.tou_period || "peak") as any,
+            estimated: r.quality_status === "estimated",
+          }));
+          store.setRows(measurements);
+        }
+
+        await loadHistory();
+      }
+    } catch (err: any) {
+      console.error("Automated pipeline execution failure:", err);
+      setAutomatedStage("FAILED");
+      setAutomatedMessage(err.message);
+    } finally {
+      setAutomatedPipelineRunning(false);
+    }
+  };
+
+  const handleResolveAmbiguity = async (actionValue: any) => {
+    if (!automatedResult?.pipelineRunId || !activeInvoiceFile || !activeMeterFile) return;
+    setAutomatedPipelineRunning(true);
+    setAmbiguityReport(null);
+
+    try {
+      const overrides: any = {};
+      if (typeof actionValue === "string" && actionValue.startsWith("ESKOM_")) {
+        overrides.overrideTariffCode = actionValue;
+      } else if (typeof actionValue === "string") {
+        overrides.overrideMeterId = actionValue;
+      }
+
+      await runAutomatedPipeline(activeInvoiceFile, activeMeterFile, overrides);
+    } catch (e: any) {
+      console.error("Resume failure:", e);
+      setAutomatedPipelineRunning(false);
+    }
+  };
+
   const handleFiles = async (files: FileList | File[]) => {
     if (!files || files.length === 0) return;
+    const fileList = Array.from(files);
+
+    // Check for dual intake: Invoice (PDF) + Meter Data (CSV/XLSX/XLS/XML/LOG)
+    const invoiceFile = fileList.find(
+      (f) => f.name.toLowerCase().endsWith(".pdf") || f.type === "application/pdf",
+    );
+    const meterFile = fileList.find(
+      (f) =>
+        f.name.toLowerCase().endsWith(".csv") ||
+        f.name.toLowerCase().endsWith(".xlsx") ||
+        f.name.toLowerCase().endsWith(".xls") ||
+        f.name.toLowerCase().endsWith(".xml") ||
+        f.name.toLowerCase().endsWith(".log"),
+    );
+
+    // If both files dropped together, trigger the automated pipeline!
+    if (invoiceFile && meterFile) {
+      await runAutomatedPipeline(invoiceFile, meterFile);
+      return;
+    }
+
+    // Standard single-file ingestion fallback
     const file = files[0];
     setProcessing(true);
     setIngestionResult(null);
@@ -162,6 +333,30 @@ export function SecureUploadGateway() {
             name: file.name,
             size: file.size,
             type: "invoice",
+            uploadedAt: new Date(),
+          });
+        }
+
+        // 2. If interval telemetry was extracted, reflect in app store rows
+        if (res.intervals && res.intervals.length > 0) {
+          const measurements: Measurement[] = res.intervals.map((r: any) => ({
+            ts: r.ts || new Date(r.timestamp_utc),
+            kW: r.kW ?? r.active_power_kw ?? 0,
+            kVAr:
+              r.kVAr ??
+              (r.reactive_energy_kvarh
+                ? r.reactive_energy_kvarh * (60 / (r.interval_minutes || 30))
+                : 0),
+            kVA: r.kVA ?? r.apparent_power_kva ?? 0,
+            pf: r.pf ?? r.power_factor ?? 0.96,
+            tou: (r.tou || r.tou_period || "peak") as any,
+            estimated: r.quality_status === "estimated",
+          }));
+          store.setRows(measurements);
+          store.addUpload({
+            name: file.name,
+            size: file.size,
+            type: "meter",
             uploadedAt: new Date(),
           });
         }
@@ -332,6 +527,7 @@ export function SecureUploadGateway() {
           onClick={() => {
             const input = document.createElement("input");
             input.type = "file";
+            input.multiple = true;
             input.accept = ".pdf,.csv,.xlsx,.xls,.xml,.log,.txt,.tsv,.json";
             input.onchange = (e: any) => {
               if (e.target.files) handleFiles(e.target.files);
@@ -343,11 +539,10 @@ export function SecureUploadGateway() {
             <Upload className="w-6 h-6" />
           </div>
           <p className="text-sm font-medium text-foreground">
-            Drop your utility document or click to browse
+            Drop Invoice + Meter Data together (or click to browse)
           </p>
           <p className="text-xs text-muted-foreground mt-1 max-w-md">
-            PDF invoices (Eskom / Municipal), CSV intervals, Excel workbooks (.xlsx/.xls), AMR XML
-            feeds, raw logger dumps (.log/.txt), and Tariff schedules (.json).
+            Automatic end-to-end reconciliation: Upload your invoice (PDF) and AMR interval data (CSV/Excel) simultaneously for automated 8-stage processing with zero extra clicks.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-[11px] text-muted-foreground">
             <span className="px-2 py-0.5 rounded border border-border/60 bg-muted/30">
@@ -371,8 +566,187 @@ export function SecureUploadGateway() {
           </div>
         </div>
 
-        {/* Real-Time Processing Stepper */}
-        {processing && (
+        {/* Automated End-to-End Processing Stepper (Stage 15) */}
+        {(automatedPipelineRunning || automatedStage) && (
+          <div className="mt-6 p-5 rounded-2xl border border-primary/30 bg-primary/5 space-y-4 animate-in fade-in duration-300">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-primary flex items-center gap-2">
+                {automatedStage === "COMPLETE" ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                ) : automatedStage === "STOPPED_FOR_AMBIGUITY" ? (
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+                )}
+                Pipeline: {automatedStage?.replace(/_/g, " ") || "INITIALIZING"}
+              </span>
+              <span className="font-mono font-bold text-foreground">{automatedProgressPct}%</span>
+            </div>
+
+            <div className="w-full bg-secondary/50 rounded-full h-2.5 overflow-hidden">
+              <div
+                className={`h-2.5 rounded-full transition-all duration-500 ${
+                  automatedStage === "COMPLETE"
+                    ? "bg-emerald-400"
+                    : automatedStage === "STOPPED_FOR_AMBIGUITY"
+                    ? "bg-amber-400"
+                    : "bg-primary"
+                }`}
+                style={{ width: `${automatedProgressPct}%` }}
+              />
+            </div>
+
+            <p className="text-xs text-muted-foreground font-medium">{automatedMessage}</p>
+
+            {/* The 8 Stages: Upload successful -> Validating -> Processing -> Extracting -> Normalising -> Reconciling -> Analysing -> Complete */}
+            <div className="pt-2 border-t border-border/40">
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 text-center text-[10px] font-medium">
+                {AUTOMATED_STAGES.map((s, idx) => {
+                  const stageIndex = AUTOMATED_STAGES.findIndex((st) => st.id === automatedStage);
+                  const isCurrent = automatedStage === s.id;
+                  const isPassed = stageIndex > idx || automatedStage === "COMPLETE";
+                  const isPaused = automatedStage === "STOPPED_FOR_AMBIGUITY" && idx === 4;
+
+                  return (
+                    <div
+                      key={s.id}
+                      className={`p-2 rounded-lg border transition-all flex flex-col items-center gap-1 ${
+                        isCurrent
+                          ? "border-primary bg-primary/10 text-primary font-bold shadow-sm"
+                          : isPassed
+                          ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-400"
+                          : isPaused
+                          ? "border-amber-500/40 bg-amber-500/10 text-amber-400 font-bold animate-pulse"
+                          : "border-border/30 bg-card/20 text-muted-foreground"
+                      }`}
+                    >
+                      <span className="text-[9px] opacity-70">Step {idx + 1}</span>
+                      <span className="leading-tight">{s.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Ambiguity Attention Card (Stage 15: Safe Stopping & Zero Invention) */}
+        {ambiguityReport && (
+          <div className="mt-6 p-5 rounded-2xl border-2 border-amber-500/40 bg-amber-500/5 backdrop-blur-md space-y-4 animate-in fade-in duration-300">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-6 h-6 text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-sm text-amber-300">
+                    Processing Paused: Ambiguity Requires Confirmation
+                  </h3>
+                  <span className="px-2 py-0.5 text-[10px] font-semibold rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    STOPPED SAFELY
+                  </span>
+                </div>
+                <p className="text-xs text-foreground/90 font-medium">{ambiguityReport.summary}</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-amber-500/20 bg-card/60 p-4 space-y-2">
+              <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
+                What Needs Attention
+              </span>
+              <p className="text-xs text-foreground/80 leading-relaxed">
+                {ambiguityReport.whatNeedsAttention}
+              </p>
+            </div>
+
+            {ambiguityReport.suggestedResolutions.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Select Resolution to Proceed:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {ambiguityReport.suggestedResolutions.map((res) => (
+                    <button
+                      key={res.id}
+                      onClick={() => handleResolveAmbiguity(res.actionValue)}
+                      className="px-3.5 py-2 text-xs font-semibold rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 transition-all shadow-md flex items-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>{res.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="p-3 rounded-lg border border-border/40 bg-muted/20 flex items-center gap-2 text-[11px] text-muted-foreground">
+              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{ambiguityReport.nonInventionPolicy}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Automated Result Complete Card */}
+        {automatedResult?.status === "COMPLETED" && (
+          <div className="mt-6 p-5 rounded-2xl border border-emerald-500/40 bg-emerald-500/5 space-y-4 animate-in fade-in duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                <div>
+                  <h3 className="text-sm font-bold text-emerald-300">
+                    Reconciliation Complete: All 8 Stages Successfully Executed
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Invoice and meter telemetry matched, determinants calculated, and discrepancy analysis generated.
+                  </p>
+                </div>
+              </div>
+              <a
+                href="/reconciliation"
+                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 transition-all shadow-md shrink-0"
+              >
+                <span>View Authoritative Audit</span>
+                <Eye className="w-3.5 h-3.5" />
+              </a>
+            </div>
+
+            {automatedResult.reconciliation && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-emerald-500/20 text-xs">
+                <div className="p-2.5 rounded-lg border border-border/40 bg-card/40">
+                  <span className="text-muted-foreground text-[10px]">BILLED TOTAL</span>
+                  <div className="font-mono font-bold text-foreground mt-0.5">
+                    R {automatedResult.reconciliation.billed_total_zar.toFixed(2)}
+                  </div>
+                </div>
+                <div className="p-2.5 rounded-lg border border-border/40 bg-card/40">
+                  <span className="text-muted-foreground text-[10px]">CALCULATED TOTAL</span>
+                  <div className="font-mono font-bold text-foreground mt-0.5">
+                    R {automatedResult.reconciliation.calculated_total_zar.toFixed(2)}
+                  </div>
+                </div>
+                <div className="p-2.5 rounded-lg border border-border/40 bg-card/40">
+                  <span className="text-muted-foreground text-[10px]">VARIANCE</span>
+                  <div
+                    className={`font-mono font-bold mt-0.5 ${
+                      automatedResult.reconciliation.variance_total_zar.isZero()
+                        ? "text-emerald-400"
+                        : "text-amber-400"
+                    }`}
+                  >
+                    R {automatedResult.reconciliation.variance_total_zar.toFixed(2)}
+                  </div>
+                </div>
+                <div className="p-2.5 rounded-lg border border-border/40 bg-card/40">
+                  <span className="text-muted-foreground text-[10px]">CLASSIFICATION</span>
+                  <div className="font-bold text-foreground mt-0.5">
+                    {automatedResult.reconciliation.classification}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Real-Time Processing Stepper (Single-File Fallback) */}
+        {processing && !automatedPipelineRunning && (
           <div className="mt-6 p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3 animate-in fade-in duration-200">
             <div className="flex items-center justify-between text-xs">
               <span className="font-semibold text-primary flex items-center gap-2">
@@ -461,6 +835,86 @@ export function SecureUploadGateway() {
                   Download
                 </a>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Stage 9: Interval Telemetry Processing Summary Card */}
+        {ingestionResult?.intervalSummary && (
+          <div className="mt-4 p-5 rounded-xl border border-border/60 bg-card/60 backdrop-blur-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-sm text-foreground">
+                  Stage 9 — Interval Telemetry Processing Summary
+                </h3>
+                <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-primary/10 text-primary border border-primary/20">
+                  {ingestionResult.intervalSummary.schemaType}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Quality Score:</span>
+                <span
+                  className={`font-bold text-xs px-2 py-0.5 rounded border ${
+                    ingestionResult.intervalSummary.qualityScore >= 90
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                      : ingestionResult.intervalSummary.qualityScore >= 70
+                        ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                        : "bg-rose-500/10 text-rose-400 border-rose-500/30"
+                  }`}
+                >
+                  {ingestionResult.intervalSummary.qualityScore} / 100
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <div className="p-3 rounded-lg border border-border/40 bg-muted/20">
+                <span className="text-muted-foreground">Meter Identifier:</span>
+                <div className="font-semibold text-foreground mt-0.5">
+                  {ingestionResult.intervalSummary.meterId}
+                </div>
+              </div>
+              <div className="p-3 rounded-lg border border-border/40 bg-muted/20">
+                <span className="text-muted-foreground">Cadence / Duration:</span>
+                <div className="font-semibold text-foreground mt-0.5">
+                  {ingestionResult.intervalSummary.detectedDurationMinutes} Minutes (
+                  {ingestionResult.intervalSummary.intervals.validMeasured} valid)
+                </div>
+              </div>
+              <div className="p-3 rounded-lg border border-border/40 bg-muted/20">
+                <span className="text-muted-foreground">Active Energy:</span>
+                <div className="font-semibold text-foreground mt-0.5">
+                  {ingestionResult.intervalSummary.totals.totalActiveEnergyKwh.toLocaleString()} kWh
+                </div>
+              </div>
+              <div className="p-3 rounded-lg border border-border/40 bg-muted/20">
+                <span className="text-muted-foreground">Peak Demand / PF:</span>
+                <div className="font-semibold text-foreground mt-0.5">
+                  {ingestionResult.intervalSummary.totals.peakDemandKw.toLocaleString()} kW (
+                  {ingestionResult.intervalSummary.totals.peakDemandKva.toLocaleString()} kVA) | PF{" "}
+                  {ingestionResult.intervalSummary.totals.averagePowerFactor.toFixed(3)}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/30 text-[11px] text-muted-foreground">
+              <div>
+                <span>Time Range: </span>
+                <span className="font-mono text-foreground">
+                  {ingestionResult.intervalSummary.timeRange.startLocal} →{" "}
+                  {ingestionResult.intervalSummary.timeRange.endLocal} (
+                  {ingestionResult.intervalSummary.timeRange.durationDays} days)
+                </span>
+              </div>
+              <div>
+                <span>Gaps / Duplicates: </span>
+                <span className="font-mono text-foreground">
+                  {ingestionResult.intervalSummary.gaps.gapCount} gap events (
+                  {ingestionResult.intervalSummary.gaps.totalMissingIntervals} missing intervals) |{" "}
+                  {ingestionResult.intervalSummary.intervals.duplicates} duplicates
+                </span>
+              </div>
             </div>
           </div>
         )}

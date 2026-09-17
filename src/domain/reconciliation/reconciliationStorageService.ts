@@ -10,6 +10,7 @@ import type { UserSecurityContext } from "../security/types";
 import { TenantIsolationViolationError } from "../security/tenantContextService";
 import type {
   AuthoritativeReconciliationPayload,
+  AuthoritativeReconciliationRecord,
   DeterminantComparisonItem,
   ToleranceConfig,
 } from "./types";
@@ -18,6 +19,12 @@ import { LineageTrackingService } from "../lineage/lineageTrackingService";
 
 export class ReconciliationStorageService {
   private static inMemoryRuns: Map<string, any> = new Map();
+  private static authoritativeRecords: Map<string, AuthoritativeReconciliationRecord> = new Map();
+
+  public static clearMemoryStore(): void {
+    this.inMemoryRuns.clear();
+    this.authoritativeRecords.clear();
+  }
 
   /**
    * Save an authoritative or enterprise reconciliation run to Supabase with in-memory fallback & tenant isolation
@@ -276,5 +283,102 @@ export class ReconciliationStorageService {
       }
       return inMemory;
     }
+  }
+
+  /**
+   * Save an authoritative reconciliation record (Stage 12 format) with multi-index caching & lineage
+   */
+  public static async saveAuthoritativeReconciliation(
+    record: AuthoritativeReconciliationRecord,
+    context?: UserSecurityContext,
+  ): Promise<{ success: boolean; message: string }> {
+    // 1. In-memory multi-index caching
+    this.authoritativeRecords.set(record.reconciliation_id, record);
+    if (record.invoice.invoice_number) {
+      this.authoritativeRecords.set(record.invoice.invoice_number, record);
+    }
+    if (record.invoice.invoice_id) {
+      this.authoritativeRecords.set(record.invoice.invoice_id, record);
+    }
+
+    // 2. Map to legacy run payload to maintain compatibility and database sync
+    const legacyPayload: AuthoritativeReconciliationPayload = {
+      run_id: record.reconciliation_id,
+      tenant_id: context?.organisationId || "TENANT_DEFAULT",
+      invoice_id: record.invoice.invoice_id || record.invoice.invoice_number,
+      telemetry_batch_id: record.source_data.telemetry_batch_id || "BATCH_DEFAULT",
+      tariff_version_id: `${record.audit_record.tariff_code}_${record.audit_record.tariff_version}`,
+      calendar_version_id: "2025.1",
+      engine_version: record.engine_version,
+      configuration_version: "1.0.0",
+      created_at: record.processing_timestamp,
+      completed_at: record.processing_timestamp,
+      status: record.calculation_status === "SUCCESS" ? "COMPLETED" : "REVIEW_REQUIRED",
+      classification:
+        record.result === "PASS"
+          ? "PASS"
+          : record.result === "WARNING"
+            ? "WARNING"
+            : record.result === "CRITICAL"
+              ? "CRITICAL"
+              : "DISCREPANCY",
+      result_checksum: record.audit_record.checksum,
+      billed_total_zar: record.invoice.invoice_total_zar,
+      calculated_total_zar: record.calculated_total_zar,
+      variance_total_zar: record.variance.financial_variance_zar,
+      variance_percentage: record.variance.financial_variance_pct,
+      determinant_comparisons: record.audit_record.determinants,
+    };
+
+    return await this.saveRun(legacyPayload, context);
+  }
+
+  /**
+   * Retrieve an authoritative reconciliation record by reconciliation ID or invoice number
+   */
+  public static getAuthoritativeRecord(id: string): AuthoritativeReconciliationRecord | null {
+    return this.authoritativeRecords.get(id) || null;
+  }
+
+  /**
+   * Retrieve all authoritative reconciliation records for a site
+   */
+  public static getRecordsBySite(site: string): AuthoritativeReconciliationRecord[] {
+    const unique = new Map<string, AuthoritativeReconciliationRecord>();
+    for (const rec of this.authoritativeRecords.values()) {
+      if (rec.site === site || rec.source_data.site_id === site) {
+        unique.set(rec.reconciliation_id, rec);
+      }
+    }
+    return Array.from(unique.values());
+  }
+
+  /**
+   * Retrieve all authoritative reconciliation records for an account
+   */
+  public static getRecordsByAccount(account: string): AuthoritativeReconciliationRecord[] {
+    const unique = new Map<string, AuthoritativeReconciliationRecord>();
+    for (const rec of this.authoritativeRecords.values()) {
+      if (rec.account === account || rec.invoice.account_number === account) {
+        unique.set(rec.reconciliation_id, rec);
+      }
+    }
+    return Array.from(unique.values());
+  }
+
+  /**
+   * Retrieve all authoritative reconciliation records for an invoice
+   */
+  public static getRecordsByInvoice(invoiceNumber: string): AuthoritativeReconciliationRecord[] {
+    const unique = new Map<string, AuthoritativeReconciliationRecord>();
+    for (const rec of this.authoritativeRecords.values()) {
+      if (
+        rec.invoice.invoice_number === invoiceNumber ||
+        rec.invoice.invoice_id === invoiceNumber
+      ) {
+        unique.set(rec.reconciliation_id, rec);
+      }
+    }
+    return Array.from(unique.values());
   }
 }

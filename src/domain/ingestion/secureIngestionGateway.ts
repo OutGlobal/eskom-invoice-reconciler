@@ -17,6 +17,7 @@ import { RawMeterLogAdapter } from "./adapters/rawMeterLogAdapter";
 import { TariffDocumentAdapter } from "./adapters/tariffDocumentAdapter";
 import { UploadStorageService } from "../upload/uploadStorageService";
 import { InvoiceStorageService } from "../invoice/invoiceStorageService";
+import { TelemetryStorageService } from "../telemetry/telemetryStorageService";
 import type {
   UploadFileType,
   UploadRecord,
@@ -210,6 +211,7 @@ export class SecureIngestionGateway {
         confidenceScore: 0.0,
         errors,
         logs,
+        isIdempotentDuplicate: false,
         uploadRecord: failedUpload,
       };
     }
@@ -339,6 +341,7 @@ export class SecureIngestionGateway {
         confidenceScore: 0.0,
         errors,
         logs,
+        isIdempotentDuplicate: false,
         uploadRecord,
       };
     }
@@ -351,7 +354,8 @@ export class SecureIngestionGateway {
     const mimeResult = {
       fileExtension: secResult.canonicalExtension,
       detectedMimeType: secResult.detectedMimeType,
-      isScannedPdf: secResult.isScannedPdf,
+      isScannedPdf:
+        secResult.canonicalExtension === "pdf" ? MimeInspector.detectIfScannedPdf(bytes) : false,
     };
 
     // Stage 3: VALIDATED - File header and signatures verified
@@ -435,7 +439,7 @@ export class SecureIngestionGateway {
     const fileObj =
       file instanceof File
         ? file
-        : new File([bytes], sanitizedFilename, { type: mimeResult.detectedMimeType });
+        : new File([bytes as any], sanitizedFilename, { type: mimeResult.detectedMimeType });
     const extractRes = await adapter.extract(fileObj, bytes, jobId);
 
     if (!extractRes.success) {
@@ -522,6 +526,7 @@ export class SecureIngestionGateway {
       const jobUuid = crypto.randomUUID();
       const jobType =
         extractRes.documentType === "AMR_TELEMETRY_CSV" ||
+        extractRes.documentType === "AMR_TELEMETRY_XLSX" ||
         extractRes.documentType === "RAW_METER_LOG"
           ? "AMR_CSV_INGEST"
           : "PDF_INVOICE_OCR";
@@ -627,7 +632,7 @@ export class SecureIngestionGateway {
           meterId = `meter-${fields.meterNumber}`;
         }
 
-        fields.customerId = customerId;
+        fields.customerId = customerId || undefined;
         fields.siteId = siteId;
 
         // Step 6: Determinant Checksum Validation
@@ -635,7 +640,8 @@ export class SecureIngestionGateway {
           fields.peakKwh !== null &&
           fields.standardKwh !== null &&
           fields.offPeakKwh !== null &&
-          fields.totalKwh !== null
+          fields.totalKwh !== null &&
+          fields.totalKwh !== undefined
         ) {
           const sumTou =
             (fields.peakKwh ?? 0) + (fields.standardKwh ?? 0) + (fields.offPeakKwh ?? 0);
@@ -792,13 +798,21 @@ export class SecureIngestionGateway {
           timestamp_utc: intv.timestamp_utc,
           local_timestamp: intv.local_timestamp || intv.timestamp_utc,
           source_timezone: intv.timezone || "Africa/Johannesburg",
-          kw: intv.channel === "kW" ? intv.engineering_value : intv.kW || 0,
-          kva: intv.channel === "kVA" ? intv.engineering_value : intv.kVA || 0,
-          kvarh: intv.channel === "kVARh" ? intv.engineering_value : intv.kVAr || 0,
-          kwh: intv.channel === "kWh" ? intv.engineering_value : intv.engineering_value || 0,
+          kw: (intv as any).kw ?? (intv.channel === "kW" ? intv.engineering_value : intv.kW || 0),
+          kva:
+            (intv as any).kva ?? (intv.channel === "kVA" ? intv.engineering_value : intv.kVA || 0),
+          kvarh:
+            (intv as any).kvarh ??
+            (intv.channel === "kVARh" ? intv.engineering_value : intv.kVAr || 0),
+          kwh:
+            (intv as any).kwh ??
+            (intv.channel === "kWh"
+              ? intv.engineering_value
+              : ((intv as any).active_energy_kwh ?? intv.engineering_value ?? 0)),
           power_factor:
-            intv.channel === "power_factor" ? intv.engineering_value : intv.power_factor || 0.96,
-          quality_code: "valid",
+            (intv as any).power_factor ??
+            (intv.channel === "power_factor" ? intv.engineering_value : 0.96),
+          quality_code: (intv as any).quality_status || "valid",
         }));
         await supabase.from("telemetry_intervals").upsert(intervalPayloads, {
           onConflict: "meter_id,timestamp_utc",
@@ -812,6 +826,20 @@ export class SecureIngestionGateway {
         LineageTrackingService.recordExtractedData(documentId, {
           intervalCount: extractRes.intervals.length,
         });
+
+        // Also record to in-memory fallback store for testing/offline mode
+        TelemetryStorageService.recordIntervalsMemory(documentId, intervalPayloads);
+        const primaryMeter = extractRes.intervals[0]?.meter_id;
+        if (primaryMeter) {
+          TelemetryStorageService.recordIntervalsMemory(primaryMeter, intervalPayloads);
+        }
+
+        if (extractRes.intervalSummary?.gaps && extractRes.intervalSummary.gaps.length > 0) {
+          TelemetryStorageService.recordGapsMemory(documentId, extractRes.intervalSummary.gaps);
+          if (primaryMeter) {
+            TelemetryStorageService.recordGapsMemory(primaryMeter, extractRes.intervalSummary.gaps);
+          }
+        }
       }
     } catch (dbErr) {
       addLog("DB", "warn", "Supabase offline mode active. Using local memory reflection.");
@@ -899,6 +927,7 @@ export class SecureIngestionGateway {
       batchJob,
       extractedInvoice: extractRes.extractedFields,
       intervals: extractRes.intervals,
+      intervalSummary: extractRes.intervalSummary,
       rawExtractionText: extractRes.rawTextPreview,
       confidenceScore: extractRes.confidenceScore,
       errors: extractRes.errors,
@@ -923,5 +952,6 @@ export class SecureIngestionGateway {
     InvoiceStorageService.clearMemoryStore();
     FileStorageSecurityService.clearStorageCache();
     LineageTrackingService.clearCache();
+    TelemetryStorageService.clearMemoryStore();
   }
 }

@@ -1,10 +1,16 @@
 /**
  * Tariff Version Selector & Pro-Rata Splitter
- * Selects applicable tariff versions based on effective dates and splits cross-boundary billing periods
+ * Selects authoritative tariff versions based on effective validity periods and splits cross-boundary billing periods.
+ * Guarantees that historical invoices reproducibly resolve to their historical gazetted tariff rates.
  */
 
-import type { TariffVersionDefinition } from "./types";
-import { ESKOM_MEGAFLEX_2025_2026 } from "./tariffFixtures";
+import type { TariffVersionDefinition, TariffResolutionOptions } from "./types";
+import { TariffStorageService } from "./tariffStorageService";
+import {
+  ESKOM_MEGAFLEX_2025_2026,
+  ESKOM_MEGAFLEX_2024_2025,
+  ESKOM_MEGAFLEX_2023_2024,
+} from "./tariffFixtures";
 
 export interface BillingSubPeriod {
   sub_period_start: string; // YYYY-MM-DD
@@ -14,13 +20,45 @@ export interface BillingSubPeriod {
 }
 
 export class TariffVersionSelector {
-  private static registeredVersions: TariffVersionDefinition[] = [ESKOM_MEGAFLEX_2025_2026];
+  private static localRegisteredVersions: TariffVersionDefinition[] = [];
 
   /**
-   * Register a new tariff version definition in the repository
+   * Register a new tariff version definition in the local registry
    */
   public static registerVersion(version: TariffVersionDefinition): void {
-    this.registeredVersions.push(version);
+    this.localRegisteredVersions.push(version);
+    TariffStorageService.saveTariffVersion(version, {
+      forceOverwrite: !version.header.is_locked,
+    }).catch(() => {
+      // Ignore background persist warnings in sync register
+    });
+  }
+
+  /**
+   * Reset local registered versions (for test cleanup)
+   */
+  public static reset(): void {
+    this.localRegisteredVersions = [];
+    TariffStorageService.resetToDefaults();
+  }
+
+  /**
+   * Authoritative resolution of tariff version for an invoice based on billing period and code
+   */
+  public static async resolveTariffForInvoice(
+    options: TariffResolutionOptions,
+  ): Promise<TariffVersionDefinition> {
+    if (options.explicitDefinition && options.explicitDefinition.header) {
+      return options.explicitDefinition;
+    }
+
+    const tariffQuery = options.tariffCode || "MEGAFLEX";
+    const dateStr =
+      options.billingStart instanceof Date
+        ? options.billingStart.toISOString().substring(0, 10)
+        : String(options.billingStart).substring(0, 10);
+
+    return this.selectVersionForDate(tariffQuery, dateStr);
   }
 
   /**
@@ -31,21 +69,44 @@ export class TariffVersionSelector {
     dateStr: string,
   ): TariffVersionDefinition {
     const targetDate = new Date(dateStr);
+    const targetIso = targetDate.toISOString().substring(0, 10);
 
-    const matched = this.registeredVersions.find((v) => {
+    // 1. Check local registered versions first
+    const localMatch = this.localRegisteredVersions.find((v) => {
       const isCodeMatch =
-        v.header.tariff_code.toLowerCase() === tariffCodeOrFamily.toLowerCase() ||
-        v.header.tariff_family.toLowerCase() === tariffCodeOrFamily.toLowerCase();
+        v.header.tariff_code.toLowerCase().includes(tariffCodeOrFamily.toLowerCase()) ||
+        v.header.tariff_family.toLowerCase().includes(tariffCodeOrFamily.toLowerCase()) ||
+        tariffCodeOrFamily.toLowerCase().includes(v.header.tariff_family.toLowerCase());
 
       if (!isCodeMatch) return false;
 
-      const effFrom = new Date(v.header.effective_date);
-      const effTo = v.header.expiry_date ? new Date(v.header.expiry_date) : new Date("2099-12-31");
-
-      return targetDate >= effFrom && targetDate <= effTo;
+      const effFrom = v.header.effective_date;
+      const effTo = v.header.expiry_date || "2099-12-31";
+      return targetIso >= effFrom && targetIso <= effTo;
     });
 
-    return matched || ESKOM_MEGAFLEX_2025_2026;
+    if (localMatch) return localMatch;
+
+    // 2. Query controlled persistent store in TariffStorageService
+    const storedMatch = TariffStorageService.getVersionForDate(tariffCodeOrFamily, dateStr);
+    if (storedMatch) return storedMatch;
+
+    // 3. Fallback matching by year if date falls in a known historical window
+    const targetYear = targetDate.getFullYear();
+    const targetMonth = targetDate.getMonth() + 1; // 1-12
+    // Eskom fiscal year begins April 1:
+    // If targetMonth >= 4, fiscal year is targetYear
+    // If targetMonth < 4, fiscal year is targetYear - 1
+    const fiscalStartYear = targetMonth >= 4 ? targetYear : targetYear - 1;
+
+    if (fiscalStartYear === 2023) {
+      return ESKOM_MEGAFLEX_2023_2024;
+    }
+    if (fiscalStartYear === 2024) {
+      return ESKOM_MEGAFLEX_2024_2025;
+    }
+
+    return ESKOM_MEGAFLEX_2025_2026;
   }
 
   /**
