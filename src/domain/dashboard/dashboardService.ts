@@ -263,8 +263,21 @@ export class DashboardService {
     const completedRuns = (runs || []).filter((r) => r.status === "completed").length;
     const failedRuns = (runs || []).filter((r) => r.status === "failed").length;
     const pendingRuns = (runs || []).filter((r) => r.status === "pending").length;
-    const totalRunsCount = (runs || []).length || 1;
-    const successRate = (completedRuns / totalRunsCount) * 100;
+    const runsCount = (runs || []).length;
+    const successRate = runsCount > 0 ? (completedRuns / runsCount) * 100 : null;
+
+    let avgDurationMs: number | null = null;
+    if (runs && runs.length > 0) {
+      const runsWithDuration = runs.filter(
+        (r: any) => typeof r.execution_duration_ms === "number" && r.execution_duration_ms > 0,
+      );
+      if (runsWithDuration.length > 0) {
+        avgDurationMs = Math.round(
+          runsWithDuration.reduce((acc: number, r: any) => acc + r.execution_duration_ms, 0) /
+            runsWithDuration.length,
+        );
+      }
+    }
 
     const criticalDiscrepancies = (discrepancies || []).filter(
       (d) => d.severity === "critical",
@@ -278,9 +291,9 @@ export class DashboardService {
     const potentialRecovery = overbilling;
 
     const portfolioSummary: PortfolioSummary = {
-      totalClients: orgs?.length || 1,
-      totalSites: sites?.length || 1,
-      totalAccounts: uniqueAccounts.size || 1,
+      totalClients: orgs?.length ?? (uniqueAccounts.size > 0 ? 1 : 0),
+      totalSites: sites?.length ?? 0,
+      totalAccounts: uniqueAccounts.size,
       totalInvoices: invoices.length,
       invoicesProcessed: processedCount,
       invoicesAwaitingReview: reviewCount,
@@ -301,7 +314,7 @@ export class DashboardService {
       reconciliationSuccessRatePct: successRate,
       failedReconciliationsCount: failedRuns,
       pendingReconciliationsCount: pendingRuns,
-      averageProcessingTimeMs: 145, // ms
+      averageProcessingTimeMs: avgDurationMs,
       invoicesRequiringHumanReviewCount: reviewCount,
       telemetryQualityIssuesCount: criticalDiscrepancies,
       hasData: true,
@@ -350,16 +363,72 @@ export class DashboardService {
       // Graceful fallback
     }
 
+    const activeTotalKwh = totalKwh.toNumber();
+    let calculatedPf: number | null = null;
+    if (activeTotalKwh > 0 && reactiveKvarh > 0) {
+      const apparent = Math.sqrt(activeTotalKwh * activeTotalKwh + reactiveKvarh * reactiveKvarh);
+      if (apparent > 0) {
+        calculatedPf = Number((activeTotalKwh / apparent).toFixed(2));
+      }
+    }
+
     const energyOverview: EnergyOverviewMetrics = {
       peakKWh: totalPeakKwh.toNumber(),
       standardKWh: totalStdKwh.toNumber(),
       offPeakKWh: totalOffKwh.toNumber(),
-      totalKWh: totalKwh.toNumber(),
-      maxDemandKVA: maxDemand,
-      reactiveEnergyKVARh: reactiveKvarh,
-      averagePowerFactor: 0.96,
+      totalKWh: activeTotalKwh,
+      maxDemandKVA: maxDemand > 0 ? maxDemand : null,
+      reactiveEnergyKVARh: reactiveKvarh > 0 ? reactiveKvarh : null,
+      averagePowerFactor: calculatedPf,
       hasData: true,
     };
+
+    // Build real Monthly Consumption records from database invoices
+    const monthlyConsumption = invoices
+      .filter((inv) => (inv.invoiced_total || 0) > 0 || (inv.total_kwh || 0) > 0)
+      .map((inv) => {
+        const billed = Number(inv.invoiced_total) || 0;
+        const calc = Number(inv.reconciled_total) || 0;
+        const variance =
+          inv.variance_amount !== undefined && inv.variance_amount !== null
+            ? Number(inv.variance_amount)
+            : billed > 0 && calc > 0
+              ? billed - calc
+              : null;
+        return {
+          invoiceNumber: inv.invoice_number || inv.id,
+          accountNumber: inv.account_number || "Default Account",
+          billingPeriod: inv.billing_period_name || inv.billing_period || "Monthly Billing Cycle",
+          billingStart: inv.billing_start || null,
+          billingEnd: inv.billing_end || null,
+          totalKWh: Number(inv.total_kwh) || 0,
+          peakKWh:
+            inv.peak_kwh !== undefined && inv.peak_kwh !== null ? Number(inv.peak_kwh) : null,
+          standardKWh:
+            inv.standard_kwh !== undefined && inv.standard_kwh !== null
+              ? Number(inv.standard_kwh)
+              : null,
+          offPeakKWh:
+            inv.off_peak_kwh !== undefined && inv.off_peak_kwh !== null
+              ? Number(inv.off_peak_kwh)
+              : null,
+          maxDemandKVA:
+            inv.max_demand_kva !== undefined &&
+            inv.max_demand_kva !== null &&
+            Number(inv.max_demand_kva) > 0
+              ? Number(inv.max_demand_kva)
+              : null,
+          invoicedTotalZar: billed,
+          reconciledTotalZar: calc > 0 ? calc : null,
+          varianceZar: variance,
+          status: inv.status ? String(inv.status).toUpperCase() : "PROCESSED",
+        };
+      })
+      .sort((a, b) => {
+        const dateA = a.billingStart ? new Date(a.billingStart).getTime() : 0;
+        const dateB = b.billingStart ? new Date(b.billingStart).getTime() : 0;
+        return dateA - dateB;
+      });
 
     const criticalAlerts: CriticalAlertItem[] = this.buildAlertsFromData(
       invoices,
@@ -371,6 +440,7 @@ export class DashboardService {
       reconciliationHealth,
       financialRecovery,
       energyOverview,
+      monthlyConsumption,
       criticalAlerts,
       lastUpdated: new Date().toISOString(),
       isLiveDatabase: true,
@@ -485,11 +555,30 @@ export class DashboardService {
       hasData: true,
     };
 
+    let calculatedPf: number | null = null;
+    if (rows && rows.length > 0) {
+      const validPfRows = rows.filter((r: any) => r.pf && !isNaN(r.pf) && r.pf > 0);
+      if (validPfRows.length > 0) {
+        calculatedPf = Number(
+          (validPfRows.reduce((acc: number, r: any) => acc + r.pf, 0) / validPfRows.length).toFixed(
+            2,
+          ),
+        );
+      }
+    } else if (totalKwhSum > 0 && totals?.reactiveEnergyKVARh && totals.reactiveEnergyKVARh > 0) {
+      const apparent = Math.sqrt(
+        totalKwhSum * totalKwhSum + totals.reactiveEnergyKVARh * totals.reactiveEnergyKVARh,
+      );
+      if (apparent > 0) {
+        calculatedPf = Number((totalKwhSum / apparent).toFixed(2));
+      }
+    }
+
     const reconciliationHealth: ReconciliationHealthMetrics = {
       reconciliationSuccessRatePct: isPass ? 100 : 0,
       failedReconciliationsCount: isPass ? 0 : 1,
       pendingReconciliationsCount: 0,
-      averageProcessingTimeMs: 120,
+      averageProcessingTimeMs: null,
       invoicesRequiringHumanReviewCount: reviewCount,
       telemetryQualityIssuesCount: (validationIssues || []).length,
       hasData: true,
@@ -516,12 +605,33 @@ export class DashboardService {
       standardKWh: stdKwhSum,
       offPeakKWh: offKwhSum,
       totalKWh: totalKwhSum,
-      maxDemandKVA: maxDemandKva,
+      maxDemandKVA: maxDemandKva > 0 ? maxDemandKva : null,
       maxDemandTimestamp: totals?.maxDemandAt ? totals.maxDemandAt.toISOString() : undefined,
-      reactiveEnergyKVARh: totals?.reactiveEnergyKVARh || 0,
-      averagePowerFactor: 0.96,
+      reactiveEnergyKVARh: totals?.reactiveEnergyKVARh > 0 ? totals.reactiveEnergyKVARh : null,
+      averagePowerFactor: calculatedPf,
       hasData: true,
     };
+
+    const monthlyConsumption = invoices.map((inv: any) => {
+      const billed = Number(inv.invoiceTotal || invoiceTotal) || 0;
+      const calc = Number(calculatedTotal) || 0;
+      return {
+        invoiceNumber: inv.invoiceNumber || inv.taxInvoiceNo || "Current Store Invoice",
+        accountNumber: inv.accountNumber || customer?.accountNumber || "Store Account",
+        billingPeriod: inv.billingPeriod || "Current Period",
+        billingStart: inv.billingPeriodStart || null,
+        billingEnd: inv.billingPeriodEnd || null,
+        totalKWh: Number(inv.totalKWh || totals?.totalKWh) || 0,
+        peakKWh: inv.peakKWh ?? totals?.peakKWh ?? null,
+        standardKWh: inv.standardKWh ?? totals?.standardKWh ?? null,
+        offPeakKWh: inv.offPeakKWh ?? totals?.offPeakKWh ?? null,
+        maxDemandKVA: inv.maxDemandKVA ?? totals?.maxDemandKVA ?? null,
+        invoicedTotalZar: billed,
+        reconciledTotalZar: calc > 0 ? calc : null,
+        varianceZar: billed > 0 && calc > 0 ? billed - calc : null,
+        status: isPass ? "RECONCILED" : "FLAGGED",
+      };
+    });
 
     const criticalAlerts: CriticalAlertItem[] = this.buildAlertsFromStore(
       storeData,
@@ -535,6 +645,7 @@ export class DashboardService {
       reconciliationHealth,
       financialRecovery,
       energyOverview,
+      monthlyConsumption,
       criticalAlerts,
       lastUpdated: timestamp,
       isLiveDatabase: false,
@@ -709,11 +820,12 @@ export class DashboardService {
         standardKWh: 0,
         offPeakKWh: 0,
         totalKWh: 0,
-        maxDemandKVA: 0,
-        reactiveEnergyKVARh: 0,
-        averagePowerFactor: 0,
+        maxDemandKVA: null,
+        reactiveEnergyKVARh: null,
+        averagePowerFactor: null,
         hasData: false,
       },
+      monthlyConsumption: [],
       criticalAlerts: [],
       lastUpdated: timestamp,
       isLiveDatabase: false,

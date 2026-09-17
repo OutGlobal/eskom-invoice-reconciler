@@ -35,11 +35,28 @@ export interface PortfolioSummary {
   hasData: boolean;
 }
 
+export interface MonthlyConsumptionRecord {
+  invoiceNumber: string;
+  accountNumber: string;
+  billingPeriod: string;
+  billingStart?: string | null;
+  billingEnd?: string | null;
+  totalKWh: number;
+  peakKWh?: number | null;
+  standardKWh?: number | null;
+  offPeakKWh?: number | null;
+  maxDemandKVA?: number | null;
+  invoicedTotalZar: number;
+  reconciledTotalZar?: number | null;
+  varianceZar?: number | null;
+  status: string;
+}
+
 export interface ReconciliationHealthMetrics {
-  reconciliationSuccessRatePct: number;
+  reconciliationSuccessRatePct: number | null;
   failedReconciliationsCount: number;
   pendingReconciliationsCount: number;
-  averageProcessingTimeMs: number;
+  averageProcessingTimeMs: number | null;
   invoicesRequiringHumanReviewCount: number;
   telemetryQualityIssuesCount: number;
   hasData: boolean;
@@ -66,10 +83,10 @@ export interface EnergyOverviewMetrics {
   standardKWh: number;
   offPeakKWh: number;
   totalKWh: number;
-  maxDemandKVA: number;
+  maxDemandKVA: number | null;
   maxDemandTimestamp?: string;
-  reactiveEnergyKVARh: number;
-  averagePowerFactor: number;
+  reactiveEnergyKVARh: number | null;
+  averagePowerFactor: number | null;
   hasData: boolean;
 }
 
@@ -101,6 +118,7 @@ export interface AggregatedDashboardData {
   reconciliationHealth: ReconciliationHealthMetrics;
   financialRecovery: FinancialRecoveryBreakdown;
   energyOverview: EnergyOverviewMetrics;
+  monthlyConsumption: MonthlyConsumptionRecord[];
   criticalAlerts: CriticalAlertItem[];
   lastUpdated: string;
   isLiveDatabase: boolean;
