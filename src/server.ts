@@ -783,6 +783,193 @@ export default {
       }
     }
 
+    // Stage 17 — Large Dataset Server-Side Pagination
+    if (url.pathname === "/api/telemetry/paginated" && request.method === "GET") {
+      try {
+        const { LargeDatasetQueryEngine } = await import(
+          "./domain/telemetry/largeDatasetQueryEngine"
+        );
+        const { createSecurityContext } = await import("./domain/security/tenantContextService");
+
+        const headerTenantId =
+          request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
+        const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
+        const headerUserId = request.headers.get("X-User-ID") || "user-session";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+
+        const context = headerTenantId
+          ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
+          : undefined;
+
+        const meterId = url.searchParams.get("meterId") || undefined;
+        const siteId = url.searchParams.get("siteId") || undefined;
+        const orgId = url.searchParams.get("organisationId") || headerTenantId || "default";
+        const startDate = url.searchParams.get("startDate") || undefined;
+        const endDate = url.searchParams.get("endDate") || undefined;
+        const page = Number(url.searchParams.get("page") || 1);
+        const pageSize = Number(url.searchParams.get("pageSize") || 50);
+        const cursor = url.searchParams.get("cursor") || undefined;
+        const sortField = (url.searchParams.get("sortField") as any) || "timestamp_utc";
+        const sortDirection = (url.searchParams.get("sortDirection") as any) || "ASC";
+        const qualityStates = url.searchParams.get("qualityStates")
+          ? (url.searchParams.get("qualityStates")!.split(",") as any[])
+          : undefined;
+
+        const result = await LargeDatasetQueryEngine.queryPaginatedIntervals(
+          {
+            organisationId: orgId,
+            meterId,
+            siteId,
+            startDate,
+            endDate,
+            qualityStates,
+          },
+          {
+            page,
+            pageSize,
+            cursor,
+            sortField,
+            sortDirection,
+          },
+          undefined,
+          context,
+        );
+
+        return new Response(JSON.stringify(result), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+            "cache-control": "no-cache, no-store, must-revalidate",
+            "X-Content-Type-Options": "nosniff",
+          },
+        });
+      } catch (err: any) {
+        const status = err?.name === "TenantIsolationViolationError" ? 403 : 500;
+        return new Response(
+          JSON.stringify({ error: "Failed to query paginated intervals", details: err?.message }),
+          { status, headers: { "content-type": "application/json" } },
+        );
+      }
+    }
+
+    // Stage 17 — Large Dataset Time-Series Aggregation for Charts (<= 300 points, < 50 KB)
+    if (url.pathname === "/api/telemetry/aggregated" && request.method === "GET") {
+      try {
+        const { LargeDatasetQueryEngine } = await import(
+          "./domain/telemetry/largeDatasetQueryEngine"
+        );
+        const { createSecurityContext } = await import("./domain/security/tenantContextService");
+
+        const headerTenantId =
+          request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
+        const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
+        const headerUserId = request.headers.get("X-User-ID") || "user-session";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+
+        const context = headerTenantId
+          ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
+          : undefined;
+
+        const meterId = url.searchParams.get("meterId") || undefined;
+        const siteId = url.searchParams.get("siteId") || undefined;
+        const orgId = url.searchParams.get("organisationId") || headerTenantId || "default";
+        const startDate = url.searchParams.get("startDate") || undefined;
+        const endDate = url.searchParams.get("endDate") || undefined;
+        const cadence = (url.searchParams.get("cadence") as any) || "day";
+        const maxBuckets = Number(url.searchParams.get("maxBuckets") || 300);
+
+        const result = await LargeDatasetQueryEngine.aggregateIntervalsForCharts(
+          {
+            organisationId: orgId,
+            meterId,
+            siteId,
+            startDate,
+            endDate,
+          },
+          cadence,
+          maxBuckets,
+          undefined,
+          context,
+        );
+
+        return new Response(JSON.stringify(result), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+            "cache-control": "public, max-age=60",
+            "X-Content-Type-Options": "nosniff",
+          },
+        });
+      } catch (err: any) {
+        const status = err?.name === "TenantIsolationViolationError" ? 403 : 500;
+        return new Response(
+          JSON.stringify({ error: "Failed to aggregate interval data", details: err?.message }),
+          { status, headers: { "content-type": "application/json" } },
+        );
+      }
+    }
+
+    // Stage 17 — General Telemetry Query (Paginated or Aggregated)
+    if (url.pathname === "/api/telemetry/query" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const { LargeDatasetQueryEngine } = await import(
+          "./domain/telemetry/largeDatasetQueryEngine"
+        );
+        const { createSecurityContext } = await import("./domain/security/tenantContextService");
+
+        const headerTenantId =
+          request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
+        const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
+        const headerUserId = request.headers.get("X-User-ID") || "user-session";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+
+        const context = headerTenantId
+          ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
+          : undefined;
+
+        const filter = body.filter || {};
+        if (!filter.organisationId && headerTenantId) {
+          filter.organisationId = headerTenantId;
+        }
+
+        if (body.aggregate) {
+          const cadence = body.aggregate.cadence || "day";
+          const maxBuckets = body.aggregate.maxBuckets || 300;
+          const result = await LargeDatasetQueryEngine.aggregateIntervalsForCharts(
+            filter,
+            cadence,
+            maxBuckets,
+            undefined,
+            context,
+          );
+          return new Response(JSON.stringify(result), {
+            status: 200,
+            headers: { "content-type": "application/json", "X-Content-Type-Options": "nosniff" },
+          });
+        }
+
+        const pagination = body.pagination || {};
+        const result = await LargeDatasetQueryEngine.queryPaginatedIntervals(
+          filter,
+          pagination,
+          undefined,
+          context,
+        );
+
+        return new Response(JSON.stringify(result), {
+          status: 200,
+          headers: { "content-type": "application/json", "X-Content-Type-Options": "nosniff" },
+        });
+      } catch (err: any) {
+        const status = err?.name === "TenantIsolationViolationError" ? 403 : 500;
+        return new Response(
+          JSON.stringify({ error: "Failed to execute telemetry query", details: err?.message }),
+          { status, headers: { "content-type": "application/json" } },
+        );
+      }
+    }
+
     try {
       const handler = await getServerEntry();
       const rawResponse = await handler.fetch(request, env, ctx);

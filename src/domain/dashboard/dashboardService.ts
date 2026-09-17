@@ -720,4 +720,38 @@ export class DashboardService {
       hasData: false,
     };
   }
+
+  /**
+   * Stage 17 — Fetch Pre-Aggregated Chart Series for Dashboard Visualizations
+   * Ensures browser memory never receives raw interval streams.
+   * Emits downsampled plottable data bounded to <= 300 points (< 50 KB payload).
+   */
+  public static async getAggregatedChartSeries(
+    filter: {
+      organisationId?: string;
+      meterId?: string;
+      siteId?: string;
+      startDate?: string;
+      endDate?: string;
+    },
+    cadence: "hour" | "day" | "week" | "month" | "tou_period" = "day",
+    maxBuckets = 300,
+    context?: UserSecurityContext,
+  ) {
+    const { LargeDatasetQueryEngine } = await import("../telemetry/largeDatasetQueryEngine");
+    return LargeDatasetQueryEngine.aggregateIntervalsForCharts(
+      {
+        organisationId: filter.organisationId || "default",
+        meterId: filter.meterId,
+        siteId: filter.siteId,
+        startDate: filter.startDate,
+        endDate: filter.endDate,
+      },
+      cadence,
+      maxBuckets,
+      undefined,
+      context,
+    );
+  }
 }
+

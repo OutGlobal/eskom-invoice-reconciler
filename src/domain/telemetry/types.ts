@@ -32,20 +32,28 @@ export type TelemetryQualityState =
 export interface TelemetryIntervalRecord {
   id: string;
   meter_id: string;
-  pod_id: string;
+  pod_id?: string;
+  site_id?: string;
+  organisation_id?: string;
   timestamp_utc: string; // ISO-8601 UTC
   local_timestamp: string; // SAST Local Time (YYYY-MM-DD HH:mm:ss)
   timezone: string; // 'Africa/Johannesburg'
-  channel: TelemetryChannel;
-  raw_value: number;
-  multiplier_applied: number;
-  engineering_value: number;
-  billed_value: number;
-  unit: string;
-  source_file_id: string;
-  ingestion_batch_id: string;
-  quality_state: TelemetryQualityState;
-  validation_flags: string[];
+  channel?: TelemetryChannel | string;
+  raw_value?: number;
+  multiplier_applied?: number;
+  engineering_value?: number;
+  billed_value?: number;
+  unit?: string;
+  source_file_id?: string;
+  ingestion_batch_id?: string;
+  quality_state?: TelemetryQualityState;
+  validation_flags?: string[];
+  kw?: number;
+  kva?: number;
+  kwh?: number;
+  kvarh?: number;
+  power_factor?: number;
+  tou_period?: any;
 }
 
 export interface MissingGapRecord {

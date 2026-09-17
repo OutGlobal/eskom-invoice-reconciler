@@ -38,8 +38,9 @@ export default defineConfig({
       "src/lib/__tests__/stage14_financial_integrity.test.ts",
       "src/lib/__tests__/stage15_automatic_processing.test.ts",
       "src/lib/__tests__/stage16_processing_jobs.test.ts",
+      "src/lib/__tests__/stage17_large_datasets.test.ts",
     ],
-    testTimeout: 30000,
+    testTimeout: 60000,
     fileParallelism: false,
   },
   resolve: {

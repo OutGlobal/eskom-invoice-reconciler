@@ -63,6 +63,22 @@ interface ParsedTimestampResult {
 
 export class AmrIntervalIngestionEngine {
   /**
+   * Static async wrapper supporting parameter objects for Stage 17 & batch processors
+   */
+  public static async processIntervalFile(params: {
+    fileBuffer: Uint8Array | ArrayBuffer | string;
+    filename: string;
+    meterIdOverride?: string;
+    sourceFileId?: string;
+    organisationId?: string;
+  }): Promise<IngestionEngineResult> {
+    return this.processIntervalStream(params.filename, params.fileBuffer, {
+      meterIdOverride: params.meterIdOverride,
+      sourceFileId: params.sourceFileId,
+    });
+  }
+
+  /**
    * Main ingestion entrypoint handling CSV text, Excel workbooks, or binary buffers
    */
   public static processIntervalStream(
@@ -1149,6 +1165,9 @@ export class AmrIntervalIngestionEngine {
     const activeEnergyColumn = findCol([
       "active energy (kwh)",
       "active energy",
+      "active_power_kwh",
+      "active power kwh",
+      "active energy kwh",
       "active import kwh",
       "import kwh",
       "kwh imp",
@@ -1163,6 +1182,9 @@ export class AmrIntervalIngestionEngine {
       "reactive power (kvar)",
       "reactive power (mvar)",
       "reactive energy (kvarh)",
+      "reactive_power_kvarh",
+      "reactive energy kvarh",
+      "reactive power kvarh",
       "reactive power",
       "reactive energy",
       "kvarh imp",
@@ -1177,6 +1199,8 @@ export class AmrIntervalIngestionEngine {
     const apparentPowerColumn = findCol([
       "apparent power (kva)",
       "apparent power",
+      "apparent_power_kva",
+      "apparent power kva",
       "demand (kva)",
       "kva demand",
       "kva total",
