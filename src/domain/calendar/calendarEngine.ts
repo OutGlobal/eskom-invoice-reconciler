@@ -18,50 +18,330 @@ import type {
 
 export const DEFAULT_SA_HOLIDAYS: CalendarHolidayConfig[] = [
   // 2024
-  { holiday_date: "2024-01-01", holiday_name: "New Year's Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2024-03-21", holiday_name: "Human Rights Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2024-03-29", holiday_name: "Good Friday", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2024-04-01", holiday_name: "Family Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2024-04-27", holiday_name: "Freedom Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2024-05-01", holiday_name: "Workers' Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2024-05-29", holiday_name: "National General Election Day", country_code: "ZA", holiday_type: "special", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2024-06-16", holiday_name: "Youth Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2024-06-17", holiday_name: "Youth Day (Observed)", country_code: "ZA", holiday_type: "observed", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2024-08-09", holiday_name: "National Women's Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2024-09-24", holiday_name: "Heritage Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2024-12-16", holiday_name: "Day of Reconciliation", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2024-12-25", holiday_name: "Christmas Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2024-12-26", holiday_name: "Day of Goodwill", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
+  {
+    holiday_date: "2024-01-01",
+    holiday_name: "New Year's Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2024-03-21",
+    holiday_name: "Human Rights Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2024-03-29",
+    holiday_name: "Good Friday",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2024-04-01",
+    holiday_name: "Family Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2024-04-27",
+    holiday_name: "Freedom Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2024-05-01",
+    holiday_name: "Workers' Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2024-05-29",
+    holiday_name: "National General Election Day",
+    country_code: "ZA",
+    holiday_type: "special",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2024-06-16",
+    holiday_name: "Youth Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2024-06-17",
+    holiday_name: "Youth Day (Observed)",
+    country_code: "ZA",
+    holiday_type: "observed",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2024-08-09",
+    holiday_name: "National Women's Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2024-09-24",
+    holiday_name: "Heritage Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2024-12-16",
+    holiday_name: "Day of Reconciliation",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2024-12-25",
+    holiday_name: "Christmas Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2024-12-26",
+    holiday_name: "Day of Goodwill",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
 
   // 2025
-  { holiday_date: "2025-01-01", holiday_name: "New Year's Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2025-03-21", holiday_name: "Human Rights Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2025-04-18", holiday_name: "Good Friday", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2025-04-21", holiday_name: "Family Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2025-04-27", holiday_name: "Freedom Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2025-04-28", holiday_name: "Freedom Day (Observed)", country_code: "ZA", holiday_type: "observed", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2025-05-01", holiday_name: "Workers' Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2025-06-16", holiday_name: "Youth Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2025-08-09", holiday_name: "National Women's Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2025-09-24", holiday_name: "Heritage Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2025-12-16", holiday_name: "Day of Reconciliation", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2025-12-25", holiday_name: "Christmas Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2025-12-26", holiday_name: "Day of Goodwill", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
+  {
+    holiday_date: "2025-01-01",
+    holiday_name: "New Year's Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2025-03-21",
+    holiday_name: "Human Rights Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2025-04-18",
+    holiday_name: "Good Friday",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2025-04-21",
+    holiday_name: "Family Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2025-04-27",
+    holiday_name: "Freedom Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2025-04-28",
+    holiday_name: "Freedom Day (Observed)",
+    country_code: "ZA",
+    holiday_type: "observed",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2025-05-01",
+    holiday_name: "Workers' Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2025-06-16",
+    holiday_name: "Youth Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2025-08-09",
+    holiday_name: "National Women's Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2025-09-24",
+    holiday_name: "Heritage Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2025-12-16",
+    holiday_name: "Day of Reconciliation",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2025-12-25",
+    holiday_name: "Christmas Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2025-12-26",
+    holiday_name: "Day of Goodwill",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
 
   // 2026
-  { holiday_date: "2026-01-01", holiday_name: "New Year's Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2026-03-21", holiday_name: "Human Rights Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2026-04-03", holiday_name: "Good Friday", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2026-04-06", holiday_name: "Family Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2026-04-27", holiday_name: "Freedom Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2026-05-01", holiday_name: "Workers' Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2026-06-16", holiday_name: "Youth Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2026-08-09", holiday_name: "National Women's Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2026-08-10", holiday_name: "National Women's Day (Observed)", country_code: "ZA", holiday_type: "observed", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2026-09-24", holiday_name: "Heritage Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2026-12-16", holiday_name: "Day of Reconciliation", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2026-12-25", holiday_name: "Christmas Day", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
-  { holiday_date: "2026-12-26", holiday_name: "Day of Goodwill", country_code: "ZA", holiday_type: "public", tou_treatment: "sunday_schedule", is_active: true },
+  {
+    holiday_date: "2026-01-01",
+    holiday_name: "New Year's Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2026-03-21",
+    holiday_name: "Human Rights Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2026-04-03",
+    holiday_name: "Good Friday",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2026-04-06",
+    holiday_name: "Family Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2026-04-27",
+    holiday_name: "Freedom Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2026-05-01",
+    holiday_name: "Workers' Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2026-06-16",
+    holiday_name: "Youth Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2026-08-09",
+    holiday_name: "National Women's Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2026-08-10",
+    holiday_name: "National Women's Day (Observed)",
+    country_code: "ZA",
+    holiday_type: "observed",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2026-09-24",
+    holiday_name: "Heritage Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2026-12-16",
+    holiday_name: "Day of Reconciliation",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2026-12-25",
+    holiday_name: "Christmas Day",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
+  {
+    holiday_date: "2026-12-26",
+    holiday_name: "Day of Goodwill",
+    country_code: "ZA",
+    holiday_type: "public",
+    tou_treatment: "sunday_schedule",
+    is_active: true,
+  },
 ];
 
 export class DeterministicCalendarEngine {
@@ -71,10 +351,14 @@ export class DeterministicCalendarEngine {
    * subtract 1ms so interval-end timestamps evaluate the ending 30-min block (05:30-06:00).
    */
   public static getSastComponents(timestampUtc: string | Date): SastTimeComponents {
-    const rawDate = typeof timestampUtc === "string" ? new Date(timestampUtc) : new Date(timestampUtc.getTime());
+    const rawDate =
+      typeof timestampUtc === "string" ? new Date(timestampUtc) : new Date(timestampUtc.getTime());
 
     // Adjust 1ms back if exact top-of-hour to evaluate ending block
-    const isExactTopOfHour = rawDate.getUTCMinutes() === 0 && rawDate.getUTCSeconds() === 0 && rawDate.getUTCMilliseconds() === 0;
+    const isExactTopOfHour =
+      rawDate.getUTCMinutes() === 0 &&
+      rawDate.getUTCSeconds() === 0 &&
+      rawDate.getUTCMilliseconds() === 0;
     const evalDate = isExactTopOfHour ? new Date(rawDate.getTime() - 1) : rawDate;
 
     // SAST is UTC + 2 hours (2 * 3600 * 1000 ms)
@@ -119,12 +403,13 @@ export class DeterministicCalendarEngine {
    */
   public static resolveDayType(
     sast: SastTimeComponents,
-    holidayList: CalendarHolidayConfig[] = DEFAULT_SA_HOLIDAYS
+    holidayList: CalendarHolidayConfig[] = DEFAULT_SA_HOLIDAYS,
   ): { dayType: ExtendedDayType; matchedHoliday?: CalendarHolidayConfig } {
     // 1. Check direct match in holiday list
     const matched = holidayList.find((h) => h.is_active && h.holiday_date === sast.local_date_str);
     if (matched) {
-      const type: ExtendedDayType = matched.holiday_type === "special" ? "special_holiday" : "public_holiday";
+      const type: ExtendedDayType =
+        matched.holiday_type === "special" ? "special_holiday" : "public_holiday";
       return { dayType: type, matchedHoliday: matched };
     }
 
@@ -138,7 +423,7 @@ export class DeterministicCalendarEngine {
       const yesterdayStr = `${yYear}-${yMonth}-${yDay}`;
 
       const sundayHoliday = holidayList.find(
-        (h) => h.is_active && h.holiday_date === yesterdayStr && h.holiday_type === "public"
+        (h) => h.is_active && h.holiday_date === yesterdayStr && h.holiday_type === "public",
       );
 
       if (sundayHoliday) {
@@ -169,7 +454,7 @@ export class DeterministicCalendarEngine {
     timestampUtc: string | Date,
     kwhValue: Decimal = new Decimal(0),
     tariffVersion: TariffVersionDefinition,
-    holidayList: CalendarHolidayConfig[] = DEFAULT_SA_HOLIDAYS
+    holidayList: CalendarHolidayConfig[] = DEFAULT_SA_HOLIDAYS,
   ): IntervalClassificationResult {
     const sast = this.getSastComponents(timestampUtc);
     const season = this.resolveSeason(sast);
@@ -178,7 +463,8 @@ export class DeterministicCalendarEngine {
     // Determine target TOU day_type for schedule lookup
     let targetTouDayType: "weekday" | "saturday" | "sunday" | "public_holiday" = "weekday";
     if (dayType === "public_holiday" || dayType === "special_holiday") {
-      targetTouDayType = matchedHoliday?.tou_treatment === "saturday_schedule" ? "saturday" : "public_holiday";
+      targetTouDayType =
+        matchedHoliday?.tou_treatment === "saturday_schedule" ? "saturday" : "public_holiday";
     } else if (dayType === "sunday") {
       targetTouDayType = "sunday";
     } else if (dayType === "saturday") {
@@ -204,18 +490,20 @@ export class DeterministicCalendarEngine {
     }
 
     // Match rate rule in tariff definition
-    const matchedRule = tariffVersion.components.find(
-      (c) =>
-        c.component_type === "ACTIVE_ENERGY" &&
-        (c.season === season || c.season === "all" || !c.season) &&
-        (c.tou_period === touPeriod || c.tou_period === "all" || !c.tou_period)
-    ) || tariffVersion.components[0];
+    const matchedRule =
+      tariffVersion.components.find(
+        (c) =>
+          c.component_type === "ACTIVE_ENERGY" &&
+          (c.season === season || c.season === "all" || !c.season) &&
+          (c.tou_period === touPeriod || c.tou_period === "all" || !c.tou_period),
+      ) || tariffVersion.components[0];
 
     const rate = matchedRule ? matchedRule.rate_value : new Decimal(0);
     // Formula: active energy c/kWh / 100 * kWh
     const amountZar = kwhValue.times(rate).div(100).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
 
-    const timestampUtcStr = typeof timestampUtc === "string" ? timestampUtc : timestampUtc.toISOString();
+    const timestampUtcStr =
+      typeof timestampUtc === "string" ? timestampUtc : timestampUtc.toISOString();
 
     return {
       timestamp_utc: timestampUtcStr,
@@ -241,14 +529,19 @@ export class DeterministicCalendarEngine {
   public static explainIntervalClassification(
     timestampUtc: string | Date,
     tariffVersion: TariffVersionDefinition,
-    holidayList: CalendarHolidayConfig[] = DEFAULT_SA_HOLIDAYS
+    holidayList: CalendarHolidayConfig[] = DEFAULT_SA_HOLIDAYS,
   ): IntervalClassificationExplanation {
-    const classification = this.classifyInterval(timestampUtc, new Decimal(0), tariffVersion, holidayList);
+    const classification = this.classifyInterval(
+      timestampUtc,
+      new Decimal(0),
+      tariffVersion,
+      holidayList,
+    );
     const sast = this.getSastComponents(timestampUtc);
     const { matchedHoliday } = this.resolveDayType(sast, holidayList);
 
     const rateStr = `${classification.applicable_rate.toFixed(4)} ${classification.unit_of_measure}`;
-    
+
     let explanationText = `Interval at ${classification.local_date} ${classification.local_time} (SAST) was classified as ${classification.tou_period.toUpperCase()} under ${classification.tariff_code} v${classification.tariff_version}. `;
 
     if (matchedHoliday) {
@@ -294,7 +587,7 @@ export class DeterministicCalendarEngine {
   public static aggregateIntervals(
     intervals: Array<{ timestamp: string; kwh: Decimal }>,
     tariffVersion: TariffVersionDefinition,
-    holidayList: CalendarHolidayConfig[] = DEFAULT_SA_HOLIDAYS
+    holidayList: CalendarHolidayConfig[] = DEFAULT_SA_HOLIDAYS,
   ): TouIntervalAggregation {
     let peakKwh = new Decimal(0);
     let standardKwh = new Decimal(0);

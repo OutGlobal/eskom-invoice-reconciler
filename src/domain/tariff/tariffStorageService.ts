@@ -6,7 +6,12 @@
 
 import Decimal from "decimal.js-light";
 import { supabase } from "@/integrations/supabase/client";
-import type { TariffVersionDefinition, TariffFamilyType, TariffScheduleHeader, TariffComponentRule } from "./types";
+import type {
+  TariffVersionDefinition,
+  TariffFamilyType,
+  TariffScheduleHeader,
+  TariffComponentRule,
+} from "./types";
 import {
   ESKOM_MEGAFLEX_2025_2026,
   ESKOM_MINIFLEX_2025_2026,
@@ -42,7 +47,9 @@ export class TariffStorageService {
         .order("effective_date", { ascending: false });
 
       if (error || !dbVersions || dbVersions.length === 0) {
-        console.warn("[TariffStorageService] Supabase query empty or unavailable, using gazetted fixtures.");
+        console.warn(
+          "[TariffStorageService] Supabase query empty or unavailable, using gazetted fixtures.",
+        );
         return this.defaultFixtures;
       }
 
@@ -102,7 +109,7 @@ export class TariffStorageService {
    */
   public static async saveTariffVersion(
     version: TariffVersionDefinition,
-    userId?: string
+    userId?: string,
   ): Promise<{ success: boolean; message: string }> {
     try {
       const serialisedComponents = version.components.map((c) => ({

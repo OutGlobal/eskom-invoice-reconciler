@@ -44,12 +44,8 @@ export function ReconciliationVisualSection() {
                 <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
                   DETERMINISTIC CONVERGENCE
                 </div>
-                <div className="text-xs font-bold text-foreground">
-                  Variance Detected:
-                </div>
-                <div className="text-lg font-bold text-amber-400">
-                  131,227 kWh
-                </div>
+                <div className="text-xs font-bold text-foreground">Variance Detected:</div>
+                <div className="text-lg font-bold text-amber-400">131,227 kWh</div>
               </div>
             </div>
 

@@ -2,12 +2,11 @@
  * Abstract Base Layout Adapter Interface
  */
 
-import type { ExtractedInvoiceFields, IngestionErrorRecord } from "../types";
+import type { ExtractedInvoiceFields, IngestionDocumentType, IngestionErrorRecord } from "../types";
 
 export interface AdapterExtractionResult {
   success: boolean;
-  documentType:
-    "INVOICE_PDF" | "AMR_TELEMETRY_CSV" | "AMR_TELEMETRY_XLSX" | "TELEMETRY_XML" | "MUNICIPAL_BILL";
+  documentType: IngestionDocumentType;
   extractedFields?: ExtractedInvoiceFields;
   intervals?: any[];
   rawTextPreview: string;

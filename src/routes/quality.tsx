@@ -3,8 +3,29 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Panel, NUM } from "@/components/dashboard/parts";
 import { DataGovernanceEngine } from "@/domain/quality/dataQualityEngine";
 import { QualityStorageService } from "@/domain/quality/qualityStorageService";
-import type { DataQualityIssueRecord, FiveEntityScoreSummary, ResolutionStatus, QualityStateCategory, IssueSourceType } from "@/domain/quality/types";
-import { ShieldCheck, ShieldAlert, AlertTriangle, CheckCircle2, Filter, Search, Info, Lock, Unlock, FileText, Activity, Gauge, Building, Scale } from "lucide-react";
+import type {
+  DataQualityIssueRecord,
+  FiveEntityScoreSummary,
+  ResolutionStatus,
+  QualityStateCategory,
+  IssueSourceType,
+} from "@/domain/quality/types";
+import {
+  ShieldCheck,
+  ShieldAlert,
+  AlertTriangle,
+  CheckCircle2,
+  Filter,
+  Search,
+  Info,
+  Lock,
+  Unlock,
+  FileText,
+  Activity,
+  Gauge,
+  Building,
+  Scale,
+} from "lucide-react";
 import Decimal from "decimal.js-light";
 
 export const Route = createFileRoute("/quality")({
@@ -52,9 +73,14 @@ function QualityPage() {
     setIssues((prev) =>
       prev.map((i) =>
         i.issue_id === issueId
-          ? { ...i, resolution_status: newStatus, resolved_by: resolvedBy, resolved_timestamp: resolvedTimestamp }
-          : i
-      )
+          ? {
+              ...i,
+              resolution_status: newStatus,
+              resolved_by: resolvedBy,
+              resolved_timestamp: resolvedTimestamp,
+            }
+          : i,
+      ),
     );
 
     await QualityStorageService.updateResolution(issueId, newStatus, resolvedBy);
@@ -82,7 +108,11 @@ function QualityPage() {
   }, [issues, sourceFilter, stateFilter, severityFilter, statusFilter, searchTerm]);
 
   if (isLoading) {
-    return <div className="p-8 text-center text-sm text-muted-foreground">Loading Formal Data-Governance Subsystem...</div>;
+    return (
+      <div className="p-8 text-center text-sm text-muted-foreground">
+        Loading Formal Data-Governance Subsystem...
+      </div>
+    );
   }
 
   return (
@@ -91,13 +121,16 @@ function QualityPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">Data Governance &amp; Quality Subsystem</h1>
+            <h1 className="text-xl font-semibold tracking-tight">
+              Data Governance &amp; Quality Subsystem
+            </h1>
             <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full">
               5-ENTITY SCORING &bull; GATEKEEPER PROTECTED
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Formal data-governance platform. Bad data is visible, traceable, and blocked from financial settlement without explicit override.
+            Formal data-governance platform. Bad data is visible, traceable, and blocked from
+            financial settlement without explicit override.
           </p>
         </div>
 
@@ -119,7 +152,11 @@ function QualityPage() {
                 : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
             }`}
           >
-            {hasExplicitOverride ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+            {hasExplicitOverride ? (
+              <Unlock className="h-3.5 w-3.5" />
+            ) : (
+              <Lock className="h-3.5 w-3.5" />
+            )}
             {hasExplicitOverride ? "Override Pathway Active" : "Gatekeeper Strict Lock"}
           </button>
         </div>
@@ -129,7 +166,8 @@ function QualityPage() {
       {!gatekeeper.isPermitted ? (
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 space-y-2">
           <div className="flex items-center gap-2 font-semibold text-xs text-red-500">
-            <ShieldAlert className="h-5 w-5" /> RECONCILIATION GATEKEEPER: FINANCIAL SETTLEMENT BLOCKED
+            <ShieldAlert className="h-5 w-5" /> RECONCILIATION GATEKEEPER: FINANCIAL SETTLEMENT
+            BLOCKED
           </div>
           <div className="text-xs text-red-500/90 leading-relaxed font-mono">
             {gatekeeper.blockedReason}
@@ -138,7 +176,8 @@ function QualityPage() {
       ) : (
         <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-            <ShieldCheck className="h-4 w-4" /> Reconciliation Gatekeeper Passed: Telemetry &amp; Invoices Verified for Financial Settlement
+            <ShieldCheck className="h-4 w-4" /> Reconciliation Gatekeeper Passed: Telemetry &amp;
+            Invoices Verified for Financial Settlement
           </div>
           <span className="text-[10px] font-mono text-emerald-500">GATEKEEPER OK</span>
         </div>
@@ -150,7 +189,9 @@ function QualityPage() {
           <div className="text-[10px] font-semibold uppercase text-muted-foreground flex items-center gap-1">
             <FileText className="h-3.5 w-3.5 text-primary" /> Invoice Score
           </div>
-          <div className="text-xl font-bold font-mono text-foreground">{scores.invoice_score.toFixed(1)}</div>
+          <div className="text-xl font-bold font-mono text-foreground">
+            {scores.invoice_score.toFixed(1)}
+          </div>
           <div className="text-[9px] text-muted-foreground">OCR &amp; Extraction</div>
         </div>
 
@@ -158,7 +199,9 @@ function QualityPage() {
           <div className="text-[10px] font-semibold uppercase text-muted-foreground flex items-center gap-1">
             <Gauge className="h-3.5 w-3.5 text-primary" /> Meter Score
           </div>
-          <div className="text-xl font-bold font-mono text-foreground">{scores.meter_score.toFixed(1)}</div>
+          <div className="text-xl font-bold font-mono text-foreground">
+            {scores.meter_score.toFixed(1)}
+          </div>
           <div className="text-[9px] text-muted-foreground">Master Data &amp; CT/VT</div>
         </div>
 
@@ -166,7 +209,9 @@ function QualityPage() {
           <div className="text-[10px] font-semibold uppercase text-muted-foreground flex items-center gap-1">
             <Activity className="h-3.5 w-3.5 text-primary" /> Telemetry Batch
           </div>
-          <div className="text-xl font-bold font-mono text-foreground">{scores.telemetry_batch_score.toFixed(1)}</div>
+          <div className="text-xl font-bold font-mono text-foreground">
+            {scores.telemetry_batch_score.toFixed(1)}
+          </div>
           <div className="text-[9px] text-muted-foreground">30-min Intervals</div>
         </div>
 
@@ -174,7 +219,9 @@ function QualityPage() {
           <div className="text-[10px] font-semibold uppercase text-muted-foreground flex items-center gap-1">
             <Building className="h-3.5 w-3.5 text-primary" /> Site Score
           </div>
-          <div className="text-xl font-bold font-mono text-foreground">{scores.site_score.toFixed(1)}</div>
+          <div className="text-xl font-bold font-mono text-foreground">
+            {scores.site_score.toFixed(1)}
+          </div>
           <div className="text-[9px] text-muted-foreground">Demand &amp; PF Bounds</div>
         </div>
 
@@ -182,13 +229,17 @@ function QualityPage() {
           <div className="text-[10px] font-semibold uppercase text-muted-foreground flex items-center gap-1">
             <Scale className="h-3.5 w-3.5 text-primary" /> Reconciliation
           </div>
-          <div className="text-xl font-bold font-mono text-foreground">{scores.reconciliation_score.toFixed(1)}</div>
+          <div className="text-xl font-bold font-mono text-foreground">
+            {scores.reconciliation_score.toFixed(1)}
+          </div>
           <div className="text-[9px] text-muted-foreground">Variance &amp; Tariff</div>
         </div>
 
         <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
           <div className="text-[10px] font-semibold uppercase text-primary">Overall Score</div>
-          <div className="text-xl font-bold font-mono text-primary">{scores.overall_governance_score.toFixed(1)}</div>
+          <div className="text-xl font-bold font-mono text-primary">
+            {scores.overall_governance_score.toFixed(1)}
+          </div>
           <div className="text-[9px] text-muted-foreground">System Governance</div>
         </div>
       </div>
@@ -292,56 +343,61 @@ function QualityPage() {
               {filteredIssues.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-xs text-muted-foreground">
-                    No data governance issues found. All telemetry streams and invoice determinants satisfy statutory precision tolerances.
+                    No data governance issues found. All telemetry streams and invoice determinants
+                    satisfy statutory precision tolerances.
                   </td>
                 </tr>
               ) : (
                 filteredIssues.map((issue) => (
                   <tr key={issue.issue_id} className="hover:bg-muted/20">
-                  <td className="p-2.5 font-mono font-medium">{issue.issue_id}</td>
-                  <td className="p-2.5 font-mono text-muted-foreground">{issue.source}</td>
-                  <td className="p-2.5 font-mono font-medium">
-                    <span className="px-2 py-0.5 text-[10px] bg-muted rounded">
-                      {issue.quality_state}
-                    </span>
-                  </td>
-                  <td className="p-2.5">
-                    <span
-                      className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded ${
-                        issue.severity === "CRITICAL"
-                          ? "bg-red-500/10 text-red-500"
-                          : issue.severity === "HIGH"
-                          ? "bg-amber-500/10 text-amber-500"
-                          : "bg-blue-500/10 text-blue-500"
-                      }`}
-                    >
-                      {issue.severity}
-                    </span>
-                  </td>
-                  <td className="p-2.5">
-                    <select
-                      value={issue.resolution_status}
-                      onChange={(e) => handleUpdateResolution(issue.issue_id, e.target.value as ResolutionStatus)}
-                      className="bg-background border border-border rounded px-2 py-0.5 text-[11px] font-mono font-semibold"
-                    >
-                      <option value="UNRESOLVED">UNRESOLVED</option>
-                      <option value="UNDER_REVIEW">UNDER REVIEW</option>
-                      <option value="RESOLVED">RESOLVED</option>
-                      <option value="EXPLICITLY_OVERRIDDEN">OVERRIDDEN</option>
-                    </select>
-                  </td>
-                  <td className="p-2.5 text-muted-foreground font-mono">
-                    {issue.resolved_by ? `${issue.resolved_by} (${issue.resolved_timestamp?.substring(0, 10)})` : "—"}
-                  </td>
-                  <td className="p-2.5 text-center">
-                    <button
-                      onClick={() => openInspector(issue)}
-                      className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
-                      title="Inspect issue audit workflow details"
-                    >
-                      <Info className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
+                    <td className="p-2.5 font-mono font-medium">{issue.issue_id}</td>
+                    <td className="p-2.5 font-mono text-muted-foreground">{issue.source}</td>
+                    <td className="p-2.5 font-mono font-medium">
+                      <span className="px-2 py-0.5 text-[10px] bg-muted rounded">
+                        {issue.quality_state}
+                      </span>
+                    </td>
+                    <td className="p-2.5">
+                      <span
+                        className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded ${
+                          issue.severity === "CRITICAL"
+                            ? "bg-red-500/10 text-red-500"
+                            : issue.severity === "HIGH"
+                              ? "bg-amber-500/10 text-amber-500"
+                              : "bg-blue-500/10 text-blue-500"
+                        }`}
+                      >
+                        {issue.severity}
+                      </span>
+                    </td>
+                    <td className="p-2.5">
+                      <select
+                        value={issue.resolution_status}
+                        onChange={(e) =>
+                          handleUpdateResolution(issue.issue_id, e.target.value as ResolutionStatus)
+                        }
+                        className="bg-background border border-border rounded px-2 py-0.5 text-[11px] font-mono font-semibold"
+                      >
+                        <option value="UNRESOLVED">UNRESOLVED</option>
+                        <option value="UNDER_REVIEW">UNDER REVIEW</option>
+                        <option value="RESOLVED">RESOLVED</option>
+                        <option value="EXPLICITLY_OVERRIDDEN">OVERRIDDEN</option>
+                      </select>
+                    </td>
+                    <td className="p-2.5 text-muted-foreground font-mono">
+                      {issue.resolved_by
+                        ? `${issue.resolved_by} (${issue.resolved_timestamp?.substring(0, 10)})`
+                        : "—"}
+                    </td>
+                    <td className="p-2.5 text-center">
+                      <button
+                        onClick={() => openInspector(issue)}
+                        className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+                        title="Inspect issue audit workflow details"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -369,20 +425,36 @@ function QualityPage() {
 
             <div className="space-y-3 text-xs">
               <div className="p-3 bg-muted/40 rounded border border-border space-y-1">
-                <div className="font-semibold text-foreground">{selectedIssue.issue_id} &bull; {selectedIssue.quality_state}</div>
+                <div className="font-semibold text-foreground">
+                  {selectedIssue.issue_id} &bull; {selectedIssue.quality_state}
+                </div>
                 <div className="text-muted-foreground">{selectedIssue.description}</div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-muted-foreground">
-                <div><span className="font-semibold text-foreground">Source Entity:</span> {selectedIssue.source}</div>
-                <div><span className="font-semibold text-foreground">Record ID:</span> {selectedIssue.record_id}</div>
-                <div><span className="font-semibold text-foreground">Severity:</span> {selectedIssue.severity}</div>
-                <div><span className="font-semibold text-foreground">Score Deduction:</span> -{selectedIssue.deduction_points} pts</div>
+                <div>
+                  <span className="font-semibold text-foreground">Source Entity:</span>{" "}
+                  {selectedIssue.source}
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Record ID:</span>{" "}
+                  {selectedIssue.record_id}
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Severity:</span>{" "}
+                  {selectedIssue.severity}
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Score Deduction:</span> -
+                  {selectedIssue.deduction_points} pts
+                </div>
               </div>
 
               <div className="p-3 bg-background border border-border rounded text-foreground space-y-1">
                 <div className="font-semibold text-xs text-primary">Recommended Action:</div>
-                <div className="text-muted-foreground leading-relaxed">{selectedIssue.recommended_action}</div>
+                <div className="text-muted-foreground leading-relaxed">
+                  {selectedIssue.recommended_action}
+                </div>
               </div>
 
               {selectedIssue.resolved_by && (

@@ -89,8 +89,8 @@ function SettingsPage() {
             Commercial Platform Settings &amp; Connectors
           </h1>
           <p className="text-xs text-muted-foreground">
-            Data connectors, automated ingestion channels, NERSA tariff rules, and enterprise platform
-            preferences.
+            Data connectors, automated ingestion channels, NERSA tariff rules, and enterprise
+            platform preferences.
           </p>
         </div>
 
@@ -155,9 +155,7 @@ function SettingsPage() {
             <div className="p-3 rounded-lg border border-border bg-muted/20">
               <div className="text-muted-foreground text-[11px]">Audit Recovery Claims</div>
               <div className="text-lg font-bold text-foreground">{recoveryCount} Claims</div>
-              <div className="text-[10px] text-emerald-400 font-mono">
-                Status: Active
-              </div>
+              <div className="text-[10px] text-emerald-400 font-mono">Status: Active</div>
             </div>
             <div className="p-3 rounded-lg border border-border bg-muted/20">
               <div className="text-muted-foreground text-[11px]">Raw Audit Documents</div>
@@ -191,7 +189,8 @@ function SettingsPage() {
               </span>
             </div>
             <p className="text-muted-foreground">
-              Direct ingestion pipeline for monthly utility billing statements and interval telemetry:
+              Direct ingestion pipeline for monthly utility billing statements and interval
+              telemetry:
             </p>
             <div className="p-2.5 bg-muted/60 rounded font-mono text-[11px] text-primary flex flex-col sm:flex-row sm:items-center justify-between gap-1 overflow-x-auto">
               <span>Channel: Enterprise Ingestion Gateway (Direct Utility Statement Stream)</span>
@@ -264,7 +263,8 @@ function SettingsPage() {
       <Panel title="Data Management &amp; Cache Control">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="text-xs text-muted-foreground">
-            Clear frontend memory session cache and reload baseline Megaflex datasets. Enterprise database records will remain intact.
+            Clear frontend memory session cache and reload baseline Megaflex datasets. Enterprise
+            database records will remain intact.
           </div>
           <button
             onClick={handleResetSession}

@@ -97,7 +97,8 @@ export function enforceTenantScope<T extends { organisation_id?: string; organis
 
   // Super-admin can specify target organization or default to their own
   if (context.role === "SUPER_ADMIN") {
-    const target = queryScope.organisation_id || queryScope.organisationId || context.organisationId;
+    const target =
+      queryScope.organisation_id || queryScope.organisationId || context.organisationId;
     return {
       ...queryScope,
       organisation_id: target,

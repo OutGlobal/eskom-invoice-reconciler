@@ -65,7 +65,8 @@ export class InvoiceLifecycleService {
     validationSummary: InvoiceValidationSummary,
   ): InvoiceLifecycleState {
     const lowConfidence = document.metadata.needs_human_review;
-    const hasDiscrepancies = validationSummary.status === "failed" || validationSummary.discrepancies.length > 0;
+    const hasDiscrepancies =
+      validationSummary.status === "failed" || validationSummary.discrepancies.length > 0;
 
     if (lowConfidence || hasDiscrepancies) {
       return "REVIEW_REQUIRED";
@@ -96,7 +97,11 @@ export class InvoiceLifecycleService {
    */
   public static isDuplicate(
     incomingDoc: { sha256Hash: string; invoiceNumber: string; accountNumber: string },
-    existingInvoices: Array<{ sha256_hash?: string; invoice_number: string; account_number: string }>,
+    existingInvoices: Array<{
+      sha256_hash?: string;
+      invoice_number: string;
+      account_number: string;
+    }>,
   ): { isDuplicate: boolean; reason?: string } {
     for (const existing of existingInvoices) {
       if (existing.sha256_hash && existing.sha256_hash === incomingDoc.sha256Hash) {

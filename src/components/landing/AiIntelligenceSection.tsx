@@ -34,7 +34,8 @@ const AI_QUERIES: AiQuery[] = [
       title: "Root Cause: High-Season Seasonal Transition & Peak Demand Exceedance",
       summary:
         "The 18.2% increase is driven by two isolated factors: 1) The transition to NERSA High-Season rates on June 1 (+140% peak rate differential), and 2) A 340 kVA unnotified demand exceedance on Feeder 02 during a production start sequence.",
-      keyFinding: "Seasonal shift accounts for R 112,400; unnotified demand penalty accounts for R 18,450.",
+      keyFinding:
+        "Seasonal shift accounts for R 112,400; unnotified demand penalty accounts for R 18,450.",
       variance: "R 130,850.00 Total Increase",
       confidence: "96.4%",
       actionLabel: "Inspect June Seasonal Transition Audit",
@@ -48,7 +49,8 @@ const AI_QUERIES: AiQuery[] = [
       title: "Site 04 (Rustenburg Smelter) Demand Spike Outlier",
       summary:
         "Site 04 experienced a 22.7% increase in billed demand (8,421 kVA vs 6,860 kVA 12-month rolling average). Interval telemetry indicates peak demand occurred during a 1-hour load-shedding curtailment window.",
-      keyFinding: "Utility billed on full curtailment spike instead of contractually agreed average.",
+      keyFinding:
+        "Utility billed on full curtailment spike instead of contractually agreed average.",
       variance: "R 37,840.00 Overcharge Risk",
       confidence: "94.0%",
       actionLabel: "Generate Curtailment Dispute Pack",
@@ -76,7 +78,8 @@ const AI_QUERIES: AiQuery[] = [
       title: "Optimization Simulator: Miniflex vs Megaflex Comparative Run",
       summary:
         "Based on the site's load factor of 78.4% and high off-peak ratio (47.5%), Megaflex remains optimal. However, shifting 12% of peak crushing operations to standard hours would reduce annual expenditure by R 480,000.",
-      keyFinding: "Current tariff structure is mathematically correct; operational shift yields 5.8% savings.",
+      keyFinding:
+        "Current tariff structure is mathematically correct; operational shift yields 5.8% savings.",
       variance: "R 480,000.00 Annual Opportunity",
       confidence: "91.5%",
       actionLabel: "Run Full Tariff Simulation Engine",

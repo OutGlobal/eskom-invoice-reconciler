@@ -43,8 +43,14 @@ export class TelemetryStorageService {
           engineering_value: item.engineering_value,
           billed_value: item.billed_value,
           unit: item.unit,
-          source_file_id: item.source_file_id !== "src-file-local" && item.source_file_id.length > 10 ? item.source_file_id : null,
-          ingestion_batch_id: item.ingestion_batch_id && item.ingestion_batch_id.length > 10 ? item.ingestion_batch_id : null,
+          source_file_id:
+            item.source_file_id !== "src-file-local" && item.source_file_id.length > 10
+              ? item.source_file_id
+              : null,
+          ingestion_batch_id:
+            item.ingestion_batch_id && item.ingestion_batch_id.length > 10
+              ? item.ingestion_batch_id
+              : null,
           quality_state: item.quality_state,
           kw: item.channel === "kW" ? item.engineering_value : 0,
           kva: item.channel === "kVA" ? item.engineering_value : 0,
@@ -66,7 +72,10 @@ export class TelemetryStorageService {
       // 2. Insert Quarantine Records
       if (quarantineRecords.length > 0) {
         const qPayload = quarantineRecords.map((q) => ({
-          ingestion_batch_id: q.ingestion_batch_id && q.ingestion_batch_id.length > 10 ? q.ingestion_batch_id : "00000000-0000-0000-0000-000000000000",
+          ingestion_batch_id:
+            q.ingestion_batch_id && q.ingestion_batch_id.length > 10
+              ? q.ingestion_batch_id
+              : "00000000-0000-0000-0000-000000000000",
           meter_id: q.meter_id || null,
           row_number: q.row_number,
           raw_snippet: q.raw_snippet,
@@ -180,5 +189,23 @@ export class TelemetryStorageService {
       missingGapsCount: gaps.length,
       estimationsCount,
     };
+  }
+
+  /**
+   * Fetch recent intervals from the database
+   */
+  public static async fetchIntervals(limit: number = 100): Promise<TelemetryIntervalRecord[]> {
+    try {
+      const { data, error } = await supabase
+        .from("telemetry_intervals")
+        .select("*")
+        .order("timestamp_utc", { ascending: false })
+        .limit(limit);
+
+      if (error || !data) return [];
+      return data as unknown as TelemetryIntervalRecord[];
+    } catch {
+      return [];
+    }
   }
 }

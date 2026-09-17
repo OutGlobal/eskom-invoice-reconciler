@@ -45,22 +45,39 @@ try {
   InvoiceLifecycleService.transitionState("UPLOADED", "CLOSED");
 } catch (e: any) {
   caught = true;
-  assert(e.message.includes("Illegal invoice state transition"), "Caught illegal transition exception");
+  assert(
+    e.message.includes("Illegal invoice state transition"),
+    "Caught illegal transition exception",
+  );
 }
 assert(caught, "Guarded illegal transition");
 
 // 3. Duplicate Check
-const existing = [{ sha256_hash: "hash-123", invoice_number: "INV-100", account_number: "ACC-100" }];
-const dupHash = InvoiceLifecycleService.isDuplicate({ sha256Hash: "hash-123", invoiceNumber: "INV-999", accountNumber: "ACC-999" }, existing);
+const existing = [
+  { sha256_hash: "hash-123", invoice_number: "INV-100", account_number: "ACC-100" },
+];
+const dupHash = InvoiceLifecycleService.isDuplicate(
+  { sha256Hash: "hash-123", invoiceNumber: "INV-999", accountNumber: "ACC-999" },
+  existing,
+);
 assert(dupHash.isDuplicate, "Detected duplicate SHA-256");
 
-const dupNum = InvoiceLifecycleService.isDuplicate({ sha256Hash: "hash-456", invoiceNumber: "INV-100", accountNumber: "ACC-100" }, existing);
+const dupNum = InvoiceLifecycleService.isDuplicate(
+  { sha256Hash: "hash-456", invoiceNumber: "INV-100", accountNumber: "ACC-100" },
+  existing,
+);
 assert(dupNum.isDuplicate, "Detected duplicate Invoice & Account number");
 
 // 4. Audit Correction Register
 const mockDoc: any = {
   id: "doc-1",
-  account_number: { field_name: "account_number", value: "ACC-OLD", confidence_score: 0.7, source_text_reference: "ACC-OLD", source_page: 1 },
+  account_number: {
+    field_name: "account_number",
+    value: "ACC-OLD",
+    confidence_score: 0.7,
+    source_text_reference: "ACC-OLD",
+    source_page: 1,
+  },
   metadata: { low_confidence_fields: ["account_number"], needs_human_review: true },
 };
 
@@ -76,6 +93,9 @@ const corrected = InvoiceCorrectionService.applyCorrection(mockDoc, {
 assert(corrected.account_number.value === "ACC-NEW", "Corrected field updated");
 assert(corrected.account_number.confidence_score === 1.0, "Confidence set to 1.0");
 assert(corrected.corrections_log?.length === 1, "Correction entry added to audit register");
-assert(corrected.corrections_log![0].original_value === "ACC-OLD", "Original value preserved in audit log");
+assert(
+  corrected.corrections_log![0].original_value === "ACC-OLD",
+  "Original value preserved in audit log",
+);
 
 console.log("\n=== ALL INVOICE SUBSYSTEM FAST UNIT TESTS PASSED ===\n");

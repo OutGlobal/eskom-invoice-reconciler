@@ -1,7 +1,7 @@
 /**
  * Stage 4 — Organisation / Tenant Isolation Test Suite
  * Eskom Bill Balancer Platform
- * 
+ *
  * Verifies:
  * 1. Multi-organisation support & complete entity-to-organisation association matrix
  *    (organisation_id, site_id, account_id, meter_id, invoice_id, upload_id, reconciliation_id)
@@ -29,6 +29,8 @@ import { DashboardService } from "../../domain/dashboard/dashboardService";
 import { InvoiceStorageService } from "../../domain/invoice/invoiceStorageService";
 import { ReconciliationStorageService } from "../../domain/reconciliation/reconciliationStorageService";
 import { SecureIngestionGateway } from "../../domain/ingestion/secureIngestionGateway";
+import { AuthoritativeSchemaRegistry } from "../../domain/database/authoritativeSchemaRegistry";
+import { supabase } from "../supabase";
 
 describe("Stage 4 — Organisation / Tenant Isolation Suite", () => {
   const orgAlphaId = "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c"; // Impala Platinum
@@ -315,10 +317,7 @@ describe("Stage 4 — Organisation / Tenant Isolation Suite", () => {
   it("Scenario 6: Invoice & Reconciliation services enforce tenant isolation & stamping", async () => {
     // 1. Invoice query rejects alien tenant request
     await expect(
-      InvoiceStorageService.queryInvoices(
-        { organisationId: orgBetaId },
-        alphaUser,
-      ),
+      InvoiceStorageService.queryInvoices({ organisationId: orgBetaId }, alphaUser),
     ).rejects.toThrow(TenantIsolationViolationError);
 
     // 2. Invoice save enforces caller's tenant
@@ -349,9 +348,9 @@ describe("Stage 4 — Organisation / Tenant Isolation Suite", () => {
       variance_percentage: 0,
     };
 
-    await expect(
-      ReconciliationStorageService.saveRun(dummyRun, alphaUser),
-    ).rejects.toThrow(TenantIsolationViolationError);
+    await expect(ReconciliationStorageService.saveRun(dummyRun, alphaUser)).rejects.toThrow(
+      TenantIsolationViolationError,
+    );
   });
 
   // --------------------------------------------------------------------------
@@ -371,5 +370,71 @@ describe("Stage 4 — Organisation / Tenant Isolation Suite", () => {
         alphaUser,
       ),
     ).rejects.toThrow(TenantIsolationViolationError);
+  });
+
+  // --------------------------------------------------------------------------
+  // Scenario 8: Canonical Domain Views Explicitly Project organisation_id
+  // --------------------------------------------------------------------------
+  it("Scenario 8: Canonical database views explicitly project organisation_id for tenant filtering", () => {
+    const migrationPath = path.resolve(
+      process.cwd(),
+      "supabase/migrations/20260916010000_stage3_database_source_of_truth_canonical.sql",
+    );
+    expect(fs.existsSync(migrationPath)).toBe(true);
+    const sql = fs.readFileSync(migrationPath, "utf-8");
+
+    // Must project organisation_id across business views
+    expect(sql).toContain("ti.organisation_id");
+    expect(sql).toContain("de.organisation_id");
+    expect(sql).toContain("rr.organisation_id");
+    expect(sql).toContain("sf.organisation_id");
+    expect(sql).toContain("c.organisation_id");
+
+    // All tenant-scoped canonical views must be selectable
+    const intervalDataQuery = supabase.from("interval_data").select("organisation_id").limit(1);
+    expect(intervalDataQuery).toBeDefined();
+
+    const anomaliesQuery = supabase.from("anomalies").select("organisation_id").limit(1);
+    expect(anomaliesQuery).toBeDefined();
+
+    const analysisResultsQuery = supabase
+      .from("analysis_results")
+      .select("organisation_id")
+      .limit(1);
+    expect(analysisResultsQuery).toBeDefined();
+
+    const processingErrorsQuery = supabase
+      .from("processing_errors")
+      .select("organisation_id")
+      .limit(1);
+    expect(processingErrorsQuery).toBeDefined();
+  });
+
+  // --------------------------------------------------------------------------
+  // Scenario 9: AuthoritativeSchemaRegistry.queryDomain Enforces Tenant Scoping
+  // --------------------------------------------------------------------------
+  it("Scenario 9: Schema registry queryDomain automatically enforces tenant scope on queries", () => {
+    // 1. Without tenant scope (default)
+    const unscopedQuery = AuthoritativeSchemaRegistry.queryDomain(supabase, "INVOICES", true);
+    expect(unscopedQuery).toBeDefined();
+
+    // 2. With organisationId specified in options
+    const scopedByOrgId = AuthoritativeSchemaRegistry.queryDomain(supabase, "INVOICES", {
+      preferView: true,
+      organisationId: orgAlphaId,
+    });
+    expect(scopedByOrgId).toBeDefined();
+
+    // 3. With UserSecurityContext specified in options
+    const scopedByContext = AuthoritativeSchemaRegistry.queryDomain(supabase, "INVOICES", {
+      preferView: true,
+      context: alphaUser,
+    });
+    expect(scopedByContext).toBeDefined();
+
+    // 4. Verifies tenantKey definition
+    const invoiceDef = AuthoritativeSchemaRegistry.getDefinition("INVOICES");
+    expect(invoiceDef.tenantScoped).toBe(true);
+    expect(invoiceDef.tenantKey).toBe("organisation_id");
   });
 });

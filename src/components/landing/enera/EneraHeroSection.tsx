@@ -22,7 +22,9 @@ export function EneraHeroSection() {
         {/* Institutional Eyebrow Pill */}
         <div className="inline-flex items-center justify-center gap-2 px-3.5 py-1 rounded-full bg-slate-800/90 border border-slate-700/80 text-[11px] text-slate-300 mb-8 font-mono tracking-wider shadow-sm flex-wrap text-center max-w-full">
           <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" aria-hidden="true" />
-          <span className="uppercase text-cyan-300 font-semibold">Energy Financial Intelligence</span>
+          <span className="uppercase text-cyan-300 font-semibold">
+            Energy Financial Intelligence
+          </span>
           <span className="text-slate-600">·</span>
           <span className="text-slate-400">SANS 474 / NERSA Standard</span>
         </div>
@@ -39,7 +41,8 @@ export function EneraHeroSection() {
 
         {/* Secondary clear outcomes */}
         <p className="mt-3 text-sm sm:text-base text-slate-300 font-normal max-w-xl mx-auto leading-relaxed font-sans drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
-          Reconcile energy data, understand costs, identify anomalies and make better decisions from one intelligent platform.
+          Reconcile energy data, understand costs, identify anomalies and make better decisions from
+          one intelligent platform.
         </p>
 
         {/* High-contrast Action Buttons */}
@@ -77,4 +80,3 @@ export function EneraHeroSection() {
     </section>
   );
 }
-

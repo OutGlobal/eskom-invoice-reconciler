@@ -5,7 +5,11 @@
  */
 
 import Decimal from "decimal.js-light";
-import { ESKOM_MEGAFLEX_2025_2026, ESKOM_MINIFLEX_2025_2026, MUNICIPAL_COJ_BULK_2025_2026 } from "../tariff/tariffFixtures";
+import {
+  ESKOM_MEGAFLEX_2025_2026,
+  ESKOM_MINIFLEX_2025_2026,
+  MUNICIPAL_COJ_BULK_2025_2026,
+} from "../tariff/tariffFixtures";
 
 export interface RegressionFixture {
   fixture_code: string;

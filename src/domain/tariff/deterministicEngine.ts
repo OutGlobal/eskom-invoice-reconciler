@@ -141,18 +141,27 @@ export class DeterministicEngine {
       } else if (comp.season === "high") {
         if (highDays > 0) {
           shouldApply = true;
-          appliedQty = lowDays > 0 ? baseQty.mul(highRatio).toDecimalPlaces(2, Decimal.ROUND_HALF_UP) : baseQty;
+          appliedQty =
+            lowDays > 0
+              ? baseQty.mul(highRatio).toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+              : baseQty;
         }
       } else if (comp.season === "low") {
         if (lowDays > 0) {
           shouldApply = true;
-          appliedQty = highDays > 0 ? baseQty.mul(lowRatio).toDecimalPlaces(2, Decimal.ROUND_HALF_UP) : baseQty;
+          appliedQty =
+            highDays > 0
+              ? baseQty.mul(lowRatio).toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+              : baseQty;
         }
       }
 
       if (shouldApply && appliedQty.gt(0)) {
         const seasonLabel = comp.season ? `${comp.season.toUpperCase()} season` : "All season";
-        const splitNote = highDays > 0 && lowDays > 0 ? ` (${comp.season === "high" ? highDays : lowDays} of ${totalDays} billing days)` : "";
+        const splitNote =
+          highDays > 0 && lowDays > 0
+            ? ` (${comp.season === "high" ? highDays : lowDays} of ${totalDays} billing days)`
+            : "";
         addItem(
           comp.component_code,
           comp.component_name,
@@ -162,7 +171,7 @@ export class DeterministicEngine {
           `Gazetted ${seasonLabel} ${comp.tou_period?.toUpperCase()} energy rate${splitNote}`,
           `amount = (qty_kwh * rate_cents) / 100`,
           comp.rule_id || `RULE_${comp.component_code}`,
-          comp.season as SeasonType || season,
+          (comp.season as SeasonType) || season,
           comp.tou_period,
         );
       }
@@ -237,9 +246,12 @@ export class DeterministicEngine {
 
     // 4. Subsidies & Ancillary (c/kWh on Total Energy: Ancillary, Legacy, Affordability, Electrification) (2.c)
     const subsidyComponents = tariffVersion.components.filter((c) =>
-      ["ANCILLARY_SERVICE", "ELECTRIFICATION_SUBSIDY", "AFFORDABILITY_SUBSIDY", "LEGACY_CHARGE"].includes(
-        c.component_type,
-      ),
+      [
+        "ANCILLARY_SERVICE",
+        "ELECTRIFICATION_SUBSIDY",
+        "AFFORDABILITY_SUBSIDY",
+        "LEGACY_CHARGE",
+      ].includes(c.component_type),
     );
 
     for (const comp of subsidyComponents) {

@@ -76,12 +76,12 @@ describe("Production Data Lifecycle Engine (Stage 1 Specification & Implementati
   });
 
   it("should execute trusted server-side calculations using high-precision Decimal arithmetic (Stage 11)", async () => {
-    const mockTariff: TariffVersionDefinition = {
+    const mockTariff: any = {
       header: {
         tariff_code: "MEGAFLEX_TEST",
         version: "2026.1",
-        effective_from: "2026-04-01",
-        provider: "Eskom",
+        effective_date: "2026-04-01",
+        utility: "Eskom",
       },
       rates: {
         active_energy_peak: { value: "2.1000", unit: "R/kWh" },
@@ -187,7 +187,7 @@ describe("Production Data Lifecycle Engine (Stage 1 Specification & Implementati
 
     const result = await ProductionDataLifecycleEngine.executeAuthoritativePipeline(
       input,
-      "CORR-UNIT-TEST-123"
+      "CORR-UNIT-TEST-123",
     );
 
     expect(result.correlationId).toBe("CORR-UNIT-TEST-123");

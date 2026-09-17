@@ -59,7 +59,9 @@ export async function processWithAiFallback(
       invoiceTotal: extractedTotal,
       customerName:
         rawText.match(/Customer(?:\s*Name)?[:\s]+([^\n\r]+)/i)?.[1]?.trim() ||
-        rawText.match(/Name[:\s]+([^\n\r,]+(?:PTY|LTD|MINE|MUNICIPALITY|CC|PROPRIETARY))/i)?.[1]?.trim(),
+        rawText
+          .match(/Name[:\s]+([^\n\r,]+(?:PTY|LTD|MINE|MUNICIPALITY|CC|PROPRIETARY))/i)?.[1]
+          ?.trim(),
       premiseId:
         rawText.match(/Premise\s*(?:ID|No)?[:\s]+(\d{10})/i)?.[1] ||
         rawText.match(/Supply\s*Point[:\s]+(\d{10})/i)?.[1],

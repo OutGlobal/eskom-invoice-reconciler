@@ -33,12 +33,30 @@ const TABS: TabConfig[] = [
 ];
 
 const INTERVAL_BARS = [
-  { h: 30, t: "off" }, { h: 28, t: "off" }, { h: 32, t: "off" }, { h: 35, t: "off" },
-  { h: 42, t: "std" }, { h: 58, t: "std" }, { h: 88, t: "peak" }, { h: 96, t: "peak" },
-  { h: 92, t: "peak" }, { h: 72, t: "std" }, { h: 68, t: "std" }, { h: 65, t: "std" },
-  { h: 64, t: "std" }, { h: 62, t: "std" }, { h: 60, t: "std" }, { h: 66, t: "std" },
-  { h: 82, t: "peak" }, { h: 90, t: "peak" }, { h: 78, t: "peak" }, { h: 52, t: "std" },
-  { h: 44, t: "std" }, { h: 38, t: "off" }, { h: 34, t: "off" }, { h: 30, t: "off" },
+  { h: 30, t: "off" },
+  { h: 28, t: "off" },
+  { h: 32, t: "off" },
+  { h: 35, t: "off" },
+  { h: 42, t: "std" },
+  { h: 58, t: "std" },
+  { h: 88, t: "peak" },
+  { h: 96, t: "peak" },
+  { h: 92, t: "peak" },
+  { h: 72, t: "std" },
+  { h: 68, t: "std" },
+  { h: 65, t: "std" },
+  { h: 64, t: "std" },
+  { h: 62, t: "std" },
+  { h: 60, t: "std" },
+  { h: 66, t: "std" },
+  { h: 82, t: "peak" },
+  { h: 90, t: "peak" },
+  { h: 78, t: "peak" },
+  { h: 52, t: "std" },
+  { h: 44, t: "std" },
+  { h: 38, t: "off" },
+  { h: 34, t: "off" },
+  { h: 30, t: "off" },
 ];
 
 export function EneraProductInterfacePreviewSection() {
@@ -71,7 +89,7 @@ export function EneraProductInterfacePreviewSection() {
           observer.disconnect();
         }
       },
-      { threshold: 0.15 }
+      { threshold: 0.15 },
     );
     observer.observe(el);
 
@@ -104,7 +122,8 @@ export function EneraProductInterfacePreviewSection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed max-w-3xl mb-8">
-          Explore how ENERA turns interval meter telemetry and complex utility statements into clear, verifiable answers.
+          Explore how ENERA turns interval meter telemetry and complex utility statements into
+          clear, verifiable answers.
         </p>
 
         {/* Enterprise Hardware & Workstation Showcase */}
@@ -123,7 +142,8 @@ export function EneraProductInterfacePreviewSection() {
                     PRODUCTION WORKSTATION VIEW
                   </span>
                   <p className="text-sm sm:text-base font-normal text-slate-200 max-w-xl">
-                    24-hour interval demand profiles, Time-of-Use distribution, and reconciled line-item variances on a single unified canvas.
+                    24-hour interval demand profiles, Time-of-Use distribution, and reconciled
+                    line-item variances on a single unified canvas.
                   </p>
                 </div>
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 border border-cyan-500/30 text-xs font-mono text-cyan-300 shrink-0">
@@ -165,9 +185,7 @@ export function EneraProductInterfacePreviewSection() {
                 {tab.badge && (
                   <span
                     className={`ml-1 text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                      isActive
-                        ? "bg-cyan-400/20 text-cyan-200"
-                        : "bg-white/5 text-slate-400"
+                      isActive ? "bg-cyan-400/20 text-cyan-200" : "bg-white/5 text-slate-400"
                     }`}
                   >
                     {tab.badge}
@@ -271,7 +289,10 @@ export function EneraProductInterfacePreviewSection() {
                 <div className="p-5 rounded-xl bg-[#0b1224] border border-cyan-500/20 shadow-lg space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/5">
                     <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" aria-hidden="true" />
+                      <span
+                        className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"
+                        aria-hidden="true"
+                      />
                       <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-300">
                         Reconciliation Signal Transition
                       </span>
@@ -282,7 +303,9 @@ export function EneraProductInterfacePreviewSection() {
                         type="button"
                         onClick={() => setTransitionView("raw")}
                         className={`px-2.5 py-1 rounded text-[10px] font-mono transition-colors focus-ring-enera ${
-                          transitionView === "raw" ? "bg-white/10 text-white font-bold" : "text-slate-400 hover:text-white"
+                          transitionView === "raw"
+                            ? "bg-white/10 text-white font-bold"
+                            : "text-slate-400 hover:text-white"
                         }`}
                       >
                         1. Raw Stated
@@ -291,7 +314,9 @@ export function EneraProductInterfacePreviewSection() {
                         type="button"
                         onClick={() => setTransitionView("transition")}
                         className={`px-2.5 py-1 rounded text-[10px] font-mono transition-colors focus-ring-enera ${
-                          transitionView === "transition" ? "bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30" : "text-slate-400 hover:text-white"
+                          transitionView === "transition"
+                            ? "bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30"
+                            : "text-slate-400 hover:text-white"
                         }`}
                       >
                         2. Cross-Verification
@@ -300,7 +325,9 @@ export function EneraProductInterfacePreviewSection() {
                         type="button"
                         onClick={() => setTransitionView("insight")}
                         className={`px-2.5 py-1 rounded text-[10px] font-mono transition-colors focus-ring-enera ${
-                          transitionView === "insight" ? "bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30" : "text-slate-400 hover:text-white"
+                          transitionView === "insight"
+                            ? "bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                            : "text-slate-400 hover:text-white"
                         }`}
                       >
                         3. Clean Insight
@@ -310,9 +337,13 @@ export function EneraProductInterfacePreviewSection() {
 
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                     {/* Stated Billing Number */}
-                    <div className={`md:col-span-4 p-4 rounded-lg border transition-all duration-300 ${
-                      transitionView === "raw" ? "bg-[#070b16] border-white/30 shadow-inner ring-1 ring-white/10" : "bg-[#070b16]/60 border-white/5 opacity-85"
-                    }`}>
+                    <div
+                      className={`md:col-span-4 p-4 rounded-lg border transition-all duration-300 ${
+                        transitionView === "raw"
+                          ? "bg-[#070b16] border-white/30 shadow-inner ring-1 ring-white/10"
+                          : "bg-[#070b16]/60 border-white/5 opacity-85"
+                      }`}
+                    >
                       <span className="text-[10px] font-mono uppercase text-slate-400 block mb-1">
                         1. Raw Billed Statement
                       </span>
@@ -320,14 +351,19 @@ export function EneraProductInterfacePreviewSection() {
                         R 1,842,500.00
                       </div>
                       <p className="text-[11px] text-slate-400 mt-1">
-                        Aggregated monthly utility statement amount without interval cross-examination.
+                        Aggregated monthly utility statement amount without interval
+                        cross-examination.
                       </p>
                     </div>
 
                     {/* Transition Conduit */}
-                    <div className={`md:col-span-4 flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all duration-300 ${
-                      transitionView === "transition" ? "bg-cyan-950/40 border-cyan-500/50 enera-glow-cyan" : "bg-cyan-950/20 border-cyan-500/20"
-                    }`}>
+                    <div
+                      className={`md:col-span-4 flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all duration-300 ${
+                        transitionView === "transition"
+                          ? "bg-cyan-950/40 border-cyan-500/50 enera-glow-cyan"
+                          : "bg-cyan-950/20 border-cyan-500/20"
+                      }`}
+                    >
                       <div className="text-[10px] font-mono text-cyan-400 font-bold uppercase mb-1">
                         2. Deterministic Verification
                       </div>
@@ -342,9 +378,13 @@ export function EneraProductInterfacePreviewSection() {
                     </div>
 
                     {/* Clean Insight Number */}
-                    <div className={`md:col-span-4 p-4 rounded-lg border transition-all duration-300 ${
-                      transitionView === "insight" ? "bg-[#070b16] border-amber-500/40 enera-glow-amber ring-1 ring-amber-500/20" : "bg-[#070b16]/60 border-white/5 opacity-85"
-                    }`}>
+                    <div
+                      className={`md:col-span-4 p-4 rounded-lg border transition-all duration-300 ${
+                        transitionView === "insight"
+                          ? "bg-[#070b16] border-amber-500/40 enera-glow-amber ring-1 ring-amber-500/20"
+                          : "bg-[#070b16]/60 border-white/5 opacity-85"
+                      }`}
+                    >
                       <span className="text-[10px] font-mono uppercase text-amber-400 font-bold block mb-1">
                         3. Clean Audited Insight
                       </span>
@@ -352,7 +392,8 @@ export function EneraProductInterfacePreviewSection() {
                         +R 53,380.00 Credit
                       </div>
                       <p className="text-[11px] text-slate-300 mt-1">
-                        Isolated 16-June Public Holiday Peak misclassification &amp; 250 kVA demand overcharge.
+                        Isolated 16-June Public Holiday Peak misclassification &amp; 250 kVA demand
+                        overcharge.
                       </p>
                     </div>
                   </div>
@@ -361,7 +402,9 @@ export function EneraProductInterfacePreviewSection() {
                 {/* TOU Split Overview Bar */}
                 <div className="p-5 rounded-xl bg-[#0b1224] border border-white/5 space-y-3">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-300">Time-of-Use Volume Distribution</span>
+                    <span className="font-semibold text-slate-300">
+                      Time-of-Use Volume Distribution
+                    </span>
                     <span className="font-mono text-slate-400">Total: 3,412,080 kWh</span>
                   </div>
 
@@ -370,7 +413,9 @@ export function EneraProductInterfacePreviewSection() {
                     <div
                       style={{
                         width: hasEnteredViewport ? "24%" : "0%",
-                        transition: reducedMotion ? "none" : "width 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
+                        transition: reducedMotion
+                          ? "none"
+                          : "width 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
                       }}
                       className="bg-amber-500"
                       title="Peak: 24%"
@@ -378,7 +423,9 @@ export function EneraProductInterfacePreviewSection() {
                     <div
                       style={{
                         width: hasEnteredViewport ? "42%" : "0%",
-                        transition: reducedMotion ? "none" : "width 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s",
+                        transition: reducedMotion
+                          ? "none"
+                          : "width 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s",
                       }}
                       className="bg-cyan-500"
                       title="Standard: 42%"
@@ -386,7 +433,9 @@ export function EneraProductInterfacePreviewSection() {
                     <div
                       style={{
                         width: hasEnteredViewport ? "34%" : "0%",
-                        transition: reducedMotion ? "none" : "width 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s",
+                        transition: reducedMotion
+                          ? "none"
+                          : "width 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s",
                       }}
                       className="bg-slate-500"
                       title="Off-Peak: 34%"
@@ -507,12 +556,15 @@ export function EneraProductInterfacePreviewSection() {
               <div className="space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div>
-                    <span className="font-semibold text-white">24-Hour Interval Demand Profile</span>
+                    <span className="font-semibold text-white">
+                      24-Hour Interval Demand Profile
+                    </span>
                     <span className="text-slate-400 ml-2">High Season Weekday (SAST)</span>
                   </div>
                   <div className="flex items-center gap-4 font-mono text-[11px] text-slate-400">
                     <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded bg-amber-500" /> Peak Hours (06:00-09:00, 17:00-19:00)
+                      <span className="w-2 h-2 rounded bg-amber-500" /> Peak Hours (06:00-09:00,
+                      17:00-19:00)
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded bg-cyan-400" /> Measured kVA Demand
@@ -577,11 +629,27 @@ export function EneraProductInterfacePreviewSection() {
 
                       {/* Morning Peak Waypoint @ 08:30 (x=312, y=6) */}
                       <circle cx="312" cy="6" r="4" fill="#f59e0b" className="animate-pulse" />
-                      <circle cx="312" cy="6" r="8" stroke="#f59e0b" strokeWidth="1" fill="none" opacity="0.5" />
+                      <circle
+                        cx="312"
+                        cy="6"
+                        r="8"
+                        stroke="#f59e0b"
+                        strokeWidth="1"
+                        fill="none"
+                        opacity="0.5"
+                      />
 
                       {/* Evening Peak Waypoint @ 18:00 (x=740, y=12) */}
                       <circle cx="740" cy="12" r="3.5" fill="#f59e0b" />
-                      <circle cx="740" cy="12" r="7" stroke="#f59e0b" strokeWidth="1" fill="none" opacity="0.4" />
+                      <circle
+                        cx="740"
+                        cy="12"
+                        r="7"
+                        stroke="#f59e0b"
+                        strokeWidth="1"
+                        fill="none"
+                        opacity="0.4"
+                      />
                     </svg>
 
                     {/* Anomaly Indicator Radar Pill directly above 08:30 Peak */}
@@ -602,15 +670,17 @@ export function EneraProductInterfacePreviewSection() {
                           key={i}
                           style={{
                             height: hasEnteredViewport ? `${bar.h}%` : "0%",
-                            transition: reducedMotion ? "none" : "height 0.7s cubic-bezier(0.16, 1, 0.3, 1)",
+                            transition: reducedMotion
+                              ? "none"
+                              : "height 0.7s cubic-bezier(0.16, 1, 0.3, 1)",
                             transitionDelay: reducedMotion ? "0ms" : `${i * 22}ms`,
                           }}
                           className={`flex-1 rounded-t ${
                             bar.t === "peak"
                               ? "bg-gradient-to-t from-amber-600 to-amber-400 hover:brightness-110"
                               : bar.t === "std"
-                              ? "bg-gradient-to-t from-cyan-600 to-cyan-400 hover:brightness-110"
-                              : "bg-slate-700 hover:bg-slate-600"
+                                ? "bg-gradient-to-t from-cyan-600 to-cyan-400 hover:brightness-110"
+                                : "bg-slate-700 hover:bg-slate-600"
                           }`}
                         />
                       ))}
@@ -656,7 +726,10 @@ export function EneraProductInterfacePreviewSection() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 font-bold enera-anomaly-radar inline-flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" aria-hidden="true" />
+                          <span
+                            className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"
+                            aria-hidden="true"
+                          />
                           CRITICAL
                         </span>
                         <h3 className="text-sm font-bold text-white">
@@ -664,30 +737,37 @@ export function EneraProductInterfacePreviewSection() {
                         </h3>
                       </div>
                       <p className="text-xs text-slate-400 font-sans leading-relaxed">
-                        Youth Day (16 June) was billed at High-Season Peak weekday rates instead of statutory Sunday Off-Peak schedule under NERSA Schedule 2 rules.
+                        Youth Day (16 June) was billed at High-Season Peak weekday rates instead of
+                        statutory Sunday Off-Peak schedule under NERSA Schedule 2 rules.
                       </p>
 
                       {/* Subtle rate comparison breakdown */}
                       <div className="mt-3 pt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-mono border-t border-white/5">
                         <div className="p-2 rounded bg-black/40 border border-white/5">
-                          <span className="text-slate-400 block text-[9px] uppercase">Utility Stated Rate</span>
+                          <span className="text-slate-400 block text-[9px] uppercase">
+                            Utility Stated Rate
+                          </span>
                           <span className="text-rose-300 font-bold">R 0.742/kWh (Peak)</span>
                         </div>
                         <div className="p-2 rounded bg-black/40 border border-white/5">
-                          <span className="text-slate-400 block text-[9px] uppercase">NERSA Schedule Rate</span>
+                          <span className="text-slate-400 block text-[9px] uppercase">
+                            NERSA Schedule Rate
+                          </span>
                           <span className="text-cyan-300 font-bold">R 0.250/kWh (Off-Peak)</span>
                         </div>
                         <div className="p-2 rounded bg-amber-950/20 border border-amber-500/20">
-                          <span className="text-amber-400 block text-[9px] uppercase">Unearned Variance</span>
+                          <span className="text-amber-400 block text-[9px] uppercase">
+                            Unearned Variance
+                          </span>
                           <span className="text-amber-300 font-bold">+R 24,180.00 Recovery</span>
                         </div>
                       </div>
                     </div>
                     <div className="text-left sm:text-right shrink-0">
-                      <div className="font-mono text-sm font-bold text-amber-400">
-                        +R 24,180.00
-                      </div>
-                      <span className="text-[10px] font-mono text-slate-400">Unearned Tariff Charge</span>
+                      <div className="font-mono text-sm font-bold text-amber-400">+R 24,180.00</div>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        Unearned Tariff Charge
+                      </span>
                     </div>
                   </div>
 
@@ -695,7 +775,10 @@ export function EneraProductInterfacePreviewSection() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 font-bold inline-flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" aria-hidden="true" />
+                          <span
+                            className="w-1.5 h-1.5 rounded-full bg-amber-400"
+                            aria-hidden="true"
+                          />
                           WARNING
                         </span>
                         <h3 className="text-sm font-bold text-white">
@@ -703,14 +786,15 @@ export function EneraProductInterfacePreviewSection() {
                         </h3>
                       </div>
                       <p className="text-xs text-slate-400 font-sans leading-relaxed">
-                        Utility stated peak demand at 5,100 kVA. Physical meter interval telemetry confirms maximum peak reached was 4,850 kVA at 08:30.
+                        Utility stated peak demand at 5,100 kVA. Physical meter interval telemetry
+                        confirms maximum peak reached was 4,850 kVA at 08:30.
                       </p>
                     </div>
                     <div className="text-left sm:text-right shrink-0">
-                      <div className="font-mono text-sm font-bold text-amber-400">
-                        +R 14,166.00
-                      </div>
-                      <span className="text-[10px] font-mono text-slate-400">250 kVA Discrepancy</span>
+                      <div className="font-mono text-sm font-bold text-amber-400">+R 14,166.00</div>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        250 kVA Discrepancy
+                      </span>
                     </div>
                   </div>
 
@@ -725,14 +809,17 @@ export function EneraProductInterfacePreviewSection() {
                         </h3>
                       </div>
                       <p className="text-xs text-slate-400 font-sans leading-relaxed">
-                        Average power factor maintained at 0.96 lagging across billing cycle. Invalid reactive levy of R 27,800 reversed.
+                        Average power factor maintained at 0.96 lagging across billing cycle.
+                        Invalid reactive levy of R 27,800 reversed.
                       </p>
                     </div>
                     <div className="text-left sm:text-right shrink-0">
                       <div className="font-mono text-sm font-bold text-emerald-400">
                         +R 27,800.00
                       </div>
-                      <span className="text-[10px] font-mono text-slate-400">Exempt from Penalty</span>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        Exempt from Penalty
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -752,13 +839,13 @@ export function EneraProductInterfacePreviewSection() {
                         Apex Precision Manufacturing — August 2026 Audit Pack
                       </h3>
                     </div>
-                      <a
-                        href="#contact"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 text-xs font-mono hover:bg-cyan-500/20 transition-colors"
-                      >
-                        <span>REQUEST A DEMO</span>
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </a>
+                    <a
+                      href="#contact"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 text-xs font-mono hover:bg-cyan-500/20 transition-colors"
+                    >
+                      <span>REQUEST A DEMO</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </a>
                   </div>
 
                   <div className="grid grid-cols-1 min-[380px]:grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
@@ -771,7 +858,9 @@ export function EneraProductInterfacePreviewSection() {
                       <span className="text-slate-200">1,488 Intervals (100%)</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block text-[10px]">ISOLATED CREDIT CLAIM</span>
+                      <span className="text-slate-400 block text-[10px]">
+                        ISOLATED CREDIT CLAIM
+                      </span>
                       <span className="text-amber-400 font-bold">R 53,380.00</span>
                     </div>
                     <div>
@@ -783,9 +872,17 @@ export function EneraProductInterfacePreviewSection() {
                   <div className="p-3 rounded-lg bg-[#070b16] border border-white/5 text-xs text-slate-400 font-sans space-y-1">
                     <span className="font-semibold text-slate-200 block">Dossier Contents:</span>
                     <ul className="list-disc list-inside space-y-0.5 text-slate-400 text-[11px]">
-                      <li>Eskom Form 102 structured claim summary with line-item discrepancy breakdowns.</li>
-                      <li>Certified 30-minute interval telemetry export matching SANS 474 revenue standards.</li>
-                      <li>Statutory NERSA high-season calendar mapping and gazetted tariff proofs.</li>
+                      <li>
+                        Eskom Form 102 structured claim summary with line-item discrepancy
+                        breakdowns.
+                      </li>
+                      <li>
+                        Certified 30-minute interval telemetry export matching SANS 474 revenue
+                        standards.
+                      </li>
+                      <li>
+                        Statutory NERSA high-season calendar mapping and gazetted tariff proofs.
+                      </li>
                     </ul>
                   </div>
                 </div>
@@ -796,7 +893,10 @@ export function EneraProductInterfacePreviewSection() {
 
         {/* 6. Supporting Notice & Optional CTA */}
         <div className="mt-8 pt-6 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-400">
-          <span>Simulated enterprise environment. All displayed entity names and financial values are synthetic demonstration data.</span>
+          <span>
+            Simulated enterprise environment. All displayed entity names and financial values are
+            synthetic demonstration data.
+          </span>
           <a
             href="#contact"
             className="inline-flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 transition-colors font-medium focus-ring-enera shrink-0"

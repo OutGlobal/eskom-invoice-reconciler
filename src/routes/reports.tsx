@@ -35,11 +35,8 @@ function ReportsPage() {
   const diff = invoiceTotal - calculatedTotal;
   const pctErr = invoiceTotal ? (diff / invoiceTotal) * 100 : 0;
 
-  const invoicesToCompare = (batchInvoices && batchInvoices.length > 0)
-    ? batchInvoices
-    : invoice
-    ? [invoice]
-    : [];
+  const invoicesToCompare =
+    batchInvoices && batchInvoices.length > 0 ? batchInvoices : invoice ? [invoice] : [];
 
   const reconRows = buildStandardReconciliationTable(
     invoiceLines,
@@ -188,9 +185,12 @@ function ReportsPage() {
               <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-foreground">No Billing Records Available for Comparison</h4>
+              <h4 className="text-sm font-semibold text-foreground">
+                No Billing Records Available for Comparison
+              </h4>
               <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                Ingest multiple utility tax invoices to populate cross-period audit matrices, multi-month demand tracking, and statutory variance reporting.
+                Ingest multiple utility tax invoices to populate cross-period audit matrices,
+                multi-month demand tracking, and statutory variance reporting.
               </p>
             </div>
             <div className="flex items-center justify-center gap-3 pt-2">
@@ -235,11 +235,19 @@ function ReportsPage() {
                   const inclVat = inv.totalInclVat || (exclVat > 0 ? exclVat * 1.15 : 0);
 
                   return (
-                    <tr key={inv.invoiceNo || inv.invoiceNumber || idx} className="hover:bg-muted/40 transition">
-                      <td className="px-3 py-2.5 font-medium">{inv.accountMonth || "Current Period"}</td>
-                      <td className="px-3 py-2.5 font-mono text-xs">{inv.invoiceNo || inv.invoiceNumber || "—"}</td>
+                    <tr
+                      key={inv.invoiceNo || inv.invoiceNumber || idx}
+                      className="hover:bg-muted/40 transition"
+                    >
+                      <td className="px-3 py-2.5 font-medium">
+                        {inv.accountMonth || "Current Period"}
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-xs">
+                        {inv.invoiceNo || inv.invoiceNumber || "—"}
+                      </td>
                       <td className="px-3 py-2.5 text-xs text-muted-foreground">
-                        {inv.billingPeriod || `${inv.billingPeriodStart || "—"} to ${inv.billingPeriodEnd || "—"}`}
+                        {inv.billingPeriod ||
+                          `${inv.billingPeriodStart || "—"} to ${inv.billingPeriodEnd || "—"}`}
                       </td>
                       <td className="px-3 py-2.5 text-right font-mono tabular-nums">
                         {NUM(totalKwh, 0)}
@@ -247,7 +255,9 @@ function ReportsPage() {
                       <td className="px-3 py-2.5 text-right font-mono tabular-nums">
                         {NUM(maxDemand, 2)}
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono font-medium">{ZAR(exclVat)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono font-medium">
+                        {ZAR(exclVat)}
+                      </td>
                       <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">
                         {ZAR(inclVat)}
                       </td>
@@ -260,7 +270,9 @@ function ReportsPage() {
                         <button
                           onClick={() => {
                             useApp.getState().setInvoice(inv);
-                            toast.success(`Loaded ${inv.accountMonth || "invoice"} into active session`);
+                            toast.success(
+                              `Loaded ${inv.accountMonth || "invoice"} into active session`,
+                            );
                           }}
                           className="text-xs bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded px-2 py-1 font-medium transition"
                         >

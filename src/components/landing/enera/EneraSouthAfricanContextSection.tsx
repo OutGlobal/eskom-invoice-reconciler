@@ -1,11 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
-import {
-  Clock,
-  Calendar,
-  ArrowRight,
-  ShieldCheck,
-} from "lucide-react";
+import { Clock, Calendar, ArrowRight, ShieldCheck } from "lucide-react";
 
 type SeasonType = "high" | "low";
 type DayType = "weekday" | "saturday" | "sunday";
@@ -88,7 +83,8 @@ export function EneraSouthAfricanContextSection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-12">
-          Deterministic modeling across Eskom Megaflex and municipal billing frameworks, matching statutory tariff gazettes with treasury-grade precision.
+          Deterministic modeling across Eskom Megaflex and municipal billing frameworks, matching
+          statutory tariff gazettes with treasury-grade precision.
         </p>
 
         {/* 4. Visual or capability: Interactive 24-Hour TOU Determinant Engine Console */}
@@ -306,7 +302,10 @@ export function EneraSouthAfricanContextSection() {
 
         {/* 5. Optional supporting information & 6. Optional CTA */}
         <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-500">
-          <span>Engineered for Commercial &amp; Industrial, Mining Operations, and Municipal Distributors.</span>
+          <span>
+            Engineered for Commercial &amp; Industrial, Mining Operations, and Municipal
+            Distributors.
+          </span>
           <a
             href="#contact"
             className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 font-semibold transition-colors focus-ring-enera shrink-0"
@@ -319,4 +318,3 @@ export function EneraSouthAfricanContextSection() {
     </section>
   );
 }
-

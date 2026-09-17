@@ -67,13 +67,14 @@ export function EnergyPage() {
     return { peakKWh: p, standardKWh: s, offPeakKWh: o, totalKWh: p + s + o };
   }, [filteredByBucket]);
 
-  const displayTotals = bucket === "period" ? (bucketTotals.totalKWh > 0 ? bucketTotals : totals) : bucketTotals;
+  const displayTotals =
+    bucket === "period" ? (bucketTotals.totalKWh > 0 ? bucketTotals : totals) : bucketTotals;
 
   // Comparison figures with Eskom Invoice
   const invoicePeakKWh = invoice?.peakKWh ?? 6401924.4;
   const invoiceStdKWh = invoice?.standardKWh ?? 19432557.6;
   const invoiceOffKWh = invoice?.offPeakKWh ?? 23429967.6;
-  const invoiceTotalKWh = invoice?.totalKWh ?? (invoicePeakKWh + invoiceStdKWh + invoiceOffKWh);
+  const invoiceTotalKWh = invoice?.totalKWh ?? invoicePeakKWh + invoiceStdKWh + invoiceOffKWh;
 
   const comparisonData = [
     {
@@ -82,7 +83,8 @@ export function EnergyPage() {
       meterKWh: displayTotals.peakKWh,
       eskomKWh: invoicePeakKWh,
       varianceKWh: displayTotals.peakKWh - invoicePeakKWh,
-      variancePct: invoicePeakKWh > 0 ? ((displayTotals.peakKWh - invoicePeakKWh) / invoicePeakKWh) * 100 : 0,
+      variancePct:
+        invoicePeakKWh > 0 ? ((displayTotals.peakKWh - invoicePeakKWh) / invoicePeakKWh) * 100 : 0,
       color: TOU_COLOR.peak,
     },
     {
@@ -91,7 +93,8 @@ export function EnergyPage() {
       meterKWh: displayTotals.standardKWh,
       eskomKWh: invoiceStdKWh,
       varianceKWh: displayTotals.standardKWh - invoiceStdKWh,
-      variancePct: invoiceStdKWh > 0 ? ((displayTotals.standardKWh - invoiceStdKWh) / invoiceStdKWh) * 100 : 0,
+      variancePct:
+        invoiceStdKWh > 0 ? ((displayTotals.standardKWh - invoiceStdKWh) / invoiceStdKWh) * 100 : 0,
       color: TOU_COLOR.standard,
     },
     {
@@ -100,7 +103,8 @@ export function EnergyPage() {
       meterKWh: displayTotals.offPeakKWh,
       eskomKWh: invoiceOffKWh,
       varianceKWh: displayTotals.offPeakKWh - invoiceOffKWh,
-      variancePct: invoiceOffKWh > 0 ? ((displayTotals.offPeakKWh - invoiceOffKWh) / invoiceOffKWh) * 100 : 0,
+      variancePct:
+        invoiceOffKWh > 0 ? ((displayTotals.offPeakKWh - invoiceOffKWh) / invoiceOffKWh) * 100 : 0,
       color: TOU_COLOR.offPeak,
     },
   ];
@@ -120,7 +124,8 @@ export function EnergyPage() {
         <div>
           <h1 className="text-xl font-semibold">Meter Data: Energy Consumption (units: kW)</h1>
           <p className="text-xs text-muted-foreground">
-            30-minute interval active power (kW) &amp; monthly active energy (kWh) compared against Eskom Invoice
+            30-minute interval active power (kW) &amp; monthly active energy (kWh) compared against
+            Eskom Invoice
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -184,7 +189,11 @@ export function EnergyPage() {
         <MetricCard label="Peak Energy" value={`${NUM(displayTotals.peakKWh, 0)} kWh`} />
         <MetricCard label="Standard Energy" value={`${NUM(displayTotals.standardKWh, 0)} kWh`} />
         <MetricCard label="Off-Peak Energy" value={`${NUM(displayTotals.offPeakKWh, 0)} kWh`} />
-        <MetricCard label="Total Monthly Energy" value={`${NUM(displayTotals.totalKWh, 0)} kWh`} accent />
+        <MetricCard
+          label="Total Monthly Energy"
+          value={`${NUM(displayTotals.totalKWh, 0)} kWh`}
+          accent
+        />
       </section>
 
       {/* Graph 1.a: Energy Consumption (units: kW) */}
@@ -218,27 +227,48 @@ export function EnergyPage() {
                 return (
                   <tr key={row.label} className="hover:bg-muted/40 transition-colors">
                     <td className="py-2.5 px-3 font-medium flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: row.color }} />
+                      <span
+                        className="w-2.5 h-2.5 rounded-full"
+                        style={{ backgroundColor: row.color }}
+                      />
                       {row.label}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono font-medium">{NUM(row.meterKWh, 1)}</td>
-                    <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">{NUM(row.eskomKWh, 1)}</td>
-                    <td className={`py-2.5 px-3 text-right font-mono font-semibold ${
-                      isMatch ? "text-muted-foreground" : row.varianceKWh > 0 ? "text-amber-500" : "text-emerald-500"
-                    }`}>
-                      {row.varianceKWh > 0 ? `+${NUM(row.varianceKWh, 1)}` : NUM(row.varianceKWh, 1)}
+                    <td className="py-2.5 px-3 text-right font-mono font-medium">
+                      {NUM(row.meterKWh, 1)}
                     </td>
-                    <td className={`py-2.5 px-3 text-right font-mono font-medium ${
-                      isMatch ? "text-muted-foreground" : "text-amber-500"
-                    }`}>
-                      {row.variancePct > 0 ? `+${row.variancePct.toFixed(2)}%` : `${row.variancePct.toFixed(2)}%`}
+                    <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">
+                      {NUM(row.eskomKWh, 1)}
+                    </td>
+                    <td
+                      className={`py-2.5 px-3 text-right font-mono font-semibold ${
+                        isMatch
+                          ? "text-muted-foreground"
+                          : row.varianceKWh > 0
+                            ? "text-amber-500"
+                            : "text-emerald-500"
+                      }`}
+                    >
+                      {row.varianceKWh > 0
+                        ? `+${NUM(row.varianceKWh, 1)}`
+                        : NUM(row.varianceKWh, 1)}
+                    </td>
+                    <td
+                      className={`py-2.5 px-3 text-right font-mono font-medium ${
+                        isMatch ? "text-muted-foreground" : "text-amber-500"
+                      }`}
+                    >
+                      {row.variancePct > 0
+                        ? `+${row.variancePct.toFixed(2)}%`
+                        : `${row.variancePct.toFixed(2)}%`}
                     </td>
                     <td className="py-2.5 px-3 text-center">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
-                        isMatch
-                          ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
-                          : "bg-amber-500/10 text-amber-500 border border-amber-500/20"
-                      }`}>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
+                          isMatch
+                            ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                            : "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                        }`}
+                      >
                         {isMatch ? "Clean Match" : "Discrepancy"}
                       </span>
                     </td>
@@ -248,15 +278,21 @@ export function EnergyPage() {
               {/* Total Monthly Energy Row */}
               <tr className="bg-muted/60 font-bold border-t-2 border-border">
                 <td className="py-3 px-3">Total for the Month (ALL Peak + Standard + Off-Peak)</td>
-                <td className="py-3 px-3 text-right font-mono text-primary">{NUM(displayTotals.totalKWh, 1)} kWh</td>
+                <td className="py-3 px-3 text-right font-mono text-primary">
+                  {NUM(displayTotals.totalKWh, 1)} kWh
+                </td>
                 <td className="py-3 px-3 text-right font-mono">{NUM(invoiceTotalKWh, 1)} kWh</td>
-                <td className={`py-3 px-3 text-right font-mono font-bold ${
-                  Math.abs(totalVarianceKWh) < 1.0 ? "text-emerald-500" : "text-amber-500"
-                }`}>
+                <td
+                  className={`py-3 px-3 text-right font-mono font-bold ${
+                    Math.abs(totalVarianceKWh) < 1.0 ? "text-emerald-500" : "text-amber-500"
+                  }`}
+                >
                   {totalVarianceKWh > 0 ? `+${NUM(totalVarianceKWh, 1)}` : NUM(totalVarianceKWh, 1)}
                 </td>
                 <td className="py-3 px-3 text-right font-mono font-bold text-amber-500">
-                  {totalVariancePct > 0 ? `+${totalVariancePct.toFixed(2)}%` : `${totalVariancePct.toFixed(2)}%`}
+                  {totalVariancePct > 0
+                    ? `+${totalVariancePct.toFixed(2)}%`
+                    : `${totalVariancePct.toFixed(2)}%`}
                 </td>
                 <td className="py-3 px-3 text-center">
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase">

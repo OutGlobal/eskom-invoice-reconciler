@@ -115,13 +115,13 @@ export class TariffValidationEngine {
     const family = version.header.tariff_family;
     if (family === "megaflex" || family === "miniflex") {
       const hasPeak = version.components.some(
-        (c) => c.component_type === "ACTIVE_ENERGY" && c.tou_period === "peak"
+        (c) => c.component_type === "ACTIVE_ENERGY" && c.tou_period === "peak",
       );
       const hasStd = version.components.some(
-        (c) => c.component_type === "ACTIVE_ENERGY" && c.tou_period === "standard"
+        (c) => c.component_type === "ACTIVE_ENERGY" && c.tou_period === "standard",
       );
       const hasOffPeak = version.components.some(
-        (c) => c.component_type === "ACTIVE_ENERGY" && c.tou_period === "off_peak"
+        (c) => c.component_type === "ACTIVE_ENERGY" && c.tou_period === "off_peak",
       );
 
       if (!hasPeak || !hasStd || !hasOffPeak) {
@@ -144,7 +144,9 @@ export class TariffValidationEngine {
   /**
    * Validate non-overlapping effective dates across multiple tariff versions
    */
-  public static validateNoOverlappingVersions(versions: TariffVersionDefinition[]): ValidationResult {
+  public static validateNoOverlappingVersions(
+    versions: TariffVersionDefinition[],
+  ): ValidationResult {
     const errors: TariffValidationError[] = [];
     const warnings: TariffValidationError[] = [];
 
@@ -162,7 +164,8 @@ export class TariffValidationEngine {
     grouped.forEach((groupVersions, key) => {
       // Sort by effective date
       groupVersions.sort(
-        (a, b) => new Date(a.header.effective_date).getTime() - new Date(b.header.effective_date).getTime()
+        (a, b) =>
+          new Date(a.header.effective_date).getTime() - new Date(b.header.effective_date).getTime(),
       );
 
       for (let i = 0; i < groupVersions.length - 1; i++) {
@@ -170,7 +173,9 @@ export class TariffValidationEngine {
         const v2 = groupVersions[i + 1];
 
         const v1Eff = new Date(v1.header.effective_date);
-        const v1Exp = v1.header.expiry_date ? new Date(v1.header.expiry_date) : new Date("2099-12-31");
+        const v1Exp = v1.header.expiry_date
+          ? new Date(v1.header.expiry_date)
+          : new Date("2099-12-31");
         const v2Eff = new Date(v2.header.effective_date);
 
         if (v1Exp >= v2Eff) {

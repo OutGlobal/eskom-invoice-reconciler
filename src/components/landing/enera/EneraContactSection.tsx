@@ -38,7 +38,8 @@ export function EneraContactSection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-300 font-normal leading-relaxed max-w-3xl mb-14">
-          Connect with our analysts for an initial overcharge screening across your commercial, industrial, or mining facilities.
+          Connect with our analysts for an initial overcharge screening across your commercial,
+          industrial, or mining facilities.
         </p>
 
         {/* 4. Visual or capability: Executive Briefing Request Container */}
@@ -56,7 +57,8 @@ export function EneraContactSection() {
               </h3>
 
               <p className="text-sm text-slate-300 leading-relaxed font-sans">
-                We conduct initial deterministic reconciliations across commercial property, manufacturing, mining, and municipal power consumers.
+                We conduct initial deterministic reconciliations across commercial property,
+                manufacturing, mining, and municipal power consumers.
               </p>
 
               <div className="space-y-2 pt-2 text-xs font-sans text-slate-400">
@@ -91,7 +93,8 @@ export function EneraContactSection() {
                   </h4>
                   <p className="text-xs text-slate-300 leading-relaxed font-sans max-w-sm mx-auto">
                     Our quantitative advisory team will contact you at{" "}
-                    <strong className="text-white font-mono">{formData.workEmail}</strong> within one business day to coordinate the reconciliation protocol.
+                    <strong className="text-white font-mono">{formData.workEmail}</strong> within
+                    one business day to coordinate the reconciliation protocol.
                   </p>
                   <span className="text-[11px] font-mono text-emerald-400 block pt-1">
                     CONFIDENTIALITY AGREEMENT DISPATCHED
@@ -109,7 +112,10 @@ export function EneraContactSection() {
                         htmlFor="workEmail"
                         className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block mb-1"
                       >
-                        Corporate Email <span className="text-cyan-400" aria-hidden="true">*</span>
+                        Corporate Email{" "}
+                        <span className="text-cyan-400" aria-hidden="true">
+                          *
+                        </span>
                       </label>
                       <input
                         id="workEmail"
@@ -120,9 +126,7 @@ export function EneraContactSection() {
                         autoComplete="email"
                         placeholder="executive@enterprise.co.za"
                         value={formData.workEmail}
-                        onChange={(e) =>
-                          setFormData({ ...formData, workEmail: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, workEmail: e.target.value })}
                         className="w-full px-3 py-2.5 min-h-[44px] rounded-lg bg-[#0b101b] border border-white/10 text-white placeholder-slate-400 text-xs font-mono focus:border-cyan-500 focus:outline-none focus-ring-enera"
                       />
                     </div>
@@ -132,7 +136,10 @@ export function EneraContactSection() {
                         htmlFor="contactOrganization"
                         className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block mb-1"
                       >
-                        Organization Name <span className="text-cyan-400" aria-hidden="true">*</span>
+                        Organization Name{" "}
+                        <span className="text-cyan-400" aria-hidden="true">
+                          *
+                        </span>
                       </label>
                       <input
                         id="contactOrganization"
@@ -143,9 +150,7 @@ export function EneraContactSection() {
                         autoComplete="organization"
                         placeholder="Enterprise / Facility Name"
                         value={formData.organization}
-                        onChange={(e) =>
-                          setFormData({ ...formData, organization: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
                         className="w-full px-3 py-2.5 min-h-[44px] rounded-lg bg-[#0b101b] border border-white/10 text-white placeholder-slate-400 text-xs font-mono focus:border-cyan-500 focus:outline-none focus-ring-enera"
                       />
                     </div>
@@ -163,9 +168,7 @@ export function EneraContactSection() {
                         id="contactMonthlySpend"
                         name="monthlySpend"
                         value={formData.monthlySpend}
-                        onChange={(e) =>
-                          setFormData({ ...formData, monthlySpend: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, monthlySpend: e.target.value })}
                         className="w-full px-3 py-2.5 min-h-[44px] rounded-lg bg-[#0b101b] border border-white/10 text-white text-xs font-mono focus:border-cyan-500 focus:outline-none focus-ring-enera"
                       >
                         <option value="R 500k – R 1M">R 500k – R 1M / mo</option>
@@ -186,9 +189,7 @@ export function EneraContactSection() {
                         id="contactSupplyType"
                         name="supplyType"
                         value={formData.supplyType}
-                        onChange={(e) =>
-                          setFormData({ ...formData, supplyType: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, supplyType: e.target.value })}
                         className="w-full px-3 py-2.5 min-h-[44px] rounded-lg bg-[#0b101b] border border-white/10 text-white text-xs font-mono focus:border-cyan-500 focus:outline-none focus-ring-enera"
                       >
                         <option value="Eskom Direct Megaflex">Eskom Direct (Megaflex)</option>

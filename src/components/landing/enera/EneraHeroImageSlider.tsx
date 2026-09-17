@@ -126,7 +126,9 @@ export function EneraHeroImageSlider() {
                   key={`progress-${currentSlide}`}
                   className="absolute inset-y-0 left-0 bg-cyan-400 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.8)]"
                   style={{
-                    animation: reducedMotion ? "none" : `enera-slide-progress ${SLIDE_INTERVAL_MS}ms linear forwards`,
+                    animation: reducedMotion
+                      ? "none"
+                      : `enera-slide-progress ${SLIDE_INTERVAL_MS}ms linear forwards`,
                   }}
                 />
               )}

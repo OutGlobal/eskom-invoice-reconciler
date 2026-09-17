@@ -22,6 +22,7 @@
 ```
 
 ### Response Actions
+
 1. **Immediate Lockdown:** If a calculation discrepancy is detected, update `reconciliation_settings` to set `require_manual_approval = true`.
 2. **Investigation & Diagnosis:** Run `npx tsx src/lib/__tests__/run-tests.ts` locally to reproduce deterministic engine state.
 3. **Hotfix & Deployment:** Apply fix, run full test suite gate (`npm test`), and deploy fix commit.

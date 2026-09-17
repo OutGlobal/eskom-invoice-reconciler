@@ -21,13 +21,22 @@ import { InvoiceReviewWorkspace } from "@/components/invoice/InvoiceReviewWorksp
 import { SecureUploadGateway } from "@/components/upload/SecureUploadGateway";
 import { InvoiceSelector } from "@/components/InvoiceSelector";
 import { LayeredExtractor } from "@/domain/invoice/layeredExtractor";
-import { InvoiceStorageService, type InvoiceSearchFilter } from "@/domain/invoice/invoiceStorageService";
+import {
+  InvoiceStorageService,
+  type InvoiceSearchFilter,
+} from "@/domain/invoice/invoiceStorageService";
 import { InvoiceLifecycleService } from "@/domain/invoice/invoiceLifecycleService";
-import type { ExtractedInvoiceDocument, InvoiceLifecycleState, InvoiceHeaderMeta } from "@/domain/invoice/types";
+import type {
+  ExtractedInvoiceDocument,
+  InvoiceLifecycleState,
+  InvoiceHeaderMeta,
+} from "@/domain/invoice/types";
 import toast from "react-hot-toast";
 
 export const Route = createFileRoute("/invoices")({
-  head: () => ({ meta: [{ title: "Authoritative Billing-Account & Invoice Management — Eskom Bill Balancer" }] }),
+  head: () => ({
+    meta: [{ title: "Authoritative Billing-Account & Invoice Management — Eskom Bill Balancer" }],
+  }),
   component: InvoicesPage,
 });
 
@@ -113,7 +122,10 @@ function InvoicesPage() {
       });
 
       extracted.id = "inv-sample-megaflex";
-      extracted.lifecycle_state = InvoiceLifecycleService.determineInitialState(extracted, extracted.validation_summary);
+      extracted.lifecycle_state = InvoiceLifecycleService.determineInitialState(
+        extracted,
+        extracted.validation_summary,
+      );
 
       setActiveDoc(extracted);
       setViewMode("workspace");
@@ -201,16 +213,29 @@ function InvoicesPage() {
   // Filtered invoices logic
   const filteredInvoices = useMemo(() => {
     return invoices.filter((inv) => {
-      if (filter.accountNumber && !inv.account_number.toLowerCase().includes(filter.accountNumber.toLowerCase())) {
+      if (
+        filter.accountNumber &&
+        !inv.account_number.toLowerCase().includes(filter.accountNumber.toLowerCase())
+      ) {
         return false;
       }
-      if (filter.invoiceNumber && !inv.invoice_id.toLowerCase().includes(filter.invoiceNumber.toLowerCase())) {
+      if (
+        filter.invoiceNumber &&
+        !inv.invoice_id.toLowerCase().includes(filter.invoiceNumber.toLowerCase())
+      ) {
         return false;
       }
-      if (filter.tariffName && !inv.tariff_name?.toLowerCase().includes(filter.tariffName.toLowerCase())) {
+      if (
+        filter.tariffName &&
+        !inv.tariff_name?.toLowerCase().includes(filter.tariffName.toLowerCase())
+      ) {
         return false;
       }
-      if (filter.lifecycleState && filter.lifecycleState !== "ALL" && inv.lifecycle_state !== filter.lifecycleState) {
+      if (
+        filter.lifecycleState &&
+        filter.lifecycleState !== "ALL" &&
+        inv.lifecycle_state !== filter.lifecycleState
+      ) {
         return false;
       }
       if (filter.discrepancyOnly && inv.validation_status !== "warnings") {
@@ -226,7 +251,10 @@ function InvoicesPage() {
     (i) => i.lifecycle_state === "REVIEW_REQUIRED" || i.lifecycle_state === "EXTRACTED",
   ).length;
   const approvedCount = invoices.filter(
-    (i) => i.lifecycle_state === "APPROVED" || i.lifecycle_state === "READY_FOR_RECONCILIATION" || i.lifecycle_state === "RECONCILED",
+    (i) =>
+      i.lifecycle_state === "APPROVED" ||
+      i.lifecycle_state === "READY_FOR_RECONCILIATION" ||
+      i.lifecycle_state === "RECONCILED",
   ).length;
 
   return (
@@ -246,7 +274,8 @@ function InvoicesPage() {
             <FileText className="w-7 h-7 text-blue-600" /> Authoritative Invoice Subsystem
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            10-State Invoice Lifecycle, Multi-Layout OCR Ingestion, Audit Corrections &amp; Determinant Lineage
+            10-State Invoice Lifecycle, Multi-Layout OCR Ingestion, Audit Corrections &amp;
+            Determinant Lineage
           </p>
         </div>
 
@@ -296,33 +325,49 @@ function InvoicesPage() {
       {/* Overview Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xs">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Invoices</span>
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Total Invoices
+          </span>
           <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalInvoicesCount}</span>
+            <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {totalInvoicesCount}
+            </span>
             <FileText className="w-5 h-5 text-gray-400" />
           </div>
         </div>
 
         <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xs">
-          <span className="text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider">Awaiting Review</span>
+          <span className="text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+            Awaiting Review
+          </span>
           <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">{awaitingReviewCount}</span>
+            <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+              {awaitingReviewCount}
+            </span>
             <AlertTriangle className="w-5 h-5 text-amber-500" />
           </div>
         </div>
 
         <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xs">
-          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Approved & Ready</span>
+          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+            Approved & Ready
+          </span>
           <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{approvedCount}</span>
+            <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+              {approvedCount}
+            </span>
             <CheckCircle2 className="w-5 h-5 text-emerald-500" />
           </div>
         </div>
 
         <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xs">
-          <span className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider">Lifecycle System</span>
+          <span className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+            Lifecycle System
+          </span>
           <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-base font-bold text-blue-600 dark:text-blue-400">10-State Active</span>
+            <span className="text-base font-bold text-blue-600 dark:text-blue-400">
+              10-State Active
+            </span>
             <Layers className="w-5 h-5 text-blue-500" />
           </div>
         </div>
@@ -348,7 +393,9 @@ function InvoicesPage() {
             {/* Lifecycle Tabs Filter */}
             <select
               value={filter.lifecycleState || "ALL"}
-              onChange={(e) => setFilter((prev) => ({ ...prev, lifecycleState: e.target.value as any }))}
+              onChange={(e) =>
+                setFilter((prev) => ({ ...prev, lifecycleState: e.target.value as any }))
+              }
               className="px-3 py-1.5 text-xs font-medium bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
             >
               <option value="ALL">All Lifecycle States</option>
@@ -360,7 +407,9 @@ function InvoicesPage() {
             </select>
 
             <button
-              onClick={() => setFilter((prev) => ({ ...prev, discrepancyOnly: !prev.discrepancyOnly }))}
+              onClick={() =>
+                setFilter((prev) => ({ ...prev, discrepancyOnly: !prev.discrepancyOnly }))
+              }
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
                 filter.discrepancyOnly
                   ? "bg-amber-100 border-amber-300 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200"
@@ -383,7 +432,9 @@ function InvoicesPage() {
         {showAdvancedFilters && (
           <div className="pt-3 border-t border-gray-200 dark:border-gray-800 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div>
-              <label className="block font-medium text-gray-600 dark:text-gray-400 mb-1">Tariff Name</label>
+              <label className="block font-medium text-gray-600 dark:text-gray-400 mb-1">
+                Tariff Name
+              </label>
               <input
                 type="text"
                 placeholder="e.g. Megaflex, Nightsave"
@@ -394,7 +445,9 @@ function InvoicesPage() {
             </div>
 
             <div>
-              <label className="block font-medium text-gray-600 dark:text-gray-400 mb-1">Invoice Number Search</label>
+              <label className="block font-medium text-gray-600 dark:text-gray-400 mb-1">
+                Invoice Number Search
+              </label>
               <input
                 type="text"
                 placeholder="e.g. INV-2026"
@@ -445,9 +498,12 @@ function InvoicesPage() {
               <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">No Invoice Active in Workspace</h3>
+              <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">
+                No Invoice Active in Workspace
+              </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-md mx-auto">
-                Select an ingested invoice from the register to audit determinants, upload a utility bill, or explore the Megaflex sandbox sample.
+                Select an ingested invoice from the register to audit determinants, upload a utility
+                bill, or explore the Megaflex sandbox sample.
               </p>
             </div>
             <div className="flex items-center justify-center gap-3 pt-2">
@@ -514,17 +570,25 @@ function InvoicesPage() {
                       key={inv.invoice_id}
                       className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/30"
                     >
-                      <td className="py-3 px-4 font-bold text-gray-900 dark:text-gray-100">{inv.invoice_id}</td>
-                      <td className="py-3 px-4 font-mono text-gray-700 dark:text-gray-300">{inv.account_number}</td>
+                      <td className="py-3 px-4 font-bold text-gray-900 dark:text-gray-100">
+                        {inv.invoice_id}
+                      </td>
+                      <td className="py-3 px-4 font-mono text-gray-700 dark:text-gray-300">
+                        {inv.account_number}
+                      </td>
                       <td className="py-3 px-4 text-gray-800 dark:text-gray-200">
                         {inv.client_name || "—"} {inv.premise_id ? `(${inv.premise_id})` : ""}
                       </td>
                       <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
                         {inv.billing_period_start || "—"} to {inv.billing_period_end || "—"}
                       </td>
-                      <td className="py-3 px-4 text-gray-700 dark:text-gray-300">{inv.tariff_name || "—"}</td>
+                      <td className="py-3 px-4 text-gray-700 dark:text-gray-300">
+                        {inv.tariff_name || "—"}
+                      </td>
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded text-2xs font-bold uppercase tracking-wider ${InvoiceLifecycleService.getStateBadgeStyle(inv.lifecycle_state)}`}>
+                        <span
+                          className={`px-2 py-0.5 rounded text-2xs font-bold uppercase tracking-wider ${InvoiceLifecycleService.getStateBadgeStyle(inv.lifecycle_state)}`}
+                        >
                           {InvoiceLifecycleService.getStateLabel(inv.lifecycle_state)}
                         </span>
                       </td>

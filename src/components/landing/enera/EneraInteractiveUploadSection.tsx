@@ -171,11 +171,7 @@ export function EneraInteractiveUploadSection() {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <EnginePhaseTag
-            phase="07"
-            name="RECOVERY"
-            sub="INSTANT CAPITAL VERIFICATION"
-          />
+          <EnginePhaseTag phase="07" name="RECOVERY" sub="INSTANT CAPITAL VERIFICATION" />
 
           <h2 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight enera-text-gradient leading-tight">
             DROP A BILL.
@@ -184,8 +180,8 @@ export function EneraInteractiveUploadSection() {
           </h2>
 
           <p className="mt-5 text-base sm:text-lg text-slate-400 font-light leading-relaxed">
-            Drop an electricity statement. ENERA compares relevant billing and consumption information
-            to surface unusual patterns and identify material differences.
+            Drop an electricity statement. ENERA compares relevant billing and consumption
+            information to surface unusual patterns and identify material differences.
           </p>
 
           {/* Demonstration Notice */}
@@ -549,7 +545,8 @@ export function EneraInteractiveUploadSection() {
             Ready to Reconcile Your Active Commercial Portfolio?
           </h3>
           <p className="text-xs sm:text-sm text-slate-400 font-light max-w-xl mx-auto mb-5 leading-relaxed">
-            Ingest production electricity bills directly into the full deterministic engine to verify 30-minute AMR interval telemetry against gazetted NERSA schedules.
+            Ingest production electricity bills directly into the full deterministic engine to
+            verify 30-minute AMR interval telemetry against gazetted NERSA schedules.
           </p>
           <Link
             to="/upload"

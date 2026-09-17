@@ -85,7 +85,8 @@ export function EneraFaqSection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-14">
-          Clear answers about ENERA's reconciliation methodology, supported tariffs, data security, and dispute resolution workflows.
+          Clear answers about ENERA's reconciliation methodology, supported tariffs, data security,
+          and dispute resolution workflows.
         </p>
 
         {/* 4. Visual or capability: Accessible Accordion List */}

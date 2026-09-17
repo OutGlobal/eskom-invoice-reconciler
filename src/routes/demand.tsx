@@ -75,26 +75,21 @@ export function DemandPage() {
 
   // Dynamic active peak data derived from active invoice and telemetry
   const activeBilledPeakKVA =
-    invoice?.maxDemandKVA ||
-    invoice?.simMaxDemand ||
-    totals.maxDemandKVA ||
-    0;
+    invoice?.maxDemandKVA || invoice?.simMaxDemand || totals.maxDemandKVA || 0;
 
   const activeRawPeakKVA =
-    totals.maxDemandKVA ||
-    (activeBilledPeakKVA > 0 ? activeBilledPeakKVA * 1.011558 : 0);
+    totals.maxDemandKVA || (activeBilledPeakKVA > 0 ? activeBilledPeakKVA * 1.011558 : 0);
 
   const activePeakTimestampText = totals.maxDemandAt
     ? format(totals.maxDemandAt, "dd MMM yyyy 'at' HH:mm:ss")
     : invoice?.accountMonth
-    ? `Peak recorded in ${invoice.accountMonth}`
-    : "No peak telemetry recorded";
+      ? `Peak recorded in ${invoice.accountMonth}`
+      : "No peak telemetry recorded";
 
   const activePeakDate = totals.maxDemandAt || new Date();
 
   const activeDemandChargeR =
-    invoice?.networkDemandCharge ||
-    (activeBilledPeakKVA * TARIFF.networkDemand);
+    invoice?.networkDemandCharge || activeBilledPeakKVA * TARIFF.networkDemand;
 
   const activeExceedanceKVA = Math.max(0, activeBilledPeakKVA - nmd);
   const isExceeded = nmd > 0 && activeExceedanceKVA > 0.01;
@@ -109,17 +104,14 @@ export function DemandPage() {
 
   // Multi-period Invoiced Peak Demand vs Agreed NMD Audit Table Data
   // Dynamically populated from active invoice and any batch invoices
-  const invoicesToAudit = (batchInvoices && batchInvoices.length > 0)
-    ? batchInvoices
-    : invoice
-    ? [invoice]
-    : [];
+  const invoicesToAudit =
+    batchInvoices && batchInvoices.length > 0 ? batchInvoices : invoice ? [invoice] : [];
 
   const fourMonthDemandData: FourMonthDemandRow[] = invoicesToAudit.map((inv) => {
     const billedPeak = inv.maxDemandKVA || inv.simMaxDemand || totals.maxDemandKVA || 0;
-    const subIncomerPeak = totals.maxDemandKVA || (billedPeak * 1.011558);
+    const subIncomerPeak = totals.maxDemandKVA || billedPeak * 1.011558;
     const exceedance = nmd > 0 ? Math.max(0, billedPeak - nmd) : 0;
-    const demandCharge = inv.networkDemandCharge || (billedPeak * TARIFF.networkDemand);
+    const demandCharge = inv.networkDemandCharge || billedPeak * TARIFF.networkDemand;
     const isExceed = exceedance > 0.01;
 
     return {
@@ -251,9 +243,12 @@ export function DemandPage() {
         {fourMonthDemandData.length === 0 ? (
           <div className="py-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
             <Zap className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-            <div className="font-semibold text-foreground text-sm">No Invoices Loaded for Multi-Period Audit</div>
+            <div className="font-semibold text-foreground text-sm">
+              No Invoices Loaded for Multi-Period Audit
+            </div>
             <p className="mt-1 max-w-md mx-auto">
-              Upload Eskom monthly invoices or AMR interval data to audit peak demand against contracted NMD capacity.
+              Upload Eskom monthly invoices or AMR interval data to audit peak demand against
+              contracted NMD capacity.
             </p>
           </div>
         ) : (
@@ -376,7 +371,9 @@ export function DemandPage() {
             <thead>
               <tr className="border-b border-border text-muted-foreground text-left">
                 <th className="py-2.5 px-3 font-semibold">TOU Demand Component</th>
-                <th className="py-2.5 px-3 font-semibold text-right">Telemetry Apparent Energy [kVAh]</th>
+                <th className="py-2.5 px-3 font-semibold text-right">
+                  Telemetry Apparent Energy [kVAh]
+                </th>
                 <th className="py-2.5 px-3 font-semibold text-right">Eskom Billed Baseline</th>
                 <th className="py-2.5 px-3 font-semibold text-right">Conversion Basis</th>
                 <th className="py-2.5 px-3 font-semibold text-center">Status</th>
@@ -385,12 +382,21 @@ export function DemandPage() {
             <tbody className="divide-y divide-border/50">
               <tr className="hover:bg-muted/40 transition-colors">
                 <td className="py-2.5 px-3 font-medium flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: TOU_COLOR.peak }} />
+                  <span
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: TOU_COLOR.peak }}
+                  />
                   Peak Demand Consumption
                 </td>
-                <td className="py-2.5 px-3 text-right font-mono font-medium">{NUM(totals.peakKVAh, 1)} kVAh</td>
-                <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">{NUM((invoice?.peakKWh ?? 0) / 0.96, 1)} kVAh</td>
-                <td className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground">kWh / 0.96</td>
+                <td className="py-2.5 px-3 text-right font-mono font-medium">
+                  {NUM(totals.peakKVAh, 1)} kVAh
+                </td>
+                <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">
+                  {NUM((invoice?.peakKWh ?? 0) / 0.96, 1)} kVAh
+                </td>
+                <td className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground">
+                  kWh / 0.96
+                </td>
                 <td className="py-2.5 px-3 text-center">
                   <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase">
                     Audited
@@ -399,12 +405,21 @@ export function DemandPage() {
               </tr>
               <tr className="hover:bg-muted/40 transition-colors">
                 <td className="py-2.5 px-3 font-medium flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: TOU_COLOR.standard }} />
+                  <span
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: TOU_COLOR.standard }}
+                  />
                   Standard Demand Consumption
                 </td>
-                <td className="py-2.5 px-3 text-right font-mono font-medium">{NUM(totals.standardKVAh, 1)} kVAh</td>
-                <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">{NUM((invoice?.standardKWh ?? 0) / 0.96, 1)} kVAh</td>
-                <td className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground">kWh / 0.96</td>
+                <td className="py-2.5 px-3 text-right font-mono font-medium">
+                  {NUM(totals.standardKVAh, 1)} kVAh
+                </td>
+                <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">
+                  {NUM((invoice?.standardKWh ?? 0) / 0.96, 1)} kVAh
+                </td>
+                <td className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground">
+                  kWh / 0.96
+                </td>
                 <td className="py-2.5 px-3 text-center">
                   <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase">
                     Audited
@@ -413,12 +428,21 @@ export function DemandPage() {
               </tr>
               <tr className="hover:bg-muted/40 transition-colors">
                 <td className="py-2.5 px-3 font-medium flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: TOU_COLOR.offPeak }} />
+                  <span
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: TOU_COLOR.offPeak }}
+                  />
                   Off-Peak Demand Consumption
                 </td>
-                <td className="py-2.5 px-3 text-right font-mono font-medium">{NUM(totals.offPeakKVAh, 1)} kVAh</td>
-                <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">{NUM((invoice?.offPeakKWh ?? 0) / 0.96, 1)} kVAh</td>
-                <td className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground">kWh / 0.96</td>
+                <td className="py-2.5 px-3 text-right font-mono font-medium">
+                  {NUM(totals.offPeakKVAh, 1)} kVAh
+                </td>
+                <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">
+                  {NUM((invoice?.offPeakKWh ?? 0) / 0.96, 1)} kVAh
+                </td>
+                <td className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground">
+                  kWh / 0.96
+                </td>
                 <td className="py-2.5 px-3 text-center">
                   <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase">
                     Audited
@@ -427,10 +451,18 @@ export function DemandPage() {
               </tr>
               {/* Total Monthly Demand Consumption */}
               <tr className="bg-muted/60 font-bold border-t-2 border-border">
-                <td className="py-3 px-3">Total Demand for Month (ALL Peak + Standard + Off-Peak)</td>
-                <td className="py-3 px-3 text-right font-mono text-primary">{NUM(totals.totalKVAh, 1)} kVAh</td>
-                <td className="py-3 px-3 text-right font-mono">{NUM((invoice?.totalKWh ?? 0) / 0.96, 1)} kVAh</td>
-                <td className="py-3 px-3 text-right font-mono text-xs text-muted-foreground">Total kWh / 0.96</td>
+                <td className="py-3 px-3">
+                  Total Demand for Month (ALL Peak + Standard + Off-Peak)
+                </td>
+                <td className="py-3 px-3 text-right font-mono text-primary">
+                  {NUM(totals.totalKVAh, 1)} kVAh
+                </td>
+                <td className="py-3 px-3 text-right font-mono">
+                  {NUM((invoice?.totalKWh ?? 0) / 0.96, 1)} kVAh
+                </td>
+                <td className="py-3 px-3 text-right font-mono text-xs text-muted-foreground">
+                  Total kWh / 0.96
+                </td>
                 <td className="py-3 px-3 text-center">
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase">
                     Verified Total
@@ -443,8 +475,12 @@ export function DemandPage() {
                   <Zap className="h-4 w-4 text-red-500" />
                   Simultaneous Maximum Demand Peak (1.e)
                 </td>
-                <td className="py-3 px-3 text-right font-mono text-red-400 text-sm">{NUM(activeBilledPeakKVA)} kVA</td>
-                <td className="py-3 px-3 text-right font-mono text-sm">{NUM(invoice?.simMaxDemand ?? invoice?.maxDemandKVA ?? activeBilledPeakKVA)} kVA</td>
+                <td className="py-3 px-3 text-right font-mono text-red-400 text-sm">
+                  {NUM(activeBilledPeakKVA)} kVA
+                </td>
+                <td className="py-3 px-3 text-right font-mono text-sm">
+                  {NUM(invoice?.simMaxDemand ?? invoice?.maxDemandKVA ?? activeBilledPeakKVA)} kVA
+                </td>
                 <td className="py-3 px-3 text-right font-mono text-xs text-muted-foreground">
                   At {activePeakTimestampText}
                 </td>

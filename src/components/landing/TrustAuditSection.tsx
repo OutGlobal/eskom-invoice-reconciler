@@ -1,4 +1,12 @@
-import { ShieldCheck, Lock, FileCheck, CheckCircle2, ChevronRight, Hash, Database } from "lucide-react";
+import {
+  ShieldCheck,
+  Lock,
+  FileCheck,
+  CheckCircle2,
+  ChevronRight,
+  Hash,
+  Database,
+} from "lucide-react";
 
 export function TrustAuditSection() {
   const trailNodes = [
@@ -24,7 +32,8 @@ export function TrustAuditSection() {
             Every Number Has a Trail.
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Built as institutional financial infrastructure. Complete transparency from source document to ledger settlement.
+            Built as institutional financial infrastructure. Complete transparency from source
+            document to ledger settlement.
           </p>
         </div>
 
@@ -47,15 +56,9 @@ export function TrustAuditSection() {
                 key={node.name}
                 className="p-3.5 rounded-xl border border-border/60 bg-background/60 space-y-1.5 text-center sm:text-left relative group hover:border-primary/50 transition-colors"
               >
-                <div className="text-[10px] font-mono font-bold text-primary">
-                  0{i + 1}
-                </div>
-                <div className="text-xs font-bold text-foreground truncate">
-                  {node.name}
-                </div>
-                <div className="text-[10px] text-muted-foreground leading-tight">
-                  {node.desc}
-                </div>
+                <div className="text-[10px] font-mono font-bold text-primary">0{i + 1}</div>
+                <div className="text-xs font-bold text-foreground truncate">{node.name}</div>
+                <div className="text-[10px] text-muted-foreground leading-tight">{node.desc}</div>
               </div>
             ))}
           </div>
@@ -68,7 +71,8 @@ export function TrustAuditSection() {
                 <span>Zero Black Box</span>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Nothing disappears into opaque AI. Every formula, multiplier, and deduction is inspectable.
+                Nothing disappears into opaque AI. Every formula, multiplier, and deduction is
+                inspectable.
               </p>
             </div>
 
@@ -78,7 +82,8 @@ export function TrustAuditSection() {
                 <span>Full Calculation Lineage</span>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Every calculation can be traced backward to original meter interval telemetry and NERSA gazettes.
+                Every calculation can be traced backward to original meter interval telemetry and
+                NERSA gazettes.
               </p>
             </div>
 
@@ -88,7 +93,8 @@ export function TrustAuditSection() {
                 <span>Defensible Evidence</span>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Every identified variance is backed by interval evidence packages accepted by utility auditors.
+                Every identified variance is backed by interval evidence packages accepted by
+                utility auditors.
               </p>
             </div>
 
@@ -98,7 +104,8 @@ export function TrustAuditSection() {
                 <span>Immutable Action Log</span>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Every document ingestion, verification, dispute submission, and credit resolution is permanently logged.
+                Every document ingestion, verification, dispute submission, and credit resolution is
+                permanently logged.
               </p>
             </div>
           </div>

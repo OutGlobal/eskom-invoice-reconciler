@@ -84,6 +84,7 @@ export interface InvoiceData {
   vat: number;
   invoiceTotal: number;
   totalInclVat: number;
+  reconciledTotal?: number;
   // Extended (optional) fields extracted from real Eskom invoices
   invoiceNo?: string;
   billingDate?: string;

@@ -4,7 +4,7 @@ import * as path from "path";
 
 /**
  * Test Suite: STAGE 22 — PERFORMANCE AUDIT
- * 
+ *
  * Verifies core performance requirements:
  * 1. Zero blocking fonts (no external font CDNs in head/CSS).
  * 2. Zero unnecessary third-party scripts (no trackers, marketing tags).
@@ -20,9 +20,7 @@ describe("STAGE 22: Performance Audit", () => {
 
   describe("Asset & Dependency Restraint", () => {
     it("has zero 3D library dependencies in package.json", () => {
-      const packageJson = JSON.parse(
-        fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")
-      );
+      const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
       const allDeps = {
         ...packageJson.dependencies,
         ...packageJson.devDependencies,
@@ -37,9 +35,9 @@ describe("STAGE 22: Performance Audit", () => {
     it("has zero video background assets in public/ or src/", () => {
       const publicFiles = fs.readdirSync(path.join(repoRoot, "public"));
       const videoExtensions = [".mp4", ".webm", ".ogv", ".mov", ".avi"];
-      
+
       const publicVideos = publicFiles.filter((f) =>
-        videoExtensions.some((ext) => f.toLowerCase().endsWith(ext))
+        videoExtensions.some((ext) => f.toLowerCase().endsWith(ext)),
       );
       expect(publicVideos).toEqual([]);
     });
@@ -127,7 +125,7 @@ describe("STAGE 22: Performance Audit", () => {
       "components",
       "landing",
       "enera",
-      "EneraHeroCanvas.tsx"
+      "EneraHeroCanvas.tsx",
     );
     const canvasContent = fs.readFileSync(canvasPath, "utf8");
     const flowPath = path.join(
@@ -136,7 +134,7 @@ describe("STAGE 22: Performance Audit", () => {
       "components",
       "landing",
       "enera",
-      "EneraHeroFlowVisual.tsx"
+      "EneraHeroFlowVisual.tsx",
     );
     const flowContent = fs.readFileSync(flowPath, "utf8");
 

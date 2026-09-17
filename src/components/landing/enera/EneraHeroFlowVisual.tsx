@@ -40,7 +40,8 @@ const FLOW_STAGES: FlowStage[] = [
     activeBorder: "border-cyan-500/40",
     activeBg: "bg-cyan-500/[0.08]",
     evidenceLabel: "PHYSICAL TELEMETRY STREAM",
-    evidenceCode: "Meter #AMR-7721-JHB · 30-min intervals: 1,488/1,488 (100% integrity) · Active: 4,087,214 kWh · Peak Demand: 8,421 kVA",
+    evidenceCode:
+      "Meter #AMR-7721-JHB · 30-min intervals: 1,488/1,488 (100% integrity) · Active: 4,087,214 kWh · Peak Demand: 8,421 kVA",
   },
   {
     id: "billing-info",
@@ -55,7 +56,8 @@ const FLOW_STAGES: FlowStage[] = [
     activeBorder: "border-slate-400/40",
     activeBg: "bg-slate-400/[0.08]",
     evidenceLabel: "BILLED UTILITY DETERMINANTS",
-    evidenceCode: "Invoice #INV-2026-0891 · Stated kWh: 4,218,441 · Stated Demand: 8,950 kVA · Billed Charge: R 842,431.20 (Incl VAT)",
+    evidenceCode:
+      "Invoice #INV-2026-0891 · Stated kWh: 4,218,441 · Stated Demand: 8,950 kVA · Billed Charge: R 842,431.20 (Incl VAT)",
   },
   {
     id: "analysis",
@@ -70,7 +72,8 @@ const FLOW_STAGES: FlowStage[] = [
     activeBorder: "border-blue-500/40",
     activeBg: "bg-blue-500/[0.08]",
     evidenceLabel: "DETERMINISTIC TOU CALCULATION",
-    evidenceCode: "NERSA Schedule 2 · High-Season Winter Matrix · Peak: 642,110 kWh · Standard: 1,980,410 kWh · Off-Peak: 1,464,694 kWh",
+    evidenceCode:
+      "NERSA Schedule 2 · High-Season Winter Matrix · Peak: 642,110 kWh · Standard: 1,980,410 kWh · Off-Peak: 1,464,694 kWh",
   },
   {
     id: "insight",
@@ -85,7 +88,8 @@ const FLOW_STAGES: FlowStage[] = [
     activeBorder: "border-amber-500/40",
     activeBg: "bg-amber-500/[0.08]",
     evidenceLabel: "MATERIAL VARIANCE DISCOVERED",
-    evidenceCode: "Public Holiday (27 Apr) billed at High-Season Peak instead of statutory Off-Peak · Demand overstatement: +529 kVA",
+    evidenceCode:
+      "Public Holiday (27 Apr) billed at High-Season Peak instead of statutory Off-Peak · Demand overstatement: +529 kVA",
   },
   {
     id: "decision",
@@ -100,7 +104,8 @@ const FLOW_STAGES: FlowStage[] = [
     activeBorder: "border-emerald-500/40",
     activeBg: "bg-emerald-500/[0.08]",
     evidenceLabel: "RECOVERY DOSSIER & REMEDIATION",
-    evidenceCode: "Dispute Claim #DIS-2026-441 compiled · Direct Credit Note: R 51,227.00 · Verified audit dossier record",
+    evidenceCode:
+      "Dispute Claim #DIS-2026-441 compiled · Direct Credit Note: R 51,227.00 · Verified audit dossier record",
   },
 ];
 
@@ -167,9 +172,7 @@ export function EneraHeroFlowVisual() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-6 border-b border-white/10 gap-3">
           <div className="flex items-center gap-2.5">
             <span
-              className={`w-2 h-2 rounded-full bg-cyan-400 ${
-                reducedMotion ? "" : "animate-pulse"
-              }`}
+              className={`w-2 h-2 rounded-full bg-cyan-400 ${reducedMotion ? "" : "animate-pulse"}`}
               aria-hidden="true"
             />
             <span className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-200">
@@ -179,15 +182,21 @@ export function EneraHeroFlowVisual() {
 
           {/* Textual flow indicator */}
           <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-400 overflow-x-auto py-1">
-            <span className={activeIdx === 0 ? "text-cyan-400 font-semibold" : ""}>Energy data</span>
+            <span className={activeIdx === 0 ? "text-cyan-400 font-semibold" : ""}>
+              Energy data
+            </span>
             <span className="text-slate-600">↓</span>
-            <span className={activeIdx === 1 ? "text-slate-200 font-semibold" : ""}>Billing information</span>
+            <span className={activeIdx === 1 ? "text-slate-200 font-semibold" : ""}>
+              Billing information
+            </span>
             <span className="text-slate-600">↓</span>
             <span className={activeIdx === 2 ? "text-blue-400 font-semibold" : ""}>Analysis</span>
             <span className="text-slate-600">↓</span>
             <span className={activeIdx === 3 ? "text-amber-400 font-semibold" : ""}>Insight</span>
             <span className="text-slate-600">↓</span>
-            <span className={activeIdx === 4 ? "text-emerald-400 font-semibold" : ""}>Decision</span>
+            <span className={activeIdx === 4 ? "text-emerald-400 font-semibold" : ""}>
+              Decision
+            </span>
           </div>
         </div>
 
@@ -282,7 +291,10 @@ export function EneraHeroFlowVisual() {
                       {stage.sampleMetric}
                     </span>
                     {isSelected && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee]" aria-hidden="true" />
+                      <span
+                        className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee]"
+                        aria-hidden="true"
+                      />
                     )}
                   </div>
                 </button>
@@ -333,7 +345,10 @@ export function EneraHeroFlowVisual() {
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pb-1 border-b border-white/5">
                 <span className="uppercase tracking-wider">{activeStage.evidenceLabel}</span>
                 <span className="text-emerald-400 flex items-center gap-1.5 font-mono">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />
+                  <span
+                    className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"
+                    aria-hidden="true"
+                  />
                   <Check className="h-3 w-3" /> VERIFIED
                 </span>
               </div>
@@ -355,4 +370,3 @@ export function EneraHeroFlowVisual() {
     </div>
   );
 }
-

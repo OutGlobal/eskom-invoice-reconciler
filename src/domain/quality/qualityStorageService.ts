@@ -49,7 +49,7 @@ export class QualityStorageService {
   public static async updateResolution(
     issueId: string,
     newStatus: ResolutionStatus,
-    resolvedBy: string = "Auditor Admin"
+    resolvedBy: string = "Auditor Admin",
   ): Promise<{ success: boolean; message: string }> {
     try {
       const resolvedAt = new Date().toISOString();

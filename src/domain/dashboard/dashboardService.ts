@@ -108,7 +108,7 @@ export class DashboardService {
     }
     const { data: sites } = await sitesQuery;
 
-    // Query invoice_records
+    // Query invoice_records (Primary Enterprise Table)
     let invQuery = supabase.from("invoice_records").select("*");
     if (filters.organisationId) {
       invQuery = invQuery.eq("organisation_id", filters.organisationId);
@@ -132,7 +132,66 @@ export class DashboardService {
       invQuery = invQuery.eq("status", filters.status.toLowerCase());
     }
 
-    const { data: invoices } = await invQuery;
+    const { data: invRecords } = await invQuery;
+
+    // Harmonize with public.invoices so all stored records in the database are captured
+    let legacyQuery = supabase.from("invoices").select("*");
+    if (filters.accountNumber) {
+      legacyQuery = legacyQuery.eq("account_number", filters.accountNumber);
+    } else if (filters.organisationId) {
+      // Find accounts belonging to this organisation to avoid cross-tenant legacy leakage
+      const { data: orgCustomers } = await supabase
+        .from("customers")
+        .select("account_number")
+        .eq("organisation_id", filters.organisationId);
+
+      const allowedAccounts = (orgCustomers || [])
+        .map((c: any) => c.account_number)
+        .filter(Boolean);
+
+      if (allowedAccounts.length > 0) {
+        legacyQuery = legacyQuery.in("account_number", allowedAccounts);
+      } else {
+        // No customers for this org, ensure legacy query returns zero rows
+        legacyQuery = legacyQuery.eq("account_number", "__NO_MATCHING_TENANT_ACCOUNT__");
+      }
+    }
+    const { data: legacyInvoices } = await legacyQuery;
+
+    // Deduplicate stored records by invoice_number
+    const invoiceMap = new Map<string, any>();
+    for (const inv of legacyInvoices || []) {
+      const invNum = inv.invoice_number || inv.id;
+      if (invNum) {
+        invoiceMap.set(invNum, {
+          id: inv.id,
+          account_number: inv.account_number,
+          invoice_number: inv.invoice_number,
+          billing_period_name: inv.billing_period || "Standard Billing Period",
+          billing_start: inv.billing_start,
+          billing_end: inv.billing_end,
+          total_kwh: Number(inv.total_kwh) || 0,
+          peak_kwh: Number(inv.peak_kwh) || 0,
+          standard_kwh: Number(inv.standard_kwh) || 0,
+          off_peak_kwh: Number(inv.off_peak_kwh) || 0,
+          max_demand_kva: Number(inv.max_demand_kva) || 0,
+          invoiced_total: Number(inv.invoiced_total) || 0,
+          reconciled_total: Number(inv.reconciled_total) || 0,
+          variance_amount: Number(inv.variance_amount) || 0,
+          status: inv.status?.toLowerCase() || "validated",
+          raw_data: inv.raw_json,
+          created_at: inv.created_at,
+        });
+      }
+    }
+    for (const inv of invRecords || []) {
+      const invNum = inv.invoice_number || inv.id;
+      if (invNum) {
+        invoiceMap.set(invNum, inv);
+      }
+    }
+
+    const invoices = Array.from(invoiceMap.values());
 
     if (!invoices || invoices.length === 0) {
       return null;
@@ -277,13 +336,27 @@ export class DashboardService {
       hasData: true,
     };
 
+    // Query stored reactive energy determinants
+    let reactiveKvarh = 0;
+    try {
+      const { data: detData } = await supabase
+        .from("invoice_determinants")
+        .select("determinant_value")
+        .ilike("determinant_name", "%reactive%");
+      if (detData && detData.length > 0) {
+        reactiveKvarh = detData.reduce((acc, d) => acc + (Number(d.determinant_value) || 0), 0);
+      }
+    } catch {
+      // Graceful fallback
+    }
+
     const energyOverview: EnergyOverviewMetrics = {
       peakKWh: totalPeakKwh.toNumber(),
       standardKWh: totalStdKwh.toNumber(),
       offPeakKWh: totalOffKwh.toNumber(),
       totalKWh: totalKwh.toNumber(),
       maxDemandKVA: maxDemand,
-      reactiveEnergyKVARh: 0,
+      reactiveEnergyKVARh: reactiveKvarh,
       averagePowerFactor: 0.96,
       hasData: true,
     };

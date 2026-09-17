@@ -8,7 +8,11 @@ import Decimal from "decimal.js-light";
 import { supabase } from "@/integrations/supabase/client";
 import type { UserSecurityContext } from "../security/types";
 import { TenantIsolationViolationError } from "../security/tenantContextService";
-import type { AuthoritativeReconciliationPayload, DeterminantComparisonItem, ToleranceConfig } from "./types";
+import type {
+  AuthoritativeReconciliationPayload,
+  DeterminantComparisonItem,
+  ToleranceConfig,
+} from "./types";
 import { DEFAULT_TOLERANCE_CONFIG } from "./reconciliationEngine";
 
 export class ReconciliationStorageService {
@@ -25,7 +29,12 @@ export class ReconciliationStorageService {
       // Enforce caller security context if provided
       if (context && context.role !== "SUPER_ADMIN") {
         const payloadOrg = payload.organisation_id || payload.tenant_id;
-        if (payloadOrg && payloadOrg !== "DEFAULT_TENANT" && payloadOrg !== "TENANT_DEFAULT" && payloadOrg !== context.organisationId) {
+        if (
+          payloadOrg &&
+          payloadOrg !== "DEFAULT_TENANT" &&
+          payloadOrg !== "TENANT_DEFAULT" &&
+          payloadOrg !== context.organisationId
+        ) {
           throw new TenantIsolationViolationError(context.organisationId, payloadOrg);
         }
         payload.organisation_id = context.organisationId;
@@ -36,21 +45,29 @@ export class ReconciliationStorageService {
       ReconciliationStorageService.inMemoryRuns.set(runId, payload);
 
       const tenantId = payload.tenant_id || context?.organisationId || "TENANT_DEFAULT";
-      const orgId = payload.organisation_id || (tenantId.includes("-") ? tenantId : null) || context?.organisationId || null;
+      const orgId =
+        payload.organisation_id ||
+        (tenantId.includes("-") ? tenantId : null) ||
+        context?.organisationId ||
+        null;
       const invoiceId = payload.invoice_id || payload.invoice_record_id || "INV_DEFAULT";
       const status = payload.status;
-      const billedTotal = payload.billed_total_zar instanceof Decimal
-        ? payload.billed_total_zar.toNumber()
-        : Number(payload.billed_total_zar || payload.billed_total || 0);
-      const calculatedTotal = (payload.calculated_total_zar || payload.expected_total_zar) instanceof Decimal
-        ? (payload.calculated_total_zar || payload.expected_total_zar).toNumber()
-        : Number(payload.calculated_total_zar || payload.expected_total_zar || 0);
-      const varianceTotal = (payload.variance_total_zar || payload.total_variance_zar) instanceof Decimal
-        ? (payload.variance_total_zar || payload.total_variance_zar).toNumber()
-        : Number(payload.variance_total_zar || payload.total_variance_zar || 0);
-      const variancePct = (payload.variance_percentage || payload.variance_percent) instanceof Decimal
-        ? (payload.variance_percentage || payload.variance_percent).toNumber()
-        : Number(payload.variance_percentage || payload.variance_percent || 0);
+      const billedTotal =
+        payload.billed_total_zar instanceof Decimal
+          ? payload.billed_total_zar.toNumber()
+          : Number(payload.billed_total_zar || payload.billed_total || 0);
+      const calculatedTotal =
+        (payload.calculated_total_zar || payload.expected_total_zar) instanceof Decimal
+          ? (payload.calculated_total_zar || payload.expected_total_zar).toNumber()
+          : Number(payload.calculated_total_zar || payload.expected_total_zar || 0);
+      const varianceTotal =
+        (payload.variance_total_zar || payload.total_variance_zar) instanceof Decimal
+          ? (payload.variance_total_zar || payload.total_variance_zar).toNumber()
+          : Number(payload.variance_total_zar || payload.total_variance_zar || 0);
+      const variancePct =
+        (payload.variance_percentage || payload.variance_percent) instanceof Decimal
+          ? (payload.variance_percentage || payload.variance_percent).toNumber()
+          : Number(payload.variance_percentage || payload.variance_percent || 0);
 
       const runRecord = {
         run_id: runId,
@@ -73,12 +90,17 @@ export class ReconciliationStorageService {
       };
 
       try {
-        const { error: runErr } = await supabase.from("reconciliation_runs").upsert(runRecord as any, {
-          onConflict: "run_id",
-        });
+        const { error: runErr } = await supabase
+          .from("reconciliation_runs")
+          .upsert(runRecord as any, {
+            onConflict: "run_id",
+          });
 
         if (runErr) {
-          console.warn("[ReconciliationStorageService] Supabase unavailable, cached in-memory:", runErr.message);
+          console.warn(
+            "[ReconciliationStorageService] Supabase unavailable, cached in-memory:",
+            runErr.message,
+          );
           return { success: true, message: "Reconciliation run saved successfully." };
         }
 
@@ -87,20 +109,37 @@ export class ReconciliationStorageService {
           run_id: runId,
           determinant_code: c.determinant_code || c.component_code,
           determinant_name: c.determinant_name || c.component_name,
-          billed_value: c.billed_value instanceof Decimal ? c.billed_value.toNumber() : Number(c.billed_value || 0),
-          calculated_value: c.calculated_value instanceof Decimal ? c.calculated_value.toNumber() : Number(c.calculated_value || 0),
-          variance_value: (c.variance_value || c.absolute_variance) instanceof Decimal ? (c.variance_value || c.absolute_variance).toNumber() : Number(c.variance_value || c.absolute_variance || 0),
-          variance_percentage: (c.variance_percentage || c.percentage_variance) instanceof Decimal ? (c.variance_percentage || c.percentage_variance).toNumber() : Number(c.variance_percentage || c.percentage_variance || 0),
+          billed_value:
+            c.billed_value instanceof Decimal
+              ? c.billed_value.toNumber()
+              : Number(c.billed_value || 0),
+          calculated_value:
+            c.calculated_value instanceof Decimal
+              ? c.calculated_value.toNumber()
+              : Number(c.calculated_value || 0),
+          variance_value:
+            (c.variance_value || c.absolute_variance) instanceof Decimal
+              ? (c.variance_value || c.absolute_variance).toNumber()
+              : Number(c.variance_value || c.absolute_variance || 0),
+          variance_percentage:
+            (c.variance_percentage || c.percentage_variance) instanceof Decimal
+              ? (c.variance_percentage || c.percentage_variance).toNumber()
+              : Number(c.variance_percentage || c.percentage_variance || 0),
           unit_of_measure: c.unit_of_measure || c.unit,
           classification: c.classification || c.status,
           calculation_explanation: c.explanation || c.root_cause_description || "",
         }));
 
         if (determinantRows.length > 0) {
-          await supabase.from("reconciliation_determinant_comparisons").insert(determinantRows as any);
+          await supabase
+            .from("reconciliation_determinant_comparisons")
+            .insert(determinantRows as any);
         }
       } catch (dbErr) {
-        console.warn("[ReconciliationStorageService] Supabase write failed, retained in-memory:", dbErr);
+        console.warn(
+          "[ReconciliationStorageService] Supabase write failed, retained in-memory:",
+          dbErr,
+        );
       }
 
       return { success: true, message: "Reconciliation run saved successfully." };
@@ -116,7 +155,9 @@ export class ReconciliationStorageService {
   /**
    * Fetch all historical reconciliation runs with tenant isolation
    */
-  public static async getAllRuns(context?: UserSecurityContext): Promise<AuthoritativeReconciliationPayload[]> {
+  public static async getAllRuns(
+    context?: UserSecurityContext,
+  ): Promise<AuthoritativeReconciliationPayload[]> {
     try {
       let query = supabase
         .from("reconciliation_runs")
@@ -124,7 +165,9 @@ export class ReconciliationStorageService {
         .order("created_at", { ascending: false });
 
       if (context && context.role !== "SUPER_ADMIN") {
-        query = query.or(`organisation_id.eq.${context.organisationId},tenant_id.eq.${context.organisationId}`);
+        query = query.or(
+          `organisation_id.eq.${context.organisationId},tenant_id.eq.${context.organisationId}`,
+        );
       }
 
       const { data: dbRuns, error } = await query;
@@ -166,8 +209,7 @@ export class ReconciliationStorageService {
       if (context && context.role !== "SUPER_ADMIN") {
         runs = runs.filter(
           (r: any) =>
-            r.organisation_id === context.organisationId ||
-            r.tenant_id === context.organisationId,
+            r.organisation_id === context.organisationId || r.tenant_id === context.organisationId,
         );
       }
 
@@ -178,8 +220,7 @@ export class ReconciliationStorageService {
       if (context && context.role !== "SUPER_ADMIN") {
         inMemory = inMemory.filter(
           (r: any) =>
-            r.organisation_id === context.organisationId ||
-            r.tenant_id === context.organisationId,
+            r.organisation_id === context.organisationId || r.tenant_id === context.organisationId,
         );
       }
       return inMemory;

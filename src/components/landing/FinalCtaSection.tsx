@@ -31,7 +31,9 @@ export function FinalCtaSection({ onAnalyseClick }: FinalCtaSectionProps) {
   const handleSubmitDemo = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
-    toast.success("Demo request received! Our energy financial specialists will contact you shortly.");
+    toast.success(
+      "Demo request received! Our energy financial specialists will contact you shortly.",
+    );
     setTimeout(() => {
       setDemoModalOpen(false);
       setSubmitted(false);
@@ -47,8 +49,7 @@ export function FinalCtaSection({ onAnalyseClick }: FinalCtaSectionProps) {
         <div
           className="absolute inset-0 opacity-[0.02] pointer-events-none"
           style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
+            backgroundImage: "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
             backgroundSize: "24px 24px",
           }}
         />
@@ -67,8 +68,8 @@ export function FinalCtaSection({ onAnalyseClick }: FinalCtaSectionProps) {
           </h2>
 
           <p className="text-base sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Let intelligence check it before you pay it. Uncover billing errors, isolate demand spikes,
-            and recover lost capital.
+            Let intelligence check it before you pay it. Uncover billing errors, isolate demand
+            spikes, and recover lost capital.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
@@ -132,9 +133,7 @@ export function FinalCtaSection({ onAnalyseClick }: FinalCtaSectionProps) {
                 <div className="h-7 w-7 rounded-md bg-primary/10 border border-primary/30 flex items-center justify-center text-primary">
                   <Zap className="h-4 w-4" />
                 </div>
-                <span className="font-bold text-sm tracking-wider uppercase">
-                  Eskom Reconciler
-                </span>
+                <span className="font-bold text-sm tracking-wider uppercase">Eskom Reconciler</span>
               </div>
               <p className="text-muted-foreground max-w-sm leading-relaxed text-[11px]">
                 Autonomous Energy Financial Control System. Deterministic utility billing
@@ -250,7 +249,9 @@ export function FinalCtaSection({ onAnalyseClick }: FinalCtaSectionProps) {
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
-                <h3 className="font-bold text-sm text-foreground">Schedule Executive Walkthrough</h3>
+                <h3 className="font-bold text-sm text-foreground">
+                  Schedule Executive Walkthrough
+                </h3>
               </div>
               <button
                 onClick={() => setDemoModalOpen(false)}

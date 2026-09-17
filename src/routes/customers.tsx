@@ -115,7 +115,9 @@ function CustomersPage() {
         address: rec.address,
         nmd: rec.nmd,
       };
-      const { error } = await supabase.from("customers").upsert(dbPayload, { onConflict: "account_number" });
+      const { error } = await supabase
+        .from("customers")
+        .upsert(dbPayload, { onConflict: "account_number" });
       if (error) {
         console.warn("Supabase customer sync notice:", error.message);
         toast.success(`Customer ${newName} added locally.`);
@@ -198,9 +200,12 @@ function CustomersPage() {
         {customerList.length === 0 ? (
           <div className="p-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
             <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-            <div className="font-semibold text-foreground text-sm">No Industrial Accounts Configured</div>
+            <div className="font-semibold text-foreground text-sm">
+              No Industrial Accounts Configured
+            </div>
             <p className="mt-1 max-w-md mx-auto">
-              Upload an Eskom Tax Invoice or AMR interval dataset, or add an enterprise site profile manually to begin account tracking.
+              Upload an Eskom Tax Invoice or AMR interval dataset, or add an enterprise site profile
+              manually to begin account tracking.
             </p>
             <button
               onClick={() => setShowAddModal(true)}

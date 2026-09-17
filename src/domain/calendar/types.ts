@@ -8,17 +8,9 @@ import Decimal from "decimal.js-light";
 import type { SeasonType, TouPeriodType } from "@/domain/tariff/types";
 
 export type ExtendedDayType =
-  | "weekday"
-  | "saturday"
-  | "sunday"
-  | "public_holiday"
-  | "special_holiday"
-  | "custom_day_type";
+  "weekday" | "saturday" | "sunday" | "public_holiday" | "special_holiday" | "custom_day_type";
 
-export type HolidayTreatmentType =
-  | "sunday_schedule"
-  | "saturday_schedule"
-  | "off_peak";
+export type HolidayTreatmentType = "sunday_schedule" | "saturday_schedule" | "off_peak";
 
 export interface CalendarHolidayConfig {
   id?: string;
@@ -33,19 +25,19 @@ export interface CalendarHolidayConfig {
 export interface SeasonBoundaryConfig {
   utility: string;
   high_season_start_month: number; // 6 (June)
-  high_season_start_day: number;   // 1
-  high_season_end_month: number;   // 8 (August)
-  high_season_end_day: number;     // 31
+  high_season_start_day: number; // 1
+  high_season_end_month: number; // 8 (August)
+  high_season_end_day: number; // 31
 }
 
 export interface SastTimeComponents {
   year: number;
   month: number; // 1..12
-  day: number;   // 1..31
+  day: number; // 1..31
   day_of_week: number; // 0=Sunday, 1=Monday, ..., 6=Saturday
-  hour: number;  // 0..23
-  minute: number;// 0..59
-  second: number;// 0..59
+  hour: number; // 0..23
+  minute: number; // 0..59
+  second: number; // 0..59
   local_date_str: string; // YYYY-MM-DD
   local_time_str: string; // HH:mm:ss
 }

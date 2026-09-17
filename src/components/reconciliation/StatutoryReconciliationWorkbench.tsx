@@ -40,14 +40,14 @@ export function StatutoryReconciliationWorkbench({
   // If telemetry rows are empty, fallback gracefully to invoice values for clean display
   const telemetryAvailable = rows && rows.length > 0;
 
-  const peakKWh = telemetryAvailable ? totals.peakKWh : (activeInvoice?.peakKWh || 0);
-  const standardKWh = telemetryAvailable ? totals.standardKWh : (activeInvoice?.standardKWh || 0);
-  const offPeakKWh = telemetryAvailable ? totals.offPeakKWh : (activeInvoice?.offPeakKWh || 0);
-  const totalKWh = telemetryAvailable ? totals.totalKWh : (activeInvoice?.totalKWh || 0);
+  const peakKWh = telemetryAvailable ? totals.peakKWh : activeInvoice?.peakKWh || 0;
+  const standardKWh = telemetryAvailable ? totals.standardKWh : activeInvoice?.standardKWh || 0;
+  const offPeakKWh = telemetryAvailable ? totals.offPeakKWh : activeInvoice?.offPeakKWh || 0;
+  const totalKWh = telemetryAvailable ? totals.totalKWh : activeInvoice?.totalKWh || 0;
 
   const simMaxDemandKVA = telemetryAvailable
     ? totals.maxDemandKVA
-    : (activeInvoice?.simMaxDemand || activeInvoice?.maxDemandKVA || 86432.56);
+    : activeInvoice?.simMaxDemand || activeInvoice?.maxDemandKVA || 86432.56;
   const simMaxDemandAt = totals.maxDemandAt;
 
   // Rates from TARIFF
@@ -133,7 +133,10 @@ export function StatutoryReconciliationWorkbench({
   // -------------------------------------------------------------------------
   const calcNetworkDemand = simMaxDemandKVA * demandRate;
   const invBilledDemandKVA =
-    activeInvoice?.simMaxDemand || activeInvoice?.maxDemandKVA || activeInvoice?.utilisedCapacity || 85740;
+    activeInvoice?.simMaxDemand ||
+    activeInvoice?.maxDemandKVA ||
+    activeInvoice?.utilisedCapacity ||
+    85740;
   const invNetworkDemand = activeInvoice?.networkDemandCharge || 0;
   const diffNetworkDemand = calcNetworkDemand - invNetworkDemand;
 
@@ -142,14 +145,16 @@ export function StatutoryReconciliationWorkbench({
 
   // Fixed & Service charges
   const daysInMonth = 30;
-  const calcAdmin = (activeInvoice?.administrationCharge && activeInvoice.administrationCharge > 0)
-    ? activeInvoice.administrationCharge
-    : daysInMonth * TARIFF.administrationDaily;
+  const calcAdmin =
+    activeInvoice?.administrationCharge && activeInvoice.administrationCharge > 0
+      ? activeInvoice.administrationCharge
+      : daysInMonth * TARIFF.administrationDaily;
   const invAdmin = activeInvoice?.administrationCharge || 0;
 
-  const calcService = (activeInvoice?.serviceCharge && activeInvoice.serviceCharge > 0)
-    ? activeInvoice.serviceCharge
-    : daysInMonth * TARIFF.serviceDaily;
+  const calcService =
+    activeInvoice?.serviceCharge && activeInvoice.serviceCharge > 0
+      ? activeInvoice.serviceCharge
+      : daysInMonth * TARIFF.serviceDaily;
   const invService = activeInvoice?.serviceCharge || 0;
 
   const calcConnection = activeInvoice?.connectionCharge || TARIFF.connectionMonthly;
@@ -204,26 +209,146 @@ export function StatutoryReconciliationWorkbench({
 
   const exportCSV = () => {
     const csvRows = [
-      ["Group", "Charge Description", "Determinant Basis", "Unit", "Rate (ZAR)", "Calculated (ZAR)", "Eskom Billed (ZAR)", "Variance (ZAR)"],
-      ["2.a Capacity", "Transmission (TX) Network Capacity Charge", nmd, "kVA", txRate, calcTxNetwork.toFixed(2), invTxNetwork.toFixed(2), diffTxNetwork.toFixed(2)],
-      ["2.a Capacity", "Distribution Network Capacity Charge", nmd, "kVA", distRate, calcNetworkCap.toFixed(2), invNetworkCap.toFixed(2), diffNetworkCap.toFixed(2)],
-      ["2.a Capacity", "Generator Capacity Charge", nmd, "kVA", genRate, calcGenCap.toFixed(2), invGenCap.toFixed(2), diffGenCap.toFixed(2)],
-      ["2.b Energy", "Peak Active Energy Charge", peakKWh.toFixed(2), "kWh", peakRate.toFixed(4), calcPeakEnergy.toFixed(2), invPeakEnergy.toFixed(2), diffPeakEnergy.toFixed(2)],
-      ["2.b Energy", "Standard Active Energy Charge", standardKWh.toFixed(2), "kWh", stdRate.toFixed(4), calcStdEnergy.toFixed(2), invStdEnergy.toFixed(2), diffStdEnergy.toFixed(2)],
-      ["2.b Energy", "Off-Peak Active Energy Charge", offPeakKWh.toFixed(2), "kWh", offPeakRate.toFixed(4), calcOffPeakEnergy.toFixed(2), invOffPeakEnergy.toFixed(2), diffOffPeakEnergy.toFixed(2)],
-      ["2.c Subsidies", "Ancillary Service Charge", totalKWh.toFixed(2), "kWh", ancillaryRate.toFixed(4), calcAncillary.toFixed(2), invAncillary.toFixed(2), diffAncillary.toFixed(2)],
-      ["2.c Subsidies", "Legacy Charge", totalKWh.toFixed(2), "kWh", legacyRate.toFixed(4), calcLegacy.toFixed(2), invLegacy.toFixed(2), diffLegacy.toFixed(2)],
-      ["2.c Subsidies", "Affordability Subsidy", totalKWh.toFixed(2), "kWh", affordRate.toFixed(4), calcAfford.toFixed(2), invAfford.toFixed(2), diffAfford.toFixed(2)],
-      ["2.c Subsidies (Independent)", "Electrification & Rural Subsidy", totalKWh.toFixed(2), "kWh", electRate.toFixed(4), calcElect.toFixed(2), invElect.toFixed(2), diffElect.toFixed(2)],
-      ["2.d Demand", "Network Demand Charge (Simultaneous Max Demand)", simMaxDemandKVA.toFixed(2), "kVA", demandRate.toFixed(2), calcNetworkDemand.toFixed(2), invNetworkDemand.toFixed(2), diffNetworkDemand.toFixed(2)],
-      ["Summary", "Total Settlement (Excl. VAT)", "-", "-", "-", grandCalcExVat.toFixed(2), grandInvExVat.toFixed(2), grandDiffExVat.toFixed(2)],
+      [
+        "Group",
+        "Charge Description",
+        "Determinant Basis",
+        "Unit",
+        "Rate (ZAR)",
+        "Calculated (ZAR)",
+        "Eskom Billed (ZAR)",
+        "Variance (ZAR)",
+      ],
+      [
+        "2.a Capacity",
+        "Transmission (TX) Network Capacity Charge",
+        nmd,
+        "kVA",
+        txRate,
+        calcTxNetwork.toFixed(2),
+        invTxNetwork.toFixed(2),
+        diffTxNetwork.toFixed(2),
+      ],
+      [
+        "2.a Capacity",
+        "Distribution Network Capacity Charge",
+        nmd,
+        "kVA",
+        distRate,
+        calcNetworkCap.toFixed(2),
+        invNetworkCap.toFixed(2),
+        diffNetworkCap.toFixed(2),
+      ],
+      [
+        "2.a Capacity",
+        "Generator Capacity Charge",
+        nmd,
+        "kVA",
+        genRate,
+        calcGenCap.toFixed(2),
+        invGenCap.toFixed(2),
+        diffGenCap.toFixed(2),
+      ],
+      [
+        "2.b Energy",
+        "Peak Active Energy Charge",
+        peakKWh.toFixed(2),
+        "kWh",
+        peakRate.toFixed(4),
+        calcPeakEnergy.toFixed(2),
+        invPeakEnergy.toFixed(2),
+        diffPeakEnergy.toFixed(2),
+      ],
+      [
+        "2.b Energy",
+        "Standard Active Energy Charge",
+        standardKWh.toFixed(2),
+        "kWh",
+        stdRate.toFixed(4),
+        calcStdEnergy.toFixed(2),
+        invStdEnergy.toFixed(2),
+        diffStdEnergy.toFixed(2),
+      ],
+      [
+        "2.b Energy",
+        "Off-Peak Active Energy Charge",
+        offPeakKWh.toFixed(2),
+        "kWh",
+        offPeakRate.toFixed(4),
+        calcOffPeakEnergy.toFixed(2),
+        invOffPeakEnergy.toFixed(2),
+        diffOffPeakEnergy.toFixed(2),
+      ],
+      [
+        "2.c Subsidies",
+        "Ancillary Service Charge",
+        totalKWh.toFixed(2),
+        "kWh",
+        ancillaryRate.toFixed(4),
+        calcAncillary.toFixed(2),
+        invAncillary.toFixed(2),
+        diffAncillary.toFixed(2),
+      ],
+      [
+        "2.c Subsidies",
+        "Legacy Charge",
+        totalKWh.toFixed(2),
+        "kWh",
+        legacyRate.toFixed(4),
+        calcLegacy.toFixed(2),
+        invLegacy.toFixed(2),
+        diffLegacy.toFixed(2),
+      ],
+      [
+        "2.c Subsidies",
+        "Affordability Subsidy",
+        totalKWh.toFixed(2),
+        "kWh",
+        affordRate.toFixed(4),
+        calcAfford.toFixed(2),
+        invAfford.toFixed(2),
+        diffAfford.toFixed(2),
+      ],
+      [
+        "2.c Subsidies (Independent)",
+        "Electrification & Rural Subsidy",
+        totalKWh.toFixed(2),
+        "kWh",
+        electRate.toFixed(4),
+        calcElect.toFixed(2),
+        invElect.toFixed(2),
+        diffElect.toFixed(2),
+      ],
+      [
+        "2.d Demand",
+        "Network Demand Charge (Simultaneous Max Demand)",
+        simMaxDemandKVA.toFixed(2),
+        "kVA",
+        demandRate.toFixed(2),
+        calcNetworkDemand.toFixed(2),
+        invNetworkDemand.toFixed(2),
+        diffNetworkDemand.toFixed(2),
+      ],
+      [
+        "Summary",
+        "Total Settlement (Excl. VAT)",
+        "-",
+        "-",
+        "-",
+        grandCalcExVat.toFixed(2),
+        grandInvExVat.toFixed(2),
+        grandDiffExVat.toFixed(2),
+      ],
     ];
     const content = csvRows.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `Statutory_Reconciliation_${activeInvoice?.accountMonth || "Current"}.csv`);
+    link.setAttribute(
+      "download",
+      `Statutory_Reconciliation_${activeInvoice?.accountMonth || "Current"}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -245,7 +370,8 @@ export function StatutoryReconciliationWorkbench({
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Direct mathematical audit against Eskom Invoice line items with statutory determinant isolation.
+              Direct mathematical audit against Eskom Invoice line items with statutory determinant
+              isolation.
             </p>
           </div>
 
@@ -266,9 +392,7 @@ export function StatutoryReconciliationWorkbench({
             <div className="text-[10px] uppercase font-semibold text-muted-foreground">
               2.a Contracted NMD (kVA)
             </div>
-            <div className="text-lg font-mono font-bold text-foreground mt-0.5">
-              {NUM(nmd)} kVA
-            </div>
+            <div className="text-lg font-mono font-bold text-foreground mt-0.5">{NUM(nmd)} kVA</div>
             <div className="text-[10px] text-muted-foreground">
               Multiplied by TX, Dist Capacity & Gen Capacity
             </div>
@@ -308,8 +432,14 @@ export function StatutoryReconciliationWorkbench({
             <div className="text-[10px] text-muted-foreground truncate">
               {simMaxDemandAt ? format(simMaxDemandAt, "dd MMM HH:mm") : "From Telemetry / Invoice"}
               {" · "}
-              <span className={demandMatches ? "text-emerald-500 font-medium" : "text-amber-500 font-medium"}>
-                {demandMatches ? "Matches Eskom" : `Differs (${demandKvaDiff > 0 ? "+" : ""}${NUM(demandKvaDiff)} kVA)`}
+              <span
+                className={
+                  demandMatches ? "text-emerald-500 font-medium" : "text-amber-500 font-medium"
+                }
+              >
+                {demandMatches
+                  ? "Matches Eskom"
+                  : `Differs (${demandKvaDiff > 0 ? "+" : ""}${NUM(demandKvaDiff)} kVA)`}
               </span>
             </div>
           </div>
@@ -331,8 +461,8 @@ export function StatutoryReconciliationWorkbench({
               </h3>
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              The Notified Maximum Demand ({NUM(nmd)} kVA) is multiplied by Transmission (TX) Network Capacity,
-              Distribution Network Capacity, and Generator Capacity charges.
+              The Notified Maximum Demand ({NUM(nmd)} kVA) is multiplied by Transmission (TX)
+              Network Capacity, Distribution Network Capacity, and Generator Capacity charges.
             </p>
           </div>
           <div className="text-right">
@@ -358,35 +488,51 @@ export function StatutoryReconciliationWorkbench({
               <tr className="hover:bg-muted/20">
                 <td className="p-3 font-medium">
                   <div className="text-foreground">Transmission (TX) Network Capacity Charge</div>
-                  <div className="text-[10px] text-muted-foreground font-mono">NMD × R 10.25 / kVA / month</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    NMD × R 10.25 / kVA / month
+                  </div>
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(nmd)} kVA</td>
                 <td className="p-3 font-mono text-right">R {txRate.toFixed(2)}</td>
-                <td className="p-3 font-mono text-right font-semibold text-foreground">{formatZAR(calcTxNetwork)}</td>
-                <td className="p-3 font-mono text-right font-semibold">{formatZAR(invTxNetwork)}</td>
+                <td className="p-3 font-mono text-right font-semibold text-foreground">
+                  {formatZAR(calcTxNetwork)}
+                </td>
+                <td className="p-3 font-mono text-right font-semibold">
+                  {formatZAR(invTxNetwork)}
+                </td>
                 <td className="p-3 text-center">{renderDiffBadge(diffTxNetwork)}</td>
               </tr>
 
               <tr className="hover:bg-muted/20">
                 <td className="p-3 font-medium">
                   <div className="text-foreground">Distribution Network Capacity Charge</div>
-                  <div className="text-[10px] text-muted-foreground font-mono">NMD × R 35.98 / kVA / month</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    NMD × R 35.98 / kVA / month
+                  </div>
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(nmd)} kVA</td>
                 <td className="p-3 font-mono text-right">R {distRate.toFixed(2)}</td>
-                <td className="p-3 font-mono text-right font-semibold text-foreground">{formatZAR(calcNetworkCap)}</td>
-                <td className="p-3 font-mono text-right font-semibold">{formatZAR(invNetworkCap)}</td>
+                <td className="p-3 font-mono text-right font-semibold text-foreground">
+                  {formatZAR(calcNetworkCap)}
+                </td>
+                <td className="p-3 font-mono text-right font-semibold">
+                  {formatZAR(invNetworkCap)}
+                </td>
                 <td className="p-3 text-center">{renderDiffBadge(diffNetworkCap)}</td>
               </tr>
 
               <tr className="hover:bg-muted/20">
                 <td className="p-3 font-medium">
                   <div className="text-foreground">Generator Capacity Charge</div>
-                  <div className="text-[10px] text-muted-foreground font-mono">NMD × R 8.09 / kVA / month</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    NMD × R 8.09 / kVA / month
+                  </div>
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(nmd)} kVA</td>
                 <td className="p-3 font-mono text-right">R {genRate.toFixed(2)}</td>
-                <td className="p-3 font-mono text-right font-semibold text-foreground">{formatZAR(calcGenCap)}</td>
+                <td className="p-3 font-mono text-right font-semibold text-foreground">
+                  {formatZAR(calcGenCap)}
+                </td>
                 <td className="p-3 font-mono text-right font-semibold">{formatZAR(invGenCap)}</td>
                 <td className="p-3 text-center">{renderDiffBadge(diffGenCap)}</td>
               </tr>
@@ -394,8 +540,12 @@ export function StatutoryReconciliationWorkbench({
               <tr className="bg-muted/30 font-semibold">
                 <td className="p-3 text-foreground">Subtotal Capacity Charges (2.a)</td>
                 <td className="p-3 font-mono text-right">{NUM(nmd)} kVA</td>
-                <td className="p-3 font-mono text-right">R {(txRate + distRate + genRate).toFixed(2)}</td>
-                <td className="p-3 font-mono text-right text-primary">{formatZAR(subtotalCapCalc)}</td>
+                <td className="p-3 font-mono text-right">
+                  R {(txRate + distRate + genRate).toFixed(2)}
+                </td>
+                <td className="p-3 font-mono text-right text-primary">
+                  {formatZAR(subtotalCapCalc)}
+                </td>
                 <td className="p-3 font-mono text-right">{formatZAR(subtotalCapInv)}</td>
                 <td className="p-3 text-center">{renderDiffBadge(diffSubtotalCap)}</td>
               </tr>
@@ -419,7 +569,8 @@ export function StatutoryReconciliationWorkbench({
               </h3>
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Standard, Peak, and Off-Peak consumptions are multiplied by gazetted active energy rates [R] and compared with Eskom Invoice.
+              Standard, Peak, and Off-Peak consumptions are multiplied by gazetted active energy
+              rates [R] and compared with Eskom Invoice.
             </p>
           </div>
           <div className="text-right">
@@ -445,42 +596,69 @@ export function StatutoryReconciliationWorkbench({
               <tr className="hover:bg-muted/20">
                 <td className="p-3 font-medium">
                   <div className="text-amber-500 font-semibold">Peak Active Energy</div>
-                  <div className="text-[10px] text-muted-foreground font-mono">Weekdays 07:00-10:00 & 18:00-20:00</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    Weekdays 07:00-10:00 & 18:00-20:00
+                  </div>
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(peakKWh)} kWh</td>
                 <td className="p-3 font-mono text-right">
-                  {TARIFF.energy.low.peak} c/kWh <span className="text-[10px] text-muted-foreground">(R {peakRate.toFixed(4)})</span>
+                  {TARIFF.energy.low.peak} c/kWh{" "}
+                  <span className="text-[10px] text-muted-foreground">
+                    (R {peakRate.toFixed(4)})
+                  </span>
                 </td>
-                <td className="p-3 font-mono text-right font-semibold text-foreground">{formatZAR(calcPeakEnergy)}</td>
-                <td className="p-3 font-mono text-right font-semibold">{formatZAR(invPeakEnergy)}</td>
+                <td className="p-3 font-mono text-right font-semibold text-foreground">
+                  {formatZAR(calcPeakEnergy)}
+                </td>
+                <td className="p-3 font-mono text-right font-semibold">
+                  {formatZAR(invPeakEnergy)}
+                </td>
                 <td className="p-3 text-center">{renderDiffBadge(diffPeakEnergy)}</td>
               </tr>
 
               <tr className="hover:bg-muted/20">
                 <td className="p-3 font-medium">
                   <div className="text-blue-500 font-semibold">Standard Active Energy</div>
-                  <div className="text-[10px] text-muted-foreground font-mono">Weekdays 06:00-07:00, 10:00-18:00, 20:00-22:00</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    Weekdays 06:00-07:00, 10:00-18:00, 20:00-22:00
+                  </div>
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(standardKWh)} kWh</td>
                 <td className="p-3 font-mono text-right">
-                  {TARIFF.energy.low.standard} c/kWh <span className="text-[10px] text-muted-foreground">(R {stdRate.toFixed(4)})</span>
+                  {TARIFF.energy.low.standard} c/kWh{" "}
+                  <span className="text-[10px] text-muted-foreground">
+                    (R {stdRate.toFixed(4)})
+                  </span>
                 </td>
-                <td className="p-3 font-mono text-right font-semibold text-foreground">{formatZAR(calcStdEnergy)}</td>
-                <td className="p-3 font-mono text-right font-semibold">{formatZAR(invStdEnergy)}</td>
+                <td className="p-3 font-mono text-right font-semibold text-foreground">
+                  {formatZAR(calcStdEnergy)}
+                </td>
+                <td className="p-3 font-mono text-right font-semibold">
+                  {formatZAR(invStdEnergy)}
+                </td>
                 <td className="p-3 text-center">{renderDiffBadge(diffStdEnergy)}</td>
               </tr>
 
               <tr className="hover:bg-muted/20">
                 <td className="p-3 font-medium">
                   <div className="text-emerald-500 font-semibold">Off-Peak Active Energy</div>
-                  <div className="text-[10px] text-muted-foreground font-mono">Nights 22:00-06:00 & All Weekend / Holidays</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    Nights 22:00-06:00 & All Weekend / Holidays
+                  </div>
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(offPeakKWh)} kWh</td>
                 <td className="p-3 font-mono text-right">
-                  {TARIFF.energy.low.offPeak} c/kWh <span className="text-[10px] text-muted-foreground">(R {offPeakRate.toFixed(4)})</span>
+                  {TARIFF.energy.low.offPeak} c/kWh{" "}
+                  <span className="text-[10px] text-muted-foreground">
+                    (R {offPeakRate.toFixed(4)})
+                  </span>
                 </td>
-                <td className="p-3 font-mono text-right font-semibold text-foreground">{formatZAR(calcOffPeakEnergy)}</td>
-                <td className="p-3 font-mono text-right font-semibold">{formatZAR(invOffPeakEnergy)}</td>
+                <td className="p-3 font-mono text-right font-semibold text-foreground">
+                  {formatZAR(calcOffPeakEnergy)}
+                </td>
+                <td className="p-3 font-mono text-right font-semibold">
+                  {formatZAR(invOffPeakEnergy)}
+                </td>
                 <td className="p-3 text-center">{renderDiffBadge(diffOffPeakEnergy)}</td>
               </tr>
 
@@ -488,7 +666,9 @@ export function StatutoryReconciliationWorkbench({
                 <td className="p-3 text-foreground">Subtotal Active Energy (2.b)</td>
                 <td className="p-3 font-mono text-right">{NUM(totalKWh)} kWh</td>
                 <td className="p-3 font-mono text-right">Weighted Avg</td>
-                <td className="p-3 font-mono text-right text-primary">{formatZAR(subtotalEnergyCalc)}</td>
+                <td className="p-3 font-mono text-right text-primary">
+                  {formatZAR(subtotalEnergyCalc)}
+                </td>
                 <td className="p-3 font-mono text-right">{formatZAR(subtotalEnergyInv)}</td>
                 <td className="p-3 text-center">{renderDiffBadge(diffSubtotalEnergy)}</td>
               </tr>
@@ -515,7 +695,8 @@ export function StatutoryReconciliationWorkbench({
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              The total active energy for the month (All Standard, Peak, and Off-Peak: {NUM(totalKWh)} kWh) is multiplied by statutory subsidy and levy rates.
+              The total active energy for the month (All Standard, Peak, and Off-Peak:{" "}
+              {NUM(totalKWh)} kWh) is multiplied by statutory subsidy and levy rates.
             </p>
           </div>
           <div className="text-right">
@@ -541,27 +722,43 @@ export function StatutoryReconciliationWorkbench({
               <tr className="hover:bg-muted/20">
                 <td className="p-3 font-medium">
                   <div className="text-foreground">Ancillary Service Charge</div>
-                  <div className="text-[10px] text-muted-foreground font-mono">System frequency stability & black start support</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    System frequency stability & black start support
+                  </div>
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(totalKWh)} kWh</td>
                 <td className="p-3 font-mono text-right">
-                  {TARIFF.ancillary} c/kWh <span className="text-[10px] text-muted-foreground">(R {ancillaryRate.toFixed(4)})</span>
+                  {TARIFF.ancillary} c/kWh{" "}
+                  <span className="text-[10px] text-muted-foreground">
+                    (R {ancillaryRate.toFixed(4)})
+                  </span>
                 </td>
-                <td className="p-3 font-mono text-right font-semibold text-foreground">{formatZAR(calcAncillary)}</td>
-                <td className="p-3 font-mono text-right font-semibold">{formatZAR(invAncillary)}</td>
+                <td className="p-3 font-mono text-right font-semibold text-foreground">
+                  {formatZAR(calcAncillary)}
+                </td>
+                <td className="p-3 font-mono text-right font-semibold">
+                  {formatZAR(invAncillary)}
+                </td>
                 <td className="p-3 text-center">{renderDiffBadge(diffAncillary)}</td>
               </tr>
 
               <tr className="hover:bg-muted/20">
                 <td className="p-3 font-medium">
                   <div className="text-foreground">Legacy Charge</div>
-                  <div className="text-[10px] text-muted-foreground font-mono">Historical generation fleet capital amortisation</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    Historical generation fleet capital amortisation
+                  </div>
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(totalKWh)} kWh</td>
                 <td className="p-3 font-mono text-right">
-                  {TARIFF.legacy} c/kWh <span className="text-[10px] text-muted-foreground">(R {legacyRate.toFixed(4)})</span>
+                  {TARIFF.legacy} c/kWh{" "}
+                  <span className="text-[10px] text-muted-foreground">
+                    (R {legacyRate.toFixed(4)})
+                  </span>
                 </td>
-                <td className="p-3 font-mono text-right font-semibold text-foreground">{formatZAR(calcLegacy)}</td>
+                <td className="p-3 font-mono text-right font-semibold text-foreground">
+                  {formatZAR(calcLegacy)}
+                </td>
                 <td className="p-3 font-mono text-right font-semibold">{formatZAR(invLegacy)}</td>
                 <td className="p-3 text-center">{renderDiffBadge(diffLegacy)}</td>
               </tr>
@@ -569,13 +766,20 @@ export function StatutoryReconciliationWorkbench({
               <tr className="hover:bg-muted/20">
                 <td className="p-3 font-medium">
                   <div className="text-foreground">Affordability Subsidy</div>
-                  <div className="text-[10px] text-muted-foreground font-mono">Cross-subsidisation levy for qualifying customer segments</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    Cross-subsidisation levy for qualifying customer segments
+                  </div>
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(totalKWh)} kWh</td>
                 <td className="p-3 font-mono text-right">
-                  {TARIFF.affordability} c/kWh <span className="text-[10px] text-muted-foreground">(R {affordRate.toFixed(4)})</span>
+                  {TARIFF.affordability} c/kWh{" "}
+                  <span className="text-[10px] text-muted-foreground">
+                    (R {affordRate.toFixed(4)})
+                  </span>
                 </td>
-                <td className="p-3 font-mono text-right font-semibold text-foreground">{formatZAR(calcAfford)}</td>
+                <td className="p-3 font-mono text-right font-semibold text-foreground">
+                  {formatZAR(calcAfford)}
+                </td>
                 <td className="p-3 font-mono text-right font-semibold">{formatZAR(invAfford)}</td>
                 <td className="p-3 text-center">{renderDiffBadge(diffAfford)}</td>
               </tr>
@@ -594,9 +798,14 @@ export function StatutoryReconciliationWorkbench({
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(totalKWh)} kWh</td>
                 <td className="p-3 font-mono text-right">
-                  {TARIFF.electrification} c/kWh <span className="text-[10px] text-muted-foreground">(R {electRate.toFixed(4)})</span>
+                  {TARIFF.electrification} c/kWh{" "}
+                  <span className="text-[10px] text-muted-foreground">
+                    (R {electRate.toFixed(4)})
+                  </span>
                 </td>
-                <td className="p-3 font-mono text-right font-semibold text-primary">{formatZAR(calcElect)}</td>
+                <td className="p-3 font-mono text-right font-semibold text-primary">
+                  {formatZAR(calcElect)}
+                </td>
                 <td className="p-3 font-mono text-right font-semibold">{formatZAR(invElect)}</td>
                 <td className="p-3 text-center">{renderDiffBadge(diffElect)}</td>
               </tr>
@@ -604,8 +813,18 @@ export function StatutoryReconciliationWorkbench({
               <tr className="bg-muted/30 font-semibold">
                 <td className="p-3 text-foreground">Subtotal Subsidies & Levies (2.c)</td>
                 <td className="p-3 font-mono text-right">{NUM(totalKWh)} kWh</td>
-                <td className="p-3 font-mono text-right">{(TARIFF.ancillary + TARIFF.legacy + TARIFF.affordability + TARIFF.electrification).toFixed(2)} c/kWh</td>
-                <td className="p-3 font-mono text-right text-primary">{formatZAR(subtotalSubsidyCalc)}</td>
+                <td className="p-3 font-mono text-right">
+                  {(
+                    TARIFF.ancillary +
+                    TARIFF.legacy +
+                    TARIFF.affordability +
+                    TARIFF.electrification
+                  ).toFixed(2)}{" "}
+                  c/kWh
+                </td>
+                <td className="p-3 font-mono text-right text-primary">
+                  {formatZAR(subtotalSubsidyCalc)}
+                </td>
                 <td className="p-3 font-mono text-right">{formatZAR(subtotalSubsidyInv)}</td>
                 <td className="p-3 text-center">{renderDiffBadge(diffSubtotalSubsidy)}</td>
               </tr>
@@ -629,7 +848,9 @@ export function StatutoryReconciliationWorkbench({
               </h3>
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Multiply recorded Simultaneous Maximum Demand (as per 1.e: {NUM(simMaxDemandKVA)} kVA) with Network Demand Charge (R {demandRate.toFixed(2)} / kVA), noting whether it matches or differs from Eskom&apos;s number.
+              Multiply recorded Simultaneous Maximum Demand (as per 1.e: {NUM(simMaxDemandKVA)} kVA)
+              with Network Demand Charge (R {demandRate.toFixed(2)} / kVA), noting whether it
+              matches or differs from Eskom&apos;s number.
             </p>
           </div>
           <div className="text-right">
@@ -658,14 +879,17 @@ export function StatutoryReconciliationWorkbench({
                 <span>
                   Recorded At:{" "}
                   <strong className="text-foreground font-mono">
-                    {simMaxDemandAt ? format(simMaxDemandAt, "EEE, dd MMM yyyy 'at' HH:mm:ss") : "Billing Period Peak Interval"}
+                    {simMaxDemandAt
+                      ? format(simMaxDemandAt, "EEE, dd MMM yyyy 'at' HH:mm:ss")
+                      : "Billing Period Peak Interval"}
                   </strong>
                 </span>
               </div>
               <div className="pt-2 border-t border-border/60 text-xs">
                 <span>Calculated Demand Charge: </span>
                 <span className="font-mono font-bold text-primary">
-                  {NUM(simMaxDemandKVA)} kVA × R {demandRate.toFixed(2)} = {formatZAR(calcNetworkDemand)}
+                  {NUM(simMaxDemandKVA)} kVA × R {demandRate.toFixed(2)} ={" "}
+                  {formatZAR(calcNetworkDemand)}
                 </span>
               </div>
             </div>
@@ -693,7 +917,8 @@ export function StatutoryReconciliationWorkbench({
                   <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                     <CheckCircle2 className="h-4 w-4 shrink-0" />
                     <span>
-                      MATCHES ESKOM: Measured simultaneous maximum demand is identical to Eskom&apos;s billed demand determinant.
+                      MATCHES ESKOM: Measured simultaneous maximum demand is identical to
+                      Eskom&apos;s billed demand determinant.
                     </span>
                   </div>
                 ) : (
@@ -701,10 +926,12 @@ export function StatutoryReconciliationWorkbench({
                     <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                     <div>
                       <span>
-                        DIFFERS FROM ESKOM by {demandKvaDiff > 0 ? "+" : ""}{NUM(demandKvaDiff)} kVA ({formatZAR(diffNetworkDemand)}).
+                        DIFFERS FROM ESKOM by {demandKvaDiff > 0 ? "+" : ""}
+                        {NUM(demandKvaDiff)} kVA ({formatZAR(diffNetworkDemand)}).
                       </span>
                       <p className="text-[11px] text-muted-foreground font-normal mt-0.5">
-                        Eskom billed on {NUM(invBilledDemandKVA)} kVA (ratchet / contracted ceiling) vs measured telemetry simultaneous peak of {NUM(simMaxDemandKVA)} kVA.
+                        Eskom billed on {NUM(invBilledDemandKVA)} kVA (ratchet / contracted ceiling)
+                        vs measured telemetry simultaneous peak of {NUM(simMaxDemandKVA)} kVA.
                       </p>
                     </div>
                   </div>
@@ -726,9 +953,7 @@ export function StatutoryReconciliationWorkbench({
               Consolidated Statutory Reconciliation Summary
             </h3>
           </div>
-          <span className="text-xs text-muted-foreground font-mono">
-            Excl. VAT Comparison
-          </span>
+          <span className="text-xs text-muted-foreground font-mono">Excl. VAT Comparison</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
@@ -766,15 +991,16 @@ export function StatutoryReconciliationWorkbench({
                   Math.abs(grandDiffExVat) < 1.0
                     ? "text-emerald-500"
                     : grandDiffExVat > 0
-                    ? "text-amber-500"
-                    : "text-blue-500"
+                      ? "text-amber-500"
+                      : "text-blue-500"
                 }`}
               >
                 {grandDiffExVat > 0 ? "+" : ""}
                 {formatZAR(grandDiffExVat)}
               </span>
               <span className="text-xs font-mono text-muted-foreground">
-                ({grandInvExVat > 0 ? ((grandDiffExVat / grandInvExVat) * 100).toFixed(2) : "0.00"}%)
+                ({grandInvExVat > 0 ? ((grandDiffExVat / grandInvExVat) * 100).toFixed(2) : "0.00"}
+                %)
               </span>
             </div>
             <div className="text-[10px] text-muted-foreground mt-0.5">

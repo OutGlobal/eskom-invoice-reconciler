@@ -1,9 +1,19 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Panel, NUM } from "@/components/dashboard/parts";
-import { DeterministicReconciliationEngine, DEFAULT_TOLERANCE_CONFIG } from "@/domain/reconciliation/reconciliationEngine";
-import { REGRESSION_FIXTURES, MEGAFLEX_JULY_2025_FIXTURE } from "@/domain/reconciliation/regressionFixtures";
-import type { AuthoritativeReconciliationPayload, DeterminantComparisonItem, ToleranceConfig } from "@/domain/reconciliation/types";
+import {
+  DeterministicReconciliationEngine,
+  DEFAULT_TOLERANCE_CONFIG,
+} from "@/domain/reconciliation/reconciliationEngine";
+import {
+  REGRESSION_FIXTURES,
+  MEGAFLEX_JULY_2025_FIXTURE,
+} from "@/domain/reconciliation/regressionFixtures";
+import type {
+  AuthoritativeReconciliationPayload,
+  DeterminantComparisonItem,
+  ToleranceConfig,
+} from "@/domain/reconciliation/types";
 import { ESKOM_MEGAFLEX_2025_2026 } from "@/domain/tariff/tariffFixtures";
 import {
   Scale,
@@ -35,11 +45,15 @@ function ReconciliationPage() {
   const activeInvoice = useApp((s) => s.invoice);
   const [selectedFixtureCode, setSelectedFixtureCode] = useState<string>("ACTIVE_INVOICE");
   const [payload, setPayload] = useState<AuthoritativeReconciliationPayload | null>(null);
-  const [selectedDeterminant, setSelectedDeterminant] = useState<DeterminantComparisonItem | null>(null);
+  const [selectedDeterminant, setSelectedDeterminant] = useState<DeterminantComparisonItem | null>(
+    null,
+  );
   const [isExplainerOpen, setIsExplainerOpen] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [filterTab, setFilterTab] = useState<"all" | "discrepancies" | "matches">("all");
-  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<"statutory" | "matrix" | "anomalies" | "evidence">("statutory");
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<
+    "statutory" | "matrix" | "anomalies" | "evidence"
+  >("statutory");
 
   // Run reconciliation against active invoice or selected fixture
   const runReconciliation = (fixtureCode: string) => {
@@ -69,18 +83,20 @@ function ReconciliationPage() {
         billed_reactive_energy_kvarh: new Decimal(activeInvoice.reactive || 0),
         billed_energy_charges_zar: new Decimal(
           (activeInvoice.peakEnergyCharge || 0) +
-          (activeInvoice.standardEnergyCharge || 0) +
-          (activeInvoice.offPeakEnergyCharge || 0)
+            (activeInvoice.standardEnergyCharge || 0) +
+            (activeInvoice.offPeakEnergyCharge || 0),
         ),
         billed_demand_charges_zar: new Decimal(activeInvoice.networkDemandCharge || 0),
         billed_network_charges_zar: new Decimal(
           (activeInvoice.transmissionNetworkCharge || 0) +
-          (activeInvoice.networkCapacityCharge || 0)
+            (activeInvoice.networkCapacityCharge || 0),
         ),
         billed_service_charges_zar: new Decimal(activeInvoice.serviceCharge || 0),
         billed_ancillary_charges_zar: new Decimal(activeInvoice.ancillary || 0),
         billed_vat_zar: new Decimal(activeInvoice.vat || 0),
-        billed_total_invoice_zar: new Decimal(activeInvoice.totalInclVat || activeInvoice.invoiceTotal || 0),
+        billed_total_invoice_zar: new Decimal(
+          activeInvoice.totalInclVat || activeInvoice.invoiceTotal || 0,
+        ),
       };
     } else {
       const fixture = REGRESSION_FIXTURES.find((f) => f.fixture_code === fixtureCode);
@@ -146,8 +162,8 @@ function ReconciliationPage() {
         filterTab === "all"
           ? true
           : filterTab === "discrepancies"
-          ? item.classification === "DISCREPANCY" || item.classification === "CRITICAL"
-          : item.classification === "PASS" || item.classification === "WARNING";
+            ? item.classification === "DISCREPANCY" || item.classification === "CRITICAL"
+            : item.classification === "PASS" || item.classification === "WARNING";
 
       return matchesSearch && matchesTab;
     });
@@ -161,9 +177,12 @@ function ReconciliationPage() {
           <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
             <Scale className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-foreground">Awaiting Invoices for Reconciliation</h3>
+          <h3 className="text-base font-bold text-foreground">
+            Awaiting Invoices for Reconciliation
+          </h3>
           <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-            Upload your Eskom or Municipal bill and AMR interval file to execute the 14-determinant reconciliation engine, or load a regression sandbox scenario.
+            Upload your Eskom or Municipal bill and AMR interval file to execute the 14-determinant
+            reconciliation engine, or load a regression sandbox scenario.
           </p>
           <div className="flex items-center justify-center gap-3 pt-4">
             <a
@@ -193,13 +212,16 @@ function ReconciliationPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">Authoritative Billing Reconciliation Engine</h1>
+            <h1 className="text-xl font-semibold tracking-tight">
+              Authoritative Billing Reconciliation Engine
+            </h1>
             <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full">
               ENGINE v{payload.engine_version} &bull; DETERMINISTIC
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Zero floating-point financial settlement. 14 billing determinants compared against gazetted NERSA rates and telemetry.
+            Zero floating-point financial settlement. 14 billing determinants compared against
+            gazetted NERSA rates and telemetry.
           </p>
         </div>
 
@@ -210,7 +232,8 @@ function ReconciliationPage() {
             className="bg-background border border-border rounded px-3 py-1.5 text-xs font-medium"
           >
             <option value="ACTIVE_INVOICE">
-              Active Invoice ({activeInvoice?.invoiceNumber || activeInvoice?.invoiceNo || "Current Period"})
+              Active Invoice (
+              {activeInvoice?.invoiceNumber || activeInvoice?.invoiceNo || "Current Period"})
             </option>
             {REGRESSION_FIXTURES.map((f) => (
               <option key={f.fixture_code} value={f.fixture_code}>
@@ -290,22 +313,24 @@ function ReconciliationPage() {
         </button>
       </div>
 
-      {activeWorkspaceTab === "statutory" && (
-        <StatutoryReconciliationWorkbench />
-      )}
+      {activeWorkspaceTab === "statutory" && <StatutoryReconciliationWorkbench />}
 
       {activeWorkspaceTab === "matrix" && (
         <>
           {/* Idempotency & Metadata Bar */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="rounded-lg border border-border bg-card p-3 space-y-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Reconciliation Run ID</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Reconciliation Run ID
+              </div>
               <div className="text-xs font-mono font-medium truncate">{payload.run_id}</div>
               <div className="text-[10px] text-muted-foreground">{payload.completed_at}</div>
             </div>
 
             <div className="rounded-lg border border-border bg-card p-3 space-y-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Idempotency SHA-256 Checksum</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Idempotency SHA-256 Checksum
+              </div>
               <div className="text-xs font-mono font-medium text-emerald-600 dark:text-emerald-400 truncate">
                 {payload.result_checksum}
               </div>
@@ -313,30 +338,41 @@ function ReconciliationPage() {
             </div>
 
             <div className="rounded-lg border border-border bg-card p-3 space-y-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Billed vs Calculated Settlement</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Billed vs Calculated Settlement
+              </div>
               <div className="text-xs font-mono font-semibold text-foreground">
-                R {NUM(payload.billed_total_zar.toNumber())} / R {NUM(payload.calculated_total_zar.toNumber())}
+                R {NUM(payload.billed_total_zar.toNumber())} / R{" "}
+                {NUM(payload.calculated_total_zar.toNumber())}
               </div>
               <div className="text-[10px] text-muted-foreground">
-                Variance: <span className="font-mono font-medium">R {NUM(payload.variance_total_zar.toNumber())} ({payload.variance_percentage.toFixed(2)}%)</span>
+                Variance:{" "}
+                <span className="font-mono font-medium">
+                  R {NUM(payload.variance_total_zar.toNumber())} (
+                  {payload.variance_percentage.toFixed(2)}%)
+                </span>
               </div>
             </div>
 
             <div className="rounded-lg border border-border bg-card p-3 space-y-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Overall Classification</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Overall Classification
+              </div>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span
                   className={`px-2 py-0.5 text-xs font-semibold uppercase rounded font-mono ${
                     payload.classification === "PASS"
                       ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
                       : payload.classification === "WARNING"
-                      ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
-                      : "bg-red-500/10 text-red-500 border border-red-500/20"
+                        ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                        : "bg-red-500/10 text-red-500 border border-red-500/20"
                   }`}
                 >
                   {payload.classification}
                 </span>
-                <span className="text-[10px] text-muted-foreground font-mono">STATUS: {payload.status}</span>
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  STATUS: {payload.status}
+                </span>
               </div>
             </div>
           </div>
@@ -347,7 +383,9 @@ function ReconciliationPage() {
               <button
                 onClick={() => setFilterTab("all")}
                 className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                  filterTab === "all" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                  filterTab === "all"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
                 }`}
               >
                 All Determinants (14)
@@ -355,7 +393,9 @@ function ReconciliationPage() {
               <button
                 onClick={() => setFilterTab("discrepancies")}
                 className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                  filterTab === "discrepancies" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                  filterTab === "discrepancies"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
                 }`}
               >
                 Discrepancies Only
@@ -363,7 +403,9 @@ function ReconciliationPage() {
               <button
                 onClick={() => setFilterTab("matches")}
                 className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                  filterTab === "matches" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                  filterTab === "matches"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
                 }`}
               >
                 Matches (PASS)
@@ -405,17 +447,33 @@ function ReconciliationPage() {
                     <tr key={item.determinant_code} className="hover:bg-muted/20">
                       <td className="p-2.5 font-medium">
                         <div>{item.determinant_name}</div>
-                        <div className="text-[10px] text-muted-foreground font-mono">{item.determinant_code}</div>
+                        <div className="text-[10px] text-muted-foreground font-mono">
+                          {item.determinant_code}
+                        </div>
                       </td>
                       <td className="p-2.5 font-mono text-right font-medium">
-                        {item.unit_of_measure === "ZAR" ? `R ${NUM(item.billed_value.toNumber())}` : `${item.billed_value.toString()} ${item.unit_of_measure}`}
+                        {item.unit_of_measure === "ZAR"
+                          ? `R ${NUM(item.billed_value.toNumber())}`
+                          : `${item.billed_value.toString()} ${item.unit_of_measure}`}
                       </td>
                       <td className="p-2.5 font-mono text-right font-medium">
-                        {item.unit_of_measure === "ZAR" ? `R ${NUM(item.calculated_value.toNumber())}` : `${item.calculated_value.toString()} ${item.unit_of_measure}`}
+                        {item.unit_of_measure === "ZAR"
+                          ? `R ${NUM(item.calculated_value.toNumber())}`
+                          : `${item.calculated_value.toString()} ${item.unit_of_measure}`}
                       </td>
                       <td className="p-2.5 font-mono text-right">
-                        <span className={item.variance_value.isZero() ? "text-muted-foreground" : item.variance_value.gt(0) ? "text-amber-500 font-medium" : "text-emerald-500 font-medium"}>
-                          {item.unit_of_measure === "ZAR" ? `R ${NUM(item.variance_value.toNumber())}` : `${item.variance_value.toString()} ${item.unit_of_measure}`}
+                        <span
+                          className={
+                            item.variance_value.isZero()
+                              ? "text-muted-foreground"
+                              : item.variance_value.gt(0)
+                                ? "text-amber-500 font-medium"
+                                : "text-emerald-500 font-medium"
+                          }
+                        >
+                          {item.unit_of_measure === "ZAR"
+                            ? `R ${NUM(item.variance_value.toNumber())}`
+                            : `${item.variance_value.toString()} ${item.unit_of_measure}`}
                         </span>
                       </td>
                       <td className="p-2.5 font-mono text-right">
@@ -427,8 +485,8 @@ function ReconciliationPage() {
                             item.classification === "PASS"
                               ? "bg-emerald-500/10 text-emerald-500"
                               : item.classification === "WARNING"
-                              ? "bg-amber-500/10 text-amber-500"
-                              : "bg-red-500/10 text-red-500"
+                                ? "bg-amber-500/10 text-amber-500"
+                                : "bg-red-500/10 text-red-500"
                           }`}
                         >
                           {item.classification}
@@ -503,19 +561,39 @@ function ReconciliationPage() {
 
             <div className="space-y-3 text-xs">
               <div className="p-3 bg-muted/40 rounded border border-border space-y-1">
-                <div className="font-semibold text-foreground">{selectedDeterminant.determinant_name} ({selectedDeterminant.determinant_code})</div>
-                <div className="text-muted-foreground font-mono text-[11px]">{selectedDeterminant.explanation.input_value}</div>
+                <div className="font-semibold text-foreground">
+                  {selectedDeterminant.determinant_name} ({selectedDeterminant.determinant_code})
+                </div>
+                <div className="text-muted-foreground font-mono text-[11px]">
+                  {selectedDeterminant.explanation.input_value}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-muted-foreground">
-                <div><span className="font-semibold text-foreground">Formula:</span> {selectedDeterminant.explanation.formula_used}</div>
-                <div><span className="font-semibold text-foreground">Rate Applied:</span> {selectedDeterminant.explanation.rate_applied}</div>
-                <div><span className="font-semibold text-foreground">Precision Model:</span> {selectedDeterminant.explanation.precision}</div>
-                <div><span className="font-semibold text-foreground">Rounding Method:</span> {selectedDeterminant.explanation.rounding_method}</div>
+                <div>
+                  <span className="font-semibold text-foreground">Formula:</span>{" "}
+                  {selectedDeterminant.explanation.formula_used}
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Rate Applied:</span>{" "}
+                  {selectedDeterminant.explanation.rate_applied}
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Precision Model:</span>{" "}
+                  {selectedDeterminant.explanation.precision}
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Rounding Method:</span>{" "}
+                  {selectedDeterminant.explanation.rounding_method}
+                </div>
               </div>
 
               <div className="p-2 font-mono text-[11px] bg-background border border-border rounded text-foreground">
-                Output Value: <span className="font-bold text-primary">{selectedDeterminant.explanation.output_value} {selectedDeterminant.unit_of_measure}</span>
+                Output Value:{" "}
+                <span className="font-bold text-primary">
+                  {selectedDeterminant.explanation.output_value}{" "}
+                  {selectedDeterminant.unit_of_measure}
+                </span>
               </div>
             </div>
 

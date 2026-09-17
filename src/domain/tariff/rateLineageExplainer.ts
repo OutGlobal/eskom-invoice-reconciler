@@ -21,7 +21,7 @@ export function explainAppliedRate(options: RateLineageOptions): RateLineageExpl
   // 1. Select effective tariff version for target date
   const version: TariffVersionDefinition = TariffVersionSelector.selectVersionForDate(
     tariffCodeOrFamily,
-    dateStr
+    dateStr,
   );
 
   // 2. Determine season for date
@@ -31,9 +31,10 @@ export function explainAppliedRate(options: RateLineageOptions): RateLineageExpl
   const season = isHighSeason ? "high" : "low";
 
   // 3. Find target component rule in version definition
-  const componentRule = version.components.find(
-    (c) => c.component_code === componentCode || c.component_code.startsWith(componentCode)
-  ) || version.components[0];
+  const componentRule =
+    version.components.find(
+      (c) => c.component_code === componentCode || c.component_code.startsWith(componentCode),
+    ) || version.components[0];
 
   return formatExplanation(version, componentRule, dateStr, season);
 }
@@ -42,7 +43,7 @@ export function explainAppliedRateByRule(
   version: TariffVersionDefinition,
   componentRule: TariffComponentRule,
   dateStr: string,
-  season: string = "all"
+  season: string = "all",
 ): RateLineageExplanation {
   return formatExplanation(version, componentRule, dateStr, season);
 }
@@ -51,22 +52,22 @@ function formatExplanation(
   version: TariffVersionDefinition,
   rule: TariffComponentRule,
   dateStr: string,
-  season: string
+  season: string,
 ): RateLineageExplanation {
   const rateValStr = rule.rate_value.toFixed(4);
   const gazetteRef = version.header.source_document || "NERSA Gazetted Electricity Tariff Schedule";
   const sourceHash = version.header.source_hash || "SHA256:VERIFIED";
 
   let explanationText = `Applied rate of ${rateValStr} ${rule.unit_of_measure} for ${rule.component_name} (${rule.component_code}) under ${version.header.tariff_name} (${version.header.tariff_code} v${version.header.version}). `;
-  
+
   if (rule.season && rule.season !== "all") {
     explanationText += `Rule is active for ${rule.season.toUpperCase()} season. Date ${dateStr} evaluated to ${season.toUpperCase()} season. `;
   }
-  
+
   if (rule.tou_period && rule.tou_period !== "all") {
     explanationText += `Time-of-Use clock period: ${rule.tou_period.toUpperCase()}. `;
   }
-  
+
   explanationText += `Source Gazette: ${gazetteRef} (Fingerprint: ${sourceHash}).`;
 
   return {

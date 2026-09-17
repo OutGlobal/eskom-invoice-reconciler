@@ -14,7 +14,7 @@ export class EvidenceStorageService {
    */
   public static async getEvidenceChain(
     varianceId: string,
-    authContext?: AuthorizationContext
+    authContext?: AuthorizationContext,
   ): Promise<CompleteEvidenceChain | null> {
     try {
       const { data: dbChain, error } = await supabase
@@ -24,7 +24,9 @@ export class EvidenceStorageService {
         .maybeSingle();
 
       if (error || !dbChain) {
-        console.warn("[EvidenceStorageService] Supabase evidence chain empty or unavailable, building fixture chain.");
+        console.warn(
+          "[EvidenceStorageService] Supabase evidence chain empty or unavailable, building fixture chain.",
+        );
         return EvidenceChainEngine.buildChain(varianceId, "RECON-RUN-01", authContext);
       }
 

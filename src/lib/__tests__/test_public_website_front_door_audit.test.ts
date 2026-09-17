@@ -28,7 +28,9 @@ describe("Stage 26 — Public Website vs Application Dashboard Separation Audit"
 
     it("should NOT include live file upload dropzones or file inputs on the public homepage", () => {
       // Find all active components imported in index.tsx
-      const importedComponentMatches = indexContent.matchAll(/import\("@\/components\/landing\/enera\/([^"]+)"\)/g);
+      const importedComponentMatches = indexContent.matchAll(
+        /import\("@\/components\/landing\/enera\/([^"]+)"\)/g,
+      );
       const importedFiles = Array.from(importedComponentMatches).map((m) => `${m[1]}.tsx`);
 
       // Add directly imported components
@@ -57,7 +59,9 @@ describe("Stage 26 — Public Website vs Application Dashboard Separation Audit"
 
   describe("2. Authenticated Application Gating & Containment", () => {
     it("should gate application routes behind AuthGate in the root layout", () => {
-      expect(rootContent).toContain("const isPublicPage = pathname === \"/\" || pathname === \"/login\";");
+      expect(rootContent).toContain(
+        'const isPublicPage = pathname === "/" || pathname === "/login";',
+      );
       expect(rootContent).toContain("<AuthGate>");
       expect(rootContent).toContain("<SidebarProvider>");
       expect(rootContent).toContain("<AppSidebar />");

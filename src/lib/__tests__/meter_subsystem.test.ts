@@ -113,26 +113,50 @@ export async function runMeterSubsystemTests() {
   const configs = [configA, configB];
 
   // Resolve reading in February 2026 -> Config A
-  const febConfig = MeterCalculationService.resolveConfigurationAtTimestamp("2026-02-15T12:00:00Z", configs);
+  const febConfig = MeterCalculationService.resolveConfigurationAtTimestamp(
+    "2026-02-15T12:00:00Z",
+    configs,
+  );
   assert(febConfig.version_number === 1, "February reading resolved to Configuration Version #1");
   assert(febConfig.overall_multiplier === 4000, "February reading used Multiplier 4000");
 
-  const febTiered = MeterCalculationService.calculateTieredValues(250, febConfig, 1.02, "2026-02-15T12:00:00Z");
+  const febTiered = MeterCalculationService.calculateTieredValues(
+    250,
+    febConfig,
+    1.02,
+    "2026-02-15T12:00:00Z",
+  );
   assert(febTiered.raw_register_value === 250, "Feb Raw Register Value = 250");
   assert(febTiered.engineering_value === 1000000, "Feb Engineering Value = 1,000,000 kWh");
   assert(febTiered.billed_value === 1020000, "Feb Billed Value with 2% loss = 1,020,000 kWh");
 
   // Resolve reading in April 2026 -> Config B
-  const aprConfig = MeterCalculationService.resolveConfigurationAtTimestamp("2026-04-15T12:00:00Z", configs);
+  const aprConfig = MeterCalculationService.resolveConfigurationAtTimestamp(
+    "2026-04-15T12:00:00Z",
+    configs,
+  );
   assert(aprConfig.version_number === 2, "April reading resolved to Configuration Version #2");
   assert(aprConfig.overall_multiplier === 8000, "April reading used Multiplier 8000");
 
-  const aprTiered = MeterCalculationService.calculateTieredValues(250, aprConfig, 1.02, "2026-04-15T12:00:00Z");
+  const aprTiered = MeterCalculationService.calculateTieredValues(
+    250,
+    aprConfig,
+    1.02,
+    "2026-04-15T12:00:00Z",
+  );
   assert(aprTiered.engineering_value === 2000000, "April Engineering Value = 2,000,000 kWh");
 
   // Historical Reproducibility Verification: Re-evaluating February reading after April config exists
-  const febReplayed = MeterCalculationService.resolveConfigurationAtTimestamp("2026-02-15T12:00:00Z", configs);
-  const febReplayedTiered = MeterCalculationService.calculateTieredValues(250, febReplayed, 1.02, "2026-02-15T12:00:00Z");
+  const febReplayed = MeterCalculationService.resolveConfigurationAtTimestamp(
+    "2026-02-15T12:00:00Z",
+    configs,
+  );
+  const febReplayedTiered = MeterCalculationService.calculateTieredValues(
+    250,
+    febReplayed,
+    1.02,
+    "2026-02-15T12:00:00Z",
+  );
   assert(
     febReplayedTiered.engineering_value === febTiered.engineering_value,
     "Historical January/February reconciliation result remains 100% reproducible after April config upgrade",
@@ -153,7 +177,10 @@ export async function runMeterSubsystemTests() {
   });
 
   assert(invalidConfigVal.isValid === false, "Validation engine rejected impossible configuration");
-  assert(invalidConfigVal.issues.length >= 3, `Logged ${invalidConfigVal.issues.length} validation issues`);
+  assert(
+    invalidConfigVal.issues.length >= 3,
+    `Logged ${invalidConfigVal.issues.length} validation issues`,
+  );
 
   // Test 7: Validation Engine - Overlapping Date Ranges
   console.log("\n--- Test 7: Validation Engine Overlapping Date Guarding ---");

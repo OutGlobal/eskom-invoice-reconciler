@@ -27,7 +27,9 @@ export class InvoiceCorrectionService {
     params: CreateCorrectionParams,
   ): ExtractedInvoiceDocument {
     if (!params.reason || params.reason.trim().length === 0) {
-      throw new Error("A valid reason must be provided for audit compliance when correcting invoice fields.");
+      throw new Error(
+        "A valid reason must be provided for audit compliance when correcting invoice fields.",
+      );
     }
 
     const fieldKey = params.fieldName;

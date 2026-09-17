@@ -48,7 +48,8 @@ import { ReconciliationStorageService } from "../reconciliation/reconciliationSt
 import { DiscrepancyStorageService } from "../discrepancy/discrepancyStorageService";
 import type { AuthoritativeReconciliationInput } from "../reconciliation/reconciliationEngine";
 import type { TariffVersionDefinition } from "../tariff/types";
-import type { DiscrepancyRecord, DiscrepancyStatus } from "../discrepancy/types";
+import type { DiscrepancyCode, DiscrepancyRecord, DiscrepancyStatus } from "../discrepancy/types";
+import { AuthoritativeSchemaRegistry } from "../database/authoritativeSchemaRegistry";
 
 export type LifecycleStageId =
   | "USER"
@@ -121,7 +122,8 @@ export const PRODUCTION_LIFECYCLE_STAGES: Record<LifecycleStageId, LifecycleStag
     stageId: "FILE_SECURITY_VALIDATION",
     order: 4,
     name: "File Security & Integrity Validation",
-    description: "Magic-byte MIME verification, SHA-256 fingerprinting, quarantine of spoofed or malicious files",
+    description:
+      "Magic-byte MIME verification, SHA-256 fingerprinting, quarantine of spoofed or malicious files",
     executionBoundary: "SERVER",
     persistentTables: ["public.source_hashes", "public.ingestion_errors"],
     primaryKeys: ["source_hashes.id", "ingestion_errors.id"],
@@ -132,7 +134,8 @@ export const PRODUCTION_LIFECYCLE_STAGES: Record<LifecycleStageId, LifecycleStag
     stageId: "FILE_STORAGE",
     order: 5,
     name: "Encrypted File Storage",
-    description: "Immutable storage in private Supabase Storage bucket with signed URL access controls",
+    description:
+      "Immutable storage in private Supabase Storage bucket with signed URL access controls",
     executionBoundary: "STORAGE",
     persistentTables: ["storage.objects", "public.file_versions"],
     primaryKeys: ["storage.objects.id", "file_versions.id"],
@@ -143,7 +146,8 @@ export const PRODUCTION_LIFECYCLE_STAGES: Record<LifecycleStageId, LifecycleStag
     stageId: "INGESTION_RECORD",
     order: 6,
     name: "Ingestion Batch Tracking",
-    description: "Registration of asynchronous processing job with correlation ID and parser version",
+    description:
+      "Registration of asynchronous processing job with correlation ID and parser version",
     executionBoundary: "DATABASE",
     persistentTables: ["public.ingestion_jobs"],
     primaryKeys: ["ingestion_jobs.id"],
@@ -154,7 +158,8 @@ export const PRODUCTION_LIFECYCLE_STAGES: Record<LifecycleStageId, LifecycleStag
     stageId: "PARSING",
     order: 7,
     name: "Deterministic Layout Parsing & OCR",
-    description: "Coordinate-based PDF text extraction, OCR fallback, and structured tabular streaming",
+    description:
+      "Coordinate-based PDF text extraction, OCR fallback, and structured tabular streaming",
     executionBoundary: "SERVER",
     persistentTables: ["public.parser_results", "public.raw_documents"],
     primaryKeys: ["parser_results.id", "raw_documents.id"],
@@ -165,7 +170,8 @@ export const PRODUCTION_LIFECYCLE_STAGES: Record<LifecycleStageId, LifecycleStag
     stageId: "NORMALISATION",
     order: 8,
     name: "Canonical Data Model Normalisation",
-    description: "Mapping unstructured text tokens into canonical invoice fields and uniform 15/30-min timeseries",
+    description:
+      "Mapping unstructured text tokens into canonical invoice fields and uniform 15/30-min timeseries",
     executionBoundary: "SERVER",
     persistentTables: ["public.invoice_determinants", "public.meter_channels"],
     primaryKeys: ["invoice_determinants.id", "meter_channels.id"],
@@ -176,7 +182,8 @@ export const PRODUCTION_LIFECYCLE_STAGES: Record<LifecycleStageId, LifecycleStag
     stageId: "VALIDATION",
     order: 9,
     name: "Domain Schema & Quality Validation",
-    description: "Energy conservation checksums, monotonic timestamps, power factor boundaries, and gap detection",
+    description:
+      "Energy conservation checksums, monotonic timestamps, power factor boundaries, and gap detection",
     executionBoundary: "SERVER",
     persistentTables: ["public.telemetry_gap_events", "public.telemetry_quality"],
     primaryKeys: ["telemetry_gap_events.id", "telemetry_quality.id"],
@@ -187,9 +194,14 @@ export const PRODUCTION_LIFECYCLE_STAGES: Record<LifecycleStageId, LifecycleStag
     stageId: "DATABASE",
     order: 10,
     name: "Canonical Database Persistence",
-    description: "Atomic upsert into canonical relational invoice tables and partitioned telemetry intervals",
+    description:
+      "Atomic upsert into canonical relational invoice tables and partitioned telemetry intervals",
     executionBoundary: "DATABASE",
-    persistentTables: ["public.invoice_records", "public.invoice_line_items", "public.telemetry_intervals"],
+    persistentTables: [
+      "public.invoice_records",
+      "public.invoice_line_items",
+      "public.telemetry_intervals",
+    ],
     primaryKeys: ["invoice_records.id", "invoice_line_items.id", "telemetry_intervals.id"],
     mandatoryAudit: true,
     immutableLineageKey: "invoice_record_id",
@@ -198,7 +210,8 @@ export const PRODUCTION_LIFECYCLE_STAGES: Record<LifecycleStageId, LifecycleStag
     stageId: "CALCULATIONS",
     order: 11,
     name: "Server-Side Mathematical Calculations",
-    description: "Trusted server-side calculation of statutory NERSA Megaflex/Miniflex charges using Decimal.js-light",
+    description:
+      "Trusted server-side calculation of statutory NERSA Megaflex/Miniflex charges using Decimal.js-light",
     executionBoundary: "SERVER",
     persistentTables: ["public.calculation_snapshots"],
     primaryKeys: ["calculation_snapshots.id"],
@@ -209,9 +222,13 @@ export const PRODUCTION_LIFECYCLE_STAGES: Record<LifecycleStageId, LifecycleStag
     stageId: "RECONCILIATION",
     order: 12,
     name: "Authoritative 14-Determinant Reconciliation",
-    description: "Automated line-by-line comparison between billed invoice determinants and measured telemetry",
+    description:
+      "Automated line-by-line comparison between billed invoice determinants and measured telemetry",
     executionBoundary: "SERVER",
-    persistentTables: ["public.reconciliation_runs", "public.reconciliation_determinant_comparisons"],
+    persistentTables: [
+      "public.reconciliation_runs",
+      "public.reconciliation_determinant_comparisons",
+    ],
     primaryKeys: ["reconciliation_runs.id", "reconciliation_determinant_comparisons.id"],
     mandatoryAudit: true,
     immutableLineageKey: "run_id",
@@ -220,7 +237,8 @@ export const PRODUCTION_LIFECYCLE_STAGES: Record<LifecycleStageId, LifecycleStag
     stageId: "ANOMALY_ANALYSIS",
     order: 13,
     name: "Discrepancy & Root Cause Analysis",
-    description: "Algorithmic root-cause taxonomy matching, severity classification, and financial impact sizing",
+    description:
+      "Algorithmic root-cause taxonomy matching, severity classification, and financial impact sizing",
     executionBoundary: "SERVER",
     persistentTables: ["public.discrepancy_events", "public.discrepancy_records"],
     primaryKeys: ["discrepancy_events.id", "discrepancy_records.id"],
@@ -231,7 +249,8 @@ export const PRODUCTION_LIFECYCLE_STAGES: Record<LifecycleStageId, LifecycleStag
     stageId: "RESULTS_STORAGE",
     order: 14,
     name: "Immutable Results & Audit Ledger Persistence",
-    description: "Cryptographic ledger entry recording, tamper-evident hash chaining, and result snapshotting",
+    description:
+      "Cryptographic ledger entry recording, tamper-evident hash chaining, and result snapshotting",
     executionBoundary: "DATABASE",
     persistentTables: ["public.reconciliation_ledger", "public.audit_events"],
     primaryKeys: ["reconciliation_ledger.id", "audit_events.id"],
@@ -242,7 +261,8 @@ export const PRODUCTION_LIFECYCLE_STAGES: Record<LifecycleStageId, LifecycleStag
     stageId: "DASHBOARD",
     order: 15,
     name: "Command Centre Real-Time Display",
-    description: "Direct query aggregation over verified database records with zero synthetic fallback data",
+    description:
+      "Direct query aggregation over verified database records with zero synthetic fallback data",
     executionBoundary: "CLIENT",
     persistentTables: ["public.invoice_records", "public.reconciliation_runs"],
     primaryKeys: ["invoice_records.id", "reconciliation_runs.id"],
@@ -253,7 +273,8 @@ export const PRODUCTION_LIFECYCLE_STAGES: Record<LifecycleStageId, LifecycleStag
     stageId: "REPORTS",
     order: 16,
     name: "Evidentiary Dispute Packs & Reporting",
-    description: "Generation of formal NERSA/Eskom dispute memos, claim documentation, and signed export artifacts",
+    description:
+      "Generation of formal NERSA/Eskom dispute memos, claim documentation, and signed export artifacts",
     executionBoundary: "SERVER",
     persistentTables: ["public.dispute_packs", "public.generated_reports", "public.report_exports"],
     primaryKeys: ["dispute_packs.id", "generated_reports.id", "report_exports.id"],
@@ -301,6 +322,13 @@ export class ProductionDataLifecycleEngine {
   }
 
   /**
+   * Return the authoritative schema registry governing all 25 domain concepts
+   */
+  public static getSchemaRegistry(): typeof AuthoritativeSchemaRegistry {
+    return AuthoritativeSchemaRegistry;
+  }
+
+  /**
    * Stage 11: Execute Server-Side Calculations
    * Strictly uses Decimal.js-light to avoid JavaScript floating point errors.
    * Produces a persistent calculation snapshot.
@@ -336,15 +364,8 @@ export class ProductionDataLifecycleEngine {
       totalZar: Decimal;
     };
   }> {
-    const {
-      runId,
-      tariffVersion,
-      peakKwh,
-      standardKwh,
-      offPeakKwh,
-      maxDemandKva,
-      reactiveKvarh,
-    } = params;
+    const { runId, tariffVersion, peakKwh, standardKwh, offPeakKwh, maxDemandKva, reactiveKvarh } =
+      params;
 
     const totalKwh = peakKwh.plus(standardKwh).plus(offPeakKwh);
 
@@ -355,12 +376,12 @@ export class ProductionDataLifecycleEngine {
           codes.some(
             (code) =>
               c.component_code.toUpperCase().includes(code) ||
-              c.component_type.toUpperCase().includes(code)
-          )
+              c.component_type.toUpperCase().includes(code),
+          ),
         );
-        if (comp && comp.rate) {
+        if (comp && comp.rate_value) {
           // Convert c/kWh to R/kWh if needed
-          return comp.unit_of_measure === "c/kWh" ? comp.rate.div(100) : comp.rate;
+          return comp.unit_of_measure === "c/kWh" ? comp.rate_value.div(100) : comp.rate_value;
         }
       }
       const ratesObj = (tariffVersion as any).rates;
@@ -390,7 +411,9 @@ export class ProductionDataLifecycleEngine {
     const peakEnergyChargeZar = peakKwh.mul(peakRate);
     const standardEnergyChargeZar = standardKwh.mul(standardRate);
     const offPeakEnergyChargeZar = offPeakKwh.mul(offPeakRate);
-    const totalActiveEnergyZar = peakEnergyChargeZar.plus(standardEnergyChargeZar).plus(offPeakEnergyChargeZar);
+    const totalActiveEnergyZar = peakEnergyChargeZar
+      .plus(standardEnergyChargeZar)
+      .plus(offPeakEnergyChargeZar);
 
     const networkDemandChargeZar = maxDemandKva.mul(demandRate);
     const networkCapacityChargeZar = maxDemandKva.mul(capacityRate);
@@ -438,12 +461,14 @@ export class ProductionDataLifecycleEngine {
       total_zar: totalZar.toNumber(),
     };
 
-    const tariffCode = typeof tariffVersion === "string" 
-      ? tariffVersion 
-      : (tariffVersion?.header?.tariff_code || tariffVersion?.tariff_code || "MEGAFLEX");
-    const tariffVer = typeof tariffVersion === "string"
-      ? "2025.1"
-      : (tariffVersion?.header?.version || tariffVersion?.version || "2025.1");
+    const tariffCode =
+      typeof tariffVersion === "string"
+        ? tariffVersion
+        : tariffVersion?.header?.tariff_code || (tariffVersion as any)?.tariff_code || "MEGAFLEX";
+    const tariffVer =
+      typeof tariffVersion === "string"
+        ? "2025.1"
+        : tariffVersion?.header?.version || (tariffVersion as any)?.version || "2025.1";
 
     const inputParams = {
       tariff_code: tariffCode,
@@ -474,7 +499,10 @@ export class ProductionDataLifecycleEngine {
         calculated_outputs: snapshot.calculated_outputs as any,
       });
     } catch (err) {
-      console.warn("[ProductionDataLifecycle] calculation_snapshots write fallback to memory:", err);
+      console.warn(
+        "[ProductionDataLifecycle] calculation_snapshots write fallback to memory:",
+        err,
+      );
     }
 
     return {
@@ -503,7 +531,7 @@ export class ProductionDataLifecycleEngine {
    */
   public static async executeAuthoritativePipeline(
     input: AuthoritativeReconciliationInput,
-    correlationId: string = `CORR-${Date.now()}`
+    correlationId: string = `CORR-${Date.now()}`,
   ): Promise<PipelineExecutionResult> {
     const runId = `RUN-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
@@ -542,7 +570,8 @@ export class ProductionDataLifecycleEngine {
       calc_off_peak_kwh: input.calc_off_peak_kwh || input.billed_off_peak_kwh,
       calc_total_kwh: input.calc_total_kwh || input.billed_total_kwh,
       calc_maximum_demand_kva: input.calc_maximum_demand_kva || input.billed_maximum_demand_kva,
-      calc_reactive_energy_kvarh: input.calc_reactive_energy_kvarh || input.billed_reactive_energy_kvarh,
+      calc_reactive_energy_kvarh:
+        input.calc_reactive_energy_kvarh || input.billed_reactive_energy_kvarh,
     });
 
     reconPayload.run_id = runId;
@@ -551,36 +580,69 @@ export class ProductionDataLifecycleEngine {
     const discrepancies: DiscrepancyRecord[] = [];
     for (const item of reconPayload.determinant_comparisons) {
       if (item.classification === "DISCREPANCY" || item.classification === "CRITICAL") {
+        const discCode: DiscrepancyCode = item.determinant_code.startsWith("DEM")
+          ? "DEM-001"
+          : item.determinant_code.startsWith("TAR")
+            ? "TAR-001"
+            : "INV-001";
+
         const discRecord: DiscrepancyRecord = {
           id: `DISC-${Date.now()}-${item.determinant_code}`,
-          code: item.determinant_code,
+          code: discCode,
           category: item.determinant_code.startsWith("DEM")
             ? "DEMAND_RATCHET"
             : item.determinant_code.startsWith("TAR")
-            ? "TARIFF_ESCALATION"
-            : "DAY_WEIGHTING",
+              ? "TARIFF_ESCALATION"
+              : "DAY_WEIGHTING",
           severity: item.classification === "CRITICAL" ? "CRITICAL" : "HIGH",
           status: "OPEN" as DiscrepancyStatus,
           description: `Authoritative variance identified on determinant '${item.determinant_name}'. Billed: ${item.billed_value} ${item.unit_of_measure}, Calculated: ${item.calculated_value} ${item.unit_of_measure}.`,
           evidence: `Determinant formula evaluation failed tolerance check: absolute variance ${item.variance_value} (${item.variance_percentage}%).`,
           source_records: {
-            run_id: runId,
             invoice_id: input.invoice_id,
-            determinant_code: item.determinant_code,
+            meter_id: input.account_number,
           },
-          calculation: item.calculation_explanation as any,
-          financial_impact_zar: item.variance_value,
+          calculation: (item as any).calculation_explanation || {
+            input_value: String(item.billed_value),
+            formula: "Stated vs Reconciled",
+            rate_applied: "NERSA Gazetted",
+            precision: "2",
+            output_value: String(item.calculated_value),
+          },
+          financial_impact_zar: new Decimal(item.variance_value),
           recommended_action: `Raise formal dispute with utility key account manager for credit note on ${item.determinant_name}.`,
           confidence: 1.0,
           root_cause_chain: [
-            "Source telemetry validated against fiscal meter",
-            "NERSA gazetted rate applied with zero markup",
-            "Variance exceeds statutory tolerance threshold",
+            {
+              step: 1,
+              node_type: "ROOT_CAUSE",
+              description: "Source telemetry validated against fiscal meter",
+              detail: `Invoice ${input.invoice_number} vs meter ${input.account_number}`,
+            },
+            {
+              step: 2,
+              node_type: "TOU_RATE",
+              description: "NERSA gazetted rate applied with zero markup",
+              detail: item.determinant_name,
+            },
+            {
+              step: 3,
+              node_type: "INVOICE_VARIANCE",
+              description: "Variance exceeds statutory tolerance threshold",
+              detail: `Variance: ${item.variance_value} (${item.variance_percentage}%)`,
+            },
           ],
           drill_down_path: {
-            step1_invoice: input.invoice_number,
-            step2_meter: input.account_number,
-            step3_determinant: item.determinant_code,
+            discrepancy_code: discCode,
+            invoice_id: input.invoice_id,
+            determinant_code: item.determinant_code,
+            calculation_summary: `Billed ${item.billed_value} vs Reconciled ${item.calculated_value}`,
+            telemetry_summary: `Deterministic evaluation variance ${item.variance_value}`,
+            tariff_rule_id:
+              (input.tariff_version as any)?.header?.tariff_code ||
+              (input.tariff_version as any)?.tariff_code ||
+              "SCHEDULE",
+            source_file_name: input.invoice_number,
           },
           reconciliation_run_id: runId,
           created_at: new Date().toISOString(),

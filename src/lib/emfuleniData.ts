@@ -5,11 +5,7 @@
  */
 
 export type MunicipalCategory =
-  | "Assessment Rates"
-  | "Refuse"
-  | "Electricity"
-  | "Water Services"
-  | "Sewerage";
+  "Assessment Rates" | "Refuse" | "Electricity" | "Water Services" | "Sewerage";
 
 export type MunicipalRule =
   | { kind: "rates"; improvedValue: number }

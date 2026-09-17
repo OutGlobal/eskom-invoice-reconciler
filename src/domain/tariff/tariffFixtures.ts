@@ -103,7 +103,11 @@ const PUBLIC_HOLIDAYS_SA = [
   { date: "2026-05-01", name: "Workers' Day", tou_treatment: "off_peak" as const },
   { date: "2026-06-16", name: "Youth Day", tou_treatment: "off_peak" as const },
   { date: "2026-08-09", name: "National Women's Day", tou_treatment: "off_peak" as const },
-  { date: "2026-08-10", name: "National Women's Day (Observed)", tou_treatment: "off_peak" as const },
+  {
+    date: "2026-08-10",
+    name: "National Women's Day (Observed)",
+    tou_treatment: "off_peak" as const,
+  },
   { date: "2026-09-24", name: "Heritage Day", tou_treatment: "off_peak" as const },
   { date: "2026-12-16", name: "Day of Reconciliation", tou_treatment: "off_peak" as const },
   { date: "2026-12-25", name: "Christmas Day", tou_treatment: "off_peak" as const },

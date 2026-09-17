@@ -1,15 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
-import {
-  Zap,
-  ShieldCheck,
-  ArrowRight,
-  Menu,
-  X,
-  LogIn,
-  Layers,
-  Sparkles,
-} from "lucide-react";
+import { Zap, ShieldCheck, ArrowRight, Menu, X, LogIn, Layers, Sparkles } from "lucide-react";
 
 interface LandingNavProps {
   onOpenDemo?: () => void;

@@ -54,7 +54,8 @@ export function EneraCapabilitiesSection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-14">
-          ENERA brings together the information behind your energy costs and consumption, helping teams move from fragmented data to clear financial and operational insight.
+          ENERA brings together the information behind your energy costs and consumption, helping
+          teams move from fragmented data to clear financial and operational insight.
         </p>
 
         {/* 4. Visual or capability: 4 Clean, Compact Capability Cards */}
@@ -106,7 +107,8 @@ export function EneraCapabilitiesSection() {
                     ENTERPRISE OPERATIONS
                   </span>
                   <p className="text-sm sm:text-base font-medium text-white max-w-xl">
-                    Multi-site facility benchmarking and deterministic reconciliation deployed across corporate, industrial, and municipal operations.
+                    Multi-site facility benchmarking and deterministic reconciliation deployed
+                    across corporate, industrial, and municipal operations.
                   </p>
                 </div>
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/80 border border-white/20 text-xs font-mono text-cyan-300 shrink-0">
@@ -120,7 +122,10 @@ export function EneraCapabilitiesSection() {
 
         {/* 5. Optional supporting information & 6. Optional CTA */}
         <div className="mt-12 pt-8 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
-          <span>Deterministic analysis grounded in revenue-grade interval telemetry and official NERSA schedules.</span>
+          <span>
+            Deterministic analysis grounded in revenue-grade interval telemetry and official NERSA
+            schedules.
+          </span>
           <a
             href="#how-it-works"
             className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 transition-colors font-semibold focus-ring-enera shrink-0"

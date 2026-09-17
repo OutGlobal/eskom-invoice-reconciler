@@ -227,8 +227,10 @@ export class TelemetryQualityEngine {
 
   private static normalizeChannel(rawChannel: string): TelemetryChannel {
     const lower = (rawChannel || "").toLowerCase();
-    if (lower.includes("kwh") || lower.includes("active energy") || lower.includes("ch1")) return "kWh";
-    if (lower.includes("kvarh") || lower.includes("reactive energy") || lower.includes("ch2")) return "kVARh";
+    if (lower.includes("kwh") || lower.includes("active energy") || lower.includes("ch1"))
+      return "kWh";
+    if (lower.includes("kvarh") || lower.includes("reactive energy") || lower.includes("ch2"))
+      return "kVARh";
     if (lower.includes("kva") || lower.includes("apparent") || lower.includes("ch3")) return "kVA";
     if (lower.includes("kvar") || lower.includes("reactive power")) return "kVAR";
     if (lower.includes("kw") || lower.includes("active power")) return "kW";

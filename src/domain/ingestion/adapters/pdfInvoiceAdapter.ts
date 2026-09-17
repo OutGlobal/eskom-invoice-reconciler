@@ -32,7 +32,8 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
         id: `ERR-${Date.now()}-pdf`,
         jobId,
         errorCode: "PDF_EXTRACTION_UNRESOLVED",
-        errorMessage: "Could not extract standard Eskom invoice determinants from the uploaded document.",
+        errorMessage:
+          "Could not extract standard Eskom invoice determinants from the uploaded document.",
         severity: "critical",
         timestamp: new Date().toISOString(),
       });

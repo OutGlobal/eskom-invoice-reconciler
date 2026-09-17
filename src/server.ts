@@ -56,7 +56,8 @@ export default {
           service: "eskom-bill-balancer",
           version: "2.5.0",
           timestamp: new Date().toISOString(),
-          uptime_seconds: typeof process !== "undefined" && process.uptime ? Math.floor(process.uptime()) : 0,
+          uptime_seconds:
+            typeof process !== "undefined" && process.uptime ? Math.floor(process.uptime()) : 0,
           deterministic_engine: "Decimal.js-light",
           security_status: "RLS_ENFORCED_TENANT_ISOLATION",
         }),
@@ -74,7 +75,8 @@ export default {
 
     // Stage 1 Production Data Lifecycle Specification & Status Endpoint
     if (url.pathname === "/api/pipeline/lifecycle") {
-      const { ProductionDataLifecycleEngine } = await import("./domain/pipeline/productionDataLifecycle");
+      const { ProductionDataLifecycleEngine } =
+        await import("./domain/pipeline/productionDataLifecycle");
       const stages = ProductionDataLifecycleEngine.getStages();
       return new Response(
         JSON.stringify({
@@ -103,21 +105,30 @@ export default {
     if (url.pathname === "/api/pipeline/reconcile" && request.method === "POST") {
       try {
         const body = await request.json();
-        const { ProductionDataLifecycleEngine } = await import("./domain/pipeline/productionDataLifecycle");
-        const { createSecurityContext, validateTenantAccess } = await import("./domain/security/tenantContextService");
+        const { ProductionDataLifecycleEngine } =
+          await import("./domain/pipeline/productionDataLifecycle");
+        const { createSecurityContext, validateTenantAccess } =
+          await import("./domain/security/tenantContextService");
         const Decimal = (await import("decimal.js-light")).default;
 
         // Extract tenant security context from headers
-        const headerTenantId = request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
+        const headerTenantId =
+          request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
         const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
         const headerUserId = request.headers.get("X-User-ID") || "user-session";
         const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
 
-        const requestedTenantId = body.tenant_id || body.organisation_id || headerTenantId || "DEFAULT_TENANT";
+        const requestedTenantId =
+          body.tenant_id || body.organisation_id || headerTenantId || "DEFAULT_TENANT";
 
         // If caller provided a specific tenant header, validate access against target tenant
         if (headerTenantId) {
-          const securityContext = createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole);
+          const securityContext = createSecurityContext(
+            headerUserId,
+            headerEmail,
+            headerTenantId,
+            headerRole,
+          );
           const access = validateTenantAccess(securityContext, requestedTenantId);
           if (!access.allowed) {
             return new Response(
@@ -160,11 +171,19 @@ export default {
           billed_vat_zar: new Decimal(body.billed_vat_zar || 0),
           billed_total_invoice_zar: new Decimal(body.billed_total_invoice_zar || 0),
           calc_peak_kwh: body.calc_peak_kwh ? new Decimal(body.calc_peak_kwh) : undefined,
-          calc_standard_kwh: body.calc_standard_kwh ? new Decimal(body.calc_standard_kwh) : undefined,
-          calc_off_peak_kwh: body.calc_off_peak_kwh ? new Decimal(body.calc_off_peak_kwh) : undefined,
+          calc_standard_kwh: body.calc_standard_kwh
+            ? new Decimal(body.calc_standard_kwh)
+            : undefined,
+          calc_off_peak_kwh: body.calc_off_peak_kwh
+            ? new Decimal(body.calc_off_peak_kwh)
+            : undefined,
           calc_total_kwh: body.calc_total_kwh ? new Decimal(body.calc_total_kwh) : undefined,
-          calc_maximum_demand_kva: body.calc_maximum_demand_kva ? new Decimal(body.calc_maximum_demand_kva) : undefined,
-          calc_reactive_energy_kvarh: body.calc_reactive_energy_kvarh ? new Decimal(body.calc_reactive_energy_kvarh) : undefined,
+          calc_maximum_demand_kva: body.calc_maximum_demand_kva
+            ? new Decimal(body.calc_maximum_demand_kva)
+            : undefined,
+          calc_reactive_energy_kvarh: body.calc_reactive_energy_kvarh
+            ? new Decimal(body.calc_reactive_energy_kvarh)
+            : undefined,
         };
 
         const result = await ProductionDataLifecycleEngine.executeAuthoritativePipeline(
@@ -185,6 +204,249 @@ export default {
           JSON.stringify({ error: "Reconciliation execution failed", details: err?.message }),
           { status: 500, headers: { "content-type": "application/json" } },
         );
+      }
+    }
+
+    // Ingestion & Uploads Management API with Tenant Isolation
+    if (url.pathname === "/api/uploads" && request.method === "GET") {
+      try {
+        const { UploadStorageService } = await import("./domain/upload/uploadStorageService");
+        const { createSecurityContext } = await import("./domain/security/tenantContextService");
+
+        const headerTenantId =
+          request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
+        const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
+        const headerUserId = request.headers.get("X-User-ID") || "user-session";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+
+        const context = headerTenantId
+          ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
+          : undefined;
+
+        const status = url.searchParams.get("status") as any;
+        const fileType = url.searchParams.get("fileType") as any;
+        const search = url.searchParams.get("search") || undefined;
+        const limit = Number(url.searchParams.get("limit") || 50);
+
+        const uploads = await UploadStorageService.listUploads(
+          {
+            organisationId: headerTenantId || undefined,
+            processingStatus: status,
+            fileType,
+            search,
+            limit,
+          },
+          context,
+        );
+
+        return new Response(JSON.stringify({ uploads, count: uploads.length }), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+            "X-Content-Type-Options": "nosniff",
+          },
+        });
+      } catch (err: any) {
+        return new Response(
+          JSON.stringify({ error: "Failed to list uploads", details: err?.message }),
+          { status: 500, headers: { "content-type": "application/json" } },
+        );
+      }
+    }
+
+    if (
+      url.pathname.startsWith("/api/uploads/") &&
+      !url.pathname.endsWith("/ingest") &&
+      request.method === "GET"
+    ) {
+      try {
+        const uploadId = url.pathname.replace("/api/uploads/", "");
+        const { UploadStorageService } = await import("./domain/upload/uploadStorageService");
+        const { createSecurityContext } = await import("./domain/security/tenantContextService");
+
+        const headerTenantId =
+          request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
+        const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
+        const headerUserId = request.headers.get("X-User-ID") || "user-session";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+
+        const context = headerTenantId
+          ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
+          : undefined;
+
+        const record = await UploadStorageService.getUploadById(uploadId, context);
+        if (!record) {
+          return new Response(JSON.stringify({ error: "Upload not found" }), {
+            status: 404,
+            headers: { "content-type": "application/json" },
+          });
+        }
+
+        return new Response(JSON.stringify({ upload: record }), {
+          status: 200,
+          headers: { "content-type": "application/json", "X-Content-Type-Options": "nosniff" },
+        });
+      } catch (err: any) {
+        return new Response(
+          JSON.stringify({ error: "Failed to retrieve upload", details: err?.message }),
+          { status: 500, headers: { "content-type": "application/json" } },
+        );
+      }
+    }
+
+    // Controlled Signed URL generation for authorized tenant downloads (Stage 6)
+    if (
+      url.pathname.startsWith("/api/uploads/") &&
+      url.pathname.endsWith("/signed-url") &&
+      request.method === "POST"
+    ) {
+      try {
+        const uploadId = url.pathname.replace("/api/uploads/", "").replace("/signed-url", "");
+        const { FileStorageSecurityService } =
+          await import("./domain/security/fileStorageSecurityService");
+        const { createSecurityContext } = await import("./domain/security/tenantContextService");
+
+        const headerTenantId =
+          request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
+        const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
+        const headerUserId = request.headers.get("X-User-ID") || "user-session";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+
+        const context = createSecurityContext(
+          headerUserId,
+          headerEmail,
+          headerTenantId || "UNKNOWN_TENANT",
+          headerRole,
+        );
+
+        const result = await FileStorageSecurityService.createSignedDownloadUrl(uploadId, context);
+        if (!result.success) {
+          return new Response(JSON.stringify({ error: result.error }), {
+            status: result.error?.includes("Tenant") ? 403 : 404,
+            headers: { "content-type": "application/json" },
+          });
+        }
+
+        return new Response(JSON.stringify(result), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store, private",
+          },
+        });
+      } catch (err: any) {
+        return new Response(
+          JSON.stringify({
+            error: "UNAUTHORIZED_STORAGE_ACCESS",
+            message: err?.message || "Failed to generate signed download URL",
+          }),
+          { status: 403, headers: { "content-type": "application/json" } },
+        );
+      }
+    }
+
+    // Secure Download Endpoint mediated by Cryptographic Signed Token (Stage 6)
+    if (url.pathname.startsWith("/api/uploads/download/") && request.method === "GET") {
+      try {
+        const token = url.pathname.replace("/api/uploads/download/", "");
+        const { FileStorageSecurityService } =
+          await import("./domain/security/fileStorageSecurityService");
+
+        const verification = await FileStorageSecurityService.verifyDownloadToken(token);
+        if (!verification.valid || !verification.payload) {
+          return new Response(
+            JSON.stringify({
+              error: "INVALID_OR_EXPIRED_TOKEN",
+              message: verification.error || "The download link is invalid or has expired.",
+            }),
+            {
+              status: 403,
+              headers: { "content-type": "application/json", "X-Content-Type-Options": "nosniff" },
+            },
+          );
+        }
+
+        // Return secure response with sanitized filename attachment header
+        const safeName = verification.payload.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const bodyContent = `ENERA Protected Storage Stream for ${safeName}\nTimestamp: ${new Date().toISOString()}`;
+
+        return new Response(bodyContent, {
+          status: 200,
+          headers: {
+            "content-type": "application/octet-stream",
+            "content-disposition": `attachment; filename="${safeName}"`,
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
+        });
+      } catch (err: any) {
+        return new Response(
+          JSON.stringify({ error: "Download stream failed", details: err?.message }),
+          { status: 500, headers: { "content-type": "application/json" } },
+        );
+      }
+    }
+
+    if (url.pathname === "/api/uploads/ingest" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const { SecureIngestionGateway } =
+          await import("./domain/ingestion/secureIngestionGateway");
+        const { createSecurityContext, validateTenantAccess } =
+          await import("./domain/security/tenantContextService");
+
+        const headerTenantId =
+          request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
+        const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
+        const headerUserId = request.headers.get("X-User-ID") || "user-session";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+
+        const targetOrgId =
+          body.organisation_id || headerTenantId || "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c";
+
+        let context;
+        if (headerTenantId) {
+          context = createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole);
+          const access = validateTenantAccess(context, targetOrgId);
+          if (!access.allowed) {
+            return new Response(
+              JSON.stringify({
+                error: "UNAUTHORIZED_TENANT_ACCESS",
+                message: access.reason || "Cross-tenant upload denied",
+                status: 403,
+              }),
+              { status: 403, headers: { "content-type": "application/json" } },
+            );
+          }
+        }
+
+        const filename = body.filename || "uploaded_file.dat";
+        const contentStr = body.content || "";
+        const bytes = new TextEncoder().encode(contentStr);
+
+        const result = await SecureIngestionGateway.processUpload(
+          bytes,
+          filename,
+          targetOrgId,
+          headerUserId,
+          undefined,
+          context,
+        );
+
+        return new Response(JSON.stringify(result), {
+          status: result.success ? 200 : 422,
+          headers: {
+            "content-type": "application/json",
+            "X-Content-Type-Options": "nosniff",
+          },
+        });
+      } catch (err: any) {
+        return new Response(JSON.stringify({ error: "Ingestion failed", details: err?.message }), {
+          status: 500,
+          headers: { "content-type": "application/json" },
+        });
       }
     }
 

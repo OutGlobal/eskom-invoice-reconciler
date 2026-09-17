@@ -53,7 +53,8 @@ export function ExecutiveRoiSection() {
             </span>
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-            Measurable balance-sheet ROI achieved through automated billing dispute recovery and precision demand optimization.
+            Measurable balance-sheet ROI achieved through automated billing dispute recovery and
+            precision demand optimization.
           </p>
         </div>
 

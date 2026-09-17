@@ -4,31 +4,15 @@
  */
 
 export type MeterType =
-  | "AMR_MAIN"
-  | "CHECK_METER"
-  | "SUBMETER"
-  | "SOLAR_GENERATION"
-  | "CUMULATIVE_DIAL";
+  "AMR_MAIN" | "CHECK_METER" | "SUBMETER" | "SOLAR_GENERATION" | "CUMULATIVE_DIAL";
 
-export type MeterStatus =
-  | "ACTIVE"
-  | "INACTIVE"
-  | "DECOMMISSIONED"
-  | "SUSPENDED";
+export type MeterStatus = "ACTIVE" | "INACTIVE" | "DECOMMISSIONED" | "SUSPENDED";
 
 export type CommunicationSource =
-  | "AMR_API"
-  | "MODBUS"
-  | "DLMS_COSEM"
-  | "CSV_UPLOAD"
-  | "MANUAL_ENTRY";
+  "AMR_API" | "MODBUS" | "DLMS_COSEM" | "CSV_UPLOAD" | "MANUAL_ENTRY";
 
 export type MeasurementType =
-  | "ACTIVE_KWH"
-  | "REACTIVE_KVARH"
-  | "APPARENT_KVA"
-  | "ACTIVE_KW"
-  | "POWER_FACTOR";
+  "ACTIVE_KWH" | "REACTIVE_KVARH" | "APPARENT_KVA" | "ACTIVE_KW" | "POWER_FACTOR";
 
 export interface PointOfDeliveryRecord {
   id: string;
@@ -117,6 +101,8 @@ export interface MasterHierarchyTree {
       pod_id: string;
       pod_code: string;
       pod_name: string;
+      voltage_level_kv?: number;
+      notified_maximum_demand_kva?: number;
       meters: Array<{
         meter: MeterRecord;
         active_config: MeterConfigurationRecord;

@@ -61,10 +61,7 @@ export interface MissingGapRecord {
   created_at?: string;
 }
 
-export type EstimationMethod =
-  | "LINEAR_INTERPOLATION"
-  | "SAME_DAY_PRIOR_WEEK"
-  | "HISTORICAL_MEDIAN";
+export type EstimationMethod = "LINEAR_INTERPOLATION" | "SAME_DAY_PRIOR_WEEK" | "HISTORICAL_MEDIAN";
 
 export interface EstimationRecord {
   id: string;

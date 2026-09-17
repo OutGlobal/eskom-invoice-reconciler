@@ -54,7 +54,7 @@ export class DiscrepancyStorageService {
    */
   public static async updateStatus(
     id: string,
-    newStatus: DiscrepancyStatus
+    newStatus: DiscrepancyStatus,
   ): Promise<{ success: boolean; message: string }> {
     try {
       const { error } = await supabase

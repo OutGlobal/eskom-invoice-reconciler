@@ -18,7 +18,8 @@ const STEPS: StepItem[] = [
   {
     number: "02",
     title: "ANALYSE",
-    description: "ENERA examines the information and surfaces meaningful patterns and discrepancies.",
+    description:
+      "ENERA examines the information and surfaces meaningful patterns and discrepancies.",
     icon: Search,
   },
   {
@@ -59,7 +60,8 @@ export function EneraBillSignalSection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-14">
-          A straightforward four-step sequence from raw energy inputs to verified financial decisions.
+          A straightforward four-step sequence from raw energy inputs to verified financial
+          decisions.
         </p>
 
         {/* 4. Visual or capability: 4-Step Horizontal Flow with Energy Trace */}
@@ -125,14 +127,10 @@ export function EneraBillSignalSection() {
                 <div className="mt-6 pt-3 border-t border-slate-200/80 flex items-center justify-between text-[11px] font-mono text-slate-600">
                   <span>Phase {index + 1} of 4</span>
                   {!isLast && (
-                    <span className="text-cyan-700 hidden lg:inline font-mono">
-                      → Next
-                    </span>
+                    <span className="text-cyan-700 hidden lg:inline font-mono">→ Next</span>
                   )}
                   {isLast && (
-                    <span className="text-emerald-700 font-mono font-medium">
-                      Outcome
-                    </span>
+                    <span className="text-emerald-700 font-mono font-medium">Outcome</span>
                   )}
                 </div>
               </div>

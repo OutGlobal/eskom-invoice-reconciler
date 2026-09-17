@@ -127,7 +127,7 @@ export function TrendsPage() {
             tariffRef: d.tariff_ref,
             status: d.status,
             actionLoad: () => {},
-          }))
+          })),
         );
       }
     });
@@ -146,7 +146,7 @@ export function TrendsPage() {
   const recoveryItems: RecoveryRecord[] = useMemo(() => {
     if (dbRecoveries.length > 0) return dbRecoveries;
     if (invoice && invoice.invoiceTotal) {
-      const diff = Math.max(0, (invoice.invoiceTotal || 0) - ((invoice as any).reconciledTotal || 0));
+      const diff = Math.max(0, (invoice.invoiceTotal || 0) - (invoice.reconciledTotal || 0));
       if (diff > 1) {
         return [
           {
@@ -158,11 +158,13 @@ export function TrendsPage() {
             premiseId: customer.meter || "AMR Meter",
             chargeCategory: "Tariff Variance Discrepancy",
             invoicedAmount: invoice.invoiceTotal,
-            calculatedAmount: (invoice as any).reconciledTotal || invoice.invoiceTotal,
+            calculatedAmount: invoice.reconciledTotal || invoice.invoiceTotal,
             recoveryAmount: diff,
-            rootCause: "Deterministic tariff engine identified billed excess against gazetted NERSA rates.",
-            detailedExplanation: "Variance between extracted billing determinants and deterministic rate verification.",
-            auditFormula: `Invoiced ${ZAR(invoice.invoiceTotal)} - Reconciled ${ZAR((invoice as any).reconciledTotal || 0)} = ${ZAR(diff)}`,
+            rootCause:
+              "Deterministic tariff engine identified billed excess against gazetted NERSA rates.",
+            detailedExplanation:
+              "Variance between extracted billing determinants and deterministic rate verification.",
+            auditFormula: `Invoiced ${ZAR(invoice.invoiceTotal)} - Reconciled ${ZAR(invoice.reconciledTotal || 0)} = ${ZAR(diff)}`,
             tariffRef: "NERSA Approved Megaflex Tariff Schedule",
             status: "ready" as const,
             actionLoad: () => {},
@@ -187,7 +189,7 @@ export function TrendsPage() {
           subsidiesAndLegacy: 0,
           totalInvoice: inv.invoiced_total || 0,
           recoveryAmount: inv.variance_amount || 0,
-        }))
+        })),
       );
     } else if (batchInvoices && batchInvoices.length > 0) {
       list.push(
@@ -198,10 +200,14 @@ export function TrendsPage() {
           offPeakEnergy: inv.offPeakEnergyCharge || 0,
           networkCapacity: (inv.transmissionNetworkCharge || 0) + (inv.networkCapacityCharge || 0),
           demandCharge: inv.networkDemandCharge || 0,
-          subsidiesAndLegacy: (inv.affordability || 0) + (inv.electrification || 0) + (inv.ancillary || 0) + (inv.legacy || 0),
+          subsidiesAndLegacy:
+            (inv.affordability || 0) +
+            (inv.electrification || 0) +
+            (inv.ancillary || 0) +
+            (inv.legacy || 0),
           totalInvoice: inv.totalInclVat || inv.invoiceTotal || 0,
-          recoveryAmount: Math.max(0, (inv.invoiceTotal || 0) - ((inv as any).reconciledTotal || 0)),
-        }))
+          recoveryAmount: Math.max(0, (inv.invoiceTotal || 0) - (inv.reconciledTotal || 0)),
+        })),
       );
     } else if (invoice) {
       list.push({
@@ -209,11 +215,16 @@ export function TrendsPage() {
         peakEnergy: invoice.peakEnergyCharge || 0,
         standardEnergy: invoice.standardEnergyCharge || 0,
         offPeakEnergy: invoice.offPeakEnergyCharge || 0,
-        networkCapacity: (invoice.transmissionNetworkCharge || 0) + (invoice.networkCapacityCharge || 0),
+        networkCapacity:
+          (invoice.transmissionNetworkCharge || 0) + (invoice.networkCapacityCharge || 0),
         demandCharge: invoice.networkDemandCharge || 0,
-        subsidiesAndLegacy: (invoice.affordability || 0) + (invoice.electrification || 0) + (invoice.ancillary || 0) + (invoice.legacy || 0),
+        subsidiesAndLegacy:
+          (invoice.affordability || 0) +
+          (invoice.electrification || 0) +
+          (invoice.ancillary || 0) +
+          (invoice.legacy || 0),
         totalInvoice: invoice.totalInclVat || invoice.invoiceTotal || 0,
-        recoveryAmount: Math.max(0, (invoice.invoiceTotal || 0) - ((invoice as any).reconciledTotal || 0)),
+        recoveryAmount: Math.max(0, (invoice.invoiceTotal || 0) - (invoice.reconciledTotal || 0)),
       });
     }
     return list;
@@ -457,8 +468,8 @@ export function TrendsPage() {
               </li>
               <li>
                 <strong className="text-foreground">NERSA Rate Gazette:</strong> NERSA Schedule of
-                Standard Prices for Megaflex Time-of-Use structure (High & Low Season TOU energy rates,
-                capacity charges, subsidies, 15% VAT).
+                Standard Prices for Megaflex Time-of-Use structure (High & Low Season TOU energy
+                rates, capacity charges, subsidies, 15% VAT).
               </li>
             </ul>
           </div>
@@ -501,7 +512,8 @@ export function TrendsPage() {
           <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
           <p className="font-semibold text-foreground">No Multi-Period Trend Data Available</p>
           <p className="mt-1 max-w-md mx-auto">
-            Upload Eskom invoices or AMR CSV intervals to visualize charge component trends and overcharge recovery timelines.
+            Upload Eskom invoices or AMR CSV intervals to visualize charge component trends and
+            overcharge recovery timelines.
           </p>
         </div>
       ) : (
@@ -537,7 +549,12 @@ export function TrendsPage() {
                   <Bar dataKey="peakEnergy" name="Peak Energy" stackId="a" fill="#ef4444" />
                   <Bar dataKey="standardEnergy" name="Standard Energy" stackId="a" fill="#eab308" />
                   <Bar dataKey="offPeakEnergy" name="Off-Peak Energy" stackId="a" fill="#10b981" />
-                  <Bar dataKey="networkCapacity" name="Network Capacity" stackId="a" fill="#3b82f6" />
+                  <Bar
+                    dataKey="networkCapacity"
+                    name="Network Capacity"
+                    stackId="a"
+                    fill="#3b82f6"
+                  />
                   <Bar dataKey="demandCharge" name="Demand Charge" stackId="a" fill="#8b5cf6" />
                   <Bar
                     dataKey="subsidiesAndLegacy"
@@ -592,7 +609,11 @@ export function TrendsPage() {
                       <Cell
                         key={`cell-${index}`}
                         fill={
-                          index === 0 || index === 1 ? "#10b981" : index === 2 ? "#f59e0b" : "#06b6d4"
+                          index === 0 || index === 1
+                            ? "#10b981"
+                            : index === 2
+                              ? "#f59e0b"
+                              : "#06b6d4"
                         }
                       />
                     ))}
@@ -666,179 +687,182 @@ export function TrendsPage() {
         {filteredRecoveries.length === 0 ? (
           <div className="py-12 text-center text-xs text-muted-foreground">
             <FileCheck className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-            <div className="font-semibold text-foreground text-sm">No Overcharge Recoveries Identified</div>
+            <div className="font-semibold text-foreground text-sm">
+              No Overcharge Recoveries Identified
+            </div>
             <p className="mt-1 max-w-md mx-auto">
-              No overcharge disputes match the active filter criteria. Upload monthly invoices to audit against gazetted NERSA tariffs.
+              No overcharge disputes match the active filter criteria. Upload monthly invoices to
+              audit against gazetted NERSA tariffs.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto rounded border border-border">
             <table className="w-full text-sm">
-            <thead className="bg-secondary text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="text-left px-3 py-2.5">Billing Period</th>
-                <th className="text-left px-3 py-2.5">Supply Location</th>
-                <th className="text-left px-3 py-2.5">Overcharge Category</th>
-                <th className="text-right px-3 py-2.5">Invoiced (R)</th>
-                <th className="text-right px-3 py-2.5">Reconciled (R)</th>
-                <th className="text-right px-3 py-2.5">Recovery Claim (R)</th>
-                <th className="text-left px-3 py-2.5">Tariff Ref &amp; Root Cause</th>
-                <th className="text-center px-3 py-2.5">Status</th>
-                <th className="text-right px-3 py-2.5">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredRecoveries.map((item) => {
-                const isExpanded = !!expandedRows[item.id];
-                return (
-                  <React.Fragment key={item.id}>
-                    <tr className="hover:bg-muted/40 transition">
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => toggleRow(item.id)}
-                            className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition"
-                            title={isExpanded ? "Collapse audit details" : "Expand audit details"}
-                          >
-                            {isExpanded ? (
-                              <ChevronUp className="h-4 w-4" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4" />
-                            )}
-                          </button>
-                          <div>
-                            <div className="font-medium text-xs flex items-center gap-1">
-                              {item.period}
-                            </div>
-                            <div className="text-[11px] text-muted-foreground">{item.dates}</div>
-                            <div className="text-[10px] font-mono text-muted-foreground">
-                              Inv: {item.invoiceNo}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="text-xs font-medium">{item.location}</div>
-                        <div className="text-[10px] text-muted-foreground font-mono">
-                          Premise: {item.premiseId}
-                        </div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="font-semibold text-xs text-foreground">
-                          {item.chargeCategory}
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 text-right font-mono text-xs">
-                        {ZAR(item.invoicedAmount)}
-                      </td>
-                      <td className="px-3 py-3 text-right font-mono text-xs text-muted-foreground">
-                        {ZAR(item.calculatedAmount)}
-                      </td>
-                      <td className="px-3 py-3 text-right font-mono text-xs font-semibold text-emerald-400">
-                        {ZAR(item.recoveryAmount)}
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="text-xs font-medium text-foreground leading-snug">
-                          {item.rootCause}
-                        </div>
-                        <div className="text-[11px] text-primary/80 font-mono flex items-center gap-1 mt-0.5">
-                          <BookOpen className="h-3 w-3 shrink-0" /> {item.tariffRef}
-                        </div>
-                        <button
-                          onClick={() => toggleRow(item.id)}
-                          className="text-[11px] text-primary hover:underline font-medium mt-1 inline-flex items-center gap-1"
-                        >
-                          {isExpanded ? "Hide Details ▲" : "Expand Rationale & Audit Formula ▼"}
-                        </button>
-                      </td>
-                      <td className="px-3 py-3 text-center">
-                        {item.status === "approved" && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400 border border-emerald-500/30">
-                            <CheckCircle2 className="h-3 w-3" /> Approved &amp; Credited
-                          </span>
-                        )}
-                        {item.status === "pending" && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400 border border-amber-500/30">
-                            <AlertTriangle className="h-3 w-3" /> Dispute Under Review
-                          </span>
-                        )}
-                        {item.status === "ready" && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-xs font-medium text-cyan-400 border border-cyan-500/30">
-                            <ShieldCheck className="h-3 w-3" /> Ready for Filing
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        <button
-                          onClick={() => {
-                            item.actionLoad();
-                            toast.success(`Loaded ${item.period} Invoice into active session!`);
-                          }}
-                          className="text-xs bg-secondary hover:bg-secondary/80 text-foreground border border-border rounded px-2.5 py-1 font-medium transition"
-                        >
-                          Load Session
-                        </button>
-                      </td>
-                    </tr>
-                    {isExpanded && (
-                      <tr className="bg-primary/5 border-b border-border">
-                        <td colSpan={9} className="px-4 py-3.5">
-                          <div className="rounded-md border border-primary/20 bg-background/80 p-3.5 space-y-2 text-xs shadow-inner">
-                            <div className="flex items-center justify-between border-b border-border pb-2">
-                              <div className="font-semibold text-sm flex items-center gap-2 text-primary">
-                                <FileCheck className="h-4 w-4" />
-                                {item.period} ({item.dates}) — Full Audit &amp; Tariff
-                                Non-Compliance Analysis
+              <thead className="bg-secondary text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2.5">Billing Period</th>
+                  <th className="text-left px-3 py-2.5">Supply Location</th>
+                  <th className="text-left px-3 py-2.5">Overcharge Category</th>
+                  <th className="text-right px-3 py-2.5">Invoiced (R)</th>
+                  <th className="text-right px-3 py-2.5">Reconciled (R)</th>
+                  <th className="text-right px-3 py-2.5">Recovery Claim (R)</th>
+                  <th className="text-left px-3 py-2.5">Tariff Ref &amp; Root Cause</th>
+                  <th className="text-center px-3 py-2.5">Status</th>
+                  <th className="text-right px-3 py-2.5">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredRecoveries.map((item) => {
+                  const isExpanded = !!expandedRows[item.id];
+                  return (
+                    <React.Fragment key={item.id}>
+                      <tr className="hover:bg-muted/40 transition">
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => toggleRow(item.id)}
+                              className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition"
+                              title={isExpanded ? "Collapse audit details" : "Expand audit details"}
+                            >
+                              {isExpanded ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </button>
+                            <div>
+                              <div className="font-medium text-xs flex items-center gap-1">
+                                {item.period}
                               </div>
-                              <span className="font-mono text-[11px] text-muted-foreground">
-                                Invoice #{item.invoiceNo} • Premise #{item.premiseId}
-                              </span>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                              <div>
-                                <span className="font-semibold text-foreground flex items-center gap-1 mb-1">
-                                  <Info className="h-3.5 w-3.5 text-cyan-400" /> Detailed Audit
-                                  Rationale:
-                                </span>
-                                <p className="text-muted-foreground text-xs leading-relaxed pl-4 border-l-2 border-primary/40">
-                                  {item.detailedExplanation}
-                                </p>
+                              <div className="text-[11px] text-muted-foreground">{item.dates}</div>
+                              <div className="text-[10px] font-mono text-muted-foreground">
+                                Inv: {item.invoiceNo}
                               </div>
-
-                              <div>
-                                <span className="font-semibold text-foreground flex items-center gap-1 mb-1">
-                                  <Scale className="h-3.5 w-3.5 text-emerald-400" /> Financial Audit
-                                  Formula &amp; Discrepancy:
-                                </span>
-                                <div className="p-2.5 rounded bg-muted/60 font-mono text-[11px] text-emerald-400 border border-emerald-500/20">
-                                  {item.auditFormula}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="pt-2 flex items-center justify-between text-[11px] text-muted-foreground border-t border-border">
-                              <span className="flex items-center gap-1 font-mono text-primary/90">
-                                <BookOpen className="h-3.5 w-3.5" />{" "}
-                                <strong>Tariff Book Citation:</strong> {item.tariffRef}
-                              </span>
-                              <span className="font-semibold text-foreground">
-                                Identified Net Recovery Credit:{" "}
-                                <span className="text-emerald-400 font-mono text-xs">
-                                  {ZAR(item.recoveryAmount)}
-                                </span>
-                              </span>
                             </div>
                           </div>
                         </td>
+                        <td className="px-3 py-3">
+                          <div className="text-xs font-medium">{item.location}</div>
+                          <div className="text-[10px] text-muted-foreground font-mono">
+                            Premise: {item.premiseId}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="font-semibold text-xs text-foreground">
+                            {item.chargeCategory}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-right font-mono text-xs">
+                          {ZAR(item.invoicedAmount)}
+                        </td>
+                        <td className="px-3 py-3 text-right font-mono text-xs text-muted-foreground">
+                          {ZAR(item.calculatedAmount)}
+                        </td>
+                        <td className="px-3 py-3 text-right font-mono text-xs font-semibold text-emerald-400">
+                          {ZAR(item.recoveryAmount)}
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="text-xs font-medium text-foreground leading-snug">
+                            {item.rootCause}
+                          </div>
+                          <div className="text-[11px] text-primary/80 font-mono flex items-center gap-1 mt-0.5">
+                            <BookOpen className="h-3 w-3 shrink-0" /> {item.tariffRef}
+                          </div>
+                          <button
+                            onClick={() => toggleRow(item.id)}
+                            className="text-[11px] text-primary hover:underline font-medium mt-1 inline-flex items-center gap-1"
+                          >
+                            {isExpanded ? "Hide Details ▲" : "Expand Rationale & Audit Formula ▼"}
+                          </button>
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          {item.status === "approved" && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400 border border-emerald-500/30">
+                              <CheckCircle2 className="h-3 w-3" /> Approved &amp; Credited
+                            </span>
+                          )}
+                          {item.status === "pending" && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400 border border-amber-500/30">
+                              <AlertTriangle className="h-3 w-3" /> Dispute Under Review
+                            </span>
+                          )}
+                          {item.status === "ready" && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-xs font-medium text-cyan-400 border border-cyan-500/30">
+                              <ShieldCheck className="h-3 w-3" /> Ready for Filing
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 text-right">
+                          <button
+                            onClick={() => {
+                              item.actionLoad();
+                              toast.success(`Loaded ${item.period} Invoice into active session!`);
+                            }}
+                            className="text-xs bg-secondary hover:bg-secondary/80 text-foreground border border-border rounded px-2.5 py-1 font-medium transition"
+                          >
+                            Load Session
+                          </button>
+                        </td>
                       </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      {isExpanded && (
+                        <tr className="bg-primary/5 border-b border-border">
+                          <td colSpan={9} className="px-4 py-3.5">
+                            <div className="rounded-md border border-primary/20 bg-background/80 p-3.5 space-y-2 text-xs shadow-inner">
+                              <div className="flex items-center justify-between border-b border-border pb-2">
+                                <div className="font-semibold text-sm flex items-center gap-2 text-primary">
+                                  <FileCheck className="h-4 w-4" />
+                                  {item.period} ({item.dates}) — Full Audit &amp; Tariff
+                                  Non-Compliance Analysis
+                                </div>
+                                <span className="font-mono text-[11px] text-muted-foreground">
+                                  Invoice #{item.invoiceNo} • Premise #{item.premiseId}
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                                <div>
+                                  <span className="font-semibold text-foreground flex items-center gap-1 mb-1">
+                                    <Info className="h-3.5 w-3.5 text-cyan-400" /> Detailed Audit
+                                    Rationale:
+                                  </span>
+                                  <p className="text-muted-foreground text-xs leading-relaxed pl-4 border-l-2 border-primary/40">
+                                    {item.detailedExplanation}
+                                  </p>
+                                </div>
+
+                                <div>
+                                  <span className="font-semibold text-foreground flex items-center gap-1 mb-1">
+                                    <Scale className="h-3.5 w-3.5 text-emerald-400" /> Financial
+                                    Audit Formula &amp; Discrepancy:
+                                  </span>
+                                  <div className="p-2.5 rounded bg-muted/60 font-mono text-[11px] text-emerald-400 border border-emerald-500/20">
+                                    {item.auditFormula}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="pt-2 flex items-center justify-between text-[11px] text-muted-foreground border-t border-border">
+                                <span className="flex items-center gap-1 font-mono text-primary/90">
+                                  <BookOpen className="h-3.5 w-3.5" />{" "}
+                                  <strong>Tariff Book Citation:</strong> {item.tariffRef}
+                                </span>
+                                <span className="font-semibold text-foreground">
+                                  Identified Net Recovery Credit:{" "}
+                                  <span className="text-emerald-400 font-mono text-xs">
+                                    {ZAR(item.recoveryAmount)}
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </Panel>
     </div>

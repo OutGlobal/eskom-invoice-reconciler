@@ -23,7 +23,12 @@ import {
   Info,
   Check,
 } from "lucide-react";
-import type { DiscrepancyRecord, DiscrepancyCode, DiscrepancySeverity, DiscrepancyStatus } from "@/domain/discrepancy/types";
+import type {
+  DiscrepancyRecord,
+  DiscrepancyCode,
+  DiscrepancySeverity,
+  DiscrepancyStatus,
+} from "@/domain/discrepancy/types";
 import { DeterministicDiagnosticsEngine } from "@/domain/discrepancy/deterministicDiagnosticsEngine";
 import { DiscrepancyStorageService } from "@/domain/discrepancy/discrepancyStorageService";
 import { NUM } from "@/components/dashboard/parts";
@@ -50,7 +55,9 @@ export const AnomalyDashboard: React.FC = () => {
 
   const handleStatusChange = async (id: string, newStatus: DiscrepancyStatus) => {
     setRecords((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: newStatus, updated_at: new Date().toISOString() } : r))
+      prev.map((r) =>
+        r.id === id ? { ...r, status: newStatus, updated_at: new Date().toISOString() } : r,
+      ),
     );
     await DiscrepancyStorageService.updateStatus(id, newStatus);
   };
@@ -83,10 +90,16 @@ export const AnomalyDashboard: React.FC = () => {
 
   const criticalCount = records.filter((r) => r.severity === "CRITICAL").length;
   const highCount = records.filter((r) => r.severity === "HIGH").length;
-  const openCount = records.filter((r) => r.status === "OPEN" || r.status === "UNDER_REVIEW").length;
+  const openCount = records.filter(
+    (r) => r.status === "OPEN" || r.status === "UNDER_REVIEW",
+  ).length;
 
   if (isLoading) {
-    return <div className="p-8 text-center text-sm text-muted-foreground">Loading Deterministic Discrepancies Engine...</div>;
+    return (
+      <div className="p-8 text-center text-sm text-muted-foreground">
+        Loading Deterministic Discrepancies Engine...
+      </div>
+    );
   }
 
   return (
@@ -95,13 +108,16 @@ export const AnomalyDashboard: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">Deterministic Discrepancy &amp; Root-Cause Analysis</h1>
+            <h1 className="text-xl font-semibold tracking-tight">
+              Deterministic Discrepancy &amp; Root-Cause Analysis
+            </h1>
             <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full">
               SYSTEM RULES &bull; 100% EVIDENCE-GROUNDED
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Automated billing audit engine generating 12 system discrepancy codes with 6-level drill-down traceability.
+            Automated billing audit engine generating 12 system discrepancy codes with 6-level
+            drill-down traceability.
           </p>
         </div>
       </div>
@@ -109,25 +125,39 @@ export const AnomalyDashboard: React.FC = () => {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-lg border border-border bg-card p-4 space-y-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Total Discrepancies Count</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Total Discrepancies Count
+          </div>
           <div className="text-2xl font-bold font-mono text-foreground">{records.length}</div>
           <div className="text-[10px] text-muted-foreground">{openCount} Active Discrepancies</div>
         </div>
 
         <div className="rounded-lg border border-border bg-card p-4 space-y-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Disputed Financial Impact</div>
-          <div className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">R {NUM(totalImpactZar)}</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Disputed Financial Impact
+          </div>
+          <div className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+            R {NUM(totalImpactZar)}
+          </div>
           <div className="text-[10px] text-muted-foreground">Total Recoverable Variance</div>
         </div>
 
         <div className="rounded-lg border border-border bg-card p-4 space-y-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Critical / High Severity</div>
-          <div className="text-2xl font-bold font-mono text-red-500">{criticalCount + highCount}</div>
-          <div className="text-[10px] text-muted-foreground">{criticalCount} Critical &bull; {highCount} High</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Critical / High Severity
+          </div>
+          <div className="text-2xl font-bold font-mono text-red-500">
+            {criticalCount + highCount}
+          </div>
+          <div className="text-[10px] text-muted-foreground">
+            {criticalCount} Critical &bull; {highCount} High
+          </div>
         </div>
 
         <div className="rounded-lg border border-border bg-card p-4 space-y-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Deterministic Evidence Score</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Deterministic Evidence Score
+          </div>
           <div className="text-2xl font-bold font-mono text-foreground">100.0%</div>
           <div className="text-[10px] text-muted-foreground">Zero AI-Invented Numbers</div>
         </div>
@@ -201,7 +231,10 @@ export const AnomalyDashboard: React.FC = () => {
       {/* Discrepancy Card List */}
       <div className="space-y-4">
         {filteredRecords.map((r) => (
-          <div key={r.id} className="rounded-lg border border-border bg-card p-4 space-y-3 hover:border-primary/50 transition-colors">
+          <div
+            key={r.id}
+            className="rounded-lg border border-border bg-card p-4 space-y-3 hover:border-primary/50 transition-colors"
+          >
             {/* Card Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-2.5">
               <div className="flex items-center gap-2">
@@ -214,8 +247,8 @@ export const AnomalyDashboard: React.FC = () => {
                     r.severity === "CRITICAL"
                       ? "bg-red-500/10 text-red-500 border border-red-500/20"
                       : r.severity === "HIGH"
-                      ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
-                      : "bg-blue-500/10 text-blue-500 border border-blue-500/20"
+                        ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                        : "bg-blue-500/10 text-blue-500 border border-blue-500/20"
                   }`}
                 >
                   {r.severity}
@@ -252,14 +285,18 @@ export const AnomalyDashboard: React.FC = () => {
 
             {/* Root Cause Propagation Chain */}
             <div className="p-2.5 bg-background rounded border border-border space-y-1.5">
-              <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Root-Cause Propagation Chain</div>
+              <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                Root-Cause Propagation Chain
+              </div>
               <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
                 {r.root_cause_chain.map((step, idx) => (
                   <React.Fragment key={step.step}>
                     <span className="px-2 py-0.5 bg-muted rounded font-mono text-[10px] text-foreground">
                       {step.step}. {step.description}
                     </span>
-                    {idx < r.root_cause_chain.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+                    {idx < r.root_cause_chain.length - 1 && (
+                      <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                    )}
                   </React.Fragment>
                 ))}
               </div>
@@ -268,7 +305,8 @@ export const AnomalyDashboard: React.FC = () => {
             {/* Actions */}
             <div className="flex items-center justify-between pt-1 text-xs">
               <div className="text-[10px] text-muted-foreground font-mono">
-                Source File: {r.drill_down_path.source_file_name} &bull; Tariff Rule: {r.source_records.tariff_rule_id || "GAZETTE_2025"}
+                Source File: {r.drill_down_path.source_file_name} &bull; Tariff Rule:{" "}
+                {r.source_records.tariff_rule_id || "GAZETTE_2025"}
               </div>
               <button
                 onClick={() => openDrillDown(r)}
@@ -304,42 +342,70 @@ export const AnomalyDashboard: React.FC = () => {
             <div className="space-y-3 text-xs">
               {/* Level 1: Discrepancy & Evidence */}
               <div className="p-3 bg-muted/30 rounded border border-border space-y-1">
-                <div className="font-semibold text-primary">Level 1: Discrepancy &amp; Evidence</div>
+                <div className="font-semibold text-primary">
+                  Level 1: Discrepancy &amp; Evidence
+                </div>
                 <div className="text-foreground">{selectedRecord.description}</div>
-                <div className="text-muted-foreground font-mono text-[11px]">Financial Impact: R {NUM(selectedRecord.financial_impact_zar.toNumber())}</div>
+                <div className="text-muted-foreground font-mono text-[11px]">
+                  Financial Impact: R {NUM(selectedRecord.financial_impact_zar.toNumber())}
+                </div>
               </div>
 
               {/* Level 2: Invoice Document Link */}
               <div className="p-3 bg-muted/30 rounded border border-border space-y-1">
                 <div className="font-semibold text-primary">Level 2: Source Invoice Document</div>
-                <div className="font-mono text-muted-foreground">Invoice ID: {selectedRecord.source_records.invoice_id} &bull; File: {selectedRecord.drill_down_path.source_file_name}</div>
+                <div className="font-mono text-muted-foreground">
+                  Invoice ID: {selectedRecord.source_records.invoice_id} &bull; File:{" "}
+                  {selectedRecord.drill_down_path.source_file_name}
+                </div>
               </div>
 
               {/* Level 3: Billing Determinant */}
               <div className="p-3 bg-muted/30 rounded border border-border space-y-1">
                 <div className="font-semibold text-primary">Level 3: Billing Determinant</div>
-                <div className="font-mono text-muted-foreground">Determinant Code: {selectedRecord.drill_down_path.determinant_code}</div>
+                <div className="font-mono text-muted-foreground">
+                  Determinant Code: {selectedRecord.drill_down_path.determinant_code}
+                </div>
               </div>
 
               {/* Level 4: Calculation Lineage */}
               <div className="p-3 bg-muted/30 rounded border border-border space-y-1">
-                <div className="font-semibold text-primary">Level 4: Decimal.js-light Calculation Lineage</div>
-                <div className="font-mono text-muted-foreground">Formula: {selectedRecord.calculation.formula}</div>
-                <div className="font-mono text-muted-foreground">Precision Model: {selectedRecord.calculation.precision}</div>
+                <div className="font-semibold text-primary">
+                  Level 4: Decimal.js-light Calculation Lineage
+                </div>
+                <div className="font-mono text-muted-foreground">
+                  Formula: {selectedRecord.calculation.formula}
+                </div>
+                <div className="font-mono text-muted-foreground">
+                  Precision Model: {selectedRecord.calculation.precision}
+                </div>
               </div>
 
               {/* Level 5: Telemetry Record */}
               <div className="p-3 bg-muted/30 rounded border border-border space-y-1">
-                <div className="font-semibold text-primary">Level 5: AMR Telemetry Interval / Quality Record</div>
-                <div className="font-mono text-muted-foreground">Telemetry Batch ID: {selectedRecord.source_records.telemetry_batch_id || "BATCH_001"}</div>
-                <div className="font-mono text-muted-foreground">Meter Serial Number: {selectedRecord.source_records.meter_id || "METER_MAIN_01"}</div>
+                <div className="font-semibold text-primary">
+                  Level 5: AMR Telemetry Interval / Quality Record
+                </div>
+                <div className="font-mono text-muted-foreground">
+                  Telemetry Batch ID:{" "}
+                  {selectedRecord.source_records.telemetry_batch_id || "BATCH_001"}
+                </div>
+                <div className="font-mono text-muted-foreground">
+                  Meter Serial Number: {selectedRecord.source_records.meter_id || "METER_MAIN_01"}
+                </div>
               </div>
 
               {/* Level 6: NERSA Tariff Rule & Source Gazette */}
               <div className="p-3 bg-muted/30 rounded border border-border space-y-1">
-                <div className="font-semibold text-primary">Level 6: NERSA Tariff Rule &amp; Gazette Fingerprint</div>
-                <div className="font-mono text-muted-foreground">Rule ID: {selectedRecord.source_records.tariff_rule_id || "RULE_MEGA_01"}</div>
-                <div className="font-mono text-muted-foreground">Gazette Source: NERSA Electricity Tariff Schedule 2025/2026 Table 1</div>
+                <div className="font-semibold text-primary">
+                  Level 6: NERSA Tariff Rule &amp; Gazette Fingerprint
+                </div>
+                <div className="font-mono text-muted-foreground">
+                  Rule ID: {selectedRecord.source_records.tariff_rule_id || "RULE_MEGA_01"}
+                </div>
+                <div className="font-mono text-muted-foreground">
+                  Gazette Source: NERSA Electricity Tariff Schedule 2025/2026 Table 1
+                </div>
               </div>
             </div>
 

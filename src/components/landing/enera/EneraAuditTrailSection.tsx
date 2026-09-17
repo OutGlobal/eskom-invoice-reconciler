@@ -1,11 +1,5 @@
 import React, { useState } from "react";
-import {
-  ShieldCheck,
-  CheckCircle2,
-  Lock,
-  ArrowRight,
-  Layers,
-} from "lucide-react";
+import { ShieldCheck, CheckCircle2, Lock, ArrowRight, Layers } from "lucide-react";
 
 interface AuditStep {
   step: number;
@@ -126,7 +120,8 @@ export function EneraAuditTrailSection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed max-w-3xl mb-14">
-          ENERA replaces blind utility trust with verifiable mathematical lineage — linking every billed cent directly to physical meter registers and statutory gazettes.
+          ENERA replaces blind utility trust with verifiable mathematical lineage — linking every
+          billed cent directly to physical meter registers and statutory gazettes.
         </p>
 
         {/* 4. Visual or capability: 7-Stage Lineage Pipeline Console */}
@@ -196,9 +191,7 @@ export function EneraAuditTrailSection() {
                 <span className="text-[10px] text-slate-400 uppercase block mb-0.5">
                   Statutory &amp; Regulatory Standard
                 </span>
-                <span className="text-slate-200 font-medium font-sans text-xs">
-                  {cur.statute}
-                </span>
+                <span className="text-slate-200 font-medium font-sans text-xs">{cur.statute}</span>
               </div>
               <div className="p-3 rounded bg-white/[0.02] border border-white/5">
                 <span className="text-[10px] text-emerald-400 uppercase block mb-0.5">
@@ -214,7 +207,10 @@ export function EneraAuditTrailSection() {
 
         {/* 5. Optional supporting information & 6. Optional CTA */}
         <div className="mt-12 pt-6 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-400">
-          <span>Protected by client-isolated data perimeter, strict tenant separation, and audit-ready lineage.</span>
+          <span>
+            Protected by client-isolated data perimeter, strict tenant separation, and audit-ready
+            lineage.
+          </span>
           <a
             href="#contact"
             className="inline-flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 font-medium transition-colors focus-ring-enera shrink-0"
@@ -227,4 +223,3 @@ export function EneraAuditTrailSection() {
     </section>
   );
 }
-

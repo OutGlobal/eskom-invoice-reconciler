@@ -20,7 +20,8 @@ export function EneraHeroCanvas() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || reducedMotion || (typeof window !== "undefined" && window.innerWidth < 640)) return;
+    if (!canvas || reducedMotion || (typeof window !== "undefined" && window.innerWidth < 640))
+      return;
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 

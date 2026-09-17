@@ -42,7 +42,8 @@ export class MeterValidationEngine {
       issues.push({
         code: "INVALID_CT_DENOMINATOR",
         field: "ct_ratio_denominator",
-        message: "CT ratio secondary denominator must be a positive number greater than 0 (e.g. 5).",
+        message:
+          "CT ratio secondary denominator must be a positive number greater than 0 (e.g. 5).",
         severity: "error",
       });
     }
@@ -52,7 +53,8 @@ export class MeterValidationEngine {
       issues.push({
         code: "INVALID_VT_NUMERATOR",
         field: "vt_ratio_numerator",
-        message: "VT ratio primary numerator must be a positive number greater than 0 (e.g. 11000).",
+        message:
+          "VT ratio primary numerator must be a positive number greater than 0 (e.g. 11000).",
         severity: "error",
       });
     }
@@ -61,7 +63,8 @@ export class MeterValidationEngine {
       issues.push({
         code: "INVALID_VT_DENOMINATOR",
         field: "vt_ratio_denominator",
-        message: "VT ratio secondary denominator must be a positive number greater than 0 (e.g. 110).",
+        message:
+          "VT ratio secondary denominator must be a positive number greater than 0 (e.g. 110).",
         severity: "error",
       });
     }
@@ -90,7 +93,8 @@ export class MeterValidationEngine {
       issues.push({
         code: "MISSING_MULTIPLIER_SOURCE",
         field: "multiplier_source",
-        message: "A traceable multiplier source (e.g. 'Nameplate Verification', 'Calibration Cert #104') is required.",
+        message:
+          "A traceable multiplier source (e.g. 'Nameplate Verification', 'Calibration Cert #104') is required.",
         severity: "error",
       });
     }

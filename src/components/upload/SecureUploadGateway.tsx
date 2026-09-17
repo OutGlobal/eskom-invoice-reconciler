@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import {
   Upload,
@@ -16,15 +16,29 @@ import {
   Code,
   Layers,
   XCircle,
+  FileCheck,
+  Clock,
+  Search,
+  Filter,
+  AlertCircle,
+  FolderOpen,
 } from "lucide-react";
 import { SecureIngestionGateway } from "@/domain/ingestion/secureIngestionGateway";
-import { QuarantineManager } from "@/domain/ingestion/quarantineManager";
+import { UploadStorageService } from "@/domain/upload/uploadStorageService";
+import type { UploadRecord, UploadFileType, UploadProcessingStatus } from "@/domain/upload/types";
 import type { IngestionGatewayResult, IngestionLifecycleState } from "@/domain/ingestion/types";
-import { ZAR, NUM } from "@/components/dashboard/parts";
-
 import { useApp, type InvoiceData } from "@/lib/store";
-import { syncInvoiceToSupabase } from "@/lib/supabase";
-import { validateMeterRows } from "@/lib/validation";
+
+const SOURCE_TABS: { label: string; value: string; icon: any }[] = [
+  { label: "All Formats", value: "ALL", icon: FolderOpen },
+  { label: "PDF Invoices", value: "PDF_INVOICE", icon: FileText },
+  { label: "CSV Intervals", value: "CSV_INTERVAL_DATA", icon: FileSpreadsheet },
+  { label: "Excel Workbooks", value: "EXCEL_WORKBOOK", icon: FileSpreadsheet },
+  { label: "AMR Telemetry", value: "AMR_DATA", icon: Cpu },
+  { label: "Meter Exports", value: "METER_EXPORT", icon: Layers },
+  { label: "Raw Meter Logs", value: "RAW_METER_LOG", icon: Code },
+  { label: "Tariff Documents", value: "TARIFF_DOCUMENT", icon: FileCheck },
+];
 
 export function SecureUploadGateway() {
   const [dragActive, setDragActive] = useState(false);
@@ -33,7 +47,54 @@ export function SecureUploadGateway() {
   const [progressPct, setProgressPct] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
   const [ingestionResult, setIngestionResult] = useState<IngestionGatewayResult | null>(null);
-  const [showQuarantineModal, setShowQuarantineModal] = useState(false);
+  const [selectedUpload, setSelectedUpload] = useState<UploadRecord | null>(null);
+  const [downloadingUrl, setDownloadingUrl] = useState(false);
+
+  const handleDownloadSecureFile = async (upload: UploadRecord) => {
+    setDownloadingUrl(true);
+    try {
+      const res = await fetch(`/api/uploads/${upload.id}/signed-url`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "X-Tenant-ID": upload.organisationId,
+        },
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to generate signed URL (${res.status})`);
+      }
+      const data = await res.json();
+      if (data.signedUrl) {
+        window.open(data.signedUrl, "_blank");
+      }
+    } catch (err: any) {
+      console.error("Secure download failure:", err);
+    } finally {
+      setDownloadingUrl(false);
+    }
+  };
+
+  // Filter & History state
+  const [selectedTab, setSelectedTab] = useState("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [uploadRecords, setUploadRecords] = useState<UploadRecord[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const loadHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const records = await UploadStorageService.listUploads();
+      setUploadRecords(records);
+    } catch (e) {
+      console.warn("Failed to fetch upload records:", e);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
 
   const handleFiles = async (files: FileList | File[]) => {
     if (!files || files.length === 0) return;
@@ -58,8 +119,8 @@ export function SecureUploadGateway() {
       if (res.success) {
         const store = useApp.getState();
 
-        // 1. If invoice fields were extracted, reflect in app store and Supabase
-        if (res.extractedInvoice) {
+        // 1. If invoice fields were extracted, reflect in app store
+        if (res.extractedInvoice && res.fileHeader.fileExtension === "pdf") {
           const ext = res.extractedInvoice;
           const invoiceNum = ext.accountNumber ? `INV-${ext.accountNumber}` : `INV-${Date.now()}`;
           const mappedInvoice: InvoiceData = {
@@ -89,7 +150,7 @@ export function SecureUploadGateway() {
             electrification: (ext.subsidies || 0) * 0.3,
             reactive: 0,
             peakEnergyCharge: (ext.energyCharges || 0) * 0.45,
-            standardEnergyCharge: (ext.energyCharges || 0) * 0.40,
+            standardEnergyCharge: (ext.energyCharges || 0) * 0.4,
             offPeakEnergyCharge: (ext.energyCharges || 0) * 0.15,
             vat: ext.vat || (ext.totalInvoice ? ext.totalInvoice * 0.15 : 0),
             invoiceTotal: ext.totalInvoice - (ext.vat || 0),
@@ -103,398 +164,589 @@ export function SecureUploadGateway() {
             type: "invoice",
             uploadedAt: new Date(),
           });
-          store.addProcessedInvoiceNumber(invoiceNum);
-
-          // Sync to Supabase invoices table
-          syncInvoiceToSupabase({
-            account_number: mappedInvoice.accountNumber,
-            invoice_number: invoiceNum,
-            customer_name: mappedInvoice.customerName,
-            premise_id: ext.premiseId,
-            tariff_name: mappedInvoice.tariffName,
-            billing_period: mappedInvoice.billingPeriod,
-            billing_start: mappedInvoice.billingPeriodStart,
-            billing_end: mappedInvoice.billingPeriodEnd,
-            peak_kwh: mappedInvoice.peakKWh,
-            standard_kwh: mappedInvoice.standardKWh,
-            off_peak_kwh: mappedInvoice.offPeakKWh,
-            total_kwh: mappedInvoice.totalKWh,
-            max_demand_kva: mappedInvoice.maxDemandKVA,
-            invoiced_total: mappedInvoice.totalInclVat,
-            status: "verified",
-          }).catch((err) => console.warn("Background invoice sync warning:", err));
         }
 
-        // 2. If telemetry interval readings were extracted, reflect in store
-        if (res.intervals && res.intervals.length > 0) {
-          store.setRows(res.intervals);
-          store.setValidation(validateMeterRows(res.intervals));
-          store.addUpload({
-            name: file.name,
-            size: file.size,
-            type: "meter",
-            uploadedAt: new Date(),
-          });
-        }
+        // Refresh database history
+        await loadHistory();
       }
     } catch (err: any) {
-      console.error("Ingestion Gateway execution error:", err);
+      console.error("Ingestion pipeline execution failure:", err);
+      await loadHistory();
     } finally {
       setProcessing(false);
     }
   };
 
-  const quarantinedJobs = QuarantineManager.getQuarantinedJobs();
+  const filteredUploads = uploadRecords.filter((rec) => {
+    const matchesTab = selectedTab === "ALL" || rec.fileType === selectedTab;
+    const matchesSearch =
+      !searchQuery ||
+      rec.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      rec.fileType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      rec.id.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
+
+  const getStatusBadge = (status: UploadProcessingStatus) => {
+    switch (status) {
+      case "PROCESSED":
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+      case "PARTIALLY_PROCESSED":
+        return "bg-amber-500/10 text-amber-400 border-amber-500/30";
+      case "FAILED":
+        return "bg-rose-500/10 text-rose-400 border-rose-500/30";
+      case "PROCESSING":
+        return "bg-sky-500/10 text-sky-400 border-sky-500/30 animate-pulse";
+      case "VALIDATING":
+        return "bg-indigo-500/10 text-indigo-400 border-indigo-500/30 animate-pulse";
+      case "VALIDATED":
+        return "bg-teal-500/10 text-teal-400 border-teal-500/30";
+      default:
+        return "bg-slate-500/10 text-slate-400 border-slate-500/30";
+    }
+  };
+
+  const getFileTypeBadge = (type: UploadFileType) => {
+    switch (type) {
+      case "PDF_INVOICE":
+        return "bg-rose-500/10 text-rose-400 border-rose-500/20";
+      case "CSV_INTERVAL_DATA":
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      case "EXCEL_WORKBOOK":
+        return "bg-teal-500/10 text-teal-400 border-teal-500/20";
+      case "AMR_DATA":
+        return "bg-cyan-500/10 text-cyan-400 border-cyan-500/20";
+      case "METER_EXPORT":
+        return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+      case "RAW_METER_LOG":
+        return "bg-purple-500/10 text-purple-400 border-purple-500/20";
+      case "TARIFF_DOCUMENT":
+        return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+      default:
+        return "bg-slate-500/10 text-slate-300 border-slate-500/20";
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header & Security Compliance Notice */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
+    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+      {/* Top Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/40 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">
-              Enterprise Document & Telemetry Ingestion Gateway
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Ingestion & Telemetry Pipeline
             </h1>
-            <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded border bg-emerald-500/10 text-emerald-500 border-emerald-500/30 flex items-center gap-1">
-              <Lock className="h-3 w-3" /> Private S3/Supabase Storage
+            <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              Zero Silent Failures
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Zero-Trust File Inspection · SHA-256 Idempotency · Multi-Layout OCR Parser · Private
-            Signed URLs
+          <p className="text-sm text-muted-foreground mt-1">
+            Authoritative ingestion gateway for Eskom bills, AMR telemetry, interval spreadsheets,
+            raw logger dumps, and tariff schedules.
           </p>
         </div>
+        <button
+          onClick={loadHistory}
+          disabled={loadingHistory}
+          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-card/50 hover:bg-card text-foreground transition-all shadow-sm"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loadingHistory ? "animate-spin" : ""}`} />
+          Sync Registry
+        </button>
+      </div>
 
-        {quarantinedJobs.length > 0 && (
-          <button
-            onClick={() => setShowQuarantineModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-500/30 bg-red-500/10 text-red-500 text-xs font-semibold hover:bg-red-500/20 transition cursor-pointer"
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="rounded-xl border border-border/40 bg-card/60 p-4 backdrop-blur-sm">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
+            <span>TOTAL UPLOADS</span>
+            <Database className="w-4 h-4 text-primary" />
+          </div>
+          <div className="text-2xl font-bold text-foreground mt-2">{uploadRecords.length}</div>
+          <div className="text-xs text-muted-foreground mt-1">Persistent registry records</div>
+        </div>
+
+        <div className="rounded-xl border border-border/40 bg-card/60 p-4 backdrop-blur-sm">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
+            <span>PROCESSED CLEAN</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          </div>
+          <div className="text-2xl font-bold text-emerald-400 mt-2">
+            {uploadRecords.filter((r) => r.processingStatus === "PROCESSED").length}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">100% Determinants extracted</div>
+        </div>
+
+        <div className="rounded-xl border border-border/40 bg-card/60 p-4 backdrop-blur-sm">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
+            <span>PARTIAL / REVIEWS</span>
+            <AlertTriangle className="w-4 h-4 text-amber-400" />
+          </div>
+          <div className="text-2xl font-bold text-amber-400 mt-2">
+            {uploadRecords.filter((r) => r.processingStatus === "PARTIALLY_PROCESSED").length}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">Human audit flags active</div>
+        </div>
+
+        <div className="rounded-xl border border-border/40 bg-card/60 p-4 backdrop-blur-sm">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
+            <span>QUARANTINED / FAILED</span>
+            <XCircle className="w-4 h-4 text-rose-400" />
+          </div>
+          <div className="text-2xl font-bold text-rose-400 mt-2">
+            {uploadRecords.filter((r) => r.processingStatus === "FAILED").length}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">Quarantined security errors</div>
+        </div>
+      </div>
+
+      {/* Upload Drag & Drop Zone */}
+      <div className="rounded-2xl border border-border/60 bg-gradient-to-b from-card/80 to-card/40 p-6 backdrop-blur-md shadow-lg">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Upload className="w-5 h-5 text-primary" />
+            <h2 className="text-base font-semibold text-foreground">Secure Ingestion Dropzone</h2>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Lock className="w-3.5 h-3.5 text-emerald-400" />
+            <span>SHA-256 Idempotent & AES-256 Encrypted</span>
+          </div>
+        </div>
+
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragActive(true);
+          }}
+          onDragLeave={() => setDragActive(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragActive(false);
+            if (e.dataTransfer.files) handleFiles(e.dataTransfer.files);
+          }}
+          className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+            dragActive
+              ? "border-primary bg-primary/5 scale-[1.005]"
+              : "border-border/60 hover:border-border hover:bg-card/40"
+          }`}
+          onClick={() => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".pdf,.csv,.xlsx,.xls,.xml,.log,.txt,.tsv,.json";
+            input.onchange = (e: any) => {
+              if (e.target.files) handleFiles(e.target.files);
+            };
+            input.click();
+          }}
+        >
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3">
+            <Upload className="w-6 h-6" />
+          </div>
+          <p className="text-sm font-medium text-foreground">
+            Drop your utility document or click to browse
+          </p>
+          <p className="text-xs text-muted-foreground mt-1 max-w-md">
+            PDF invoices (Eskom / Municipal), CSV intervals, Excel workbooks (.xlsx/.xls), AMR XML
+            feeds, raw logger dumps (.log/.txt), and Tariff schedules (.json).
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-[11px] text-muted-foreground">
+            <span className="px-2 py-0.5 rounded border border-border/60 bg-muted/30">
+              .pdf (Invoices)
+            </span>
+            <span className="px-2 py-0.5 rounded border border-border/60 bg-muted/30">
+              .csv (Intervals)
+            </span>
+            <span className="px-2 py-0.5 rounded border border-border/60 bg-muted/30">
+              .xlsx / .xls (Workbooks)
+            </span>
+            <span className="px-2 py-0.5 rounded border border-border/60 bg-muted/30">
+              .xml (AMR Feeds)
+            </span>
+            <span className="px-2 py-0.5 rounded border border-border/60 bg-muted/30">
+              .log / .txt (Logger Dumps)
+            </span>
+            <span className="px-2 py-0.5 rounded border border-border/60 bg-muted/30">
+              .json (Tariffs)
+            </span>
+          </div>
+        </div>
+
+        {/* Real-Time Processing Stepper */}
+        {processing && (
+          <div className="mt-6 p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-primary flex items-center gap-2">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                Pipeline Stage: {currentState || "INITIALIZING"}
+              </span>
+              <span className="font-mono text-muted-foreground">{progressPct}%</span>
+            </div>
+
+            <div className="w-full bg-secondary/50 rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-primary h-2 rounded-full transition-all duration-300"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+
+            <p className="text-xs text-muted-foreground">{statusMessage}</p>
+
+            {/* Stepper Dots */}
+            <div className="grid grid-cols-5 gap-2 text-center text-[10px] font-medium pt-2 text-muted-foreground">
+              <span className={progressPct >= 10 ? "text-primary font-bold" : ""}>1. UPLOADED</span>
+              <span className={progressPct >= 25 ? "text-primary font-bold" : ""}>
+                2. VALIDATING
+              </span>
+              <span className={progressPct >= 50 ? "text-primary font-bold" : ""}>
+                3. VALIDATED
+              </span>
+              <span className={progressPct >= 75 ? "text-primary font-bold" : ""}>
+                4. PROCESSING
+              </span>
+              <span className={progressPct >= 100 ? "text-emerald-400 font-bold" : ""}>
+                5. PROCESSED
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Ingestion Result Summary Banner */}
+        {ingestionResult && !processing && (
+          <div
+            className={`mt-6 p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+              ingestionResult.success
+                ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-300"
+                : "border-rose-500/30 bg-rose-500/5 text-rose-300"
+            }`}
           >
-            <AlertTriangle className="h-3.5 w-3.5" />
-            View Quarantined Records ({quarantinedJobs.length})
-          </button>
+            <div className="flex items-start gap-3">
+              {ingestionResult.success ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+              ) : (
+                <XCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+              )}
+              <div>
+                <div className="font-semibold text-sm">
+                  {ingestionResult.success
+                    ? `Ingestion Succeeded — ${ingestionResult.fileHeader.filename}`
+                    : `Ingestion Quarantined — ${ingestionResult.fileHeader.filename}`}
+                </div>
+                <div className="text-xs opacity-90 mt-0.5">
+                  {ingestionResult.success
+                    ? `Status: ${ingestionResult.uploadRecord?.processingStatus || "PROCESSED"} | Rows: ${ingestionResult.uploadRecord?.rowCount || 1} | Records: ${ingestionResult.uploadRecord?.recordCount || 1} | Confidence: ${(ingestionResult.confidenceScore * 100).toFixed(0)}%`
+                    : ingestionResult.uploadRecord?.errorMessage ||
+                      ingestionResult.batchJob.quarantineReason ||
+                      "Verification error"}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {ingestionResult.uploadRecord && (
+                <button
+                  onClick={() => setSelectedUpload(ingestionResult.uploadRecord!)}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-card/60 hover:bg-card text-foreground transition-all"
+                >
+                  View Details
+                </button>
+              )}
+              {ingestionResult.signedDownloadUrl && (
+                <a
+                  href={ingestionResult.signedDownloadUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 transition-all flex items-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download
+                </a>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Drag & Drop File Selector */}
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragActive(true);
-        }}
-        onDragLeave={() => setDragActive(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragActive(false);
-          if (e.dataTransfer.files) handleFiles(e.dataTransfer.files);
-        }}
-        className={`relative rounded-xl border-2 border-dashed p-8 text-center transition ${
-          dragActive
-            ? "border-primary bg-primary/5"
-            : "border-border bg-card hover:border-primary/50"
-        }`}
-      >
-        <input
-          type="file"
-          accept=".pdf,.csv,.xls,.xlsx,.xml"
-          onChange={(e) => e.target.files && handleFiles(e.target.files)}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          disabled={processing}
-        />
-
-        <div className="mx-auto max-w-md space-y-3 pointer-events-none">
-          <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <Upload className="h-6 w-6" />
-          </div>
+      {/* Upload Registry & Ingestion Records */}
+      <div className="rounded-2xl border border-border/60 bg-card/40 p-6 backdrop-blur-md shadow-md space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h3 className="text-sm font-semibold">
-              Drop utility document or telemetry file to ingest
-            </h3>
+            <h2 className="text-lg font-semibold text-foreground">
+              Upload Registry & Data Lineage
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Supports <span className="font-semibold">Digital/Scanned PDF</span>,{" "}
-              <span className="font-semibold">CSV</span>,{" "}
-              <span className="font-semibold">XLS/XLSX</span>, and{" "}
-              <span className="font-semibold">XML</span> feeds up to 50MB
+              Authoritative database record of all ingested files, processing states, and validation
+              outcomes.
             </p>
           </div>
-          <div className="flex flex-wrap justify-center gap-2 text-[11px] pt-1">
-            <span className="px-2 py-0.5 rounded border bg-muted flex items-center gap-1">
-              <FileText className="h-3 w-3 text-red-400" /> PDF / OCR
-            </span>
-            <span className="px-2 py-0.5 rounded border bg-muted flex items-center gap-1">
-              <FileSpreadsheet className="h-3 w-3 text-emerald-400" /> CSV / XLSX
-            </span>
-            <span className="px-2 py-0.5 rounded border bg-muted flex items-center gap-1">
-              <Code className="h-3 w-3 text-amber-400" /> XML Feeds
-            </span>
+
+          {/* Search Box */}
+          <div className="relative w-full md:w-64">
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search filename or ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-border bg-card/60 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+        </div>
+
+        {/* Source Format Tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-border/40">
+          {SOURCE_TABS.map((tab) => {
+            const Icon = tab.icon;
+            const active = selectedTab === tab.value;
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setSelectedTab(tab.value)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all shrink-0 ${
+                  active
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Upload Records Table */}
+        <div className="rounded-xl border border-border/40 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-muted/40 text-muted-foreground uppercase font-semibold text-[10px] tracking-wider border-b border-border/40">
+                <tr>
+                  <th className="py-3 px-4">Filename</th>
+                  <th className="py-3 px-4">Source Type</th>
+                  <th className="py-3 px-4">Size</th>
+                  <th className="py-3 px-4">Uploaded</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Rows</th>
+                  <th className="py-3 px-4 text-right">Records</th>
+                  <th className="py-3 px-4">Validation</th>
+                  <th className="py-3 px-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/20 font-mono">
+                {filteredUploads.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="py-8 text-center text-muted-foreground font-sans">
+                      No upload records match the current filter.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredUploads.map((rec) => (
+                    <tr key={rec.id} className="hover:bg-muted/20 transition-colors font-sans">
+                      <td className="py-3 px-4">
+                        <div className="font-medium text-foreground truncate max-w-[220px]">
+                          {rec.filename}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground font-mono truncate max-w-[220px]">
+                          {rec.id}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getFileTypeBadge(
+                            rec.fileType,
+                          )}`}
+                        >
+                          {rec.fileType}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-muted-foreground">
+                        {(rec.fileSizeBytes / 1024).toFixed(1)} KB
+                      </td>
+                      <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
+                        {rec.createdAt ? format(new Date(rec.createdAt), "yyyy-MM-dd HH:mm") : "—"}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getStatusBadge(
+                            rec.processingStatus,
+                          )}`}
+                        >
+                          {rec.processingStatus}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono text-muted-foreground">
+                        {rec.rowCount ?? "—"}
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono text-muted-foreground">
+                        {rec.recordCount ?? "—"}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`text-[11px] font-medium ${
+                            rec.validationStatus === "VALID"
+                              ? "text-emerald-400"
+                              : rec.validationStatus === "REVIEW_REQUIRED"
+                                ? "text-amber-400"
+                                : rec.validationStatus === "INVALID"
+                                  ? "text-rose-400"
+                                  : "text-muted-foreground"
+                          }`}
+                        >
+                          {rec.validationStatus}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => setSelectedUpload(rec)}
+                          className="p-1.5 rounded-lg border border-border/60 hover:bg-secondary/40 text-foreground transition-all"
+                          title="Inspect Upload Metadata"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      {/* Progress & Lifecycle State Bar */}
-      {processing && (
-        <div className="rounded-lg border border-border bg-card p-5 space-y-3">
-          <div className="flex items-center justify-between text-xs font-semibold">
-            <span className="flex items-center gap-2">
-              <RefreshCw className="h-4 w-4 animate-spin text-primary" /> Ingestion Stage:{" "}
-              <span className="font-mono text-primary font-bold">{currentState}</span>
-            </span>
-            <span className="font-mono">{progressPct}%</span>
-          </div>
-
-          <div className="h-2.5 w-full bg-secondary rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary transition-all duration-300"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-          <div className="text-xs font-mono text-muted-foreground">{statusMessage}</div>
-        </div>
-      )}
-
-      {/* Ingestion Gateway Result Verification Display */}
-      {ingestionResult && (
-        <div className="space-y-6">
-          {/* Header Audit Card */}
-          <div
-            className={`rounded-lg border p-5 space-y-4 ${
-              ingestionResult.success
-                ? ingestionResult.batchJob.state === "REVIEW_REQUIRED"
-                  ? "border-amber-500/40 bg-amber-500/5"
-                  : "border-emerald-500/40 bg-emerald-500/5"
-                : "border-red-500/40 bg-red-500/5"
-            }`}
-          >
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  {ingestionResult.success ? (
-                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                  ) : (
-                    <XCircle className="h-5 w-5 text-red-500" />
-                  )}
-                  <h3 className="text-base font-bold">{ingestionResult.fileHeader.filename}</h3>
-                  {ingestionResult.isIdempotentDuplicate && (
-                    <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-500 border border-amber-500/30 text-[10px] font-bold">
-                      Idempotent Duplicate
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-3">
-                  <span>
-                    Document ID:{" "}
-                    <span className="font-mono">{ingestionResult.fileHeader.documentId}</span>
-                  </span>
-                  <span>
-                    MIME:{" "}
-                    <span className="font-mono">{ingestionResult.fileHeader.detectedMimeType}</span>
-                  </span>
-                  <span>
-                    Size: {(ingestionResult.fileHeader.fileSizeBytes / 1024).toFixed(1)} KB
-                  </span>
+      {/* Detail Inspection Modal */}
+      {selectedUpload && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-border/40 pb-4">
+              <div className="flex items-center gap-2.5">
+                <Database className="w-5 h-5 text-primary" />
+                <div>
+                  <h3 className="text-base font-semibold text-foreground">Upload Record Details</h3>
+                  <p className="text-xs text-muted-foreground font-mono">{selectedUpload.id}</p>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-xs font-bold px-3 py-1 rounded border uppercase font-mono ${
-                    ingestionResult.batchJob.state === "READY"
-                      ? "bg-emerald-500/20 text-emerald-500 border-emerald-500/40"
-                      : ingestionResult.batchJob.state === "REVIEW_REQUIRED"
-                        ? "bg-amber-500/20 text-amber-500 border-amber-500/40"
-                        : "bg-red-500/20 text-red-500 border-red-500/40"
-                  }`}
-                >
-                  STATE: {ingestionResult.batchJob.state}
-                </span>
-
-                {ingestionResult.signedDownloadUrl && (
-                  <a
-                    href={ingestionResult.signedDownloadUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-1 px-3 py-1 rounded bg-card border border-border text-xs font-semibold hover:bg-accent transition"
-                  >
-                    <Download className="h-3.5 w-3.5 text-primary" /> Signed Download
-                  </a>
-                )}
-              </div>
-            </div>
-
-            {/* Cryptographic SHA-256 Audit Badge */}
-            <div className="rounded border border-border bg-background/60 p-2.5 text-xs font-mono flex items-center justify-between gap-2">
-              <span className="text-muted-foreground flex items-center gap-1.5">
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" /> SHA-256 Fingerprint:
-              </span>
-              <span className="truncate text-foreground font-semibold">
-                {ingestionResult.fileHeader.sha256Checksum}
-              </span>
-            </div>
-          </div>
-
-          {/* Extracted 33 Invoice Fields Matrix */}
-          {ingestionResult.extractedInvoice && (
-            <div className="rounded-lg border border-border bg-card p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <h3 className="text-sm font-semibold tracking-tight uppercase flex items-center gap-1.5">
-                  <Database className="h-4 w-4 text-primary" /> Extracted & Normalized Invoice
-                  Determinants
-                </h3>
-                <span className="text-xs font-mono font-semibold px-2.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                  Confidence: {(ingestionResult.confidenceScore * 100).toFixed(0)}%
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                <div className="rounded border p-2.5 bg-background">
-                  <div className="text-[10px] text-muted-foreground uppercase">ACCOUNT NUMBER</div>
-                  <div className="font-semibold mt-0.5">
-                    {ingestionResult.extractedInvoice.accountNumber}
-                  </div>
-                </div>
-                <div className="rounded border p-2.5 bg-background">
-                  <div className="text-[10px] text-muted-foreground uppercase">
-                    POD / PREMISE ID
-                  </div>
-                  <div className="font-semibold mt-0.5">{ingestionResult.extractedInvoice.pod}</div>
-                </div>
-                <div className="rounded border p-2.5 bg-background">
-                  <div className="text-[10px] text-muted-foreground uppercase">METER NUMBER</div>
-                  <div className="font-semibold mt-0.5">
-                    {ingestionResult.extractedInvoice.meterNumber}
-                  </div>
-                </div>
-                <div className="rounded border p-2.5 bg-background">
-                  <div className="text-[10px] text-muted-foreground uppercase">TARIFF SCHEDULE</div>
-                  <div className="font-semibold mt-0.5 text-primary">
-                    {ingestionResult.extractedInvoice.tariff}
-                  </div>
-                </div>
-                <div className="rounded border p-2.5 bg-background">
-                  <div className="text-[10px] text-muted-foreground uppercase">PEAK ENERGY</div>
-                  <div className="font-semibold mt-0.5">
-                    {NUM(ingestionResult.extractedInvoice.peakKwh, 0)} kWh
-                  </div>
-                </div>
-                <div className="rounded border p-2.5 bg-background">
-                  <div className="text-[10px] text-muted-foreground uppercase">STANDARD ENERGY</div>
-                  <div className="font-semibold mt-0.5">
-                    {NUM(ingestionResult.extractedInvoice.standardKwh, 0)} kWh
-                  </div>
-                </div>
-                <div className="rounded border p-2.5 bg-background">
-                  <div className="text-[10px] text-muted-foreground uppercase">OFF-PEAK ENERGY</div>
-                  <div className="font-semibold mt-0.5">
-                    {NUM(ingestionResult.extractedInvoice.offPeakKwh, 0)} kWh
-                  </div>
-                </div>
-                <div className="rounded border p-2.5 bg-secondary/50">
-                  <div className="text-[10px] text-primary font-bold uppercase">
-                    TOTAL ACTIVE ENERGY
-                  </div>
-                  <div className="font-bold mt-0.5 text-primary">
-                    {NUM(ingestionResult.extractedInvoice.totalKwh, 0)} kWh
-                  </div>
-                </div>
-                <div className="rounded border p-2.5 bg-background">
-                  <div className="text-[10px] text-muted-foreground uppercase">MAX DEMAND</div>
-                  <div className="font-semibold mt-0.5 text-red-400">
-                    {NUM(ingestionResult.extractedInvoice.billedMaximumDemand, 0)} kVA
-                  </div>
-                </div>
-                <div className="rounded border p-2.5 bg-background">
-                  <div className="text-[10px] text-muted-foreground uppercase">
-                    NOTIFIED DEMAND (NMD)
-                  </div>
-                  <div className="font-semibold mt-0.5">
-                    {NUM(ingestionResult.extractedInvoice.notifiedMaximumDemand, 0)} kVA
-                  </div>
-                </div>
-                <div className="rounded border p-2.5 bg-background">
-                  <div className="text-[10px] text-muted-foreground uppercase">REACTIVE ENERGY</div>
-                  <div className="font-semibold mt-0.5">
-                    {NUM(ingestionResult.extractedInvoice.kvarh, 0)} kVARh
-                  </div>
-                </div>
-                <div className="rounded border p-2.5 bg-background">
-                  <div className="text-[10px] text-muted-foreground uppercase">POWER FACTOR</div>
-                  <div className="font-semibold mt-0.5 text-emerald-500">
-                    {ingestionResult.extractedInvoice.powerFactor.toFixed(2)}
-                  </div>
-                </div>
-                <div className="rounded border p-2.5 bg-background">
-                  <div className="text-[10px] text-muted-foreground uppercase">ENERGY CHARGES</div>
-                  <div className="font-semibold mt-0.5">
-                    {ZAR(ingestionResult.extractedInvoice.energyCharges)}
-                  </div>
-                </div>
-                <div className="rounded border p-2.5 bg-background">
-                  <div className="text-[10px] text-muted-foreground uppercase">DEMAND CHARGES</div>
-                  <div className="font-semibold mt-0.5">
-                    {ZAR(ingestionResult.extractedInvoice.demandCharges)}
-                  </div>
-                </div>
-                <div className="rounded border p-2.5 bg-background">
-                  <div className="text-[10px] text-muted-foreground uppercase">NETWORK CHARGES</div>
-                  <div className="font-semibold mt-0.5">
-                    {ZAR(ingestionResult.extractedInvoice.networkCharges)}
-                  </div>
-                </div>
-                <div className="rounded border p-2.5 bg-secondary font-bold">
-                  <div className="text-[10px] text-muted-foreground uppercase">EXTRACTED TOTAL</div>
-                  <div className="font-bold mt-0.5 text-foreground">
-                    {ZAR(ingestionResult.extractedInvoice.totalInvoice)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Quarantined Records Inspector Modal */}
-      {showQuarantineModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-xl border border-border bg-card p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-base font-bold text-red-500 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" /> Quarantined Ingestion Records (
-                {quarantinedJobs.length})
-              </h3>
               <button
-                onClick={() => setShowQuarantineModal(false)}
-                className="text-xs px-2 py-1 rounded bg-muted hover:bg-accent"
+                onClick={() => setSelectedUpload(null)}
+                className="p-1.5 rounded-lg border border-border/40 hover:bg-secondary/40 text-muted-foreground hover:text-foreground"
               >
-                Close
+                <XCircle className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-3">
-              {quarantinedJobs.map(({ job, errors }) => (
-                <div
-                  key={job.jobId}
-                  className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 space-y-2 text-xs"
-                >
-                  <div className="flex justify-between font-bold text-red-500">
-                    <span>Job ID: {job.jobId}</span>
-                    <span>Document ID: {job.documentId}</span>
-                  </div>
-                  <p className="text-muted-foreground">Reason: {job.quarantineReason}</p>
-                  <div className="space-y-1 pt-1">
-                    <div className="text-[10px] uppercase font-bold text-muted-foreground">
-                      Detailed Errors ({errors.length}):
-                    </div>
-                    {errors.map((err) => (
-                      <div
-                        key={err.id}
-                        className="font-mono bg-background/80 p-2 rounded border text-red-400"
-                      >
-                        [{err.errorCode}] {err.errorMessage}
-                      </div>
-                    ))}
+            <div className="space-y-4 overflow-y-auto pr-1 text-xs">
+              <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl border border-border/40 bg-muted/20">
+                <div>
+                  <span className="text-muted-foreground">Filename:</span>
+                  <div className="font-medium text-foreground mt-0.5">
+                    {selectedUpload.filename}
                   </div>
                 </div>
-              ))}
+                <div>
+                  <span className="text-muted-foreground">File Type:</span>
+                  <div className="font-medium text-foreground mt-0.5">
+                    {selectedUpload.fileType}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">File Size:</span>
+                  <div className="font-medium text-foreground mt-0.5">
+                    {(selectedUpload.fileSizeBytes / 1024).toFixed(1)} KB (
+                    {selectedUpload.fileSizeBytes} bytes)
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">SHA-256 Checksum:</span>
+                  <div
+                    className="font-mono text-[11px] text-muted-foreground truncate mt-0.5"
+                    title={selectedUpload.fileHashSha256}
+                  >
+                    {selectedUpload.fileHashSha256}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Processing Status:</span>
+                  <div className="mt-0.5">
+                    <span
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getStatusBadge(selectedUpload.processingStatus)}`}
+                    >
+                      {selectedUpload.processingStatus}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Validation Status:</span>
+                  <div className="font-medium text-foreground mt-0.5">
+                    {selectedUpload.validationStatus}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Processing Start:</span>
+                  <div className="font-mono text-muted-foreground mt-0.5">
+                    {selectedUpload.processingStart || "—"}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Processing Completion:</span>
+                  <div className="font-mono text-muted-foreground mt-0.5">
+                    {selectedUpload.processingCompletion || "—"}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Row Count:</span>
+                  <div className="font-mono text-foreground mt-0.5">
+                    {selectedUpload.rowCount ?? "0"}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Record Count:</span>
+                  <div className="font-mono text-foreground mt-0.5">
+                    {selectedUpload.recordCount ?? "0"}
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">Storage Location:</span>
+                  <div className="flex items-center gap-1.5 mt-0.5 text-foreground font-mono text-[11px]">
+                    <Lock className="w-3 h-3 text-emerald-400" />
+                    <span>Protected Vault (Isolated)</span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedUpload.errorMessage && (
+                <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300">
+                  <div className="font-semibold text-xs flex items-center gap-1.5 mb-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    Error Diagnostic
+                  </div>
+                  <p className="text-xs font-mono">{selectedUpload.errorMessage}</p>
+                </div>
+              )}
+
+              <div>
+                <span className="text-muted-foreground font-semibold">
+                  Metadata & Parser Diagnostics:
+                </span>
+                <pre className="mt-1.5 p-3 rounded-xl border border-border/40 bg-card font-mono text-[11px] overflow-x-auto text-foreground">
+                  {JSON.stringify(selectedUpload.metadata, null, 2)}
+                </pre>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-border/40 flex items-center justify-between">
+              <button
+                onClick={() => handleDownloadSecureFile(selectedUpload)}
+                disabled={downloadingUrl}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border/60 hover:bg-secondary/40 text-foreground transition-all disabled:opacity-50"
+                title="Download via time-limited signed URL"
+              >
+                <Download className="w-3.5 h-3.5" />
+                {downloadingUrl ? "Generating Link..." : "Download Secure File"}
+              </button>
+              <button
+                onClick={() => setSelectedUpload(null)}
+                className="px-4 py-1.5 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

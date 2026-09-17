@@ -9,9 +9,18 @@ describe("Stage 23: Accessibility Audit", () => {
     __dirname,
     "../../components/landing/enera/EneraProductInterfacePreviewSection.tsx",
   );
-  const contactPath = path.resolve(__dirname, "../../components/landing/enera/EneraContactSection.tsx");
-  const flowVisualPath = path.resolve(__dirname, "../../components/landing/enera/EneraHeroFlowVisual.tsx");
-  const copilotPath = path.resolve(__dirname, "../../components/landing/enera/EneraCopilotSection.tsx");
+  const contactPath = path.resolve(
+    __dirname,
+    "../../components/landing/enera/EneraContactSection.tsx",
+  );
+  const flowVisualPath = path.resolve(
+    __dirname,
+    "../../components/landing/enera/EneraHeroFlowVisual.tsx",
+  );
+  const copilotPath = path.resolve(
+    __dirname,
+    "../../components/landing/enera/EneraCopilotSection.tsx",
+  );
   const aiPath = path.resolve(__dirname, "../../components/landing/enera/EneraAISection.tsx");
   const trustPath = path.resolve(__dirname, "../../components/landing/enera/EneraTrustSection.tsx");
   const footerPath = path.resolve(__dirname, "../../components/landing/enera/EneraFooter.tsx");
@@ -71,7 +80,7 @@ describe("Stage 23: Accessibility Audit", () => {
     });
 
     it("provides accessible mobile navigation toggle and modal dialog drawer", () => {
-      expect(navContent).toContain('aria-expanded={mobileMenuOpen}');
+      expect(navContent).toContain("aria-expanded={mobileMenuOpen}");
       expect(navContent).toContain('aria-controls="mobile-nav-dialog"');
       expect(navContent).toContain('id="mobile-nav-dialog"');
       expect(navContent).toContain('role="dialog"');
@@ -187,9 +196,9 @@ describe("Stage 23: Accessibility Audit", () => {
     });
 
     it("uses main landmark with id main-content and tabIndex -1", () => {
-      expect(indexContent).toContain('<main');
+      expect(indexContent).toContain("<main");
       expect(indexContent).toContain('id="main-content"');
-      expect(indexContent).toContain('tabIndex={-1}');
+      expect(indexContent).toContain("tabIndex={-1}");
     });
   });
 

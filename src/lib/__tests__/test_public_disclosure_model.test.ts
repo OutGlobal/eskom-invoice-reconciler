@@ -32,7 +32,10 @@ export async function runDisclosureModelTestSuite() {
   const agentsPath = path.join(repoRoot, "AGENTS.md");
   assert(fs.existsSync(agentsPath), "AGENTS.md must exist");
   const agentsContent = fs.readFileSync(agentsPath, "utf-8");
-  assert(agentsContent.includes("Public Disclosure Model"), "AGENTS.md must include Public Disclosure Model");
+  assert(
+    agentsContent.includes("Public Disclosure Model"),
+    "AGENTS.md must include Public Disclosure Model",
+  );
   assert(agentsContent.includes("LEVEL 1 — PUBLIC"), "AGENTS.md must define Level 1");
   assert(agentsContent.includes("LEVEL 2 — CONTROLLED"), "AGENTS.md must define Level 2");
   assert(agentsContent.includes("LEVEL 3 — PRIVATE"), "AGENTS.md must define Level 3");
@@ -40,16 +43,12 @@ export async function runDisclosureModelTestSuite() {
 
   // 3. Scan Public Components for Level 3 Prohibited Disclosures
   console.log("--- Check 3: Public Component Scanning for Level 3 Exposure ---");
-  const publicDirs = [
-    path.join(repoRoot, "src", "components", "landing", "enera"),
-  ];
-  const publicFiles = [
-    path.join(repoRoot, "src", "routes", "index.tsx"),
-  ];
+  const publicDirs = [path.join(repoRoot, "src", "components", "landing", "enera")];
+  const publicFiles = [path.join(repoRoot, "src", "routes", "index.tsx")];
 
   for (const dir of publicDirs) {
     if (fs.existsSync(dir)) {
-      const files = fs.readdirSync(dir).filter(f => f.endsWith(".tsx") || f.endsWith(".ts"));
+      const files = fs.readdirSync(dir).filter((f) => f.endsWith(".tsx") || f.endsWith(".ts"));
       for (const f of files) {
         publicFiles.push(path.join(dir, f));
       }
@@ -58,7 +57,10 @@ export async function runDisclosureModelTestSuite() {
 
   // Level 3 Prohibited strings or regexes in public surfaces
   const prohibitedPatterns = [
-    { pattern: /public\.(invoices|meter_readings|overcharge_recoveries|raw_documents)/i, name: "Raw database schema table" },
+    {
+      pattern: /public\.(invoices|meter_readings|overcharge_recoveries|raw_documents)/i,
+      name: "Raw database schema table",
+    },
     { pattern: /bramhseicmakyihvnvpo/i, name: "Internal project ID" },
     { pattern: /db\.[a-z0-9]+\.supabase\.co/i, name: "Database host reference" },
     { pattern: /service_role/i, name: "Service role credential" },
@@ -87,7 +89,10 @@ export async function runDisclosureModelTestSuite() {
   if (violations.length > 0) {
     console.error("Violations detected:", violations);
   }
-  assert(violations.length === 0, `Found ${violations.length} Level 3 disclosure violations in public files`);
+  assert(
+    violations.length === 0,
+    `Found ${violations.length} Level 3 disclosure violations in public files`,
+  );
   console.log("✅ Check 3 Passed: 0 Level 3 private disclosures across all public files.\n");
 
   console.log("=========================================================");
@@ -102,7 +107,7 @@ describe("STAGE 18: Public Disclosure Model", () => {
 });
 
 if (process.argv[1]?.endsWith("test_public_disclosure_model.test.ts")) {
-  runDisclosureModelTestSuite().catch(err => {
+  runDisclosureModelTestSuite().catch((err) => {
     console.error("Disclosure model test failed:", err);
     process.exit(1);
   });

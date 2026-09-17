@@ -186,41 +186,24 @@ export function EneraButton({
  */
 export interface EnginePhaseTagProps {
   phase: "01" | "02" | "03" | "04" | "05" | "06" | "07";
-  name:
-    | "ENERGY"
-    | "DATA"
-    | "UNDERSTANDING"
-    | "RECONCILIATION"
-    | "ANOMALY"
-    | "INSIGHT"
-    | "RECOVERY";
+  name: "ENERGY" | "DATA" | "UNDERSTANDING" | "RECONCILIATION" | "ANOMALY" | "INSIGHT" | "RECOVERY";
   sub?: string;
   className?: string;
 }
 
-export function EnginePhaseTag({
-  phase,
-  name,
-  sub,
-  className = "",
-}: EnginePhaseTagProps) {
+export function EnginePhaseTag({ phase, name, sub, className = "" }: EnginePhaseTagProps) {
   return (
     <div
       className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-xs font-mono mb-5 shadow-[0_0_20px_rgba(6,182,212,0.15)] ${className}`}
     >
-      <span
-        className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"
-        aria-hidden="true"
-      />
+      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" aria-hidden="true" />
       <span className="text-cyan-400 font-bold tracking-wider uppercase">
         PHASE {phase} · {name}
       </span>
       {sub && (
         <>
           <span className="text-slate-600 hidden sm:inline">|</span>
-          <span className="text-slate-300 font-medium hidden sm:inline">
-            {sub}
-          </span>
+          <span className="text-slate-300 font-medium hidden sm:inline">{sub}</span>
         </>
       )}
     </div>
@@ -252,4 +235,3 @@ export function EngineFlowConnector({
     </div>
   );
 }
-

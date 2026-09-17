@@ -73,12 +73,11 @@ export function useDerived() {
     const peakKWh = invoice?.peakKWh ?? invoice?.normalizedJson?.consumption?.peakKwh ?? 0;
     const standardKWh =
       invoice?.standardKWh ?? invoice?.normalizedJson?.consumption?.standardKwh ?? 0;
-    const offPeakKWh =
-      invoice?.offPeakKWh ?? invoice?.normalizedJson?.consumption?.offPeakKwh ?? 0;
+    const offPeakKWh = invoice?.offPeakKWh ?? invoice?.normalizedJson?.consumption?.offPeakKwh ?? 0;
     const totalKWh =
       invoice?.totalKWh ??
       invoice?.normalizedJson?.consumption?.totalKwh ??
-      (peakKWh + standardKWh + offPeakKWh);
+      peakKWh + standardKWh + offPeakKWh;
     const maxDemandKVA =
       invoice?.simMaxDemand ??
       invoice?.maxDemandKVA ??
@@ -504,7 +503,10 @@ export function DemandLineChart({
             <div className="flex items-baseline gap-2">
               <span className="font-extrabold text-red-400 text-base">{NUM(maxDemandKVA)} kVA</span>
               <span className="text-muted-foreground text-xs">
-                · Occurred on <strong className="text-foreground">{format(maxDemandAt, "EEE, dd MMM yyyy 'at' HH:mm:ss")}</strong>
+                · Occurred on{" "}
+                <strong className="text-foreground">
+                  {format(maxDemandAt, "EEE, dd MMM yyyy 'at' HH:mm:ss")}
+                </strong>
               </span>
             </div>
             <div className="text-[10px] text-muted-foreground">
@@ -519,7 +521,9 @@ export function DemandLineChart({
             <div className="h-8 w-px bg-border mx-1" />
             <div className="text-right">
               <div className="text-[10px] uppercase text-muted-foreground">Exceedance Margin</div>
-              <div className={`font-bold ${maxDemandKVA > nmd ? "text-red-400" : "text-emerald-400"}`}>
+              <div
+                className={`font-bold ${maxDemandKVA > nmd ? "text-red-400" : "text-emerald-400"}`}
+              >
                 {maxDemandKVA > nmd ? `+${NUM(maxDemandKVA - nmd)} kVA` : "Compliant"}
               </div>
             </div>

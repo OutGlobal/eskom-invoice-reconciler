@@ -28,15 +28,13 @@ const TRUST_PRINCIPLES: TrustPrinciple[] = [
   {
     title: "Transparent",
     statement: "Understand the basis of important findings.",
-    description:
-      "Every calculation step is verifiable, with zero black-box adjustments.",
+    description: "Every calculation step is verifiable, with zero black-box adjustments.",
     icon: Eye,
   },
   {
     title: "Controlled",
     statement: "Designed around appropriate access and information handling.",
-    description:
-      "Role-based access and tenant isolation safeguard your organizational data.",
+    description: "Role-based access and tenant isolation safeguard your organizational data.",
     icon: ShieldCheck,
   },
   {
@@ -67,7 +65,8 @@ const DISCLOSURE_TIERS: DisclosureTier[] = [
     badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-200",
     icon: Globe,
     iconClass: "text-emerald-700 bg-emerald-50 border-emerald-200",
-    summary: "Clear visibility into platform capabilities, business outcomes, workflows, and reporting.",
+    summary:
+      "Clear visibility into platform capabilities, business outcomes, workflows, and reporting.",
     items: [
       "Platform capabilities and business outcomes",
       "Industry use cases, workflows, and benefits",
@@ -84,7 +83,8 @@ const DISCLOSURE_TIERS: DisclosureTier[] = [
     badgeClass: "bg-cyan-50 text-cyan-800 border-cyan-200",
     icon: SlidersHorizontal,
     iconClass: "text-cyan-700 bg-cyan-50 border-cyan-200",
-    summary: "Conceptual explanations of processing, security posture, and evidence handling under enterprise NDA.",
+    summary:
+      "Conceptual explanations of processing, security posture, and evidence handling under enterprise NDA.",
     items: [
       "Data processing and alignment concepts",
       "AI-assisted analytical workflows",
@@ -101,7 +101,8 @@ const DISCLOSURE_TIERS: DisclosureTier[] = [
     badgeClass: "bg-slate-100 text-slate-700 border-slate-300",
     icon: Lock,
     iconClass: "text-slate-700 bg-slate-100 border-slate-300",
-    summary: "Strict embargo on proprietary implementations, system configurations, and credentials.",
+    summary:
+      "Strict embargo on proprietary implementations, system configurations, and credentials.",
     items: [
       "Source code and proprietary calculation engines",
       "Database schemas, tables, and internal IDs",
@@ -142,7 +143,8 @@ export function EneraTrustSection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-14">
-          Every metric and finding in ENERA links directly to verifiable data sources and transparent calculation logic.
+          Every metric and finding in ENERA links directly to verifiable data sources and
+          transparent calculation logic.
         </p>
 
         {/* 4. Visual or capability: 4 Clean Principle Cards */}
@@ -159,9 +161,7 @@ export function EneraTrustSection() {
                     <Icon className="h-5 w-5" />
                   </div>
 
-                  <h3 className="text-lg font-bold text-slate-900 font-sans mb-1">
-                    {p.title}
-                  </h3>
+                  <h3 className="text-lg font-bold text-slate-900 font-sans mb-1">{p.title}</h3>
 
                   <p className="text-sm font-semibold text-cyan-800 font-sans mb-2.5">
                     {p.statement}
@@ -188,7 +188,8 @@ export function EneraTrustSection() {
               </h3>
             </div>
             <p className="text-xs text-slate-600 font-sans max-w-md sm:text-right">
-              A strict three-tier classification safeguarding enterprise security while ensuring clear operational visibility.
+              A strict three-tier classification safeguarding enterprise security while ensuring
+              clear operational visibility.
             </p>
           </div>
 
@@ -203,7 +204,9 @@ export function EneraTrustSection() {
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-4">
                       <div className="flex items-center gap-2.5">
-                        <div className={`w-8 h-8 rounded-lg border flex items-center justify-center ${tier.iconClass}`}>
+                        <div
+                          className={`w-8 h-8 rounded-lg border flex items-center justify-center ${tier.iconClass}`}
+                        >
                           <Icon className="h-4 w-4" />
                         </div>
                         <div>
@@ -215,7 +218,9 @@ export function EneraTrustSection() {
                           </span>
                         </div>
                       </div>
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded border font-semibold ${tier.badgeClass}`}>
+                      <span
+                        className={`text-[10px] font-mono px-2 py-0.5 rounded border font-semibold ${tier.badgeClass}`}
+                      >
                         {tier.badge}
                       </span>
                     </div>
@@ -231,7 +236,9 @@ export function EneraTrustSection() {
                       <ul className="space-y-1.5 text-xs text-slate-600 font-sans">
                         {tier.items.map((item) => (
                           <li key={item} className="flex items-start gap-2">
-                            <span className="text-cyan-600 shrink-0 mt-0.5 text-xs leading-none">•</span>
+                            <span className="text-cyan-600 shrink-0 mt-0.5 text-xs leading-none">
+                              •
+                            </span>
                             <span className="leading-tight">{item}</span>
                           </li>
                         ))}
@@ -246,7 +253,10 @@ export function EneraTrustSection() {
 
         {/* 6. Supporting information & CTA */}
         <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
-          <span>Verifiable source lineage linking findings directly to underlying utility and SANS 474 telemetry records.</span>
+          <span>
+            Verifiable source lineage linking findings directly to underlying utility and SANS 474
+            telemetry records.
+          </span>
           <a
             href="#contact"
             className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 transition-colors font-semibold focus-ring-enera shrink-0"

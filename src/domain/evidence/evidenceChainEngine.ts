@@ -25,7 +25,7 @@ export class EvidenceChainEngine {
   public static buildChain(
     varianceId: string = "VAR-PEAK-001",
     runId: string = "RECON-RUN-2025-07",
-    authContext?: AuthorizationContext
+    authContext?: AuthorizationContext,
   ): CompleteEvidenceChain | null {
     const tenantId = authContext?.tenant_id || "DEFAULT_TENANT";
     const siteId = "SITE_01";
@@ -224,7 +224,8 @@ export class EvidenceChainEngine {
           category: "Time-of-Use Allocation",
           severity: "LOW",
           status: "RESOLVED",
-          description: "100% matched energy charge calculation verified against gazetted NERSA schedule.",
+          description:
+            "100% matched energy charge calculation verified against gazetted NERSA schedule.",
         },
       },
     ];
@@ -244,7 +245,9 @@ export class EvidenceChainEngine {
     if (authContext) {
       const isAuthorized = this.checkAuthorization(chain, authContext);
       if (!isAuthorized) {
-        console.warn(`[EvidenceChainEngine] Authorization DENIED for user ${authContext.user_id} accessing tenant ${chain.tenant_id}`);
+        console.warn(
+          `[EvidenceChainEngine] Authorization DENIED for user ${authContext.user_id} accessing tenant ${chain.tenant_id}`,
+        );
         return null;
       }
     }
@@ -255,7 +258,10 @@ export class EvidenceChainEngine {
   /**
    * Enforce security policy: "Never display evidence that the user is not authorized to access."
    */
-  public static checkAuthorization(chain: CompleteEvidenceChain, authContext: AuthorizationContext): boolean {
+  public static checkAuthorization(
+    chain: CompleteEvidenceChain,
+    authContext: AuthorizationContext,
+  ): boolean {
     if (authContext.role === "ADMIN" || authContext.role === "SUPER_AUDITOR") {
       return true;
     }

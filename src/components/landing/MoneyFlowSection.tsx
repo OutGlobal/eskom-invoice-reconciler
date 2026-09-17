@@ -130,7 +130,8 @@ export function MoneyFlowSection() {
           "Active energy charges verified across Peak, Standard, and Off-Peak",
           "Subsidies (Ancillary, Legacy, Affordability, Electrification) independently computed",
         ],
-        technicalDetail: "Arbitrary-precision Decimal.js-light arithmetic (zero floating-point drift).",
+        technicalDetail:
+          "Arbitrary-precision Decimal.js-light arithmetic (zero floating-point drift).",
       },
     },
     {
@@ -219,7 +220,9 @@ export function MoneyFlowSection() {
                     </span>
                     <span
                       className={`px-1.5 py-0.5 rounded text-[9px] font-mono uppercase ${
-                        isSelected ? "bg-primary/20 text-primary font-bold" : "text-muted-foreground"
+                        isSelected
+                          ? "bg-primary/20 text-primary font-bold"
+                          : "text-muted-foreground"
                       }`}
                     >
                       {node.badge}
@@ -231,9 +234,7 @@ export function MoneyFlowSection() {
                       <div className={`p-1.5 rounded-md bg-background/60 ${node.color}`}>
                         <Icon className="h-4 w-4" />
                       </div>
-                      <div className="text-xs font-bold text-foreground truncate">
-                        {node.title}
-                      </div>
+                      <div className="text-xs font-bold text-foreground truncate">{node.title}</div>
                     </div>
                     <div className="text-[10px] text-muted-foreground truncate">
                       {node.subtitle}

@@ -132,8 +132,10 @@ export class MeterStorageService {
       const { data: podsData } = await supabase.from("points_of_delivery").select("*");
 
       const dbMeters: MeterRecord[] = metersData && metersData.length > 0 ? metersData : [];
-      const dbConfigs: MeterConfigurationRecord[] = configsData && configsData.length > 0 ? configsData : [];
-      const dbChannels: MeterChannelRecord[] = channelsData && channelsData.length > 0 ? channelsData : [];
+      const dbConfigs: MeterConfigurationRecord[] =
+        configsData && configsData.length > 0 ? configsData : [];
+      const dbChannels: MeterChannelRecord[] =
+        channelsData && channelsData.length > 0 ? channelsData : [];
       const dbPods: PointOfDeliveryRecord[] = podsData && podsData.length > 0 ? podsData : [];
 
       if (dbPods.length === 0 && dbMeters.length === 0) {

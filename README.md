@@ -5,7 +5,7 @@
 [![TanStack Router](https://img.shields.io/badge/TanStack_Router-1.170-ff4154.svg)](https://tanstack.com/router)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ecf8e.svg)](https://supabase.com)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.2-38bdf8.svg)](https://tailwindcss.com/)
-[![License](https://img.shields.io/badge/License-Proprietary-red.svg)]()
+[![License](https://img.shields.io/badge/License-Proprietary-red.svg)](<>)
 
 The **Eskom Management Platform** is an enterprise-grade utility bill reconciliation, demand auditing, and overcharge recovery engine engineered specifically for South African Large Power Users (LPUs) operating on NERSA-approved tariffs (such as **Megaflex**, **Miniflex**, and **Nightsave**).
 
@@ -48,17 +48,17 @@ flowchart TD
 
 ## 📊 Core Application Modules
 
-| Module Route | Description |
-| :--- | :--- |
-| **` / ` (Dashboard)** | Executive KPIs, total portfolio spend, 4-month total recovery tally (**R 2.41M**), TOU Energy kWh grid (Peak, Standard, Off-Peak & Total Energy), and period selector. |
-| **`/customers`** | Customer account management, premise ID mapping, notified maximum demand (NMD) threshold configuration. |
-| **`/upload`** | PDF invoice dropzone, Excel interval meter reader (`.xlsx`/`.csv`), non-lossy raw data inspector drawer, and validation engine diagnostic reports. |
-| **`/tariff`** | Interactive Megaflex gazetted rate schedule lookup, voltage level selector (132kV, 33kV, 11kV), and seasonal rate comparison. |
-| **`/energy`** | Time-Of-Use energy heatmaps, diurnal load profile curves, and High vs Low season kWh split analysis. |
-| **`/demand`** | Maximum Demand (kVA) monitoring against NMD caps (90,000 kVA), ratchet penalty reversal calculator, and power factor penalty auditor. |
-| **`/reconciliation`** | Itemized 17-line Eskom charge reconciliation table showing calculated NERSA amounts vs invoiced amounts with variance highlighting. |
-| **`/trends`** | Charge trend analytics, composed line graphs (`totalInvoice` vs `recoveryAmount`), expandable audit rationale cards, and 1-click CSV dispute package export. |
-| **`/reports`** | Print-ready executive financial reports, dispute summaries, and raw JSON data export tools. |
+| Module Route          | Description                                                                                                                                                            |
+| :-------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`/` (Dashboard)**   | Executive KPIs, total portfolio spend, 4-month total recovery tally (**R 2.41M**), TOU Energy kWh grid (Peak, Standard, Off-Peak & Total Energy), and period selector. |
+| **`/customers`**      | Customer account management, premise ID mapping, notified maximum demand (NMD) threshold configuration.                                                                |
+| **`/upload`**         | PDF invoice dropzone, Excel interval meter reader (`.xlsx`/`.csv`), non-lossy raw data inspector drawer, and validation engine diagnostic reports.                     |
+| **`/tariff`**         | Interactive Megaflex gazetted rate schedule lookup, voltage level selector (132kV, 33kV, 11kV), and seasonal rate comparison.                                          |
+| **`/energy`**         | Time-Of-Use energy heatmaps, diurnal load profile curves, and High vs Low season kWh split analysis.                                                                   |
+| **`/demand`**         | Maximum Demand (kVA) monitoring against NMD caps (90,000 kVA), ratchet penalty reversal calculator, and power factor penalty auditor.                                  |
+| **`/reconciliation`** | Itemized 17-line Eskom charge reconciliation table showing calculated NERSA amounts vs invoiced amounts with variance highlighting.                                    |
+| **`/trends`**         | Charge trend analytics, composed line graphs (`totalInvoice` vs `recoveryAmount`), expandable audit rationale cards, and 1-click CSV dispute package export.           |
+| **`/reports`**        | Print-ready executive financial reports, dispute summaries, and raw JSON data export tools.                                                                            |
 
 ---
 
@@ -102,18 +102,21 @@ public.processing_logs              (Upload ID, Stage, Level, Message, Timestamp
 ### Local Development Setup
 
 1. **Clone the repository**:
+
    ```bash
    git clone https://github.com/OutGlobal/eskom-invoice-reconciler.git
    cd "eskom-invoice-reconciler"
    ```
 
 2. **Install dependencies**:
+
    ```bash
    npm install
    ```
 
 3. **Configure Environment Variables**:
    Create a `.env` file in the root directory:
+
    ```env
    VITE_SUPABASE_URL="https://bramhseicmakyihvnvpo.supabase.co"
    VITE_SUPABASE_ANON_KEY="your-supabase-publishable-key"

@@ -3,9 +3,24 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Panel, NUM } from "@/components/dashboard/parts";
 import { DeterministicCalendarEngine } from "@/domain/calendar/calendarEngine";
 import { CalendarStorageService } from "@/domain/calendar/calendarStorageService";
-import type { CalendarHolidayConfig, IntervalClassificationExplanation, ExtendedDayType } from "@/domain/calendar/types";
+import type {
+  CalendarHolidayConfig,
+  IntervalClassificationExplanation,
+  ExtendedDayType,
+} from "@/domain/calendar/types";
 import { ESKOM_MEGAFLEX_2025_2026 } from "@/domain/tariff/tariffFixtures";
-import { Calendar, Clock, HelpCircle, Plus, ShieldCheck, Sun, CheckCircle, Search, Info, AlertCircle } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  HelpCircle,
+  Plus,
+  ShieldCheck,
+  Sun,
+  CheckCircle,
+  Search,
+  Info,
+  AlertCircle,
+} from "lucide-react";
 import Decimal from "decimal.js-light";
 
 export const Route = createFileRoute("/calendar")({
@@ -19,7 +34,9 @@ export function CalendarPage() {
   const [explanation, setExplanation] = useState<IntervalClassificationExplanation | null>(null);
   const [newHolidayDate, setNewHolidayDate] = useState<string>("");
   const [newHolidayName, setNewHolidayName] = useState<string>("");
-  const [newHolidayType, setNewHolidayType] = useState<"public" | "special" | "observed">("special");
+  const [newHolidayType, setNewHolidayType] = useState<"public" | "special" | "observed">(
+    "special",
+  );
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -34,7 +51,7 @@ export function CalendarPage() {
       const exp = DeterministicCalendarEngine.explainIntervalClassification(
         "2025-06-16T08:00:00Z",
         ESKOM_MEGAFLEX_2025_2026,
-        data
+        data,
       );
       setExplanation(exp);
       setIsLoading(false);
@@ -49,7 +66,7 @@ export function CalendarPage() {
       const exp = DeterministicCalendarEngine.explainIntervalClassification(
         ts,
         ESKOM_MEGAFLEX_2025_2026,
-        holidays
+        holidays,
       );
       setExplanation(exp);
     } catch (e) {
@@ -83,7 +100,11 @@ export function CalendarPage() {
   };
 
   if (isLoading) {
-    return <div className="p-8 text-center text-sm text-muted-foreground">Loading Deterministic Calendar Engine...</div>;
+    return (
+      <div className="p-8 text-center text-sm text-muted-foreground">
+        Loading Deterministic Calendar Engine...
+      </div>
+    );
   }
 
   return (
@@ -92,13 +113,16 @@ export function CalendarPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">Deterministic Calendar &amp; TOU Engine</h1>
+            <h1 className="text-xl font-semibold tracking-tight">
+              Deterministic Calendar &amp; TOU Engine
+            </h1>
             <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full">
               CONFIGURATION-DRIVEN &bull; SAST UTC+2
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Enforces strict SAST timezone determinism, holiday rules, and interval classification lineage.
+            Enforces strict SAST timezone determinism, holiday rules, and interval classification
+            lineage.
           </p>
         </div>
 
@@ -157,15 +181,17 @@ export function CalendarPage() {
               <div className="flex items-center justify-between border-b border-border pb-2">
                 <div className="flex items-center gap-2">
                   <Info className="h-4 w-4 text-primary" />
-                  <span className="font-semibold text-xs text-foreground">Interval Classification Explanation</span>
+                  <span className="font-semibold text-xs text-foreground">
+                    Interval Classification Explanation
+                  </span>
                 </div>
                 <span
                   className={`px-2 py-0.5 text-[10px] font-semibold uppercase rounded font-mono ${
                     explanation.tou_period === "peak"
                       ? "bg-red-500/10 text-red-500 border border-red-500/20"
                       : explanation.tou_period === "standard"
-                      ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
-                      : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                        ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                        : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
                   }`}
                 >
                   {explanation.tou_period} PERIOD
@@ -178,20 +204,34 @@ export function CalendarPage() {
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                 <div className="p-2 bg-background rounded border border-border">
-                  <div className="text-[10px] uppercase text-muted-foreground">Local SAST Date &amp; Time</div>
-                  <div className="font-mono font-medium text-foreground mt-0.5">{explanation.local_date} {explanation.local_time}</div>
+                  <div className="text-[10px] uppercase text-muted-foreground">
+                    Local SAST Date &amp; Time
+                  </div>
+                  <div className="font-mono font-medium text-foreground mt-0.5">
+                    {explanation.local_date} {explanation.local_time}
+                  </div>
                 </div>
                 <div className="p-2 bg-background rounded border border-border">
                   <div className="text-[10px] uppercase text-muted-foreground">Season</div>
-                  <div className="font-mono font-medium text-foreground capitalize mt-0.5">{explanation.season} Demand</div>
+                  <div className="font-mono font-medium text-foreground capitalize mt-0.5">
+                    {explanation.season} Demand
+                  </div>
                 </div>
                 <div className="p-2 bg-background rounded border border-border">
-                  <div className="text-[10px] uppercase text-muted-foreground">Day Type Classification</div>
-                  <div className="font-mono font-medium text-foreground capitalize mt-0.5">{explanation.day_type.replace("_", " ")}</div>
+                  <div className="text-[10px] uppercase text-muted-foreground">
+                    Day Type Classification
+                  </div>
+                  <div className="font-mono font-medium text-foreground capitalize mt-0.5">
+                    {explanation.day_type.replace("_", " ")}
+                  </div>
                 </div>
                 <div className="p-2 bg-background rounded border border-border">
-                  <div className="text-[10px] uppercase text-muted-foreground">Applicable Gazetted Rate</div>
-                  <div className="font-mono font-medium text-foreground mt-0.5">{explanation.applicable_rate} {explanation.unit_of_measure}</div>
+                  <div className="text-[10px] uppercase text-muted-foreground">
+                    Applicable Gazetted Rate
+                  </div>
+                  <div className="font-mono font-medium text-foreground mt-0.5">
+                    {explanation.applicable_rate} {explanation.unit_of_measure}
+                  </div>
                 </div>
               </div>
             </div>
@@ -226,8 +266,8 @@ export function CalendarPage() {
                         h.holiday_type === "special"
                           ? "bg-purple-500/10 text-purple-500"
                           : h.holiday_type === "observed"
-                          ? "bg-blue-500/10 text-blue-500"
-                          : "bg-emerald-500/10 text-emerald-500"
+                            ? "bg-blue-500/10 text-blue-500"
+                            : "bg-emerald-500/10 text-emerald-500"
                       }`}
                     >
                       {h.holiday_type.toUpperCase()}
@@ -264,7 +304,9 @@ export function CalendarPage() {
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-muted-foreground mb-1 font-medium">Holiday Date (YYYY-MM-DD):</label>
+                <label className="block text-muted-foreground mb-1 font-medium">
+                  Holiday Date (YYYY-MM-DD):
+                </label>
                 <input
                   type="date"
                   value={newHolidayDate}
@@ -274,7 +316,9 @@ export function CalendarPage() {
               </div>
 
               <div>
-                <label className="block text-muted-foreground mb-1 font-medium">Holiday Name:</label>
+                <label className="block text-muted-foreground mb-1 font-medium">
+                  Holiday Name:
+                </label>
                 <input
                   type="text"
                   value={newHolidayName}
@@ -285,7 +329,9 @@ export function CalendarPage() {
               </div>
 
               <div>
-                <label className="block text-muted-foreground mb-1 font-medium">Holiday Type:</label>
+                <label className="block text-muted-foreground mb-1 font-medium">
+                  Holiday Type:
+                </label>
                 <select
                   value={newHolidayType}
                   onChange={(e) => setNewHolidayType(e.target.value as any)}

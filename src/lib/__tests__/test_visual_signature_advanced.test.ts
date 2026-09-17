@@ -92,7 +92,7 @@ describe("Stage 27 — Advanced Visual Signature & Subtle Movement Moments", () 
     expect(interfacePreviewContent).toContain("INTERVAL_BARS");
 
     // Bars animate smoothly with staggered delay
-    expect(interfacePreviewContent).toContain("hasEnteredViewport ? `${bar.h}%` : \"0%\"");
+    expect(interfacePreviewContent).toContain('hasEnteredViewport ? `${bar.h}%` : "0%"');
     expect(interfacePreviewContent).toContain("transitionDelay");
   });
 

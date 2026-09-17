@@ -119,7 +119,7 @@ describe("Stage 24 — SEO Structure & Metadata Audit", () => {
     it("should define H3 headings under H2 in sections and footer", () => {
       const footerPath = path.join(eneraComponentsDir, "EneraFooter.tsx");
       const footerContent = fs.readFileSync(footerPath, "utf-8");
-      
+
       // Footer columns should use structured H3
       expect(footerContent).toContain("PLATFORM");
       expect(footerContent).toContain("SOLUTIONS");
@@ -137,9 +137,15 @@ describe("Stage 24 — SEO Structure & Metadata Audit", () => {
       const previewPath = path.join(eneraComponentsDir, "EneraProductInterfacePreviewSection.tsx");
       const previewContent = fs.readFileSync(previewPath, "utf-8");
       // All anomaly subcards and dossier cards should use H3
-      expect(previewContent).toMatch(/<h3[^>]*>[\s\S]*?Statutory Public Holiday Billed as Weekday Peak[\s\S]*?<\/h3>/);
-      expect(previewContent).toMatch(/<h3[^>]*>[\s\S]*?Maximum Demand Ratchet Overstatement[\s\S]*?<\/h3>/);
-      expect(previewContent).toMatch(/<h3[^>]*>[\s\S]*?Power Factor Boundary Compliant[\s\S]*?<\/h3>/);
+      expect(previewContent).toMatch(
+        /<h3[^>]*>[\s\S]*?Statutory Public Holiday Billed as Weekday Peak[\s\S]*?<\/h3>/,
+      );
+      expect(previewContent).toMatch(
+        /<h3[^>]*>[\s\S]*?Maximum Demand Ratchet Overstatement[\s\S]*?<\/h3>/,
+      );
+      expect(previewContent).toMatch(
+        /<h3[^>]*>[\s\S]*?Power Factor Boundary Compliant[\s\S]*?<\/h3>/,
+      );
       expect(previewContent).toMatch(/<h3[^>]*>[\s\S]*?Apex Precision Manufacturing[\s\S]*?<\/h3>/);
     });
   });

@@ -66,13 +66,19 @@ describe("Formal Data Governance Subsystem", () => {
     };
 
     // 1. Without explicit override, Gatekeeper MUST BLOCK reconciliation
-    const resultBlocked = DataGovernanceEngine.validateReconciliationGatekeeper([invalidTelemetryIssue], false);
+    const resultBlocked = DataGovernanceEngine.validateReconciliationGatekeeper(
+      [invalidTelemetryIssue],
+      false,
+    );
     expect(resultBlocked.isPermitted).toBe(false);
     expect(resultBlocked.blockedReason).toContain("Reconciliation Gatekeeper BLOCKED");
     expect(resultBlocked.blockingIssues.length).toBe(1);
 
     // 2. With explicit override pathway, Gatekeeper allows reconciliation with auditable log
-    const resultPermitted = DataGovernanceEngine.validateReconciliationGatekeeper([invalidTelemetryIssue], true);
+    const resultPermitted = DataGovernanceEngine.validateReconciliationGatekeeper(
+      [invalidTelemetryIssue],
+      true,
+    );
     expect(resultPermitted.isPermitted).toBe(true);
     expect(resultPermitted.blockingIssues.length).toBe(0);
   });

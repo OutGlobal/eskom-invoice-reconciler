@@ -1,6 +1,20 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Menu, X, ChevronDown, LogIn, Shield, Zap, Scale, FileText, Building2, Factory, Landmark, Building } from "lucide-react";
+import {
+  ArrowRight,
+  Menu,
+  X,
+  ChevronDown,
+  LogIn,
+  Shield,
+  Zap,
+  Scale,
+  FileText,
+  Building2,
+  Factory,
+  Landmark,
+  Building,
+} from "lucide-react";
 import { useSupabaseSession } from "@/components/AuthGate";
 
 interface DropdownItem {
@@ -167,7 +181,9 @@ export function EneraNav() {
                 aria-controls="products-menu"
               >
                 <span>Products</span>
-                <ChevronDown className={`h-3 w-3 transition-transform ${activeDropdown === "products" ? "rotate-180 text-cyan-400" : "text-slate-400"}`} />
+                <ChevronDown
+                  className={`h-3 w-3 transition-transform ${activeDropdown === "products" ? "rotate-180 text-cyan-400" : "text-slate-400"}`}
+                />
               </a>
 
               {activeDropdown === "products" && (
@@ -219,7 +235,9 @@ export function EneraNav() {
                 aria-controls="solutions-menu"
               >
                 <span>Solutions</span>
-                <ChevronDown className={`h-3 w-3 transition-transform ${activeDropdown === "solutions" ? "rotate-180 text-cyan-400" : "text-slate-400"}`} />
+                <ChevronDown
+                  className={`h-3 w-3 transition-transform ${activeDropdown === "solutions" ? "rotate-180 text-cyan-400" : "text-slate-400"}`}
+                />
               </a>
 
               {activeDropdown === "solutions" && (

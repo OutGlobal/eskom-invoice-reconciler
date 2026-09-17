@@ -4,10 +4,10 @@ import * as path from "path";
 
 /**
  * Test Suite: STAGE 21 — RESPONSIVE DESIGN
- * 
+ *
  * Verifies responsive design rules across the 9 required viewports:
  * 320px, 375px, 390px, 430px, 768px, 1024px, 1280px, 1440px, 1920px.
- * 
+ *
  * Requirements:
  * 1. Mobile is not desktop squeezed smaller.
  * 2. Reduce animation and decorative effects on mobile.
@@ -48,7 +48,10 @@ describe("STAGE 21: Responsive Design Across 9 Viewports", () => {
   });
 
   describe("EneraHeroCanvas: Mobile Battery & Animation Conservation", () => {
-    const canvasPath = path.resolve(__dirname, "../../../src/components/landing/enera/EneraHeroCanvas.tsx");
+    const canvasPath = path.resolve(
+      __dirname,
+      "../../../src/components/landing/enera/EneraHeroCanvas.tsx",
+    );
     const canvasContent = fs.readFileSync(canvasPath, "utf8");
 
     it("hides canvas on mobile viewports", () => {
@@ -76,7 +79,10 @@ describe("STAGE 21: Responsive Design Across 9 Viewports", () => {
   });
 
   describe("EneraHeroSection: Responsive Hierarchy & Accessible CTAs", () => {
-    const heroPath = path.resolve(__dirname, "../../../src/components/landing/enera/EneraHeroSection.tsx");
+    const heroPath = path.resolve(
+      __dirname,
+      "../../../src/components/landing/enera/EneraHeroSection.tsx",
+    );
     const heroContent = fs.readFileSync(heroPath, "utf8");
 
     it("scales typography responsively from 320px to desktop", () => {
@@ -96,7 +102,10 @@ describe("STAGE 21: Responsive Design Across 9 Viewports", () => {
   });
 
   describe("EneraCopilotSection: Clean Grid Stacking on Mobile", () => {
-    const copilotPath = path.resolve(__dirname, "../../../src/components/landing/enera/EneraCopilotSection.tsx");
+    const copilotPath = path.resolve(
+      __dirname,
+      "../../../src/components/landing/enera/EneraCopilotSection.tsx",
+    );
     const copilotContent = fs.readFileSync(copilotPath, "utf8");
 
     it("stacks 6-stage flow into a single column on 320px screens", () => {
@@ -109,7 +118,10 @@ describe("STAGE 21: Responsive Design Across 9 Viewports", () => {
   });
 
   describe("EneraProductInterfacePreviewSection: Responsive Metrics Grid", () => {
-    const previewPath = path.resolve(__dirname, "../../../src/components/landing/enera/EneraProductInterfacePreviewSection.tsx");
+    const previewPath = path.resolve(
+      __dirname,
+      "../../../src/components/landing/enera/EneraProductInterfacePreviewSection.tsx",
+    );
     const previewContent = fs.readFileSync(previewPath, "utf8");
 
     it("stacks dashboard metrics to 1 column on 320px to prevent text clipping", () => {
@@ -122,7 +134,10 @@ describe("STAGE 21: Responsive Design Across 9 Viewports", () => {
   });
 
   describe("EneraContactSection: Accessible Form Controls & Touch Targets", () => {
-    const contactPath = path.resolve(__dirname, "../../../src/components/landing/enera/EneraContactSection.tsx");
+    const contactPath = path.resolve(
+      __dirname,
+      "../../../src/components/landing/enera/EneraContactSection.tsx",
+    );
     const contactContent = fs.readFileSync(contactPath, "utf8");
 
     it("ensures inputs, selects, and submit buttons have min-h-[44px] touch targets", () => {
@@ -137,7 +152,10 @@ describe("STAGE 21: Responsive Design Across 9 Viewports", () => {
   });
 
   describe("EneraFooter: Clean Stacking on 320px Screens", () => {
-    const footerPath = path.resolve(__dirname, "../../../src/components/landing/enera/EneraFooter.tsx");
+    const footerPath = path.resolve(
+      __dirname,
+      "../../../src/components/landing/enera/EneraFooter.tsx",
+    );
     const footerContent = fs.readFileSync(footerPath, "utf8");
 
     it("stacks footer navigation to a single column on 320px screens", () => {

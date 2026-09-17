@@ -1,4 +1,11 @@
-import { Building2, MapPin, TrendingUp, CheckCircle2, AlertTriangle, ShieldCheck } from "lucide-react";
+import {
+  Building2,
+  MapPin,
+  TrendingUp,
+  CheckCircle2,
+  AlertTriangle,
+  ShieldCheck,
+} from "lucide-react";
 
 interface SiteCard {
   city: string;
@@ -73,7 +80,8 @@ export function MultiSiteSection() {
             One View. Every Site. Every Meter. Every Rand.
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Centralize utility billing reconciliation across multi-province industrial, commercial, and municipal portfolios.
+            Centralize utility billing reconciliation across multi-province industrial, commercial,
+            and municipal portfolios.
           </p>
         </div>
 
@@ -117,9 +125,7 @@ export function MultiSiteSection() {
                   <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors">
                     {site.city}
                   </h3>
-                  <div className="text-[11px] text-muted-foreground truncate">
-                    {site.facility}
-                  </div>
+                  <div className="text-[11px] text-muted-foreground truncate">{site.facility}</div>
                 </div>
 
                 <span
@@ -127,8 +133,8 @@ export function MultiSiteSection() {
                     site.statusBadge === "clean"
                       ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                       : site.statusBadge === "action"
-                      ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                      : "bg-red-500/10 text-red-400 border border-red-500/20"
+                        ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                        : "bg-red-500/10 text-red-400 border border-red-500/20"
                   }`}
                 >
                   {site.statusBadge === "clean" ? "PASS" : `${site.anomaliesCount} ANOMALIES`}

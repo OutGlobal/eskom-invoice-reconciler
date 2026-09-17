@@ -20,27 +20,13 @@ export type QualityStateCategory =
   | "UNEXPLAINED_INVOICE_VAL"
   | "EXTRACTION_CONFIDENCE_FAILURE";
 
-export type IssueSourceType =
-  | "INVOICE"
-  | "METER"
-  | "TELEMETRY_BATCH"
-  | "SITE"
-  | "RECONCILIATION";
+export type IssueSourceType = "INVOICE" | "METER" | "TELEMETRY_BATCH" | "SITE" | "RECONCILIATION";
 
 export type IssueSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
-export type ResolutionStatus =
-  | "UNRESOLVED"
-  | "UNDER_REVIEW"
-  | "RESOLVED"
-  | "EXPLICITLY_OVERRIDDEN";
+export type ResolutionStatus = "UNRESOLVED" | "UNDER_REVIEW" | "RESOLVED" | "EXPLICITLY_OVERRIDDEN";
 
-export type EntityQualityType =
-  | "invoice"
-  | "meter"
-  | "telemetry_batch"
-  | "site"
-  | "reconciliation";
+export type EntityQualityType = "invoice" | "meter" | "telemetry_batch" | "site" | "reconciliation";
 
 export interface EntityQualityScore {
   entity_type: EntityQualityType;

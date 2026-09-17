@@ -178,8 +178,8 @@ export function HeroSection({ onAnalyseClick }: HeroSectionProps) {
                           isCurrent
                             ? "bg-gradient-to-r from-primary to-cyan-400 shadow-sm shadow-primary"
                             : isDone
-                            ? "bg-emerald-500/60"
-                            : "bg-muted/40"
+                              ? "bg-emerald-500/60"
+                              : "bg-muted/40"
                         }`}
                         title={stage.label}
                       />
@@ -214,7 +214,9 @@ export function HeroSection({ onAnalyseClick }: HeroSectionProps) {
                   </div>
 
                   <div className="p-2.5 rounded-lg bg-card/60 border border-border/40 space-y-0.5">
-                    <div className="text-[10px] font-mono text-muted-foreground">EXPECTED VALUE</div>
+                    <div className="text-[10px] font-mono text-muted-foreground">
+                      EXPECTED VALUE
+                    </div>
                     <div className="text-base sm:text-lg font-mono font-bold text-emerald-400">
                       R 791,204
                     </div>
@@ -243,7 +245,9 @@ export function HeroSection({ onAnalyseClick }: HeroSectionProps) {
                 </div>
 
                 <div className="p-2.5 rounded-lg bg-background/50 border border-border/50 space-y-1">
-                  <div className="text-[10px] text-muted-foreground font-mono">Actual kWh (AMR)</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    Actual kWh (AMR)
+                  </div>
                   <div className="font-mono font-bold text-emerald-400">4,087,214</div>
                   <div className="text-[9px] text-emerald-500">30-min Check Meter</div>
                 </div>

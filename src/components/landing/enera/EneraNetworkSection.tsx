@@ -640,11 +640,7 @@ export function EneraNetworkSection() {
 
       {/* Section Header */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 text-center mb-12">
-        <EnginePhaseTag
-          phase="03"
-          name="UNDERSTANDING"
-          sub="LIVE GRID TOPOLOGY MATRIX"
-        />
+        <EnginePhaseTag phase="03" name="UNDERSTANDING" sub="LIVE GRID TOPOLOGY MATRIX" />
 
         <h2 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight enera-text-gradient leading-tight">
           ONE PLATFORM.
@@ -653,9 +649,9 @@ export function EneraNetworkSection() {
         </h2>
 
         <p className="mt-5 text-base sm:text-lg text-slate-300 font-light max-w-3xl mx-auto leading-relaxed">
-          ENERA connects relevant billing, consumption, and tariff signals across your enterprise. Hover
-          any dimension to explore how billing and consumption information interact to surface unusual
-          patterns and identify material differences.
+          ENERA connects relevant billing, consumption, and tariff signals across your enterprise.
+          Hover any dimension to explore how billing and consumption information interact to surface
+          unusual patterns and identify material differences.
         </p>
       </div>
 

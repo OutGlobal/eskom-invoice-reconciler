@@ -58,7 +58,10 @@ describe("Stage 25 — Page Structure Sequence Verification", () => {
     });
 
     it("Step 3 & 4 (Intro & Core Capabilities): Should contain 'FROM ENERGY DATA TO DECISION.' and RECONCILE, UNDERSTAND, DETECT, ACT", () => {
-      const capContent = fs.readFileSync(path.join(eneraDir, "EneraCapabilitiesSection.tsx"), "utf-8");
+      const capContent = fs.readFileSync(
+        path.join(eneraDir, "EneraCapabilitiesSection.tsx"),
+        "utf-8",
+      );
       expect(capContent).toContain("FROM ENERGY DATA TO DECISION");
       expect(capContent).toContain("RECONCILE");
       expect(capContent).toContain("UNDERSTAND");
@@ -67,7 +70,10 @@ describe("Stage 25 — Page Structure Sequence Verification", () => {
     });
 
     it("Step 5 (Platform Capabilities): Should include Billing, Energy, Tariff, Demand, Anomaly, Reporting, Multi-site", () => {
-      const signalsContent = fs.readFileSync(path.join(eneraDir, "EneraProductSignalsSection.tsx"), "utf-8");
+      const signalsContent = fs.readFileSync(
+        path.join(eneraDir, "EneraProductSignalsSection.tsx"),
+        "utf-8",
+      );
       expect(signalsContent).toContain("BILLING");
       expect(signalsContent).toContain("ENERGY");
       expect(signalsContent).toContain("TARIFF");
@@ -78,12 +84,18 @@ describe("Stage 25 — Page Structure Sequence Verification", () => {
     });
 
     it("Step 6 (Product Visual): Should contain 'SEE THE SIGNAL BEHIND THE NUMBER.'", () => {
-      const previewContent = fs.readFileSync(path.join(eneraDir, "EneraProductInterfacePreviewSection.tsx"), "utf-8");
+      const previewContent = fs.readFileSync(
+        path.join(eneraDir, "EneraProductInterfacePreviewSection.tsx"),
+        "utf-8",
+      );
       expect(previewContent).toContain("SEE THE SIGNAL BEHIND THE NUMBER.");
     });
 
     it("Step 7 (How It Works): Should contain CONNECT, ANALYSE, UNDERSTAND, ACT", () => {
-      const howContent = fs.readFileSync(path.join(eneraDir, "EneraBillSignalSection.tsx"), "utf-8");
+      const howContent = fs.readFileSync(
+        path.join(eneraDir, "EneraBillSignalSection.tsx"),
+        "utf-8",
+      );
       expect(howContent).toContain("CONNECT");
       expect(howContent).toContain("ANALYSE");
       expect(howContent).toContain("UNDERSTAND");
@@ -105,7 +117,10 @@ describe("Stage 25 — Page Structure Sequence Verification", () => {
     });
 
     it("Step 10 (Financial Intelligence): Should contain 'SEE THE FINANCIAL SIGNAL.'", () => {
-      const copilotContent = fs.readFileSync(path.join(eneraDir, "EneraCopilotSection.tsx"), "utf-8");
+      const copilotContent = fs.readFileSync(
+        path.join(eneraDir, "EneraCopilotSection.tsx"),
+        "utf-8",
+      );
       expect(copilotContent).toContain("SEE THE FINANCIAL SIGNAL.");
     });
 

@@ -42,11 +42,15 @@ export class EstimationFrameworkEngine {
     if (method === "LINEAR_INTERPOLATION") {
       const prev = surroundingIntervals
         .filter((i) => new Date(i.timestamp_utc).getTime() < targetMs)
-        .sort((a, b) => new Date(b.timestamp_utc).getTime() - new Date(a.timestamp_utc).getTime())[0];
+        .sort(
+          (a, b) => new Date(b.timestamp_utc).getTime() - new Date(a.timestamp_utc).getTime(),
+        )[0];
 
       const next = surroundingIntervals
         .filter((i) => new Date(i.timestamp_utc).getTime() > targetMs)
-        .sort((a, b) => new Date(a.timestamp_utc).getTime() - new Date(b.timestamp_utc).getTime())[0];
+        .sort(
+          (a, b) => new Date(a.timestamp_utc).getTime() - new Date(b.timestamp_utc).getTime(),
+        )[0];
 
       if (prev && next) {
         const tPrev = new Date(prev.timestamp_utc).getTime();
@@ -61,12 +65,12 @@ export class EstimationFrameworkEngine {
         defaultReason = `Linear interpolation between ${prev.timestamp_utc} (${prev.engineering_value} kWh) and ${next.timestamp_utc} (${next.engineering_value} kWh)`;
       } else if (prev) {
         estimatedVal = prev.engineering_value;
-        confidence = 0.80;
+        confidence = 0.8;
         sourceTimestamps = [prev.timestamp_utc];
         defaultReason = `Forward-fill fallback from ${prev.timestamp_utc}`;
       } else {
         estimatedVal = 50.0; // Minimal baseline
-        confidence = 0.60;
+        confidence = 0.6;
         defaultReason = "Baseline fallback (insufficient surrounding intervals)";
       }
     } else if (method === "SAME_DAY_PRIOR_WEEK") {
@@ -77,12 +81,12 @@ export class EstimationFrameworkEngine {
 
       if (priorMatch) {
         estimatedVal = priorMatch.engineering_value;
-        confidence = 0.90;
+        confidence = 0.9;
         sourceTimestamps = [priorMatch.timestamp_utc];
         defaultReason = `Same-day prior week telemetry reference from ${priorMatch.timestamp_utc}`;
       } else {
         estimatedVal = 45.0;
-        confidence = 0.70;
+        confidence = 0.7;
         defaultReason = "Prior week interval missing, default profile applied";
       }
     } else {
@@ -96,7 +100,7 @@ export class EstimationFrameworkEngine {
         defaultReason = `30-day historical median across ${validVals.length} valid telemetry samples`;
       } else {
         estimatedVal = 50.0;
-        confidence = 0.60;
+        confidence = 0.6;
         defaultReason = "Historical median baseline fallback";
       }
     }

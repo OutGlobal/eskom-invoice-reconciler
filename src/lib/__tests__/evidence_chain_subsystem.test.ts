@@ -46,7 +46,10 @@ export function runEvidenceSubsystemTests() {
   for (const node of chain!.nodes) {
     assert(Boolean(node.node_id), `Node ${node.node_type} has a valid node_id`);
     assert(Boolean(node.stable_object_id), `Node ${node.node_type} has a stable_object_id`);
-    assert(node.sequence_index >= 1 && node.sequence_index <= 12, `Node ${node.node_type} sequence_index is valid`);
+    assert(
+      node.sequence_index >= 1 && node.sequence_index <= 12,
+      `Node ${node.node_type} sequence_index is valid`,
+    );
   }
 
   // Test 2: Calculation audit fields
@@ -57,8 +60,14 @@ export function runEvidenceSubsystemTests() {
   assert(Boolean(calcData.formula), "Calculation displays formula");
   assert(Boolean(calcData.rate), "Calculation displays rate");
   assert(Boolean(calcData.units), "Calculation displays units");
-  assert(calcData.precision.includes("Decimal.js-light"), "Calculation precision specifies Decimal.js-light");
-  assert(calcData.rounding === "Decimal.ROUND_HALF_UP (2 decimals)", "Calculation rounding specifies Decimal.ROUND_HALF_UP");
+  assert(
+    calcData.precision.includes("Decimal.js-light"),
+    "Calculation precision specifies Decimal.js-light",
+  );
+  assert(
+    calcData.rounding === "Decimal.ROUND_HALF_UP (2 decimals)",
+    "Calculation rounding specifies Decimal.ROUND_HALF_UP",
+  );
   assert(Boolean(calcData.output), "Calculation displays output");
   assert(calcData.engine_version === "2.0.0", "Calculation engine version is 2.0.0");
 
@@ -115,7 +124,10 @@ export function runEvidenceSubsystemTests() {
   assert(chainAuth !== null, "Authorized tenant context permits access to evidence chain");
 
   const chainUnauth = EvidenceChainEngine.buildChain("VAR-PEAK-001", "RUN-01", unauthorizedContext);
-  assert(chainUnauth === null, "Unauthorized tenant context blocks access to evidence chain (returns null)");
+  assert(
+    chainUnauth === null,
+    "Unauthorized tenant context blocks access to evidence chain (returns null)",
+  );
 
   console.log("=== NAVIGABLE 12-NODE EVIDENCE EXPLORER TESTS PASSED ===\n");
 }
@@ -123,4 +135,3 @@ export function runEvidenceSubsystemTests() {
 if (process.argv[1]?.includes("evidence_chain_subsystem")) {
   runEvidenceSubsystemTests();
 }
-

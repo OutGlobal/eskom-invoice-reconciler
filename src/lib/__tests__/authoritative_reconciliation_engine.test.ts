@@ -1,7 +1,13 @@
 import { describe, it, expect } from "vitest";
 import Decimal from "decimal.js-light";
-import { DeterministicReconciliationEngine, DEFAULT_TOLERANCE_CONFIG } from "@/domain/reconciliation/reconciliationEngine";
-import { MEGAFLEX_JULY_2025_FIXTURE, MINIFLEX_OCT_2025_FIXTURE } from "@/domain/reconciliation/regressionFixtures";
+import {
+  DeterministicReconciliationEngine,
+  DEFAULT_TOLERANCE_CONFIG,
+} from "@/domain/reconciliation/reconciliationEngine";
+import {
+  MEGAFLEX_JULY_2025_FIXTURE,
+  MINIFLEX_OCT_2025_FIXTURE,
+} from "@/domain/reconciliation/regressionFixtures";
 
 describe("Authoritative Deterministic Reconciliation Engine", () => {
   it("should reconcile all 14 billing determinants deterministically for Megaflex July 2025 fixture", () => {
@@ -115,7 +121,10 @@ describe("Authoritative Deterministic Reconciliation Engine", () => {
       billed_total_invoice_zar: inv.total_invoice_zar.plus(57500),
     };
 
-    const payload = DeterministicReconciliationEngine.reconcile(inputWithDiscrepancy, DEFAULT_TOLERANCE_CONFIG);
+    const payload = DeterministicReconciliationEngine.reconcile(
+      inputWithDiscrepancy,
+      DEFAULT_TOLERANCE_CONFIG,
+    );
 
     expect(payload.classification).toBe("CRITICAL");
     expect(payload.status).toBe("REVIEW_REQUIRED");

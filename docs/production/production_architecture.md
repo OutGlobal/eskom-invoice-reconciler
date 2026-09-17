@@ -5,7 +5,7 @@
 The **Eskom Bill Balancer** is an enterprise-grade utility billing reconciliation and telemetry analysis platform deployed across a hybrid Cloudflare Workers / Nitro SSR Edge layer and a Supabase PostgreSQL backend.
 
 ```
-[ BROWSER / CLIENT ] 
+[ BROWSER / CLIENT ]
        │
        ▼ (HTTPS / TLS 1.3)
 [ CLOUDFLARE WORKERS EDGE (SSR / Nitro Engine) ]
@@ -23,11 +23,13 @@ The **Eskom Bill Balancer** is an enterprise-grade utility billing reconciliatio
 ## 2. Infrastructure Components
 
 ### A. Edge Application Layer (Cloudflare Workers / Nitro SSR)
+
 - **Runtime:** Cloudflare Module Worker with Nitro SSR bundling.
 - **Framework:** React 18, TanStack Router (SSR), TanStack Query, Tailwind CSS.
 - **Client Processing:** Browser-side Web Streams for AMR telemetry streaming ingestion, Tesseract OCR for PDF invoice parsing, and PDFKit/ExcelJS for client-side dispute pack export.
 
 ### B. Relational Database Layer (Supabase PostgreSQL)
+
 - **Host:** AWS eu-central-1 (Frankfurt) / Supabase Dedicated Pool.
 - **Tables & Views:**
   - `organisations`, `users`, `sites`, `meters` (Core Entities)
@@ -37,6 +39,7 @@ The **Eskom Bill Balancer** is an enterprise-grade utility billing reconciliatio
   - `audit_ledger`, `processing_logs` (Append-Only Cryptographic Traces)
 
 ### C. Object Storage Layer (Supabase S3 Storage)
+
 - **Buckets:**
   - `invoices`: Encrypted tax invoice PDF uploads.
   - `amr-telemetry`: Raw vendor CSV/XLSX AMR telemetry dumps.

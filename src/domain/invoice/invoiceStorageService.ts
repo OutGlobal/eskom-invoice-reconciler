@@ -7,11 +7,7 @@
 import { supabase } from "../../lib/supabase";
 import type { UserSecurityContext } from "../security/types";
 import { TenantIsolationViolationError } from "../security/tenantContextService";
-import type {
-  ExtractedInvoiceDocument,
-  InvoiceLifecycleState,
-  InvoiceHeaderMeta,
-} from "./types";
+import type { ExtractedInvoiceDocument, InvoiceLifecycleState, InvoiceHeaderMeta } from "./types";
 import { InvoiceLifecycleService } from "./invoiceLifecycleService";
 
 export interface InvoiceSearchFilter {
@@ -81,7 +77,9 @@ export class InvoiceStorageService {
         doc.billing_period_start.value || new Date().toISOString().substring(0, 10);
       const billingEnd = doc.billing_period_end.value || new Date().toISOString().substring(0, 10);
 
-      const initialState = doc.lifecycle_state || InvoiceLifecycleService.determineInitialState(doc, doc.validation_summary);
+      const initialState =
+        doc.lifecycle_state ||
+        InvoiceLifecycleService.determineInitialState(doc, doc.validation_summary);
 
       const recordPayload = {
         invoice_number: invoiceNumber,

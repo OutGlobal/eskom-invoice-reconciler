@@ -23,12 +23,7 @@ export type DiscrepancyCode =
 export type DiscrepancySeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
 export type DiscrepancyStatus =
-  | "OPEN"
-  | "UNDER_REVIEW"
-  | "CONFIRMED"
-  | "DISPUTED"
-  | "RESOLVED"
-  | "REJECTED";
+  "OPEN" | "UNDER_REVIEW" | "CONFIRMED" | "DISPUTED" | "RESOLVED" | "REJECTED";
 
 export interface RootCauseChainStep {
   step: number;

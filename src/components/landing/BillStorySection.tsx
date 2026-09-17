@@ -157,9 +157,7 @@ export function BillStorySection() {
                         {sec.checkTitle}
                       </div>
                     </div>
-                    <div className="font-bold text-right text-foreground">
-                      {sec.billedAmount}
-                    </div>
+                    <div className="font-bold text-right text-foreground">{sec.billedAmount}</div>
                   </div>
                 );
               })}
@@ -187,15 +185,15 @@ export function BillStorySection() {
                     current.status === "discrepancy"
                       ? "bg-red-500/10 text-red-400 border border-red-500/25"
                       : current.status === "warning"
-                      ? "bg-amber-500/10 text-amber-400 border border-amber-500/25"
-                      : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/25"
+                        ? "bg-amber-500/10 text-amber-400 border border-amber-500/25"
+                        : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/25"
                   }`}
                 >
                   {current.status === "discrepancy"
                     ? "OVERCHARGE DISCREPANCY"
                     : current.status === "warning"
-                    ? "OPERATIONAL WARNING"
-                    : "VERIFIED ACCURATE"}
+                      ? "OPERATIONAL WARNING"
+                      : "VERIFIED ACCURATE"}
                 </span>
               </div>
 

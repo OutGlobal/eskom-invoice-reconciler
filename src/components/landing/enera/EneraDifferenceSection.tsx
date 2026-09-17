@@ -169,31 +169,32 @@ export function EneraDifferenceSection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-400 font-light leading-relaxed max-w-3xl mb-8">
-          Deterministic line-item comparison between billed utility registers and raw half-hour AMR telemetry to isolate unearned charges before settlement.
+          Deterministic line-item comparison between billed utility registers and raw half-hour AMR
+          telemetry to isolate unearned charges before settlement.
         </p>
 
         {/* Metric Selector Pills */}
         <div className="mb-10 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-            {(["active", "demand", "reactive"] as const).map((key) => {
-              const item = RECONCILIATION_DATA[key];
-              const isSelected = activeMetric === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setActiveMetric(key)}
-                  className={`px-4 py-2 rounded-lg text-xs font-mono transition-all border shrink-0 flex items-center gap-2 ${
-                    isSelected
-                      ? "bg-cyan-950/40 text-cyan-300 border-cyan-500/40 font-semibold"
-                      : "bg-[#0b101b] text-slate-400 border-white/5 hover:text-white hover:border-white/20"
-                  }`}
-                >
-                  <item.icon className="h-3.5 w-3.5" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          {(["active", "demand", "reactive"] as const).map((key) => {
+            const item = RECONCILIATION_DATA[key];
+            const isSelected = activeMetric === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setActiveMetric(key)}
+                className={`px-4 py-2 rounded-lg text-xs font-mono transition-all border shrink-0 flex items-center gap-2 ${
+                  isSelected
+                    ? "bg-cyan-950/40 text-cyan-300 border-cyan-500/40 font-semibold"
+                    : "bg-[#0b101b] text-slate-400 border-white/5 hover:text-white hover:border-white/20"
+                }`}
+              >
+                <item.icon className="h-3.5 w-3.5" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
         {/* Top Quantitative Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -211,9 +212,7 @@ export function EneraDifferenceSection() {
               <div className="text-3xl sm:text-4xl font-mono font-semibold text-slate-200">
                 {dataset.billedSummary}
               </div>
-              <span className="text-xs font-mono text-slate-400 mt-1 block">
-                {dataset.unit}
-              </span>
+              <span className="text-xs font-mono text-slate-400 mt-1 block">{dataset.unit}</span>
             </div>
             <span className="text-[10px] font-mono text-slate-500 truncate">
               {dataset.accountReference}
@@ -234,9 +233,7 @@ export function EneraDifferenceSection() {
               <div className="text-3xl sm:text-4xl font-mono font-semibold text-cyan-300">
                 {dataset.actualSummary}
               </div>
-              <span className="text-xs font-mono text-cyan-400/80 mt-1 block">
-                {dataset.unit}
-              </span>
+              <span className="text-xs font-mono text-cyan-400/80 mt-1 block">{dataset.unit}</span>
             </div>
             <span className="text-[10px] font-mono text-cyan-400/70 truncate">
               {dataset.meterReference}
@@ -259,9 +256,7 @@ export function EneraDifferenceSection() {
                 {dataset.unit} Discrepancy
               </span>
             </div>
-            <span className="text-[10px] font-mono text-amber-400/70">
-              UNRECONCILED DELTA
-            </span>
+            <span className="text-[10px] font-mono text-amber-400/70">UNRECONCILED DELTA</span>
           </div>
 
           {/* 4. Financial Impact Card */}
@@ -295,9 +290,7 @@ export function EneraDifferenceSection() {
                 Granular Interval Determinant Breakdown
               </h3>
             </div>
-            <span className="text-[11px] font-mono text-slate-400">
-              {dataset.statutoryNotice}
-            </span>
+            <span className="text-[11px] font-mono text-slate-400">{dataset.statutoryNotice}</span>
           </div>
 
           <div className="overflow-x-auto">
@@ -344,7 +337,9 @@ export function EneraDifferenceSection() {
           <div className="px-6 py-4 border-t border-white/10 bg-white/[0.01] flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-400">
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-emerald-400" />
-              <span>Deterministic Verification Complete • NERSA Tariff Gazette 2025/26 Ref. #ZA-NR-25</span>
+              <span>
+                Deterministic Verification Complete • NERSA Tariff Gazette 2025/26 Ref. #ZA-NR-25
+              </span>
             </div>
 
             <Link

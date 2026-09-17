@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  Activity,
-  Calculator,
-  Building2,
-  ShieldCheck,
-  TrendingUp,
-  ArrowRight,
-} from "lucide-react";
+import { Activity, Calculator, Building2, ShieldCheck, TrendingUp, ArrowRight } from "lucide-react";
 
 interface AudienceCard {
   title: string;
@@ -66,7 +59,8 @@ export function EneraAudienceSection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-14">
-          Designed for cross-functional teams responsible for energy procurement, financial governance, and physical facility operations.
+          Designed for cross-functional teams responsible for energy procurement, financial
+          governance, and physical facility operations.
         </p>
 
         {/* 4. Visual or capability: 5 Clean Audience Cards */}
@@ -115,7 +109,8 @@ export function EneraAudienceSection() {
               Intelligence on any device, anywhere.
             </h3>
             <p className="text-slate-300 text-sm sm:text-base leading-relaxed mb-6 font-light">
-              Monitor peak demand kVA, track Time-of-Use consumption, and receive immediate anomaly notices on your phone before utility bills are finalized.
+              Monitor peak demand kVA, track Time-of-Use consumption, and receive immediate anomaly
+              notices on your phone before utility bills are finalized.
             </p>
             <div className="grid grid-cols-2 gap-4 text-xs font-mono text-slate-300">
               <div className="p-3.5 rounded-lg bg-white/5 border border-white/10">
@@ -132,7 +127,9 @@ export function EneraAudienceSection() {
 
         {/* 5. Supporting info & 6. Progressive CTA */}
         <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
-          <span>Role-based access controls and customized views tailored to each operational mandate.</span>
+          <span>
+            Role-based access controls and customized views tailored to each operational mandate.
+          </span>
           <a
             href="#how-it-works"
             className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 font-semibold transition-colors focus-ring-enera shrink-0"

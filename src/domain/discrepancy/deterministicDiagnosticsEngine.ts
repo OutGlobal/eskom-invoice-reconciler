@@ -6,7 +6,10 @@
  */
 
 import Decimal from "decimal.js-light";
-import type { AuthoritativeReconciliationPayload, LineItemComparisonResult } from "../reconciliation/types";
+import type {
+  AuthoritativeReconciliationPayload,
+  LineItemComparisonResult,
+} from "../reconciliation/types";
 import type {
   DiscrepancyRecord,
   DiscrepancyCode,
@@ -293,7 +296,8 @@ export class DeterministicDiagnosticsEngine {
     const recon = ctx.reconciliationRun;
     if (!recon) return;
 
-    const comparisons: LineItemComparisonResult[] = recon.comparisons || (recon as any).results || [];
+    const comparisons: LineItemComparisonResult[] =
+      recon.comparisons || (recon as any).results || [];
     const discrepancies: any[] = recon.discrepancies || (recon as any).discrepancy_events || [];
 
     // 1. INCORRECT_TOU_SCHEDULE
@@ -456,7 +460,8 @@ export class DeterministicDiagnosticsEngine {
     const recon = ctx.reconciliationRun;
     if (!recon) return;
 
-    const comparisons: LineItemComparisonResult[] = recon.comparisons || (recon as any).results || [];
+    const comparisons: LineItemComparisonResult[] =
+      recon.comparisons || (recon as any).results || [];
     const discrepancies: any[] = recon.discrepancies || (recon as any).discrepancy_events || [];
 
     // 1. INCORRECT_DEMAND_DETERMINANT
@@ -572,7 +577,8 @@ export class DeterministicDiagnosticsEngine {
     const recon = ctx.reconciliationRun;
     if (!recon) return;
 
-    const comparisons: LineItemComparisonResult[] = recon.comparisons || (recon as any).results || [];
+    const comparisons: LineItemComparisonResult[] =
+      recon.comparisons || (recon as any).results || [];
 
     // 1. NETWORK_CHARGE_MISMATCH
     const netItem = comparisons.find(
@@ -744,32 +750,41 @@ export class DeterministicDiagnosticsEngine {
         code = "TOU-001";
         category = "Time-of-Use Allocation";
         severity = absVar.gt(1000) ? "CRITICAL" : "HIGH";
-        recAction = "Re-align AMR 30-min interval TOU clock schedules against gazetted public holiday exception calendar.";
-      } else if (comp.determinant_code.includes("DEMAND") || comp.determinant_code.includes("RATCHET")) {
+        recAction =
+          "Re-align AMR 30-min interval TOU clock schedules against gazetted public holiday exception calendar.";
+      } else if (
+        comp.determinant_code.includes("DEMAND") ||
+        comp.determinant_code.includes("RATCHET")
+      ) {
         code = "DEM-001";
         category = "Demand & Capacity";
         severity = "CRITICAL";
-        recAction = "Audit 30-minute peak kVA demand interval and verify Notified Maximum Demand (NMD) contract threshold.";
+        recAction =
+          "Audit 30-minute peak kVA demand interval and verify Notified Maximum Demand (NMD) contract threshold.";
       } else if (comp.determinant_code.includes("REACTIVE")) {
         code = "REA-001";
         category = "Reactive Power";
         severity = "MEDIUM";
-        recAction = "Inspect power factor lagging threshold (0.95) and verify excess kVARh penalty calculation.";
+        recAction =
+          "Inspect power factor lagging threshold (0.95) and verify excess kVARh penalty calculation.";
       } else if (comp.determinant_code.includes("NETWORK")) {
         code = "NET-001";
         category = "Network & Transmission";
         severity = "HIGH";
-        recAction = "Verify transmission zone distance (<300km) and distribution voltage category rates.";
+        recAction =
+          "Verify transmission zone distance (<300km) and distribution voltage category rates.";
       } else if (comp.determinant_code.includes("VAT")) {
         code = "VAT-001";
         category = "Tax Settlement";
         severity = "HIGH";
-        recAction = "Verify 15.00% VAT calculation against standard-rated vs zero-rated subtotal charge line items.";
+        recAction =
+          "Verify 15.00% VAT calculation against standard-rated vs zero-rated subtotal charge line items.";
       } else if (comp.determinant_code.includes("TOTAL")) {
         code = "TAR-001";
         category = "Tariff Rate Structure";
         severity = "CRITICAL";
-        recAction = "Check if active gazetted NERSA tariff schedule version matches invoice billing period.";
+        recAction =
+          "Check if active gazetted NERSA tariff schedule version matches invoice billing period.";
       }
 
       // Root Cause Chain Propagation
@@ -851,19 +866,97 @@ export class DeterministicDiagnosticsEngine {
    * Helper method to generate sample records for all 12 system discrepancy codes
    */
   public static generateAllCodesSample(): DiscrepancyRecord[] {
-    const codes: Array<{ code: DiscrepancyCode; name: string; cat: string; sev: DiscrepancySeverity; zar: string }> = [
-      { code: "TAR-001", name: "Tariff Mismatch", cat: "Tariff Schedule", sev: "CRITICAL", zar: "44587.50" },
-      { code: "DEM-001", name: "Demand Discrepancy", cat: "Demand & Capacity", sev: "CRITICAL", zar: "14250.00" },
-      { code: "MUL-001", name: "Meter Multiplier Discrepancy", cat: "Meter Master Data", sev: "HIGH", zar: "22100.00" },
-      { code: "TOU-001", name: "TOU Allocation Discrepancy", cat: "Time-of-Use Clock", sev: "HIGH", zar: "8950.00" },
-      { code: "EST-001", name: "Estimated Billing", cat: "Meter Reading Type", sev: "MEDIUM", zar: "5200.00" },
-      { code: "TEL-001", name: "Missing Telemetry", cat: "Telemetry Quality", sev: "HIGH", zar: "11400.00" },
-      { code: "TEL-002", name: "Telemetry Quality Failure", cat: "Telemetry Quality", sev: "MEDIUM", zar: "3200.00" },
-      { code: "REA-001", name: "Reactive Energy Discrepancy", cat: "Reactive Power", sev: "MEDIUM", zar: "1850.00" },
-      { code: "NET-001", name: "Network Charge Discrepancy", cat: "Network & Capacity", sev: "HIGH", zar: "6400.00" },
-      { code: "CHG-001", name: "Unexpected Charge", cat: "Line Item Audit", sev: "LOW", zar: "450.00" },
-      { code: "VAT-001", name: "VAT Discrepancy", cat: "Tax Settlement", sev: "HIGH", zar: "6688.13" },
-      { code: "INV-001", name: "Invoice Extraction Inconsistency", cat: "Document Extraction", sev: "MEDIUM", zar: "1200.00" },
+    const codes: Array<{
+      code: DiscrepancyCode;
+      name: string;
+      cat: string;
+      sev: DiscrepancySeverity;
+      zar: string;
+    }> = [
+      {
+        code: "TAR-001",
+        name: "Tariff Mismatch",
+        cat: "Tariff Schedule",
+        sev: "CRITICAL",
+        zar: "44587.50",
+      },
+      {
+        code: "DEM-001",
+        name: "Demand Discrepancy",
+        cat: "Demand & Capacity",
+        sev: "CRITICAL",
+        zar: "14250.00",
+      },
+      {
+        code: "MUL-001",
+        name: "Meter Multiplier Discrepancy",
+        cat: "Meter Master Data",
+        sev: "HIGH",
+        zar: "22100.00",
+      },
+      {
+        code: "TOU-001",
+        name: "TOU Allocation Discrepancy",
+        cat: "Time-of-Use Clock",
+        sev: "HIGH",
+        zar: "8950.00",
+      },
+      {
+        code: "EST-001",
+        name: "Estimated Billing",
+        cat: "Meter Reading Type",
+        sev: "MEDIUM",
+        zar: "5200.00",
+      },
+      {
+        code: "TEL-001",
+        name: "Missing Telemetry",
+        cat: "Telemetry Quality",
+        sev: "HIGH",
+        zar: "11400.00",
+      },
+      {
+        code: "TEL-002",
+        name: "Telemetry Quality Failure",
+        cat: "Telemetry Quality",
+        sev: "MEDIUM",
+        zar: "3200.00",
+      },
+      {
+        code: "REA-001",
+        name: "Reactive Energy Discrepancy",
+        cat: "Reactive Power",
+        sev: "MEDIUM",
+        zar: "1850.00",
+      },
+      {
+        code: "NET-001",
+        name: "Network Charge Discrepancy",
+        cat: "Network & Capacity",
+        sev: "HIGH",
+        zar: "6400.00",
+      },
+      {
+        code: "CHG-001",
+        name: "Unexpected Charge",
+        cat: "Line Item Audit",
+        sev: "LOW",
+        zar: "450.00",
+      },
+      {
+        code: "VAT-001",
+        name: "VAT Discrepancy",
+        cat: "Tax Settlement",
+        sev: "HIGH",
+        zar: "6688.13",
+      },
+      {
+        code: "INV-001",
+        name: "Invoice Extraction Inconsistency",
+        cat: "Document Extraction",
+        sev: "MEDIUM",
+        zar: "1200.00",
+      },
     ];
 
     const runAt = new Date().toISOString();
@@ -894,10 +987,30 @@ export class DeterministicDiagnosticsEngine {
       recommended_action: `Execute audit investigation for ${item.name} and submit dispute pack to utility provider.`,
       confidence: 1.0,
       root_cause_chain: [
-        { step: 1, node_type: "ROOT_CAUSE", description: `${item.name} Identified`, detail: `Triggered by code ${item.code}` },
-        { step: 2, node_type: "TOU_RATE", description: "Rate Schedule Applied", detail: "NERSA 2025/26 Table 1" },
-        { step: 3, node_type: "LINE_ITEM_CHARGE", description: "Line Item Computation", detail: "Deterministic formula matched" },
-        { step: 4, node_type: "INVOICE_VARIANCE", description: "Financial Settlement Variance", detail: `Financial impact R ${item.zar}` },
+        {
+          step: 1,
+          node_type: "ROOT_CAUSE",
+          description: `${item.name} Identified`,
+          detail: `Triggered by code ${item.code}`,
+        },
+        {
+          step: 2,
+          node_type: "TOU_RATE",
+          description: "Rate Schedule Applied",
+          detail: "NERSA 2025/26 Table 1",
+        },
+        {
+          step: 3,
+          node_type: "LINE_ITEM_CHARGE",
+          description: "Line Item Computation",
+          detail: "Deterministic formula matched",
+        },
+        {
+          step: 4,
+          node_type: "INVOICE_VARIANCE",
+          description: "Financial Settlement Variance",
+          detail: `Financial impact R ${item.zar}`,
+        },
       ],
       drill_down_path: {
         discrepancy_code: item.code,

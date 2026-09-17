@@ -11,19 +11,10 @@ export type TouPeriodType = "peak" | "standard" | "off_peak";
 export type DayType = "weekday" | "saturday" | "sunday" | "public_holiday";
 export type VoltageCategory = "high" | "medium" | "low" | "transmission";
 export type CustomerClass =
-  | "urban_transmission"
-  | "urban_distribution"
-  | "rural"
-  | "municipal_bulk"
-  | "commercial";
+  "urban_transmission" | "urban_distribution" | "rural" | "municipal_bulk" | "commercial";
 export type TariffStatus = "active" | "superseded" | "draft";
 export type TariffFamilyType =
-  | "megaflex"
-  | "miniflex"
-  | "nightsave"
-  | "businessrate"
-  | "municipal"
-  | "custom";
+  "megaflex" | "miniflex" | "nightsave" | "businessrate" | "municipal" | "custom";
 
 export interface TariffScheduleHeader {
   tariff_code: string;

@@ -2,19 +2,30 @@
  * Enterprise Secure Document & Telemetry Ingestion Gateway Domain Types
  */
 
-export type SupportedFileExtension = "pdf" | "csv" | "xls" | "xlsx" | "xml";
+export type SupportedFileExtension =
+  "pdf" | "csv" | "xls" | "xlsx" | "xml" | "log" | "txt" | "tsv" | "json" | "tariff";
 
 export type IngestionDocumentType =
-  "INVOICE_PDF" | "AMR_TELEMETRY_CSV" | "AMR_TELEMETRY_XLSX" | "TELEMETRY_XML" | "MUNICIPAL_BILL";
+  | "INVOICE_PDF"
+  | "AMR_TELEMETRY_CSV"
+  | "AMR_TELEMETRY_XLSX"
+  | "TELEMETRY_XML"
+  | "MUNICIPAL_BILL"
+  | "RAW_METER_LOG"
+  | "TARIFF_DOCUMENT"
+  | "METER_EXPORT";
 
 export type IngestionLifecycleState =
   | "UPLOADED"
-  | "PROCESSING"
-  | "PARSED"
+  | "VALIDATING"
   | "VALIDATED"
+  | "PROCESSING"
+  | "PROCESSED"
+  | "FAILED"
+  | "PARTIALLY_PROCESSED"
+  | "PARSED"
   | "NORMALIZED"
   | "READY"
-  | "FAILED"
   | "QUARANTINED"
   | "REVIEW_REQUIRED";
 
@@ -134,4 +145,5 @@ export interface IngestionGatewayResult {
   errors: IngestionErrorRecord[];
   signedDownloadUrl?: string;
   isIdempotentDuplicate: boolean;
+  uploadRecord?: import("../upload/types").UploadRecord;
 }

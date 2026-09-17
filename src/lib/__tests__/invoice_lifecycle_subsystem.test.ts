@@ -52,8 +52,11 @@ export async function runInvoiceSubsystemTests() {
 
   // Test 1: 10-State Lifecycle Legal Transitions
   console.log("--- Test 1: 10-State Lifecycle State Transitions ---");
-  assert(InvoiceLifecycleService.LIFECYCLE_STATES.length === 10, "Subsystem supports exactly 10 lifecycle states");
-  
+  assert(
+    InvoiceLifecycleService.LIFECYCLE_STATES.length === 10,
+    "Subsystem supports exactly 10 lifecycle states",
+  );
+
   // Test legal transition sequence
   let state: InvoiceLifecycleState = "UPLOADED";
   state = InvoiceLifecycleService.transitionState(state, "EXTRACTED");
@@ -84,7 +87,10 @@ export async function runInvoiceSubsystemTests() {
     InvoiceLifecycleService.transitionState("UPLOADED", "CLOSED");
   } catch (err: any) {
     caughtError = true;
-    assert(err.message.includes("Illegal invoice state transition"), "Rejection message matches expected format");
+    assert(
+      err.message.includes("Illegal invoice state transition"),
+      "Rejection message matches expected format",
+    );
   }
   assert(caughtError, "Illegal state transition (UPLOADED -> CLOSED) correctly rejected");
 
@@ -101,7 +107,11 @@ export async function runInvoiceSubsystemTests() {
   assert(hashDup.isDuplicate === true, "Detected duplicate SHA-256 file hash");
 
   const numberDup = InvoiceLifecycleService.isDuplicate(
-    { sha256Hash: "hash-different-456", invoiceNumber: "INV-EXISTING-01", accountNumber: "ACC-100" },
+    {
+      sha256Hash: "hash-different-456",
+      invoiceNumber: "INV-EXISTING-01",
+      accountNumber: "ACC-100",
+    },
     existingInvoices,
   );
   assert(numberDup.isDuplicate === true, "Detected duplicate invoice number & account combination");
@@ -131,8 +141,14 @@ export async function runInvoiceSubsystemTests() {
 
   const validationRes = InvoiceValidator.validateInvoice(brokenDoc);
   const brokenState = InvoiceLifecycleService.determineInitialState(brokenDoc, validationRes);
-  assert(brokenState === "REVIEW_REQUIRED", "Document with validation discrepancy initialized to REVIEW_REQUIRED");
-  assert(brokenDoc.total_kwh.value === 999999, "Original extracted value remains untouched for audit integrity");
+  assert(
+    brokenState === "REVIEW_REQUIRED",
+    "Document with validation discrepancy initialized to REVIEW_REQUIRED",
+  );
+  assert(
+    brokenDoc.total_kwh.value === 999999,
+    "Original extracted value remains untouched for audit integrity",
+  );
 
   // Test 6: Immutable Human Review Audit Correction Registration
   console.log("\n--- Test 6: Immutable Audit Corrections Register ---");
@@ -146,13 +162,28 @@ export async function runInvoiceSubsystemTests() {
     approvedBy: "Lead Supervisor",
   });
 
-  assert(correctedDoc.account_number.value === "ACC-CORRECTED-9999", "Updated field reflects corrected value");
-  assert(correctedDoc.account_number.confidence_score === 1.0, "Human corrected field set to 1.0 confidence score");
-  assert(correctedDoc.corrections_log !== undefined && correctedDoc.corrections_log.length === 1, "Correction entry recorded in corrections_log array");
+  assert(
+    correctedDoc.account_number.value === "ACC-CORRECTED-9999",
+    "Updated field reflects corrected value",
+  );
+  assert(
+    correctedDoc.account_number.confidence_score === 1.0,
+    "Human corrected field set to 1.0 confidence score",
+  );
+  assert(
+    correctedDoc.corrections_log !== undefined && correctedDoc.corrections_log.length === 1,
+    "Correction entry recorded in corrections_log array",
+  );
 
   const entry = correctedDoc.corrections_log![0];
-  assert(entry.original_value === "ACC-99887766", `Original value preserved in audit entry (${entry.original_value})`);
-  assert(entry.corrected_value === "ACC-CORRECTED-9999", `Corrected value recorded (${entry.corrected_value})`);
+  assert(
+    entry.original_value === "ACC-99887766",
+    `Original value preserved in audit entry (${entry.original_value})`,
+  );
+  assert(
+    entry.corrected_value === "ACC-CORRECTED-9999",
+    `Corrected value recorded (${entry.corrected_value})`,
+  );
   assert(entry.reason.includes("OCR misread"), `Audit reason logged cleanly ("${entry.reason}")`);
   assert(entry.user_name === "Senior Utility Auditor", "Auditor identity recorded");
 

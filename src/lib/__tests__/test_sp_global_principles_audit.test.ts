@@ -6,15 +6,39 @@ describe("Stage 29 — S&P Global Design Principles Final Audit", () => {
   const routesIndexPath = path.resolve(process.cwd(), "src/routes/index.tsx");
   const navPath = path.resolve(process.cwd(), "src/components/landing/enera/EneraNav.tsx");
   const heroPath = path.resolve(process.cwd(), "src/components/landing/enera/EneraHeroSection.tsx");
-  const capabilitiesPath = path.resolve(process.cwd(), "src/components/landing/enera/EneraCapabilitiesSection.tsx");
-  const signalsPath = path.resolve(process.cwd(), "src/components/landing/enera/EneraProductSignalsSection.tsx");
-  const previewPath = path.resolve(process.cwd(), "src/components/landing/enera/EneraProductInterfacePreviewSection.tsx");
-  const howItWorksPath = path.resolve(process.cwd(), "src/components/landing/enera/EneraBillSignalSection.tsx");
-  const audiencePath = path.resolve(process.cwd(), "src/components/landing/enera/EneraAudienceSection.tsx");
+  const capabilitiesPath = path.resolve(
+    process.cwd(),
+    "src/components/landing/enera/EneraCapabilitiesSection.tsx",
+  );
+  const signalsPath = path.resolve(
+    process.cwd(),
+    "src/components/landing/enera/EneraProductSignalsSection.tsx",
+  );
+  const previewPath = path.resolve(
+    process.cwd(),
+    "src/components/landing/enera/EneraProductInterfacePreviewSection.tsx",
+  );
+  const howItWorksPath = path.resolve(
+    process.cwd(),
+    "src/components/landing/enera/EneraBillSignalSection.tsx",
+  );
+  const audiencePath = path.resolve(
+    process.cwd(),
+    "src/components/landing/enera/EneraAudienceSection.tsx",
+  );
   const aiPath = path.resolve(process.cwd(), "src/components/landing/enera/EneraAISection.tsx");
-  const copilotPath = path.resolve(process.cwd(), "src/components/landing/enera/EneraCopilotSection.tsx");
-  const trustPath = path.resolve(process.cwd(), "src/components/landing/enera/EneraTrustSection.tsx");
-  const contactPath = path.resolve(process.cwd(), "src/components/landing/enera/EneraContactSection.tsx");
+  const copilotPath = path.resolve(
+    process.cwd(),
+    "src/components/landing/enera/EneraCopilotSection.tsx",
+  );
+  const trustPath = path.resolve(
+    process.cwd(),
+    "src/components/landing/enera/EneraTrustSection.tsx",
+  );
+  const contactPath = path.resolve(
+    process.cwd(),
+    "src/components/landing/enera/EneraContactSection.tsx",
+  );
   const faqPath = path.resolve(process.cwd(), "src/components/landing/enera/EneraFaqSection.tsx");
   const footerPath = path.resolve(process.cwd(), "src/components/landing/enera/EneraFooter.tsx");
   const stylesPath = path.resolve(process.cwd(), "src/styles.css");
@@ -36,7 +60,9 @@ describe("Stage 29 — S&P Global Design Principles Final Audit", () => {
     // Hero Headline & Primary Value Statement
     expect(hero).toContain("SEE BEYOND THE BILL.");
     expect(hero).toContain("Energy Financial Intelligence");
-    expect(hero).toContain("ENERA turns complex energy and billing information into clear, actionable intelligence.");
+    expect(hero).toContain(
+      "ENERA turns complex energy and billing information into clear, actionable intelligence.",
+    );
     // Clear 5-Stage Pipeline Overview
     expect(hero).toContain("EneraHeroFlowVisual");
   });
@@ -62,8 +88,8 @@ describe("Stage 29 — S&P Global Design Principles Final Audit", () => {
     expect(capabilities).toContain("ACT");
 
     // No live file uploads or interactive spreadsheet dashboards on public front door
-    expect(routesIndex).not.toContain("<input type=\"file\"");
-    expect(preview).not.toContain("<input type=\"file\"");
+    expect(routesIndex).not.toContain('<input type="file"');
+    expect(preview).not.toContain('<input type="file"');
   });
 
   it("Principle 4 — CONSISTENCY: Typography, spacing, cards, and buttons follow one unified design system", () => {
@@ -112,7 +138,18 @@ describe("Stage 29 — S&P Global Design Principles Final Audit", () => {
   });
 
   it("Principle 7 — DISCLOSURE: Zero exposure of proprietary schemas, APIs, or credentials", () => {
-    const landingBundle = routesIndex + nav + hero + capabilities + signals + preview + howItWorks + copilot + trust + contact + faq;
+    const landingBundle =
+      routesIndex +
+      nav +
+      hero +
+      capabilities +
+      signals +
+      preview +
+      howItWorks +
+      copilot +
+      trust +
+      contact +
+      faq;
 
     // Strict Stage 18 embargo assertions
     expect(landingBundle).not.toContain("public.invoices");
@@ -131,7 +168,7 @@ describe("Stage 29 — S&P Global Design Principles Final Audit", () => {
     // Interface preview link to #contact
     expect(preview).toContain("#contact");
     // Direct contact form
-    expect(contact).toContain("id=\"contact\"");
+    expect(contact).toContain('id="contact"');
   });
 
   it("Principle 9 — DISTINCTION: Retains distinct ENERA visual signature and energy intelligence feel", () => {

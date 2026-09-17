@@ -16,11 +16,7 @@ export type ReconciliationRunStatus =
   | "PASS_WITH_WARNINGS"
   | "MATERIAL_DISCREPANCY";
 
-export type ReconciliationClassification =
-  | "PASS"
-  | "WARNING"
-  | "DISCREPANCY"
-  | "CRITICAL";
+export type ReconciliationClassification = "PASS" | "WARNING" | "DISCREPANCY" | "CRITICAL";
 
 export interface ToleranceConfig {
   percentage_tolerance: Decimal; // e.g. 0.50 for 0.5%

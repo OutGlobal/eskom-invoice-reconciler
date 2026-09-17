@@ -58,7 +58,8 @@ export async function parseMeterWorkbook(buffer: ArrayBuffer): Promise<Measureme
 
         // Fallback for headerless spreadsheets: assume col 0 is ts, col 1 is kW, col 2 is kVAr
         const effectiveTsKey = tsKey || keys[0];
-        const effectiveKwKey = kwKey || (keys.length > 1 && keys[1] !== effectiveTsKey ? keys[1] : undefined);
+        const effectiveKwKey =
+          kwKey || (keys.length > 1 && keys[1] !== effectiveTsKey ? keys[1] : undefined);
 
         // Detect if intervals are 30-min active energy in kWh instead of kW demand
         const isKwhInterval = keys.some((k) => k.toLowerCase().includes("kwh"));

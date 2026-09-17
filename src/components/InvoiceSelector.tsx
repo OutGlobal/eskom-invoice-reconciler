@@ -18,55 +18,73 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
     let isMounted = true;
     setIsLoading(true);
 
-    supabase
-      .from("invoice_records")
-      .select("*")
-      .order("billing_start", { ascending: false })
-      .then(({ data, error }) => {
-        if (isMounted) {
-          if (data && data.length > 0) {
-            setDbInvoices(data);
-            // If store has no active invoice, select the most recent real uploaded invoice
-            if (!useApp.getState().invoice) {
-              const latest = data[0];
-              setInvoice({
-                accountNumber: latest.account_number,
-                customerName: latest.customer_name || "Enterprise Client",
-                meterNumber: latest.meter_number || latest.premise_id || "",
-                tariffName: latest.tariff_name || latest.tariff_code || "Megaflex",
-                voltage: "132 kV",
-                nmd: 0,
-                billingPeriod: latest.billing_period_name,
-                billingPeriodStart: latest.billing_start,
-                billingPeriodEnd: latest.billing_end,
-                peakKWh: Number(latest.peak_kwh) || 0,
-                standardKWh: Number(latest.standard_kwh) || 0,
-                offPeakKWh: Number(latest.off_peak_kwh) || 0,
-                totalKWh: Number(latest.total_kwh) || 0,
-                maxDemandKVA: Number(latest.max_demand_kva) || 0,
-                transmissionNetworkCharge: 0,
-                networkCapacityCharge: 0,
-                generationCapacityCharge: 0,
-                networkDemandCharge: 0,
-                ancillary: 0,
-                legacy: 0,
-                affordability: 0,
-                electrification: 0,
-                reactive: 0,
-                peakEnergyCharge: 0,
-                standardEnergyCharge: 0,
-                offPeakEnergyCharge: 0,
-                vat: 0,
-                invoiceTotal: Number(latest.invoiced_total) || 0,
-                totalInclVat: Number(latest.invoiced_total) || 0,
-                invoiceNumber: latest.invoice_number,
-                taxInvoiceNo: latest.invoice_number,
-              });
-            }
+    Promise.all([
+      supabase.from("invoice_records").select("*").order("billing_start", { ascending: false }),
+      supabase.from("invoices").select("*").order("billing_start", { ascending: false }),
+    ]).then(([recResult, legacyResult]) => {
+      if (isMounted) {
+        const invoiceMap = new Map<string, any>();
+        for (const inv of legacyResult.data || []) {
+          const invNum = inv.invoice_number || inv.id;
+          if (invNum) {
+            invoiceMap.set(invNum, {
+              ...inv,
+              billing_period_name: inv.billing_period || "Standard Period",
+              invoiced_total: Number(inv.invoiced_total) || 0,
+            });
           }
-          setIsLoading(false);
         }
-      });
+        for (const inv of recResult.data || []) {
+          const invNum = inv.invoice_number || inv.id;
+          if (invNum) {
+            invoiceMap.set(invNum, inv);
+          }
+        }
+
+        const combined = Array.from(invoiceMap.values());
+        if (combined.length > 0) {
+          setDbInvoices(combined);
+          // If store has no active invoice, select the most recent real uploaded invoice
+          if (!useApp.getState().invoice) {
+            const latest = combined[0];
+            setInvoice({
+              accountNumber: latest.account_number,
+              customerName: latest.customer_name || "Enterprise Client",
+              meterNumber: latest.meter_number || latest.premise_id || "",
+              tariffName: latest.tariff_name || latest.tariff_code || "Megaflex",
+              voltage: "132 kV",
+              nmd: 0,
+              billingPeriod: latest.billing_period_name,
+              billingPeriodStart: latest.billing_start,
+              billingPeriodEnd: latest.billing_end,
+              peakKWh: Number(latest.peak_kwh) || 0,
+              standardKWh: Number(latest.standard_kwh) || 0,
+              offPeakKWh: Number(latest.off_peak_kwh) || 0,
+              totalKWh: Number(latest.total_kwh) || 0,
+              maxDemandKVA: Number(latest.max_demand_kva) || 0,
+              transmissionNetworkCharge: 0,
+              networkCapacityCharge: 0,
+              generationCapacityCharge: 0,
+              networkDemandCharge: 0,
+              ancillary: 0,
+              legacy: 0,
+              affordability: 0,
+              electrification: 0,
+              reactive: 0,
+              peakEnergyCharge: 0,
+              standardEnergyCharge: 0,
+              offPeakEnergyCharge: 0,
+              vat: 0,
+              invoiceTotal: Number(latest.invoiced_total) || 0,
+              totalInclVat: Number(latest.invoiced_total) || 0,
+              invoiceNumber: latest.invoice_number,
+              taxInvoiceNo: latest.invoice_number,
+            });
+          }
+        }
+        setIsLoading(false);
+      }
+    });
 
     return () => {
       isMounted = false;
@@ -77,7 +95,7 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
   const allInvoices = [
     ...dbInvoices,
     ...batchInvoices.filter(
-      (b) => !dbInvoices.some((db) => db.invoice_number === (b.invoiceNumber || b.taxInvoiceNo))
+      (b) => !dbInvoices.some((db) => db.invoice_number === (b.invoiceNumber || b.taxInvoiceNo)),
     ),
   ];
 
@@ -214,7 +232,10 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
           <div className="hidden lg:flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 border border-border/60 rounded-md px-2.5 py-1 font-mono text-[11px]">
             <FileText className="h-3.5 w-3.5 text-primary" />
             <span>
-              Inv: <strong className="text-foreground">{activeInvoice.taxInvoiceNo || activeInvoice.accountNumber}</strong>
+              Inv:{" "}
+              <strong className="text-foreground">
+                {activeInvoice.taxInvoiceNo || activeInvoice.accountNumber}
+              </strong>
             </span>
           </div>
         )}

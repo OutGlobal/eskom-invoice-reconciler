@@ -90,13 +90,15 @@ export function EneraProductSignalsSection() {
 
         {/* 2. Large headline */}
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight font-sans max-w-3xl">
-          ONE PLATFORM.<br />
+          ONE PLATFORM.
+          <br />
           MULTIPLE ENERGY SIGNALS.
         </h2>
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-14">
-          Bring your utility bills and interval meter data together. See what changed, verify every charge, and make confident operational and financial decisions.
+          Bring your utility bills and interval meter data together. See what changed, verify every
+          charge, and make confident operational and financial decisions.
         </p>
 
         {/* 4. Visual or capability: 7 Clean, Compact Cards */}
@@ -110,16 +112,21 @@ export function EneraProductSignalsSection() {
               >
                 {/* Header with Icon and Category Tag */}
                 <div className="flex items-center justify-between mb-4">
-                  <div className={`w-10 h-10 rounded-lg border flex items-center justify-center transition-transform duration-200 group-hover:scale-105 ${
-                    capability.category === "ANOMALY"
-                      ? "bg-amber-50 border-amber-200 text-amber-700"
-                      : "bg-cyan-50 border-cyan-100 text-cyan-700 group-hover:border-cyan-200"
-                  }`}>
+                  <div
+                    className={`w-10 h-10 rounded-lg border flex items-center justify-center transition-transform duration-200 group-hover:scale-105 ${
+                      capability.category === "ANOMALY"
+                        ? "bg-amber-50 border-amber-200 text-amber-700"
+                        : "bg-cyan-50 border-cyan-100 text-cyan-700 group-hover:border-cyan-200"
+                    }`}
+                  >
                     <Icon className="h-5 w-5" />
                   </div>
                   {capability.category === "ANOMALY" ? (
                     <span className="text-[10px] font-mono font-bold tracking-wider text-amber-800 uppercase bg-amber-50 px-2 py-0.5 rounded border border-amber-200/80 enera-anomaly-radar flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" aria-hidden="true" />
+                      <span
+                        className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"
+                        aria-hidden="true"
+                      />
                       {capability.category}
                     </span>
                   ) : (
@@ -141,7 +148,10 @@ export function EneraProductSignalsSection() {
 
                 {/* Subtle micro visual moment for Energy load curve */}
                 {capability.category === "ENERGY" && (
-                  <div className="mt-3 pt-2 border-t border-slate-200/80 overflow-hidden" aria-hidden="true">
+                  <div
+                    className="mt-3 pt-2 border-t border-slate-200/80 overflow-hidden"
+                    aria-hidden="true"
+                  >
                     <svg className="w-full h-3" preserveAspectRatio="none">
                       <path
                         d="M 0 8 Q 25 2, 50 7 T 100 4"
@@ -166,7 +176,10 @@ export function EneraProductSignalsSection() {
 
         {/* 5. Supporting information & 6. Clean Progressive CTA */}
         <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
-          <span>Deterministic analysis grounded in revenue-grade interval telemetry and official NERSA schedules.</span>
+          <span>
+            Deterministic analysis grounded in revenue-grade interval telemetry and official NERSA
+            schedules.
+          </span>
           <a
             href="#interface-previews"
             className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 transition-colors font-semibold focus-ring-enera shrink-0"

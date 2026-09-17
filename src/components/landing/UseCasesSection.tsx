@@ -80,7 +80,8 @@ export function UseCasesSection() {
             Engineered for Every Stakeholder
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground">
-            From technical engineering teams to the CFO office, unified utility intelligence empowers every decision.
+            From technical engineering teams to the CFO office, unified utility intelligence
+            empowers every decision.
           </p>
         </div>
 
@@ -113,8 +114,7 @@ export function UseCasesSection() {
                 </div>
 
                 <div className="pt-3 border-t border-border/50 text-[11px] font-mono text-muted-foreground">
-                  <strong className="text-foreground">Core Deliverable:</strong>{" "}
-                  {item.deliverable}
+                  <strong className="text-foreground">Core Deliverable:</strong> {item.deliverable}
                 </div>
               </div>
             );

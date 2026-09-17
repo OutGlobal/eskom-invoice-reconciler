@@ -110,7 +110,10 @@ export function InteractiveBillDemo() {
   }, [isProcessing, currentStepIndex]);
 
   return (
-    <section id="interactive-demo" className="py-20 md:py-32 bg-background border-b border-border/60">
+    <section
+      id="interactive-demo"
+      className="py-20 md:py-32 bg-background border-b border-border/60"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto space-y-3">
@@ -128,7 +131,9 @@ export function InteractiveBillDemo() {
 
         {/* Preset Selector Tabs */}
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <span className="text-xs text-muted-foreground font-mono mr-2">Select a Sample Bill:</span>
+          <span className="text-xs text-muted-foreground font-mono mr-2">
+            Select a Sample Bill:
+          </span>
           {PRESETS.map((p) => {
             const isSelected = activePreset.id === p.id;
             return (
@@ -203,8 +208,8 @@ export function InteractiveBillDemo() {
                         isCurrent
                           ? "bg-primary/15 text-primary font-semibold"
                           : isDone
-                          ? "text-foreground"
-                          : "text-muted-foreground/40"
+                            ? "text-foreground"
+                            : "text-muted-foreground/40"
                       }`}
                     >
                       {isDone ? (
@@ -292,7 +297,9 @@ export function InteractiveBillDemo() {
                 </div>
 
                 <div className="p-2.5 rounded-lg bg-background/40 border border-border/40">
-                  <div className="text-[10px] text-muted-foreground font-mono">Tariff Structure</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    Tariff Structure
+                  </div>
                   <div className="font-mono font-bold text-foreground mt-0.5 truncate">
                     Megaflex HV
                   </div>
@@ -318,8 +325,8 @@ export function InteractiveBillDemo() {
                     131,227 kWh billed at high season rate instead of gazetted low season rate.
                   </li>
                   <li>
-                    <strong className="text-foreground">Demand Ratchet Discrepancy:</strong> Billed on
-                    8,421 kVA vs recorded interval maximum demand of 8,110 kVA.
+                    <strong className="text-foreground">Demand Ratchet Discrepancy:</strong> Billed
+                    on 8,421 kVA vs recorded interval maximum demand of 8,110 kVA.
                   </li>
                   <li>
                     <strong className="text-foreground">Rural Subsidy Base Error:</strong> Billed

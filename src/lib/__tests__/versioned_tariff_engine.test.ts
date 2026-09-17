@@ -1,8 +1,14 @@
 import Decimal from "decimal.js-light";
-import { DeterministicEngine, DeterministicTariffEngine } from "../../domain/tariff/deterministicEngine";
+import {
+  DeterministicEngine,
+  DeterministicTariffEngine,
+} from "../../domain/tariff/deterministicEngine";
 import { TariffVersionSelector } from "../../domain/tariff/tariffVersionSelector";
 import { TariffValidationEngine } from "../../domain/tariff/tariffValidationEngine";
-import { explainAppliedRate, explainAppliedRateByRule } from "../../domain/tariff/rateLineageExplainer";
+import {
+  explainAppliedRate,
+  explainAppliedRateByRule,
+} from "../../domain/tariff/rateLineageExplainer";
 import {
   ESKOM_MEGAFLEX_2025_2026,
   ESKOM_MINIFLEX_2025_2026,
@@ -37,7 +43,10 @@ export function runVersionedTariffEngineTests() {
     power_factor: new Decimal(0.92),
   };
 
-  const resultMegaflex = DeterministicEngine.calculateTariff(inputMegaflex, ESKOM_MEGAFLEX_2025_2026);
+  const resultMegaflex = DeterministicEngine.calculateTariff(
+    inputMegaflex,
+    ESKOM_MEGAFLEX_2025_2026,
+  );
 
   assert(resultMegaflex.tariff_code.includes("MEGAFLEX"), "Tariff code includes MEGAFLEX");
   assert(resultMegaflex.tariff_version === "2025.1", "Tariff version is 2025.1");
@@ -58,7 +67,8 @@ export function runVersionedTariffEngineTests() {
   assert(peakStep !== undefined, "Peak energy audit step is present");
   assert(
     Boolean(
-      peakStep?.rate_applied.includes("666.9200 c/kWh") || peakStep?.rate_applied.includes("666.92"),
+      peakStep?.rate_applied.includes("666.9200 c/kWh") ||
+      peakStep?.rate_applied.includes("666.92"),
     ),
     "Applied peak rate matches gazetted Megaflex rate",
   );
@@ -78,7 +88,10 @@ export function runVersionedTariffEngineTests() {
     power_factor: new Decimal(0.96),
   };
 
-  const resultMiniflex = DeterministicTariffEngine.calculate(inputMiniflex, ESKOM_MINIFLEX_2025_2026);
+  const resultMiniflex = DeterministicTariffEngine.calculate(
+    inputMiniflex,
+    ESKOM_MINIFLEX_2025_2026,
+  );
   assert(resultMiniflex.tariff_code.includes("MINIFLEX"), "Tariff code includes MINIFLEX");
   assert(resultMiniflex.season === "low", "Season identified as low season");
   assert(resultMiniflex.items.length > 0, "Miniflex produces line items");
@@ -93,7 +106,10 @@ export function runVersionedTariffEngineTests() {
   assert(explanation.tariff_name.includes("Megaflex"), "Lineage tariff name includes Megaflex");
   assert(explanation.version_number === "2025.1", "Lineage version is 2025.1");
   assert(explanation.season === "high", "Lineage season is high");
-  assert(explanation.explanation_text.includes("Applied rate of"), "Explanation text describes applied rate");
+  assert(
+    explanation.explanation_text.includes("Applied rate of"),
+    "Explanation text describes applied rate",
+  );
   assert(
     explanation.gazette_reference.includes("NERSA"),
     "Gazette reference matches NERSA schedule",
@@ -113,7 +129,10 @@ export function runVersionedTariffEngineTests() {
   const validation = TariffValidationEngine.validateNoOverlappingVersions([v1, v2]);
   assert(!validation.isValid, "Overlapping tariff versions flagged as invalid");
   assert(validation.errors.length > 0, "Validation errors returned for overlap");
-  assert(validation.errors[0].code === "ERR_TARIFF_VERSION_OVERLAP", "Overlap error code is ERR_TARIFF_VERSION_OVERLAP");
+  assert(
+    validation.errors[0].code === "ERR_TARIFF_VERSION_OVERLAP",
+    "Overlap error code is ERR_TARIFF_VERSION_OVERLAP",
+  );
 
   console.log("✅ All Versioned Tariff Engine Tests passed successfully.");
 }

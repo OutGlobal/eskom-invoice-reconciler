@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import Decimal from "decimal.js-light";
 import { DeterministicDiagnosticsEngine } from "@/domain/discrepancy/deterministicDiagnosticsEngine";
-import { DeterministicReconciliationEngine, DEFAULT_TOLERANCE_CONFIG } from "@/domain/reconciliation/reconciliationEngine";
+import {
+  DeterministicReconciliationEngine,
+  DEFAULT_TOLERANCE_CONFIG,
+} from "@/domain/reconciliation/reconciliationEngine";
 import { MEGAFLEX_JULY_2025_FIXTURE } from "@/domain/reconciliation/regressionFixtures";
 
 describe("Deterministic Discrepancy & Root-Cause Analysis Engine", () => {
@@ -60,10 +63,13 @@ describe("Deterministic Discrepancy & Root-Cause Analysis Engine", () => {
       billed_service_charges_zar: inv.service_charges_zar,
       billed_ancillary_charges_zar: inv.ancillary_charges_zar,
       billed_vat_zar: inv.vat_zar,
-      billed_total_invoice_zar: inv.total_invoice_zar.plus(38347.90),
+      billed_total_invoice_zar: inv.total_invoice_zar.plus(38347.9),
     };
 
-    const payload = DeterministicReconciliationEngine.reconcile(inputWithDiscrepancy, DEFAULT_TOLERANCE_CONFIG);
+    const payload = DeterministicReconciliationEngine.reconcile(
+      inputWithDiscrepancy,
+      DEFAULT_TOLERANCE_CONFIG,
+    );
     const records = DeterministicDiagnosticsEngine.scan(payload);
 
     expect(records.length).toBeGreaterThan(0);

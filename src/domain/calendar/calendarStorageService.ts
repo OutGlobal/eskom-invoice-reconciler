@@ -21,7 +21,9 @@ export class CalendarStorageService {
         .order("holiday_date", { ascending: true });
 
       if (error || !dbHolidays || dbHolidays.length === 0) {
-        console.warn("[CalendarStorageService] Supabase holiday table empty or unavailable, using gazetted default holidays.");
+        console.warn(
+          "[CalendarStorageService] Supabase holiday table empty or unavailable, using gazetted default holidays.",
+        );
         return DEFAULT_SA_HOLIDAYS;
       }
 
@@ -45,7 +47,7 @@ export class CalendarStorageService {
    */
   public static async saveHoliday(
     holiday: CalendarHolidayConfig,
-    userId?: string
+    userId?: string,
   ): Promise<{ success: boolean; message: string }> {
     try {
       const payload = {

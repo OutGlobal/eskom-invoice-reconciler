@@ -83,7 +83,10 @@ export async function runIngestionPipeline(
     rawText =
       pdfResult.invoice.source || `Extracted Invoice No: ${pdfResult.invoice.invoiceNumber}`;
   } catch (pdfErr: any) {
-    addLog("PDF Extraction Error", `Standard PDF text layer unreadable (${pdfErr?.message || "format error"}). Switching to AI/OCR fallback.`);
+    addLog(
+      "PDF Extraction Error",
+      `Standard PDF text layer unreadable (${pdfErr?.message || "format error"}). Switching to AI/OCR fallback.`,
+    );
     parserType = "ai_fallback";
     confidenceScore = 75;
   }

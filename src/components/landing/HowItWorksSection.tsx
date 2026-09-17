@@ -15,7 +15,8 @@ export function HowItWorksSection() {
       step: "02",
       title: "UNDERSTAND",
       description: "AI extracts billing determinants, tariffs and consumption data.",
-      details: "Automated extraction of 14 determinants, season boundaries, and applicable tariff schedules.",
+      details:
+        "Automated extraction of 14 determinants, season boundaries, and applicable tariff schedules.",
       icon: Cpu,
       color: "text-cyan-400",
       borderColor: "border-cyan-500/30",
@@ -24,7 +25,8 @@ export function HowItWorksSection() {
       step: "03",
       title: "RECONCILE",
       description: "The system compares invoices against actual and historical data.",
-      details: "Calculates exact capacity charges, TOU active energy, subsidies, and simultaneous demand.",
+      details:
+        "Calculates exact capacity charges, TOU active energy, subsidies, and simultaneous demand.",
       icon: Scale,
       color: "text-purple-400",
       borderColor: "border-purple-500/30",
@@ -33,7 +35,8 @@ export function HowItWorksSection() {
       step: "04",
       title: "ACT",
       description: "Generate findings, reports, disputes, savings opportunities and decisions.",
-      details: "Export cryptographically-signed audit packs and dispute dossiers for Eskom revenue offices.",
+      details:
+        "Export cryptographically-signed audit packs and dispute dossiers for Eskom revenue offices.",
       icon: FileSpreadsheet,
       color: "text-emerald-400",
       borderColor: "border-emerald-500/30",
@@ -69,7 +72,9 @@ export function HowItWorksSection() {
                   <span className="text-2xl font-mono font-black text-muted-foreground/50 group-hover:text-primary transition-colors">
                     {item.step}
                   </span>
-                  <div className={`p-2 rounded-xl bg-background border border-border ${item.color}`}>
+                  <div
+                    className={`p-2 rounded-xl bg-background border border-border ${item.color}`}
+                  >
                     <Icon className="h-5 w-5" />
                   </div>
                 </div>

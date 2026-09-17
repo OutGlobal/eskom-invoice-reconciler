@@ -173,9 +173,7 @@ export function CommandCentreDashboard() {
               className="w-full text-xs rounded border border-border bg-background px-2 py-1"
             >
               <option value="all">All Clients</option>
-              {customer?.name ? (
-                <option value={customer.name}>{customer.name}</option>
-              ) : null}
+              {customer?.name ? <option value={customer.name}>{customer.name}</option> : null}
             </select>
           </div>
 
@@ -233,9 +231,7 @@ export function CommandCentreDashboard() {
               className="w-full text-xs rounded border border-border bg-background px-2 py-1"
             >
               <option value="all">All Meters</option>
-              {customer?.meter ? (
-                <option value={customer.meter}>{customer.meter}</option>
-              ) : null}
+              {customer?.meter ? <option value={customer.meter}>{customer.meter}</option> : null}
             </select>
           </div>
 

@@ -5,7 +5,12 @@
  */
 
 import React, { useState } from "react";
-import type { ExtractedInvoiceDocument, ExtractedField, InvoiceLifecycleState, InvoiceCorrectionEntry } from "../../domain/invoice/types";
+import type {
+  ExtractedInvoiceDocument,
+  ExtractedField,
+  InvoiceLifecycleState,
+  InvoiceCorrectionEntry,
+} from "../../domain/invoice/types";
 import { InvoiceLifecycleService } from "../../domain/invoice/invoiceLifecycleService";
 import { InvoiceCorrectionService } from "../../domain/invoice/invoiceCorrectionService";
 import {
@@ -46,7 +51,9 @@ export const InvoiceReviewWorkspace: React.FC<InvoiceReviewWorkspaceProps> = ({
   >("header");
 
   // Edit Modal State
-  const [editingFieldKey, setEditingFieldKey] = useState<keyof ExtractedInvoiceDocument | null>(null);
+  const [editingFieldKey, setEditingFieldKey] = useState<keyof ExtractedInvoiceDocument | null>(
+    null,
+  );
   const [editForm, setEditForm] = useState<{
     correctedValue: string;
     reason: string;
@@ -66,9 +73,14 @@ export const InvoiceReviewWorkspace: React.FC<InvoiceReviewWorkspaceProps> = ({
     field: ExtractedField<any>;
   } | null>(null);
 
-  const currentState = doc.lifecycle_state || InvoiceLifecycleService.determineInitialState(doc, doc.validation_summary);
+  const currentState =
+    doc.lifecycle_state ||
+    InvoiceLifecycleService.determineInitialState(doc, doc.validation_summary);
 
-  const handleOpenEditModal = (fieldKey: keyof ExtractedInvoiceDocument, field: ExtractedField<any>) => {
+  const handleOpenEditModal = (
+    fieldKey: keyof ExtractedInvoiceDocument,
+    field: ExtractedField<any>,
+  ) => {
     setEditingFieldKey(fieldKey);
     setEditForm({
       correctedValue: String(field.value ?? ""),
@@ -124,7 +136,9 @@ export const InvoiceReviewWorkspace: React.FC<InvoiceReviewWorkspaceProps> = ({
       };
       setDoc(updatedDoc);
       if (onStateChange) onStateChange(nextState);
-      toast.success(`Invoice lifecycle transitioned to ${InvoiceLifecycleService.getStateLabel(nextState)}`);
+      toast.success(
+        `Invoice lifecycle transitioned to ${InvoiceLifecycleService.getStateLabel(nextState)}`,
+      );
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -217,12 +231,22 @@ export const InvoiceReviewWorkspace: React.FC<InvoiceReviewWorkspaceProps> = ({
               <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 Invoice Review: {doc.invoice_number.value || doc.metadata.source_filename}
               </h2>
-              <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${InvoiceLifecycleService.getStateBadgeStyle(currentState)}`}>
+              <span
+                className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${InvoiceLifecycleService.getStateBadgeStyle(currentState)}`}
+              >
                 {InvoiceLifecycleService.getStateLabel(currentState)}
               </span>
             </div>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Account: <strong className="text-gray-800 dark:text-gray-200">{doc.account_number.value}</strong> | Customer: <strong className="text-gray-800 dark:text-gray-200">{doc.customer_name.value}</strong> | SHA-256:{" "}
+              Account:{" "}
+              <strong className="text-gray-800 dark:text-gray-200">
+                {doc.account_number.value}
+              </strong>{" "}
+              | Customer:{" "}
+              <strong className="text-gray-800 dark:text-gray-200">
+                {doc.customer_name.value}
+              </strong>{" "}
+              | SHA-256:{" "}
               <code className="font-mono text-xs text-gray-600 dark:text-gray-300">
                 {doc.metadata.sha256_hash.substring(0, 16)}...
               </code>
@@ -281,8 +305,8 @@ export const InvoiceReviewWorkspace: React.FC<InvoiceReviewWorkspaceProps> = ({
                       isActive
                         ? "bg-blue-600 text-white font-bold shadow-xs"
                         : isPast
-                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 font-medium"
-                        : "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500"
+                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 font-medium"
+                          : "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500"
                     }`}
                   >
                     <span>{idx + 1}.</span>
@@ -568,8 +592,12 @@ export const InvoiceReviewWorkspace: React.FC<InvoiceReviewWorkspaceProps> = ({
             {!doc.corrections_log || doc.corrections_log.length === 0 ? (
               <div className="p-8 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-950/50 rounded-lg">
                 <History className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                <p className="font-medium text-sm">No human corrections recorded for this document yet.</p>
-                <p className="text-xs text-gray-400 mt-1">All manual edits are captured here in an append-only audit trail.</p>
+                <p className="font-medium text-sm">
+                  No human corrections recorded for this document yet.
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  All manual edits are captured here in an append-only audit trail.
+                </p>
               </div>
             ) : (
               <table className="w-full text-left border-collapse">
@@ -619,7 +647,8 @@ export const InvoiceReviewWorkspace: React.FC<InvoiceReviewWorkspaceProps> = ({
           <div className="bg-white dark:bg-gray-900 rounded-xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-800 space-y-4">
             <div className="flex items-center justify-between border-b pb-3 dark:border-gray-800">
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <Edit2 className="w-5 h-5 text-blue-600" /> Audit Correction: {String(editingFieldKey)}
+                <Edit2 className="w-5 h-5 text-blue-600" /> Audit Correction:{" "}
+                {String(editingFieldKey)}
               </h3>
               <button
                 onClick={() => setEditingFieldKey(null)}
@@ -649,7 +678,9 @@ export const InvoiceReviewWorkspace: React.FC<InvoiceReviewWorkspaceProps> = ({
                 <input
                   type="text"
                   value={editForm.correctedValue}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, correctedValue: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, correctedValue: e.target.value }))
+                  }
                   className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
                   placeholder="Enter corrected value"
                 />
@@ -687,7 +718,9 @@ export const InvoiceReviewWorkspace: React.FC<InvoiceReviewWorkspaceProps> = ({
                   <input
                     type="text"
                     value={editForm.approvedBy}
-                    onChange={(e) => setEditForm((prev) => ({ ...prev, approvedBy: e.target.value }))}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({ ...prev, approvedBy: e.target.value }))
+                    }
                     className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100"
                     placeholder="Supervisor name"
                   />
@@ -719,7 +752,8 @@ export const InvoiceReviewWorkspace: React.FC<InvoiceReviewWorkspaceProps> = ({
           <div className="bg-white dark:bg-gray-900 rounded-xl max-w-2xl w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-800 space-y-4">
             <div className="flex items-center justify-between border-b pb-3 dark:border-gray-800">
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-blue-600" /> End-to-End Evidence Lineage: {drillDownTarget.label}
+                <Layers className="w-5 h-5 text-blue-600" /> End-to-End Evidence Lineage:{" "}
+                {drillDownTarget.label}
               </h3>
               <button
                 onClick={() => setDrillDownTarget(null)}
@@ -732,33 +766,51 @@ export const InvoiceReviewWorkspace: React.FC<InvoiceReviewWorkspaceProps> = ({
             {/* Breadcrumb Steps */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
               <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800">
-                <span className="font-bold text-blue-600 dark:text-blue-400 block mb-1">1. Source File & Page</span>
-                <p className="text-gray-700 dark:text-gray-300">{doc.metadata.source_filename} (Page {drillDownTarget.field.source_page})</p>
-                <p className="text-gray-500 font-mono text-2xs mt-1 truncate">Hash: {doc.metadata.sha256_hash}</p>
-              </div>
-
-              <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800">
-                <span className="font-bold text-blue-600 dark:text-blue-400 block mb-1">2. Raw Extracted Snippet</span>
-                <p className="text-gray-700 dark:text-gray-300 font-mono bg-white dark:bg-gray-900 p-1.5 rounded border border-gray-200 dark:border-gray-800">
-                  "{drillDownTarget.field.source_text_reference || 'N/A'}"
+                <span className="font-bold text-blue-600 dark:text-blue-400 block mb-1">
+                  1. Source File & Page
+                </span>
+                <p className="text-gray-700 dark:text-gray-300">
+                  {doc.metadata.source_filename} (Page {drillDownTarget.field.source_page})
                 </p>
-                <p className="text-gray-500 mt-1">Confidence Score: {(drillDownTarget.field.confidence_score * 100).toFixed(0)}%</p>
+                <p className="text-gray-500 font-mono text-2xs mt-1 truncate">
+                  Hash: {doc.metadata.sha256_hash}
+                </p>
               </div>
 
               <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800">
-                <span className="font-bold text-blue-600 dark:text-blue-400 block mb-1">3. Normalized Billing Determinant</span>
+                <span className="font-bold text-blue-600 dark:text-blue-400 block mb-1">
+                  2. Raw Extracted Snippet
+                </span>
+                <p className="text-gray-700 dark:text-gray-300 font-mono bg-white dark:bg-gray-900 p-1.5 rounded border border-gray-200 dark:border-gray-800">
+                  "{drillDownTarget.field.source_text_reference || "N/A"}"
+                </p>
+                <p className="text-gray-500 mt-1">
+                  Confidence Score: {(drillDownTarget.field.confidence_score * 100).toFixed(0)}%
+                </p>
+              </div>
+
+              <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800">
+                <span className="font-bold text-blue-600 dark:text-blue-400 block mb-1">
+                  3. Normalized Billing Determinant
+                </span>
                 <p className="text-gray-900 dark:text-gray-100 font-bold text-sm">
                   {String(drillDownTarget.field.value)} {drillDownTarget.field.unit}
                 </p>
-                <p className="text-gray-500 mt-1">Parser Engine: {drillDownTarget.field.parser_version}</p>
+                <p className="text-gray-500 mt-1">
+                  Parser Engine: {drillDownTarget.field.parser_version}
+                </p>
               </div>
 
               <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800">
-                <span className="font-bold text-blue-600 dark:text-blue-400 block mb-1">4. Reconciliation Determinant Status</span>
+                <span className="font-bold text-blue-600 dark:text-blue-400 block mb-1">
+                  4. Reconciliation Determinant Status
+                </span>
                 <p className="text-emerald-600 font-semibold flex items-center gap-1">
                   <CheckCircle2 className="w-4 h-4" /> Ready for Audit Match
                 </p>
-                <p className="text-gray-500 mt-1">Lifecycle State: {doc.lifecycle_state || 'EXTRACTED'}</p>
+                <p className="text-gray-500 mt-1">
+                  Lifecycle State: {doc.lifecycle_state || "EXTRACTED"}
+                </p>
               </div>
             </div>
 

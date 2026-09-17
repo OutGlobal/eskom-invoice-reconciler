@@ -38,7 +38,8 @@ const QUESTION_OUTCOMES: AIQuestionOutcome[] = [
     outcomeTitle: "Target Problem Billing Cycles",
     outcomeDescription:
       "Highlight billing months where utility statements disagree with physical meter interval records.",
-    keyDeliverable: "Prioritize statements with verified discrepancies for immediate credit claims.",
+    keyDeliverable:
+      "Prioritize statements with verified discrepancies for immediate credit claims.",
     icon: AlertTriangle,
   },
   {
@@ -76,8 +77,7 @@ const QUESTION_OUTCOMES: AIQuestionOutcome[] = [
 export function EneraAISection() {
   const [selectedId, setSelectedId] = useState<string>("cost-change");
 
-  const current =
-    QUESTION_OUTCOMES.find((q) => q.id === selectedId) || QUESTION_OUTCOMES[0];
+  const current = QUESTION_OUTCOMES.find((q) => q.id === selectedId) || QUESTION_OUTCOMES[0];
   const CurrentIcon = current.icon;
 
   return (
@@ -104,17 +104,14 @@ export function EneraAISection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-14">
-          Ask plain-language questions to understand your energy data. ENERA identifies cost drivers, highlights priorities, and guides investigations.
+          Ask plain-language questions to understand your energy data. ENERA identifies cost
+          drivers, highlights priorities, and guides investigations.
         </p>
 
         {/* 4. Visual or capability: Interactive Questions & Outcomes Studio */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
           {/* Left Column: 5 Example Inquiries */}
-          <div
-            role="tablist"
-            aria-label="Example inquiries"
-            className="lg:col-span-5 space-y-2.5"
-          >
+          <div role="tablist" aria-label="Example inquiries" className="lg:col-span-5 space-y-2.5">
             <span className="text-[11px] font-mono text-slate-600 uppercase tracking-wider block mb-3 px-1">
               Select an Example Inquiry
             </span>
@@ -141,15 +138,15 @@ export function EneraAISection() {
                 >
                   <div className="flex items-center justify-between text-[10px] font-mono mb-1.5">
                     <span
-                      className={`${
-                        isSelected ? "text-cyan-800 font-semibold" : "text-slate-600"
-                      }`}
+                      className={`${isSelected ? "text-cyan-800 font-semibold" : "text-slate-600"}`}
                     >
                       {q.category}
                     </span>
                     <Icon
                       className={`h-3.5 w-3.5 transition-transform duration-200 ${
-                        isSelected ? "text-cyan-700 scale-110" : "text-slate-500 group-hover:scale-105"
+                        isSelected
+                          ? "text-cyan-700 scale-110"
+                          : "text-slate-500 group-hover:scale-105"
                       }`}
                     />
                   </div>
@@ -181,7 +178,10 @@ export function EneraAISection() {
                   <CurrentIcon className="h-4 w-4" />
                 </div>
                 <span className="text-xs font-mono text-slate-700 uppercase tracking-wider flex items-center gap-1.5 font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-600 animate-pulse" aria-hidden="true" />
+                  <span
+                    className="w-1.5 h-1.5 rounded-full bg-cyan-600 animate-pulse"
+                    aria-hidden="true"
+                  />
                   DELIVERED OUTCOME: {current.category}
                 </span>
               </div>
@@ -224,7 +224,10 @@ export function EneraAISection() {
 
         {/* 5. Supporting information & Progressive CTA */}
         <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
-          <span>Information synthesized directly from verified interval telemetry and statutory tariff schedules.</span>
+          <span>
+            Information synthesized directly from verified interval telemetry and statutory tariff
+            schedules.
+          </span>
           <a
             href="#contact"
             className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 transition-colors font-semibold focus-ring-enera shrink-0"

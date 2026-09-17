@@ -197,11 +197,7 @@ export function EneraImpactSection() {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <EnginePhaseTag
-            phase="06"
-            name="INSIGHT"
-            sub="BALANCE SHEET ADVANTAGE & ROI"
-          />
+          <EnginePhaseTag phase="06" name="INSIGHT" sub="BALANCE SHEET ADVANTAGE & ROI" />
 
           <h2 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight enera-text-gradient leading-tight">
             TURN ENERGY DATA INTO ADVANTAGE.
@@ -275,7 +271,8 @@ export function EneraImpactSection() {
               BUILT FOR ENTERPRISE LEADERS
             </h3>
             <p className="text-xs sm:text-sm text-slate-400 font-light mt-2 leading-relaxed">
-              ENERA serves commercial and industrial organizations with monthly electricity liabilities exceeding R500,000 across South Africa.
+              ENERA serves commercial and industrial organizations with monthly electricity
+              liabilities exceeding R500,000 across South Africa.
             </p>
           </div>
 
@@ -289,9 +286,12 @@ export function EneraImpactSection() {
                 <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider font-semibold">
                   EXECUTIVE FINANCE
                 </span>
-                <h4 className="text-base font-bold text-white font-mono mt-1">CFOs &amp; Treasury</h4>
+                <h4 className="text-base font-bold text-white font-mono mt-1">
+                  CFOs &amp; Treasury
+                </h4>
                 <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                  Eliminate unverified utility liabilities from the corporate balance sheet and automate multi-million rand monthly statement approvals.
+                  Eliminate unverified utility liabilities from the corporate balance sheet and
+                  automate multi-million rand monthly statement approvals.
                 </p>
               </div>
               <div className="mt-5 pt-3 border-t border-white/5 text-[11px] font-mono text-emerald-400 font-medium">
@@ -310,7 +310,8 @@ export function EneraImpactSection() {
                 </span>
                 <h4 className="text-base font-bold text-white font-mono mt-1">Energy Directors</h4>
                 <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                  Cross-examine Class 0.2S AMR smart meter interval logs against complex time-of-use tariffs to eliminate peak demand ratchets.
+                  Cross-examine Class 0.2S AMR smart meter interval logs against complex time-of-use
+                  tariffs to eliminate peak demand ratchets.
                 </p>
               </div>
               <div className="mt-5 pt-3 border-t border-white/5 text-[11px] font-mono text-emerald-400 font-medium">
@@ -329,7 +330,8 @@ export function EneraImpactSection() {
                 </span>
                 <h4 className="text-base font-bold text-white font-mono mt-1">Property Funds</h4>
                 <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                  Ensure 100% tenant cost-recovery precision, reconcile municipal bulk wheeling credits, and eliminate utility council deficits.
+                  Ensure 100% tenant cost-recovery precision, reconcile municipal bulk wheeling
+                  credits, and eliminate utility council deficits.
                 </p>
               </div>
               <div className="mt-5 pt-3 border-t border-white/5 text-[11px] font-mono text-amber-400 font-medium">
@@ -346,9 +348,12 @@ export function EneraImpactSection() {
                 <span className="text-[10px] font-mono text-purple-400 uppercase tracking-wider font-semibold">
                   HEAVY INDUSTRY
                 </span>
-                <h4 className="text-base font-bold text-white font-mono mt-1">Mining &amp; Smelting</h4>
+                <h4 className="text-base font-bold text-white font-mono mt-1">
+                  Mining &amp; Smelting
+                </h4>
                 <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                  Protect multi-megawatt Megaflex transmission contracts from unnotified maximum demand (NMD) penalties and seasonal boundary drifts.
+                  Protect multi-megawatt Megaflex transmission contracts from unnotified maximum
+                  demand (NMD) penalties and seasonal boundary drifts.
                 </p>
               </div>
               <div className="mt-5 pt-3 border-t border-white/5 text-[11px] font-mono text-purple-400 font-medium">

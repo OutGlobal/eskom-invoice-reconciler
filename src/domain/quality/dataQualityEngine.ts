@@ -25,7 +25,7 @@ export class DataGovernanceEngine {
    */
   public static calculateScores(issues: DataQualityIssueRecord[]): FiveEntityScoreSummary {
     const activeUnresolvedIssues = issues.filter(
-      (i) => i.resolution_status === "UNRESOLVED" || i.resolution_status === "UNDER_REVIEW"
+      (i) => i.resolution_status === "UNRESOLVED" || i.resolution_status === "UNDER_REVIEW",
     );
 
     const getScoreForSource = (source: IssueSourceType): Decimal => {
@@ -70,13 +70,13 @@ export class DataGovernanceEngine {
    */
   public static validateReconciliationGatekeeper(
     issues: DataQualityIssueRecord[],
-    hasExplicitOverridePathway: boolean = false
+    hasExplicitOverridePathway: boolean = false,
   ): GatekeeperValidationResult {
     const blockingIssues = issues.filter(
       (i) =>
         (i.severity === "CRITICAL" || i.severity === "HIGH") &&
         i.resolution_status !== "RESOLVED" &&
-        i.resolution_status !== "EXPLICITLY_OVERRIDDEN"
+        i.resolution_status !== "EXPLICITLY_OVERRIDDEN",
     );
 
     if (blockingIssues.length > 0 && !hasExplicitOverridePathway) {
@@ -97,19 +97,97 @@ export class DataGovernanceEngine {
    * Helper generator to create production sample data for all 12 anomaly categories
    */
   public static generateSampleGovernanceIssues(): DataQualityIssueRecord[] {
-    const sampleCategories: Array<{ state: QualityStateCategory; source: IssueSourceType; title: string; sev: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"; pts: number }> = [
-      { state: "MISSING", source: "TELEMETRY_BATCH", title: "Missing 30-min Intervals", sev: "HIGH", pts: 10 },
-      { state: "DUPLICATE", source: "TELEMETRY_BATCH", title: "Duplicate Telemetry Timestamps", sev: "MEDIUM", pts: 5 },
-      { state: "ESTIMATED", source: "TELEMETRY_BATCH", title: "Utility Estimated Readings", sev: "LOW", pts: 2 },
-      { state: "INVALID", source: "TELEMETRY_BATCH", title: "Invalid Telemetry Reading", sev: "CRITICAL", pts: 20 },
-      { state: "CORRECTED", source: "TELEMETRY_BATCH", title: "Manual Override Corrected Reading", sev: "LOW", pts: 2 },
-      { state: "MULTIPLIER_ANOMALY", source: "METER", title: "CT/VT Multiplier Anomaly", sev: "CRITICAL", pts: 20 },
-      { state: "TIMESTAMP_ANOMALY", source: "METER", title: "Clock Drift & Timezone Mismatch", sev: "MEDIUM", pts: 5 },
-      { state: "ROLLOVER_EVENT", source: "METER", title: "Dial Counter Rollover Event", sev: "MEDIUM", pts: 5 },
-      { state: "ABNORMAL_DEMAND", source: "SITE", title: "Abnormal Demand Peak Spike (>150k kW)", sev: "HIGH", pts: 10 },
-      { state: "ABNORMAL_PF", source: "SITE", title: "Abnormal Power Factor (<0.80)", sev: "MEDIUM", pts: 5 },
-      { state: "UNEXPLAINED_INVOICE_VAL", source: "INVOICE", title: "Unexplained Invoice Line Subtotal", sev: "HIGH", pts: 10 },
-      { state: "EXTRACTION_CONFIDENCE_FAILURE", source: "INVOICE", title: "PDF OCR Extraction Confidence Failure (<80%)", sev: "CRITICAL", pts: 20 },
+    const sampleCategories: Array<{
+      state: QualityStateCategory;
+      source: IssueSourceType;
+      title: string;
+      sev: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+      pts: number;
+    }> = [
+      {
+        state: "MISSING",
+        source: "TELEMETRY_BATCH",
+        title: "Missing 30-min Intervals",
+        sev: "HIGH",
+        pts: 10,
+      },
+      {
+        state: "DUPLICATE",
+        source: "TELEMETRY_BATCH",
+        title: "Duplicate Telemetry Timestamps",
+        sev: "MEDIUM",
+        pts: 5,
+      },
+      {
+        state: "ESTIMATED",
+        source: "TELEMETRY_BATCH",
+        title: "Utility Estimated Readings",
+        sev: "LOW",
+        pts: 2,
+      },
+      {
+        state: "INVALID",
+        source: "TELEMETRY_BATCH",
+        title: "Invalid Telemetry Reading",
+        sev: "CRITICAL",
+        pts: 20,
+      },
+      {
+        state: "CORRECTED",
+        source: "TELEMETRY_BATCH",
+        title: "Manual Override Corrected Reading",
+        sev: "LOW",
+        pts: 2,
+      },
+      {
+        state: "MULTIPLIER_ANOMALY",
+        source: "METER",
+        title: "CT/VT Multiplier Anomaly",
+        sev: "CRITICAL",
+        pts: 20,
+      },
+      {
+        state: "TIMESTAMP_ANOMALY",
+        source: "METER",
+        title: "Clock Drift & Timezone Mismatch",
+        sev: "MEDIUM",
+        pts: 5,
+      },
+      {
+        state: "ROLLOVER_EVENT",
+        source: "METER",
+        title: "Dial Counter Rollover Event",
+        sev: "MEDIUM",
+        pts: 5,
+      },
+      {
+        state: "ABNORMAL_DEMAND",
+        source: "SITE",
+        title: "Abnormal Demand Peak Spike (>150k kW)",
+        sev: "HIGH",
+        pts: 10,
+      },
+      {
+        state: "ABNORMAL_PF",
+        source: "SITE",
+        title: "Abnormal Power Factor (<0.80)",
+        sev: "MEDIUM",
+        pts: 5,
+      },
+      {
+        state: "UNEXPLAINED_INVOICE_VAL",
+        source: "INVOICE",
+        title: "Unexplained Invoice Line Subtotal",
+        sev: "HIGH",
+        pts: 10,
+      },
+      {
+        state: "EXTRACTION_CONFIDENCE_FAILURE",
+        source: "INVOICE",
+        title: "PDF OCR Extraction Confidence Failure (<80%)",
+        sev: "CRITICAL",
+        pts: 20,
+      },
     ];
 
     const now = new Date().toISOString();
@@ -122,7 +200,8 @@ export class DataGovernanceEngine {
       severity: item.sev,
       description: `Formal governance detection: ${item.title} evaluated on ${item.source}`,
       recommended_action: `Inspect record ${item.source} and apply appropriate resolution or explicit override pathway.`,
-      resolution_status: idx % 3 === 0 ? "RESOLVED" : idx % 4 === 0 ? "EXPLICITLY_OVERRIDDEN" : "UNRESOLVED",
+      resolution_status:
+        idx % 3 === 0 ? "RESOLVED" : idx % 4 === 0 ? "EXPLICITLY_OVERRIDDEN" : "UNRESOLVED",
       resolved_by: idx % 3 === 0 ? "Auditor Jane Doe" : undefined,
       resolved_timestamp: idx % 3 === 0 ? now : undefined,
       deduction_points: item.pts,
@@ -131,7 +210,9 @@ export class DataGovernanceEngine {
   }
 }
 
-export function evaluateDataQuality(input: QualityAssessmentInput): DataQualityAssessmentResult & { issuesCount: number } {
+export function evaluateDataQuality(
+  input: QualityAssessmentInput,
+): DataQualityAssessmentResult & { issuesCount: number } {
   const issues: QualityIssueRecord[] = [];
   const deductions: Array<{ code: QualityCheckCode; deduction: number; reason: string }> = [];
   const records = input?.telemetryRecords || [];
@@ -195,7 +276,11 @@ export function evaluateDataQuality(input: QualityAssessmentInput): DataQualityA
     }
 
     // Check Unexpected Interval Duration (not 15m or 30m)
-    if (r.interval_minutes !== undefined && r.interval_minutes !== 15 && r.interval_minutes !== 30) {
+    if (
+      r.interval_minutes !== undefined &&
+      r.interval_minutes !== 15 &&
+      r.interval_minutes !== 30
+    ) {
       unexpectedDurationRows.push(rowNum);
     }
 
@@ -304,10 +389,14 @@ export function evaluateDataQuality(input: QualityAssessmentInput): DataQualityA
 
   // Check Invoice Linkage
   if (input?.invoiceRecord && records.length > 0) {
-    const invStart = input.invoiceRecord.startDate ? Date.parse(input.invoiceRecord.startDate) : NaN;
+    const invStart = input.invoiceRecord.startDate
+      ? Date.parse(input.invoiceRecord.startDate)
+      : NaN;
     const invEnd = input.invoiceRecord.endDate ? Date.parse(input.invoiceRecord.endDate) : NaN;
     const firstTelemetry = records[0].timestamp_utc ? Date.parse(records[0].timestamp_utc) : NaN;
-    const lastTelemetry = records[records.length - 1].timestamp_utc ? Date.parse(records[records.length - 1].timestamp_utc) : NaN;
+    const lastTelemetry = records[records.length - 1].timestamp_utc
+      ? Date.parse(records[records.length - 1].timestamp_utc)
+      : NaN;
 
     if (!isNaN(invStart) && !isNaN(invEnd) && (!isNaN(firstTelemetry) || !isNaN(lastTelemetry))) {
       if (firstTelemetry > invStart || lastTelemetry < invEnd) {
@@ -374,5 +463,3 @@ export function evaluateDataQuality(input: QualityAssessmentInput): DataQualityA
     evaluatedAt: new Date().toISOString(),
   };
 }
-
-

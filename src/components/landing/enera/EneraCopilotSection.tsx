@@ -206,7 +206,9 @@ export function EneraCopilotSection() {
 
         {/* 3. Short explanation */}
         <p className="mt-4 text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl mb-14">
-          Energy data is not only an operational concern. It directly governs cost, budget, billing, forecasting, risk, performance, and strategic decision-making across the enterprise balance sheet.
+          Energy data is not only an operational concern. It directly governs cost, budget, billing,
+          forecasting, risk, performance, and strategic decision-making across the enterprise
+          balance sheet.
         </p>
 
         {/* 4. Sophisticated But Simple Transformation Visual: ENERGY -> CONSUMPTION -> BILLING -> COST -> INSIGHT -> DECISION */}
@@ -221,7 +223,8 @@ export function EneraCopilotSection() {
               </h3>
             </div>
             <span className="text-xs font-mono text-slate-600">
-              Stage {FLOW_STAGES[activeStage].step} of 06: <strong className="text-cyan-700">{FLOW_STAGES[activeStage].name}</strong>
+              Stage {FLOW_STAGES[activeStage].step} of 06:{" "}
+              <strong className="text-cyan-700">{FLOW_STAGES[activeStage].name}</strong>
             </span>
           </div>
 
@@ -310,14 +313,10 @@ export function EneraCopilotSection() {
                   <div className="mt-4 pt-2 border-t border-slate-200/80 flex items-center justify-between text-[10px] font-mono">
                     <span className="text-slate-600">Flow</span>
                     {!isLast && (
-                      <span className="text-cyan-700 hidden lg:inline font-mono">
-                        ↓ Next
-                      </span>
+                      <span className="text-cyan-700 hidden lg:inline font-mono">↓ Next</span>
                     )}
                     {isLast && (
-                      <span className="text-emerald-700 font-mono font-medium">
-                        Action
-                      </span>
+                      <span className="text-emerald-700 font-mono font-medium">Action</span>
                     )}
                   </div>
                 </button>
@@ -335,7 +334,10 @@ export function EneraCopilotSection() {
           >
             <div className="flex items-center gap-3">
               <span className="px-2.5 py-0.5 rounded bg-cyan-100 text-cyan-900 font-bold flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-600 animate-pulse" aria-hidden="true" />
+                <span
+                  className="w-1.5 h-1.5 rounded-full bg-cyan-600 animate-pulse"
+                  aria-hidden="true"
+                />
                 {FLOW_STAGES[activeStage].name}
               </span>
               <span className="text-slate-700 font-sans">
@@ -344,7 +346,9 @@ export function EneraCopilotSection() {
             </div>
             <div className="flex items-center gap-2 text-slate-600 shrink-0">
               <span className="text-slate-600">{FLOW_STAGES[activeStage].metricLabel}:</span>
-              <span className="text-slate-900 font-bold">{FLOW_STAGES[activeStage].metricValue}</span>
+              <span className="text-slate-900 font-bold">
+                {FLOW_STAGES[activeStage].metricValue}
+              </span>
             </div>
           </div>
 
@@ -382,14 +386,20 @@ export function EneraCopilotSection() {
               <div className="lg:col-span-5 space-y-2 font-mono">
                 <div className="flex items-center justify-between text-[10px] text-slate-400 pb-1.5 border-b border-slate-800">
                   <span className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" aria-hidden="true" />
+                    <span
+                      className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"
+                      aria-hidden="true"
+                    />
                     <span>INCOMING TELEMETRY STREAM</span>
                   </span>
                   <span className="text-cyan-400 text-[10px]">{currentScenario.category}</span>
                 </div>
                 <div className="space-y-1.5 text-xs">
                   {currentScenario.packets.map((pkt, i) => (
-                    <div key={i} className="p-2 rounded bg-slate-950/80 border border-slate-800 text-slate-300 text-[11px] leading-relaxed">
+                    <div
+                      key={i}
+                      className="p-2 rounded bg-slate-950/80 border border-slate-800 text-slate-300 text-[11px] leading-relaxed"
+                    >
                       {pkt}
                     </div>
                   ))}
@@ -402,7 +412,10 @@ export function EneraCopilotSection() {
                   Deterministic Tariff Engine
                 </span>
                 {/* Animated Stream Pulse Conduit */}
-                <div className="w-full h-8 flex items-center justify-center relative overflow-hidden" aria-hidden="true">
+                <div
+                  className="w-full h-8 flex items-center justify-center relative overflow-hidden"
+                  aria-hidden="true"
+                >
                   <svg className="w-full h-6" preserveAspectRatio="none">
                     <line
                       x1="0%"
@@ -431,7 +444,9 @@ export function EneraCopilotSection() {
               {/* Right: Resolved Financial Metric */}
               <div className="lg:col-span-4 p-4 rounded-xl bg-slate-950 border border-cyan-500/30 enera-glow-cyan space-y-2">
                 <div className="flex items-center justify-between text-[10px] font-mono">
-                  <span className="text-slate-400 uppercase tracking-wider">RESOLVED FINANCIAL METRIC</span>
+                  <span className="text-slate-400 uppercase tracking-wider">
+                    RESOLVED FINANCIAL METRIC
+                  </span>
                   <span className="text-emerald-400 font-bold">{currentScenario.confidence}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-mono font-extrabold text-amber-400">
@@ -476,9 +491,7 @@ export function EneraCopilotSection() {
                     </h4>
                   </div>
 
-                  <p className="text-xs text-slate-600 font-sans leading-relaxed">
-                    {area.impact}
-                  </p>
+                  <p className="text-xs text-slate-600 font-sans leading-relaxed">{area.impact}</p>
                 </div>
               );
             })}
@@ -487,7 +500,9 @@ export function EneraCopilotSection() {
 
         {/* 6. Supporting information & Progressive CTA */}
         <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-slate-600">
-          <span>Deterministic financial governance grounded in statutory NERSA tariff frameworks.</span>
+          <span>
+            Deterministic financial governance grounded in statutory NERSA tariff frameworks.
+          </span>
           <a
             href="#contact"
             className="inline-flex items-center gap-1.5 text-cyan-700 hover:text-cyan-800 font-semibold transition-colors focus-ring-enera shrink-0"

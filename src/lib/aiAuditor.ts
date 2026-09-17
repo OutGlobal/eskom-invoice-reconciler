@@ -69,8 +69,7 @@ export function runAiInvoiceAudit(
         "Eskom billed Transmission Network Capacity at R10.25/kVA (R 878,835.00/month). Table 3 applies R10.25 for 33kV connections (≥500V & <66kV).",
       impactAmountR: 878835.0,
       nersaCitation: "Eskom Schedule of Standard Prices 2025/26 Table 3 p.16 Row ≥500V & <66kV",
-      recommendation:
-        `Review ${invoice.customerName || "the customer"}'s specific connection agreement to confirm whether transmission capacity is subject to zero-rating under contractual distribution clauses.`,
+      recommendation: `Review ${invoice.customerName || "the customer"}'s specific connection agreement to confirm whether transmission capacity is subject to zero-rating under contractual distribution clauses.`,
     });
   }
 
