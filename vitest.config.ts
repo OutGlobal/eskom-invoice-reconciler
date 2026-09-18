@@ -53,6 +53,7 @@ export default defineConfig({
       "src/lib/__tests__/stage29_end_to_end.test.ts",
       "src/lib/__tests__/stage30_data_persistence.test.ts",
       "src/lib/__tests__/stage32_observability.test.ts",
+      "src/lib/__tests__/stage33_dead_code_elimination.test.ts",
     ],
     testTimeout: 60000,
     fileParallelism: false,
