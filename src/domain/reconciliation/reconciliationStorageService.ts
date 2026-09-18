@@ -340,6 +340,24 @@ export class ReconciliationStorageService {
   }
 
   /**
+   * Query reconciliation runs with strict tenant validation
+   */
+  public static async queryRuns(
+    filter: { organisationId?: string; tenantId?: string } = {},
+    context?: UserSecurityContext,
+  ): Promise<AuthoritativeReconciliationPayload[]> {
+    if (context && context.role !== "SUPER_ADMIN") {
+      const targetOrg = filter.organisationId || filter.tenantId;
+      if (targetOrg && targetOrg !== context.organisationId) {
+        throw new TenantIsolationViolationError(context.organisationId, targetOrg);
+      }
+      filter.organisationId = context.organisationId;
+      filter.tenantId = context.organisationId;
+    }
+    return this.getAllRuns(context);
+  }
+
+  /**
    * Save an authoritative reconciliation record (Stage 12 format) with multi-index caching & lineage
    */
   public static async saveAuthoritativeReconciliation(

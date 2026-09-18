@@ -260,4 +260,34 @@ export class TelemetryStorageService {
     const all = Array.from(this.memoryIntervals.values()).flat();
     return all.slice(0, limit) as TelemetryIntervalRecord[];
   }
+
+  /**
+   * High-level helper: save array of telemetry interval records directly
+   */
+  public static async saveIntervals(intervals: any[]): Promise<void> {
+    if (intervals.length > 0) {
+      const key = intervals[0].site_id || intervals[0].meter_id || "default";
+      this.recordIntervalsMemory(key, intervals);
+      if (intervals[0].meter_id && intervals[0].meter_id !== key) {
+        this.recordIntervalsMemory(intervals[0].meter_id, intervals);
+      }
+    }
+    await this.saveTelemetryBatch({
+      intervals: intervals as any,
+      quarantineRecords: [],
+      missingGaps: [],
+    });
+  }
+
+  /**
+   * High-level helper: fetch stored telemetry interval records
+   */
+  public static async getIntervals(key?: string): Promise<any[]> {
+    if (key) {
+      const mem = this.memoryIntervals.get(key);
+      if (mem && mem.length > 0) return mem;
+    }
+    return this.fetchIntervals(500, key);
+  }
 }
+

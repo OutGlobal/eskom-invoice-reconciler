@@ -203,4 +203,48 @@ export class MeterValidationEngine {
       issues,
     };
   }
+
+  /**
+   * Validate raw or normalized interval telemetry records
+   */
+  public static validateIntervalData(intervals: any[]): ValidationResult & { warnings?: ValidationIssue[] } {
+    const issues: ValidationIssue[] = [];
+    const warnings: ValidationIssue[] = [];
+
+    if (!Array.isArray(intervals) || intervals.length === 0) {
+      issues.push({
+        code: "EMPTY_INTERVAL_DATA",
+        field: "intervals",
+        message: "Interval data array must not be empty.",
+        severity: "error",
+      });
+      return { isValid: false, issues, warnings };
+    }
+
+    for (let i = 0; i < intervals.length; i++) {
+      const item = intervals[i];
+      if (item.kwh !== undefined && item.kwh < 0) {
+        issues.push({
+          code: "NEGATIVE_KWH",
+          field: `intervals[${i}].kwh`,
+          message: `Interval at index ${i} has negative energy value.`,
+          severity: "error",
+        });
+      }
+      if (item.power_factor !== undefined && (item.power_factor < 0 || item.power_factor > 1.0)) {
+        warnings.push({
+          code: "ANOMALOUS_POWER_FACTOR",
+          field: `intervals[${i}].power_factor`,
+          message: `Interval at index ${i} has power factor out of standard range (0.0 - 1.0).`,
+          severity: "warning",
+        });
+      }
+    }
+
+    return {
+      isValid: issues.length === 0,
+      issues,
+      warnings,
+    };
+  }
 }

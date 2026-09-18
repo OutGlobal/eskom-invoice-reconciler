@@ -100,6 +100,10 @@ export class InvoiceStorageService {
     return this.lineItemStore.get(key) || [];
   }
 
+  public static getMemoryRecords(): any[] {
+    return Array.from(this.memoryStore.values());
+  }
+
   public static clearMemoryStore(): void {
     this.memoryStore.clear();
     this.lineItemStore.clear();
@@ -404,12 +408,9 @@ export class InvoiceStorageService {
 
       if (error && !error.message.includes("FetchError")) {
         console.warn("Supabase queryInvoices warning:", error.message);
-        return [];
       }
 
-      if (!data) return [];
-
-      let results: InvoiceHeaderMeta[] = data.map((item: any) => ({
+      let results: InvoiceHeaderMeta[] = (data || []).map((item: any) => ({
         invoice_id: item.id,
         account_number: item.account_number,
         organisation_id: item.organisation_id,
@@ -432,6 +433,43 @@ export class InvoiceStorageService {
         reconciliation_status: item.reconciliation_status || "unprocessed",
         lifecycle_state: (item.lifecycle_state as InvoiceLifecycleState) || "EXTRACTED",
       }));
+
+      // Merge matching in-memory records
+      const targetOrg = filter.organisationId || context?.organisationId;
+      for (const item of this.memoryStore.values()) {
+        if (!item || typeof item !== "object") continue;
+        const itemOrg = item.organisation_id || item.tenant_id;
+        if (targetOrg && itemOrg && itemOrg !== targetOrg) continue;
+        if (filter.accountNumber && item.account_number && !item.account_number.toLowerCase().includes(filter.accountNumber.toLowerCase())) continue;
+        if (filter.invoiceNumber && item.invoice_number && !item.invoice_number.toLowerCase().includes(filter.invoiceNumber.toLowerCase())) continue;
+        
+        const invoiceId = item.id || item.invoice_id || item.invoice_number;
+        if (!results.some((r) => r.invoice_id === invoiceId || r.account_number === item.account_number && r.billing_period_start === item.billing_start)) {
+          results.push({
+            invoice_id: invoiceId,
+            account_number: item.account_number || "ACC-DEFAULT",
+            organisation_id: itemOrg || targetOrg || "DEFAULT_TENANT",
+            client_name: item.customer_name || item.client_name || "Client",
+            site_id: item.site_id,
+            site_name: item.site_name || "Primary Site",
+            pod_id: item.pod_id,
+            premise_id: item.premise_id,
+            meter_number: item.meter_number || item.meter_id,
+            billing_period_start: item.billing_start,
+            billing_period_end: item.billing_end,
+            invoice_date: item.invoice_date || item.billing_start,
+            tariff_code: item.tariff_code,
+            tariff_name: item.tariff_name,
+            supply_voltage: item.supply_voltage ? Number(item.supply_voltage) : undefined,
+            source_file_id: item.source_file_id,
+            sha256_hash: item.sha256_hash || "",
+            extraction_status: item.extraction_status || "success",
+            validation_status: item.validation_status || "passed",
+            reconciliation_status: item.reconciliation_status || "unprocessed",
+            lifecycle_state: (item.lifecycle_state as InvoiceLifecycleState) || "EXTRACTED",
+          });
+        }
+      }
 
       // In-memory defense-in-depth filter against leaks
       if (context && context.role !== "SUPER_ADMIN") {

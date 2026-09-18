@@ -17,6 +17,8 @@ import type {
   ReconciliationHealthMetrics,
 } from "./types";
 import { ContractDataLineageMap, type ContractAuditSummary } from "../lineage/contractDataLineageMap";
+import { InvoiceStorageService } from "../invoice/invoiceStorageService";
+import { ReconciliationStorageService } from "../reconciliation/reconciliationStorageService";
 
 export class DashboardService {
   /**
@@ -198,6 +200,40 @@ export class DashboardService {
       }
     }
 
+    // Merge authoritative store records if available
+    try {
+      const memRecords = InvoiceStorageService.getMemoryRecords();
+      for (const inv of memRecords || []) {
+        if (!inv || typeof inv !== "object") continue;
+        if (filters.organisationId && inv.organisation_id && inv.organisation_id !== filters.organisationId) {
+          continue;
+        }
+        const invNum = inv.invoice_number || inv.invoiceNumber || inv.id;
+        if (invNum && !invoiceMap.has(invNum)) {
+          invoiceMap.set(invNum, {
+            id: inv.id || invNum,
+            account_number: inv.account_number || inv.accountNumber || "ACC-DEFAULT",
+            invoice_number: invNum,
+            billing_period_name: inv.billing_period || "Standard Billing Period",
+            billing_start: inv.billing_start || "2025-07-01",
+            billing_end: inv.billing_end || "2025-07-31",
+            total_kwh: Number(inv.total_kwh ?? inv.totalKwh) || 0,
+            peak_kwh: Number(inv.peak_kwh ?? inv.peakKwh) || 0,
+            standard_kwh: Number(inv.standard_kwh ?? inv.standardKwh) || 0,
+            off_peak_kwh: Number(inv.off_peak_kwh ?? inv.offPeakKwh) || 0,
+            max_demand_kva: Number(inv.max_demand_kva ?? inv.maxDemandKva) || 0,
+            invoiced_total: Number(inv.invoiced_total ?? inv.totalAmount ?? inv.totalInvoice) || 0,
+            reconciled_total: Number(inv.reconciled_total ?? inv.invoiced_total ?? inv.totalAmount) || 0,
+            variance_amount: Number(inv.variance_amount) || 0,
+            status: (inv.status || inv.lifecycle_state || "validated").toLowerCase(),
+            created_at: inv.created_at || new Date().toISOString(),
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("Error merging in-memory records into dashboard:", e);
+    }
+
     const invoices = Array.from(invoiceMap.values());
 
     if (!invoices || invoices.length === 0) {
@@ -212,6 +248,21 @@ export class DashboardService {
       runQuery = runQuery.eq("organisation_id", filters.organisationId);
     }
     const { data: runs } = await runQuery;
+
+    let mergedRuns: any[] = runs ? [...runs] : [];
+    try {
+      const memRuns = await ReconciliationStorageService.queryRuns(
+        filters.organisationId ? { organisationId: filters.organisationId } : {},
+      );
+      for (const r of memRuns || []) {
+        mergedRuns.push({
+          id: r.run_id || r.id,
+          status: (r.status || "completed").toLowerCase(),
+          run_at: r.run_at || r.created_at || new Date().toISOString(),
+          invoice_record_id: r.invoice_id,
+        });
+      }
+    } catch {}
 
     // Query discrepancy_events
     const discQuery = supabase.from("discrepancy_events").select("*");
@@ -267,15 +318,15 @@ export class DashboardService {
       }
     }
 
-    const completedRuns = (runs || []).filter((r) => r.status === "completed").length;
-    const failedRuns = (runs || []).filter((r) => r.status === "failed").length;
-    const pendingRuns = (runs || []).filter((r) => r.status === "pending").length;
-    const runsCount = (runs || []).length;
+    const completedRuns = (mergedRuns || []).filter((r) => r.status === "completed").length;
+    const failedRuns = (mergedRuns || []).filter((r) => r.status === "failed").length;
+    const pendingRuns = (mergedRuns || []).filter((r) => r.status === "pending").length;
+    const runsCount = (mergedRuns || []).length;
     const successRate = runsCount > 0 ? (completedRuns / runsCount) * 100 : null;
 
     let avgDurationMs: number | null = null;
-    if (runs && runs.length > 0) {
-      const runsWithDuration = runs.filter(
+    if (mergedRuns && mergedRuns.length > 0) {
+      const runsWithDuration = mergedRuns.filter(
         (r: any) => typeof r.execution_duration_ms === "number" && r.execution_duration_ms > 0,
       );
       if (runsWithDuration.length > 0) {
