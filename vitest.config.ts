@@ -57,6 +57,7 @@ export default defineConfig({
       "src/lib/__tests__/stage34_database_review.test.ts",
       "src/lib/__tests__/stage35_dashboard_review.test.ts",
       "src/lib/__tests__/stage36_security_disclosure.test.ts",
+      "src/lib/__tests__/stage37_production_readiness.test.ts",
     ],
     testTimeout: 60000,
     fileParallelism: false,
