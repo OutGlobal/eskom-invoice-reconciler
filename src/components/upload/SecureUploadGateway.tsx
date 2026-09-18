@@ -45,6 +45,7 @@ import type {
   AmbiguityReport,
   AutomatedPipelineResult,
 } from "@/domain/pipeline/types";
+import { UserFacingErrorSanitizer } from "@/domain/observability/userFacingErrorSanitizer";
 import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
 
 const AUTOMATED_STAGES: { id: AutomatedPipelineStage; label: string }[] = [
@@ -1603,15 +1604,35 @@ export function SecureUploadGateway() {
                 </div>
               </div>
 
-              {selectedUpload.errorMessage && (
-                <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300">
-                  <div className="font-semibold text-xs flex items-center gap-1.5 mb-1">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    Error Diagnostic
+              {selectedUpload.errorMessage && (() => {
+                const sanitized = UserFacingErrorSanitizer.sanitize(
+                  selectedUpload.processingStatus === "FAILED" ? "FAILED_EXTRACTION" : "PROCESSING_FAILURE",
+                  selectedUpload.errorMessage,
+                  selectedUpload.errorMessage,
+                );
+                return (
+                  <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 space-y-1.5">
+                    <div className="font-semibold text-xs flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        <span>{sanitized.title}</span>
+                      </div>
+                      <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                        {sanitized.referenceCode}
+                      </span>
+                    </div>
+                    <p className="text-xs font-medium text-rose-200/90 leading-relaxed">
+                      {sanitized.message}
+                    </p>
+                    {sanitized.actionableHint && (
+                      <p className="text-[11px] text-muted-foreground pt-0.5">
+                        <span className="font-semibold text-foreground">Action: </span>
+                        {sanitized.actionableHint}
+                      </p>
+                    )}
                   </div>
-                  <p className="text-xs font-mono">{selectedUpload.errorMessage}</p>
-                </div>
-              )}
+                );
+              })()}
 
               <div>
                 <span className="text-muted-foreground font-semibold">

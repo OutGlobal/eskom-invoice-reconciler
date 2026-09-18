@@ -40,6 +40,8 @@ import type {
   IngestionGatewayResult,
   IngestionLifecycleState,
 } from "./types";
+import { ProductionObservabilityService } from "../observability/productionObservabilityService";
+import { UserFacingErrorSanitizer } from "../observability/userFacingErrorSanitizer";
 
 export class SecureIngestionGateway {
   private static processedHashes: Map<string, IngestionGatewayResult> = new Map();
@@ -164,6 +166,12 @@ export class SecureIngestionGateway {
     // If filename has path traversal or malicious characters, reject immediately
     if (!fnCheck.valid) {
       addLog("SECURITY", "error", `Filename security rejected: ${fnCheck.errors.join("; ")}`);
+      void ProductionObservabilityService.trackInvalidFile({
+        filename: sanitizedFilename,
+        reason: fnCheck.errors.join("; "),
+        organisationId,
+        userId: uploaderId,
+      });
       const errRecord: IngestionErrorRecord = {
         id: `ERR-FN-${Date.now()}`,
         jobId,
@@ -296,6 +304,13 @@ export class SecureIngestionGateway {
         "error",
         secResult.rejectionReason || "File security inspection rejected file payload",
       );
+      void ProductionObservabilityService.trackInvalidFile({
+        filename: sanitizedFilename,
+        reason: secResult.rejectionReason || "File security validation failed",
+        detectedMimeType: secResult.detectedMimeType,
+        organisationId,
+        userId: uploaderId,
+      });
       const errRecord: IngestionErrorRecord = {
         id: `ERR-SEC-${Date.now()}`,
         jobId,
@@ -519,6 +534,14 @@ export class SecureIngestionGateway {
       };
 
       await QuarantineManager.quarantineJob(batchJob, errors);
+
+      void ProductionObservabilityService.trackFailedExtraction({
+        filename: sanitizedFilename,
+        error: errorMsg,
+        organisationId,
+        userId: uploaderId,
+        uploadId: documentId,
+      });
 
       try {
         const { AuditTrailService } = await import("../audit/auditTrailService");

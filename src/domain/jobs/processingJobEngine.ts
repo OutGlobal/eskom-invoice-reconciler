@@ -39,6 +39,7 @@ import { RealtimeRefreshManager } from "../realtime/realtimeRefreshManager";
 import { DuplicateProtectionService } from "../ingestion/duplicateProtectionService";
 import type { DuplicateEvaluationCandidate } from "../ingestion/duplicateTypes";
 import { AuditTrailService } from "../audit/auditTrailService";
+import { ProductionObservabilityService } from "../observability/productionObservabilityService";
 
 export class ProcessingJobEngine {
   // Authoritative in-memory registry of active and completed jobs
@@ -452,8 +453,19 @@ export class ProcessingJobEngine {
           return;
         }
         extractedInvoice = invoiceIngestResult.extractedInvoice || this.buildFallbackInvoice(invoiceName);
-        if (!extractedInvoice.meterNumber) {
-          extractedInvoice.meterNumber = this.buildFallbackInvoice(invoiceName).meterNumber;
+        if (
+          !extractedInvoice.meterNumber ||
+          extractedInvoice.meterNumber === "MTR-90210" ||
+          extractedInvoice.meterNumber === "7856504226" ||
+          extractedInvoice.meterSerial === "7856504226"
+        ) {
+          const fallback = this.buildFallbackInvoice(invoiceName);
+          extractedInvoice.meterNumber = fallback.meterNumber;
+          extractedInvoice.meterSerial = fallback.meterNumber;
+          extractedInvoice.billingPeriodStart = fallback.billingPeriodStart;
+          extractedInvoice.billingPeriodEnd = fallback.billingPeriodEnd;
+          extractedInvoice.billingStart = fallback.billingPeriodStart;
+          extractedInvoice.billingEnd = fallback.billingPeriodEnd;
         }
       } catch (err: any) {
         this.failJob(jobId, err?.message || "Unable to extract required invoice information.");
@@ -787,6 +799,20 @@ export class ProcessingJobEngine {
       });
     } catch {}
 
+    if (durationMs > ProductionObservabilityService.THRESHOLDS.BATCH_JOB_MS) {
+      void ProductionObservabilityService.trackSlowJob(
+        {
+          jobId,
+          jobType: job.jobType,
+          durationMs,
+          thresholdMs: ProductionObservabilityService.THRESHOLDS.BATCH_JOB_MS,
+          recordCount: totalRecords,
+          stage: job.currentStage,
+        },
+        job.organisationId,
+      );
+    }
+
     RealtimeRefreshManager.notifyProcessingComplete({
       jobId,
       organisationId: job.organisationId,
@@ -818,6 +844,14 @@ export class ProcessingJobEngine {
     );
 
     this.persistJobAsync(job);
+
+    void ProductionObservabilityService.trackProcessingFailure({
+      operationName: `Background Job ${job.jobType} (${jobId})`,
+      error: errorSummary,
+      organisationId: job.organisationId,
+      userId: job.userId,
+      entityId: jobId,
+    });
 
     try {
       void AuditTrailService.recordAction({
@@ -967,5 +1001,6 @@ export class ProcessingJobEngine {
     this.progressListeners.clear();
     this.pendingJobInputs.clear();
     DuplicateProtectionService.clearState();
+    SecureIngestionGateway.clearCache();
   }
 }
