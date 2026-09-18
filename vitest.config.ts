@@ -55,6 +55,7 @@ export default defineConfig({
       "src/lib/__tests__/stage32_observability.test.ts",
       "src/lib/__tests__/stage33_dead_code_elimination.test.ts",
       "src/lib/__tests__/stage34_database_review.test.ts",
+      "src/lib/__tests__/stage35_dashboard_review.test.ts",
     ],
     testTimeout: 60000,
     fileParallelism: false,

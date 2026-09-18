@@ -96,7 +96,13 @@ export class ProcessingJobEngine {
             mimeType: (input.invoiceFile as any).type || "application/pdf",
             storagePath: input.invoiceStoragePath,
           }
-        : undefined,
+        : input.files?.find((f) => f.filename?.endsWith(".pdf"))
+          ? {
+              name: input.files.find((f) => f.filename?.endsWith(".pdf"))!.filename,
+              sizeBytes: input.files.find((f) => f.filename?.endsWith(".pdf"))!.fileSizeBytes || 0,
+              mimeType: input.files.find((f) => f.filename?.endsWith(".pdf"))!.mimeType || "application/pdf",
+            }
+          : undefined,
       sourceMeterFile: input.meterFile
         ? {
             name: meterName,
@@ -104,7 +110,13 @@ export class ProcessingJobEngine {
             mimeType: (input.meterFile as any).type || "text/csv",
             storagePath: input.meterStoragePath,
           }
-        : undefined,
+        : input.files && input.files.length > 0
+          ? {
+              name: input.files[0].filename,
+              sizeBytes: input.files[0].fileSizeBytes || 0,
+              mimeType: input.files[0].mimeType || "text/csv",
+            }
+          : undefined,
       createdAt: now,
       updatedAt: now,
     };

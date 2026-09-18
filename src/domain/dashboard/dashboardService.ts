@@ -15,10 +15,15 @@ import type {
   FinancialRecoveryBreakdown,
   PortfolioSummary,
   ReconciliationHealthMetrics,
+  AvailableSiteItem,
+  AvailableAccountItem,
+  ActiveProcessingJobItem,
 } from "./types";
 import { ContractDataLineageMap, type ContractAuditSummary } from "../lineage/contractDataLineageMap";
 import { InvoiceStorageService } from "../invoice/invoiceStorageService";
 import { ReconciliationStorageService } from "../reconciliation/reconciliationStorageService";
+import { ProcessingJobEngine } from "../jobs/processingJobEngine";
+import { UploadStorageService } from "../upload/uploadStorageService";
 
 export class DashboardService {
   /**
@@ -60,11 +65,15 @@ export class DashboardService {
       return this.createEmptyDashboardData(timestamp);
     }
 
+    // Check active in-flight processing jobs across background engines
+    const activeProcessingJobs = await this.getActiveProcessingJobs(filters.organisationId);
+
     // 2. If source is explicitly "database", query production database as Authoritative Source of Truth
     if (filters.source === "database") {
       try {
         const dbData = await this.queryDatabaseAggregates(filters);
         if (dbData && dbData.hasData) {
+          dbData.activeProcessingJobs = activeProcessingJobs;
           return dbData;
         }
       } catch (err) {
@@ -80,22 +89,82 @@ export class DashboardService {
         (fallbackStoreData.batchInvoices && fallbackStoreData.batchInvoices.length > 0) ||
         (fallbackStoreData.rows && fallbackStoreData.rows.length > 0))
     ) {
-      return this.aggregateStoreData(filters, fallbackStoreData, timestamp);
+      const storeResult = this.aggregateStoreData(filters, fallbackStoreData, timestamp);
+      storeResult.activeProcessingJobs = activeProcessingJobs;
+      return storeResult;
     }
 
     // 4. Otherwise query production Supabase database as Authoritative Source of Truth
     try {
       const dbData = await this.queryDatabaseAggregates(filters);
       if (dbData && dbData.hasData) {
+        dbData.activeProcessingJobs = activeProcessingJobs;
         return dbData;
       }
     } catch (err) {
       console.warn("Supabase dashboard query notice:", err);
     }
 
-    // 5. Return explicit NO DATA state if nothing present
-    return this.createEmptyDashboardData(timestamp);
+    // 5. Return explicit NO DATA state if nothing present, but attach active in-flight processing jobs
+    const emptyData = this.createEmptyDashboardData(timestamp);
+    emptyData.activeProcessingJobs = activeProcessingJobs;
+    return emptyData;
   }
+
+  /**
+   * Helper to fetch active in-flight processing jobs and upload ingestion records
+   */
+  public static async getActiveProcessingJobs(organisationId?: string): Promise<ActiveProcessingJobItem[]> {
+    const activeJobs: ActiveProcessingJobItem[] = [];
+    try {
+      const jobs = await ProcessingJobEngine.listJobs(
+        organisationId ? { organisationId } : {},
+      );
+      for (const job of jobs || []) {
+        if (job.status === "PROCESSING" || job.status === "QUEUED" || job.status === "PAUSED_AMBIGUITY") {
+          activeJobs.push({
+            id: job.jobId,
+            name:
+              job.sourceMeterFile?.name ||
+              job.sourceInvoiceFile?.name ||
+              (job as any).files?.[0]?.filename ||
+              `Batch Ingestion Job ${job.jobId.slice(0, 8)}`,
+            stage: job.stageMessage || job.currentStage,
+            progressPct: job.progressPercentage,
+            status: job.status,
+            startedAt: job.createdAt,
+          });
+        }
+      }
+    } catch {
+      // Non-blocking
+    }
+
+    try {
+      const uploads = await UploadStorageService.listUploads(
+        organisationId ? { organisationId } : {},
+      );
+      for (const u of uploads || []) {
+        if (
+          (u.processingStatus === "PROCESSING" || u.processingStatus === "PENDING") &&
+          !activeJobs.some((j) => j.id === u.id)
+        ) {
+          activeJobs.push({
+            id: u.id,
+            name: u.filename,
+            stage: u.processingStatus === "PROCESSING" ? "Validating & Normalising" : "Queued in Ingestion Pipeline",
+            progressPct: u.processingStatus === "PROCESSING" ? 50 : 10,
+            status: u.processingStatus,
+            startedAt: u.createdAt,
+          });
+        }
+      }
+    } catch {
+      // Non-blocking
+    }
+    return activeJobs;
+  }
+
 
   /**
    * Query database aggregates via Supabase with RLS tenant isolation
@@ -348,9 +417,44 @@ export class DashboardService {
     const totalVariance = totalBilled.minus(totalCalculated);
     const potentialRecovery = overbilling;
 
+    // Collect all available sites
+    const availableSitesMap = new Map<string, AvailableSiteItem>();
+    for (const s of sites || []) {
+      availableSitesMap.set(s.id, {
+        id: s.id,
+        name: s.site_name || s.site_code || `Site ${s.id.slice(0, 6)}`,
+        customerName: undefined,
+      });
+    }
+    for (const inv of invoices) {
+      const sId = inv.site_id || inv.premiseId || inv.raw_data?.metadata?.premiseId;
+      if (sId && !availableSitesMap.has(sId)) {
+        availableSitesMap.set(sId, {
+          id: sId,
+          name: inv.site_name || inv.raw_data?.metadata?.premiseName || `Facility (${sId})`,
+          customerName: inv.customer_name || inv.account_number,
+        });
+      }
+    }
+    const availableSites = Array.from(availableSitesMap.values());
+
+    // Collect all available accounts
+    const availableAccountsMap = new Map<string, AvailableAccountItem>();
+    for (const inv of invoices) {
+      if (inv.account_number) {
+        availableAccountsMap.set(inv.account_number, {
+          accountNumber: inv.account_number,
+          name: inv.customer_name || inv.raw_data?.metadata?.customerName || `Account ${inv.account_number}`,
+        });
+      }
+    }
+    const availableAccounts = Array.from(availableAccountsMap.values());
+
+    const totalSitesCount = Math.max(sites?.length || 0, availableSites.length, invoices.length > 0 ? 1 : 0);
+
     const portfolioSummary: PortfolioSummary = {
       totalClients: orgs?.length ?? (uniqueAccounts.size > 0 ? 1 : 0),
-      totalSites: sites?.length ?? 0,
+      totalSites: totalSitesCount,
       totalAccounts: uniqueAccounts.size,
       totalInvoices: invoices.length,
       invoicesProcessed: processedCount,
@@ -503,6 +607,8 @@ export class DashboardService {
       lastUpdated: new Date().toISOString(),
       isLiveDatabase: true,
       hasData: true,
+      availableSites,
+      availableAccounts,
     };
   }
 
@@ -593,10 +699,53 @@ export class DashboardService {
       : 0;
     const isPass = Math.abs(pctErr) < 2.0;
 
+    const uniqueSites = new Set<string>();
+    const availableSitesMap = new Map<string, AvailableSiteItem>();
+    for (const inv of invoices) {
+      const siteId = inv.premiseId || inv.address || inv.source || inv.meterNumber;
+      if (siteId) {
+        uniqueSites.add(siteId);
+        availableSitesMap.set(siteId, {
+          id: siteId,
+          name: inv.customerName ? `${inv.customerName} (${siteId})` : `Facility (${siteId})`,
+          customerName: inv.customerName,
+        });
+      }
+    }
+    if (uniqueSites.size === 0 && customer?.name) {
+      const custSiteId = customer.meter || customer.name;
+      uniqueSites.add(custSiteId);
+      if (!availableSitesMap.has(custSiteId)) {
+        availableSitesMap.set(custSiteId, {
+          id: custSiteId,
+          name: `${customer.name} Facility`,
+          customerName: customer.name,
+        });
+      }
+    }
+
+    const availableAccountsMap = new Map<string, AvailableAccountItem>();
+    for (const inv of invoices) {
+      if (inv.accountNumber) {
+        availableAccountsMap.set(inv.accountNumber, {
+          accountNumber: inv.accountNumber,
+          name: inv.customerName || `Account ${inv.accountNumber}`,
+        });
+      }
+    }
+    if (customer?.accountNumber) {
+      availableAccountsMap.set(customer.accountNumber, {
+        accountNumber: customer.accountNumber,
+        name: customer.name || `Account ${customer.accountNumber}`,
+      });
+    }
+
+    const totalSitesCount = Math.max(uniqueSites.size, invoices.length > 0 ? 1 : 0);
+
     const portfolioSummary: PortfolioSummary = {
-      totalClients: 1,
-      totalSites: 1,
-      totalAccounts: uniqueAccounts.size || 1,
+      totalClients: customer?.name ? 1 : uniqueAccounts.size > 0 ? 1 : 0,
+      totalSites: totalSitesCount,
+      totalAccounts: uniqueAccounts.size || (customer?.accountNumber ? 1 : 0),
       totalInvoices: invoices.length,
       invoicesProcessed: processedCount,
       invoicesAwaitingReview: reviewCount,
@@ -659,10 +808,10 @@ export class DashboardService {
     };
 
     const energyOverview: EnergyOverviewMetrics = {
-      peakKWh: peakKwhSum,
-      standardKWh: stdKwhSum,
-      offPeakKWh: offKwhSum,
-      totalKWh: totalKwhSum,
+      peakKWh: (rows && rows.length > 0 && totals?.peakKWh) ? totals.peakKWh : peakKwhSum,
+      standardKWh: (rows && rows.length > 0 && totals?.standardKWh) ? totals.standardKWh : stdKwhSum,
+      offPeakKWh: (rows && rows.length > 0 && totals?.offPeakKWh) ? totals.offPeakKWh : offKwhSum,
+      totalKWh: (rows && rows.length > 0 && totals?.totalKWh) ? totals.totalKWh : totalKwhSum,
       maxDemandKVA: maxDemandKva > 0 ? maxDemandKva : null,
       maxDemandTimestamp: totals?.maxDemandAt ? totals.maxDemandAt.toISOString() : undefined,
       reactiveEnergyKVARh: totals?.reactiveEnergyKVARh > 0 ? totals.reactiveEnergyKVARh : null,
@@ -708,6 +857,8 @@ export class DashboardService {
       lastUpdated: timestamp,
       isLiveDatabase: false,
       hasData: true,
+      availableSites: Array.from(availableSitesMap.values()),
+      availableAccounts: Array.from(availableAccountsMap.values()),
     };
   }
 
@@ -888,6 +1039,9 @@ export class DashboardService {
       lastUpdated: timestamp,
       isLiveDatabase: false,
       hasData: false,
+      availableSites: [],
+      availableAccounts: [],
+      activeProcessingJobs: [],
     };
   }
 

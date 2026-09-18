@@ -113,6 +113,26 @@ export interface CriticalAlertItem {
   actionUrl: string;
 }
 
+export interface ActiveProcessingJobItem {
+  id: string;
+  name: string;
+  stage: string;
+  progressPct: number;
+  status: string;
+  startedAt?: string;
+}
+
+export interface AvailableSiteItem {
+  id: string;
+  name: string;
+  customerName?: string;
+}
+
+export interface AvailableAccountItem {
+  accountNumber: string;
+  name: string;
+}
+
 export interface AggregatedDashboardData {
   portfolioSummary: PortfolioSummary;
   reconciliationHealth: ReconciliationHealthMetrics;
@@ -123,4 +143,8 @@ export interface AggregatedDashboardData {
   lastUpdated: string;
   isLiveDatabase: boolean;
   hasData: boolean;
+  availableSites?: AvailableSiteItem[];
+  availableAccounts?: AvailableAccountItem[];
+  activeProcessingJobs?: ActiveProcessingJobItem[];
 }
+

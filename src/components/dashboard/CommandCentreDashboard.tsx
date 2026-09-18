@@ -18,6 +18,9 @@ import {
   Building2,
   Calendar,
   Upload,
+  Cpu,
+  X,
+  Sparkles,
 } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { useDerived, ZAR, NUM } from "@/components/dashboard/parts";
@@ -25,6 +28,8 @@ import { DashboardService } from "@/domain/dashboard/dashboardService";
 import { EnterpriseAnalyticsCharts } from "@/components/charts/EnterpriseAnalyticsCharts";
 import { useAutoRefresh } from "@/domain/realtime/useAutoRefresh";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { UserFacingErrorSanitizer } from "@/domain/observability/userFacingErrorSanitizer";
+import type { UserFacingMessage } from "@/domain/observability/types";
 import type {
   AggregatedDashboardData,
   CriticalAlertItem,
@@ -44,6 +49,8 @@ export function CommandCentreDashboard() {
   const rows = useApp((s) => s.rows);
   const batchInvoices = useApp((s) => s.batchInvoices);
   const validationIssues = useApp((s) => s.validation);
+  const uploads = useApp((s) => s.uploads);
+  const loadMarch2026SampleInvoice = useApp((s) => s.loadMarch2026SampleInvoice);
 
   // Local filter state (Authoritative Database source by default)
   const [filters, setFilters] = useState<DashboardFilterState>({
@@ -53,12 +60,14 @@ export function CommandCentreDashboard() {
   });
 
   const [dashboardData, setDashboardData] = useState<AggregatedDashboardData | null>(null);
+  const [dashboardError, setDashboardError] = useState<UserFacingMessage | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedAlert, setSelectedAlert] = useState<CriticalAlertItem | null>(null);
 
   // Load aggregated dashboard data
   const loadData = async () => {
     setLoading(true);
+    setDashboardError(null);
     try {
       const data = await DashboardService.getAggregatedDashboardData(filters, {
         invoice,
@@ -74,6 +83,13 @@ export function CommandCentreDashboard() {
       setDashboardData(data);
     } catch (err) {
       console.error("Failed to load dashboard command centre data:", err);
+      const sanitized = UserFacingErrorSanitizer.sanitize(
+        "DATABASE_ERROR",
+        err,
+        "We encountered an issue retrieving your reconciliation summaries. Your uploaded data is securely preserved.",
+        "Please click 'Refresh' or verify your connection. If this persists, quote the reference code to support.",
+      );
+      setDashboardError(sanitized);
     } finally {
       setLoading(false);
     }
@@ -81,7 +97,7 @@ export function CommandCentreDashboard() {
 
   useEffect(() => {
     loadData();
-  }, [filters, invoice, calculatedTotal, invoiceTotal, rows.length]);
+  }, [filters, invoice, calculatedTotal, invoiceTotal, rows.length, batchInvoices?.length, uploads?.length]);
 
   // Stage 20: Auto-refresh data on automated processing completion and database mutations
   const { lastRefreshedAt, isAutoRefreshActive } = useAutoRefresh(loadData, {
@@ -162,6 +178,102 @@ export function CommandCentreDashboard() {
         </div>
       </div>
 
+      {/* 1b. Error Notification Card (Sanitized Level 3 Zero-Exposure Compliant) */}
+      {dashboardError && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-semibold text-foreground">
+                    {dashboardError.title || "Temporary Service Notice"}
+                  </h4>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">
+                    {dashboardError.referenceCode}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {dashboardError.message}
+                </p>
+                {dashboardError.actionableHint && (
+                  <p className="text-[11px] text-foreground/80 font-medium">
+                    💡 {dashboardError.actionableHint}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {dashboardError.retryAllowed && (
+                <button
+                  onClick={loadData}
+                  className="px-2.5 py-1 text-xs font-semibold rounded bg-red-500 text-white hover:bg-red-600 transition"
+                >
+                  Retry
+                </button>
+              )}
+              <button
+                onClick={() => setDashboardError(null)}
+                className="p-1 text-muted-foreground hover:text-foreground transition"
+                title="Dismiss"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 1c. In-Flight Background Processing Banner */}
+      {data.activeProcessingJobs && data.activeProcessingJobs.length > 0 && (
+        <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500" />
+              </span>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-blue-500 flex items-center gap-1.5">
+                <Cpu className="h-4 w-4" /> Data Processing In Progress ({data.activeProcessingJobs.length} active)
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono text-muted-foreground">
+              Dashboard updates automatically upon completion
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {data.activeProcessingJobs.map((job) => (
+              <div
+                key={job.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs bg-background/80 rounded border border-blue-500/20 p-2.5"
+              >
+                <div className="space-y-0.5">
+                  <div className="font-semibold text-foreground flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5 text-blue-500" />
+                    {job.name}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">{job.stage}</div>
+                </div>
+
+                <div className="flex items-center gap-3 min-w-[200px]">
+                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.max(15, job.progressPct)}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-muted-foreground w-8 text-right">
+                    {job.progressPct}%
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+
       {/* 2. Global Filter Bar */}
       <div className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -211,7 +323,13 @@ export function CommandCentreDashboard() {
               className="w-full text-xs rounded border border-border bg-background px-2 py-1"
             >
               <option value="all">All Sites</option>
-              {customer?.name ? (
+              {data.availableSites && data.availableSites.length > 0 ? (
+                data.availableSites.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))
+              ) : customer?.name ? (
                 <option value={customer.name}>{customer.name} Facility</option>
               ) : null}
             </select>
@@ -231,7 +349,13 @@ export function CommandCentreDashboard() {
               className="w-full text-xs rounded border border-border bg-background px-2 py-1"
             >
               <option value="all">All Accounts</option>
-              {customer?.accountNumber ? (
+              {data.availableAccounts && data.availableAccounts.length > 0 ? (
+                data.availableAccounts.map((a) => (
+                  <option key={a.accountNumber} value={a.accountNumber}>
+                    {a.accountNumber} {a.name ? `— ${a.name}` : ""}
+                  </option>
+                ))
+              ) : customer?.accountNumber ? (
                 <option value={customer.accountNumber}>{customer.accountNumber}</option>
               ) : null}
             </select>
@@ -288,26 +412,97 @@ export function CommandCentreDashboard() {
         </div>
       </div>
 
-      {/* Stage 18: Clean Empty State if portfolio has no data (Never display fake zeroes or sample values) */}
-      {!portfolioSummary.hasData ? (
-        <div className="rounded-xl border border-dashed border-primary/30 bg-muted/20 p-12 text-center space-y-4">
-          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <Database className="h-6 w-6 text-primary" />
+      {/* 2b. If no processed data but active processing jobs exist: Display prominent processing progress card */}
+      {data.activeProcessingJobs && data.activeProcessingJobs.length > 0 && !portfolioSummary.hasData ? (
+        <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-12 text-center space-y-5">
+          <div className="mx-auto w-14 h-14 rounded-full bg-blue-500/10 flex items-center justify-center">
+            <RefreshCw className="h-7 w-7 text-blue-500 animate-spin" />
           </div>
-          <div className="space-y-1.5">
-            <h3 className="text-base font-semibold tracking-tight text-foreground">No data available</h3>
-            <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
-              No utility billing or telemetry records match the active filter criteria. Upload your
-              first energy dataset to begin automated NERSA reconciliation, TOU energy auditing, and
-              overcharge recovery.
+          <div className="space-y-2 max-w-md mx-auto">
+            <h3 className="text-lg font-bold tracking-tight text-foreground">
+              Ingesting & Reconciling Energy Datasets
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              We are currently parsing interval telemetry, validating tariff determinants, and running
+              deterministic NERSA audit calculations. Your dashboard will reveal full portfolio results
+              as soon as analysis completes.
             </p>
           </div>
-          <button
-            onClick={() => navigate({ to: "/upload" })}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-md shadow hover:bg-primary/90 transition"
-          >
-            Upload your first energy dataset
-          </button>
+          <div className="flex items-center justify-center gap-2 text-xs text-blue-500 font-semibold">
+            <Clock className="h-4 w-4 animate-spin" />
+            <span>Active stage: {data.activeProcessingJobs[0].stage}</span>
+          </div>
+        </div>
+      ) : !portfolioSummary.hasData ? (
+        /* Rich Onboarding Empty State (3 Steps + Quick Actions) */
+        <div className="rounded-xl border border-primary/20 bg-card p-6 md:p-10 space-y-8 shadow-sm">
+          <div className="text-center max-w-2xl mx-auto space-y-2">
+            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+              <Database className="h-6 w-6 text-primary" />
+            </div>
+            <h3 className="text-xl font-bold tracking-tight text-foreground">
+              Welcome to Utility Reconciliation Command Centre
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Follow these three simple steps to audit your Eskom accounts, reconcile 30-minute interval readings against gazetted NERSA tariffs, and recover billing overcharges.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="rounded-lg border border-border bg-background/50 p-5 space-y-3">
+              <div className="w-8 h-8 rounded bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold text-xs">
+                1
+              </div>
+              <h4 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                <Upload className="h-4 w-4 text-primary" /> Upload Billing & Telemetry
+              </h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Ingest monthly Eskom PDF statements, AMR interval telemetry (CSV or Excel), or bulk account history.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-background/50 p-5 space-y-3">
+              <div className="w-8 h-8 rounded bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold text-xs">
+                2
+              </div>
+              <h4 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                <Zap className="h-4 w-4 text-amber-500" /> Deterministic NERSA Audit
+              </h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Zero AI hallucination: Exact gazetted Megaflex/Miniflex rates, TOU calendar splits, and NMD analysis.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-background/50 p-5 space-y-3">
+              <div className="w-8 h-8 rounded bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-xs">
+                3
+              </div>
+              <h4 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 text-emerald-500" /> Overcharge Recovery & Disputes
+              </h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Identify exact variance amounts, quantify potential recoveries, and generate dispute packs for refund claims.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-2 border-t border-border">
+            <button
+              onClick={() => navigate({ to: "/upload" })}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-xs font-semibold rounded-md shadow hover:bg-primary/90 transition"
+            >
+              <Upload className="h-4 w-4" /> Upload Energy Data
+            </button>
+            <button
+              onClick={() => {
+                loadMarch2026SampleInvoice();
+                loadData();
+              }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold rounded-md border border-border transition"
+            >
+              <Sparkles className="h-4 w-4 text-primary" /> Explore with Sample Reconciliation Dataset
+            </button>
+          </div>
         </div>
       ) : (
         <>
