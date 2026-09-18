@@ -353,6 +353,7 @@ export const AnomalyDashboard: React.FC = () => {
           </div>
         ))}
       </div>
+      )}
 
       {/* 6-Level Drill-Down Traceability Inspector Modal */}
       {isDrillDownOpen && selectedRecord && (

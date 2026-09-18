@@ -581,14 +581,7 @@ function InvoicesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                {filteredInvoices.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="py-8 text-center text-gray-500 italic">
-                      No invoices found matching current filter criteria.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredInvoices.map((inv) => (
+                  {filteredInvoices.map((inv) => (
                     <tr
                       key={inv.invoice_id}
                       className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/30"
@@ -637,11 +630,11 @@ function InvoicesPage() {
                         </button>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>
