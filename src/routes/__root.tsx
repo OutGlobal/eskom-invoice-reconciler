@@ -19,6 +19,7 @@ import { AuthGate, SignOutButton } from "@/components/AuthGate";
 import { AiCopilotModal } from "@/components/AiCopilotModal";
 import { Sparkles } from "lucide-react";
 import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
+import { UserFacingErrorSanitizer } from "@/domain/observability/userFacingErrorSanitizer";
 
 function NotFoundComponent() {
   return (
@@ -48,14 +49,20 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
+
+  const sanitized = UserFacingErrorSanitizer.sanitize("SYSTEM_ERROR", error);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center space-y-3">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+          {sanitized.title || "This page didn't load"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {error?.message || "Something went wrong. Try refreshing or returning home."}
+          {sanitized.message}
+        </p>
+        <p className="text-xs text-muted-foreground/60 font-mono">
+          Ref: {sanitized.referenceCode}
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <button

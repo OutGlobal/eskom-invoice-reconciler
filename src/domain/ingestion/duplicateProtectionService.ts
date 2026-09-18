@@ -257,7 +257,7 @@ export class DuplicateProtectionService {
     supersedesId?: string;
     message: string;
   }> {
-    const actor = context?.email || "system@enera.internal";
+    const actor = context?.email || "system@enera.energy";
     const orgId = candidate.organisationId;
 
     switch (chosenAction) {

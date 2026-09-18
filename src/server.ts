@@ -116,7 +116,7 @@ export default {
           request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
         const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
         const headerUserId = request.headers.get("X-User-ID") || "user-session";
-        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.energy";
 
         const requestedTenantId =
           body.tenant_id || body.organisation_id || headerTenantId || "DEFAULT_TENANT";
@@ -217,7 +217,7 @@ export default {
           request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
         const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
         const headerUserId = request.headers.get("X-User-ID") || "user-session";
-        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.energy";
 
         const context = headerTenantId
           ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
@@ -268,7 +268,7 @@ export default {
           request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
         const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
         const headerUserId = request.headers.get("X-User-ID") || "user-session";
-        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.energy";
 
         const context = headerTenantId
           ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
@@ -310,7 +310,7 @@ export default {
           request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
         const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
         const headerUserId = request.headers.get("X-User-ID") || "user-session";
-        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.energy";
 
         const context = createSecurityContext(
           headerUserId,
@@ -401,7 +401,7 @@ export default {
           request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
         const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
         const headerUserId = request.headers.get("X-User-ID") || "user-session";
-        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.energy";
 
         const targetOrgId =
           body.organisation_id || headerTenantId || "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c";
@@ -466,7 +466,7 @@ export default {
           request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
         const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
         const headerUserId = request.headers.get("X-User-ID") || "user-session";
-        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.energy";
 
         const targetOrgId =
           body.organisation_id || headerTenantId || "DEFAULT_TENANT";
@@ -568,7 +568,7 @@ export default {
           request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
         const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
         const headerUserId = request.headers.get("X-User-ID") || "user-session";
-        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.energy";
 
         const context = headerTenantId
           ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
@@ -614,7 +614,7 @@ export default {
           request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
         const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
         const headerUserId = request.headers.get("X-User-ID") || "user-session";
-        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.energy";
 
         const context = headerTenantId
           ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
@@ -659,7 +659,7 @@ export default {
           request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
         const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
         const headerUserId = request.headers.get("X-User-ID") || "user-session";
-        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.energy";
 
         const context = headerTenantId
           ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
@@ -720,7 +720,7 @@ export default {
           request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
         const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
         const headerUserId = request.headers.get("X-User-ID") || "user-session";
-        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.energy";
 
         const context = headerTenantId
           ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
@@ -750,7 +750,7 @@ export default {
           request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
         const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
         const headerUserId = request.headers.get("X-User-ID") || "user-session";
-        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.energy";
 
         const context = headerTenantId
           ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
@@ -795,7 +795,7 @@ export default {
           request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
         const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
         const headerUserId = request.headers.get("X-User-ID") || "user-session";
-        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.energy";
 
         const context = headerTenantId
           ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
@@ -864,7 +864,7 @@ export default {
           request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
         const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
         const headerUserId = request.headers.get("X-User-ID") || "user-session";
-        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.energy";
 
         const context = headerTenantId
           ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)
@@ -922,7 +922,7 @@ export default {
           request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
         const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
         const headerUserId = request.headers.get("X-User-ID") || "user-session";
-        const headerEmail = request.headers.get("X-User-Email") || "user@enera.internal";
+        const headerEmail = request.headers.get("X-User-Email") || "user@enera.energy";
 
         const context = headerTenantId
           ? createSecurityContext(headerUserId, headerEmail, headerTenantId, headerRole)

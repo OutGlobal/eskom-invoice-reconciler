@@ -142,7 +142,6 @@ export class SecureIngestionGateway {
 
     const addLog = (stage: string, level: "info" | "warn" | "error", message: string) => {
       logs.push({ stage, level, message, timestamp: new Date().toISOString() });
-      console.log(`[SecureIngestionGateway - ${stage}] ${message}`);
     };
 
     // Calculate binary bytes & checksum

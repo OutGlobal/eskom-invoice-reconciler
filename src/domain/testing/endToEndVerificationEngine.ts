@@ -758,7 +758,7 @@ export class EndToEndVerificationEngine {
       }
 
       // 4. API endpoint cross-tenant check
-      const apiReq = new Request("http://localhost:8080/api/pipeline/reconcile", {
+      const apiReq = new Request("https://api.enera.io/api/pipeline/reconcile", {
         method: "POST",
         headers: {
           "content-type": "application/json",
