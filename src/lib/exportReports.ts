@@ -109,7 +109,11 @@ export function exportToExcel(
 
   const invNum = invoice?.invoiceNumber || invoice?.invoiceNo || "batch";
   const filename = `${filenamePrefix}_${invNum}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-  XLSX.writeFile(wb, filename);
+  if (typeof document !== "undefined") {
+    XLSX.writeFile(wb, filename);
+  } else {
+    return XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+  }
 }
 
 export function exportToCsv(
@@ -143,27 +147,34 @@ export function exportToCsv(
     ),
   ];
 
-  const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  const invNum = invoice?.invoiceNumber || invoice?.invoiceNo || "report";
-  a.href = url;
-  a.download = `${filenamePrefix}_${invNum}_${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const content = csvRows.join("\n");
+  if (typeof document !== "undefined") {
+    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const invNum = invoice?.invoiceNumber || invoice?.invoiceNo || "report";
+    a.href = url;
+    a.download = `${filenamePrefix}_${invNum}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  return content;
 }
 
 export function exportToJson(invoice: InvoiceData | null, filenamePrefix = "Eskom_Invoice_Data") {
-  if (!invoice) return;
+  if (!invoice) return null;
   const jsonContent = JSON.stringify(invoice.normalizedJson || invoice, null, 2);
-  const blob = new Blob([jsonContent], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  const invNum = invoice.invoiceNumber || invoice.invoiceNo || "data";
-  a.href = url;
-  a.download = `${filenamePrefix}_${invNum}_${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+  if (typeof document !== "undefined") {
+    const blob = new Blob([jsonContent], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const invNum = invoice.invoiceNumber || invoice.invoiceNo || "data";
+    a.href = url;
+    a.download = `${filenamePrefix}_${invNum}_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  return jsonContent;
 }
 
 export function sanitizeCsvCell(value: string | number): string {

@@ -240,6 +240,17 @@ export class ReconciliationStorageService {
     }
   }
 
+  public static async saveResult(result: any, context?: UserSecurityContext): Promise<void> {
+    await this.saveRun(result, context);
+  }
+
+  public static async getResultById(id: string, context?: UserSecurityContext): Promise<any> {
+    const mem = this.inMemoryRuns.get(id);
+    if (mem) return mem;
+    const runs = await this.getAllRuns(context);
+    return runs.find((r: any) => r.run_id === id || r.id === id) || null;
+  }
+
   /**
    * Fetch all historical reconciliation runs with tenant isolation
    */
@@ -301,7 +312,20 @@ export class ReconciliationStorageService {
         );
       }
 
-      return runs;
+      // Merge in-memory runs with database runs
+      let inMemory = Array.from(this.inMemoryRuns.values());
+      if (context && context.role !== "SUPER_ADMIN") {
+        inMemory = inMemory.filter(
+          (r: any) =>
+            r.organisation_id === context.organisationId || r.tenant_id === context.organisationId,
+        );
+      }
+
+      const map = new Map<string, any>();
+      for (const r of runs) map.set(r.run_id || r.id, r);
+      for (const m of inMemory) map.set(m.run_id || m.id, m);
+
+      return Array.from(map.values());
     } catch (e) {
       console.warn("[ReconciliationStorageService] Exception fetching reconciliation runs:", e);
       let inMemory = Array.from(this.inMemoryRuns.values());

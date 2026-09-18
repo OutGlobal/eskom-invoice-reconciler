@@ -74,6 +74,24 @@ export class InvoiceStorageService {
     return this.memoryStore.get(key) || null;
   }
 
+  public static async saveInvoiceRecord(record: any): Promise<void> {
+    this.recordInvoiceMemory(record.id || record.invoiceNumber, record);
+    try {
+      await supabase.from("invoice_records").insert(record as any);
+    } catch {}
+  }
+
+  public static async getInvoiceRecordById(id: string): Promise<any> {
+    const memory = this.getInvoiceRecord(id);
+    if (memory) return memory;
+    try {
+      const { data } = await supabase.from("invoice_records").select("*").eq("id", id).maybeSingle();
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
   public static recordLineItemsMemory(key: string, lineItems: any[]): void {
     this.lineItemStore.set(key, lineItems);
   }
