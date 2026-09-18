@@ -25,6 +25,7 @@ import {
   Gauge,
   Building,
   Scale,
+  RefreshCw,
 } from "lucide-react";
 import Decimal from "decimal.js-light";
 
@@ -115,6 +116,13 @@ function QualityPage() {
     );
   }
 
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    const data = await QualityStorageService.getIssues();
+    setIssues(data);
+    setIsLoading(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -136,13 +144,11 @@ function QualityPage() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => {
-              const sample = DataGovernanceEngine.generateSampleGovernanceIssues();
-              setIssues(sample);
-            }}
-            className="px-3 py-1.5 text-xs font-medium border border-border hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+            onClick={handleRefresh}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
           >
-            Load Sandbox Issues
+            <RefreshCw className="h-3 w-3" />
+            Refresh Audit Queue
           </button>
           <button
             onClick={() => setHasExplicitOverride(!hasExplicitOverride)}

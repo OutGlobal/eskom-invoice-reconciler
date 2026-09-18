@@ -218,7 +218,7 @@ export function SignInScreen({ onBypass }: { onBypass?: () => void }) {
           </h1>
           <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
             Commercial utility billing, reconciliation and dispute recovery data is restricted. Sign
-            in to your enterprise account or continue in demonstration mode.
+            in to your enterprise account or continue with guest workspace access.
           </p>
         </div>
 
@@ -314,7 +314,7 @@ export function SignInScreen({ onBypass }: { onBypass?: () => void }) {
               onClick={onBypass}
               className="w-full rounded-md border border-primary/40 bg-primary/10 py-2 text-xs font-medium text-primary hover:bg-primary/20 transition text-center block"
             >
-              ⚡ Continue to Demo Dashboard (Guest Access)
+              ⚡ Continue to Workspace (Guest Access)
             </button>
           </div>
         )}

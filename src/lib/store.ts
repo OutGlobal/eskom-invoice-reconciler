@@ -368,7 +368,7 @@ export const useApp = create<AppState>((set) => ({
   billingEnd: "2026-03-18",
   setBilling: (billingStart, billingEnd) => set({ billingStart, billingEnd }),
 
-  batchInvoices: [SAMPLE_MARCH_2026_INVOICE],
+  batchInvoices: [],
   addBatchInvoice: (inv) => set((s) => ({ batchInvoices: [...s.batchInvoices, inv] })),
 
   loadMarch2026SampleInvoice: () =>

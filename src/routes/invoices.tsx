@@ -315,10 +315,11 @@ function InvoicesPage() {
           </div>
 
           <button
-            onClick={loadSampleInvoice}
-            className="px-3.5 py-2 text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 transition-colors"
+            onClick={() => setViewMode("upload")}
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-primary hover:opacity-90 rounded-lg shadow-sm transition-opacity"
           >
-            Reload Megaflex Sample
+            <Upload className="w-3.5 h-3.5" />
+            Upload Invoice
           </button>
         </div>
       </div>
@@ -496,7 +497,7 @@ function InvoicesPage() {
         ) : (
           <EmptyState
             title="No invoices have been uploaded yet."
-            description="Upload energy data to begin. Select an ingested invoice from the register to audit determinants, upload a utility bill, or explore the Megaflex sandbox sample."
+            description="Upload energy data to begin. Select an ingested invoice from the register to audit determinants or upload a utility bill."
             icon={FileText}
             badge="Awaiting Ingestion"
             primaryAction={{
@@ -506,10 +507,6 @@ function InvoicesPage() {
             secondaryAction={{
               label: "View Register",
               onClick: () => setViewMode("table"),
-            }}
-            tertiaryAction={{
-              label: "Load Sandbox Sample",
-              onClick: loadSampleInvoice,
             }}
           />
         )
@@ -539,10 +536,6 @@ function InvoicesPage() {
                   primaryAction={{
                     label: "Upload Invoice",
                     onClick: () => setViewMode("upload"),
-                  }}
-                  secondaryAction={{
-                    label: "Load Sandbox Sample",
-                    onClick: loadSampleInvoice,
                   }}
                 />
               ) : (

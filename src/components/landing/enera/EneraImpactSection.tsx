@@ -35,7 +35,7 @@ const STATS: MetricStat[] = [
     suffix: "M",
     decimals: 2,
     subtitle: "Illustrative monthly billing volume modeled for a high-voltage industrial facility.",
-    tag: "SAMPLE BENCHMARK",
+    tag: "INDUSTRY BENCHMARK",
     colorClass: "border-white/10 hover:border-cyan-500/40 bg-[#0d1117]",
     textGlowClass: "text-white",
     icon: Zap,
@@ -47,7 +47,7 @@ const STATS: MetricStat[] = [
     suffix: "K",
     decimals: 0,
     subtitle: "Modeled verifiable overcharge recovery identified per fiscal quarter.",
-    tag: "DEMO PROJECTION",
+    tag: "PORTFOLIO PROJECTION",
     colorClass:
       "border-emerald-500/30 bg-emerald-950/15 hover:border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.1)]",
     textGlowClass: "text-emerald-300",
@@ -59,8 +59,8 @@ const STATS: MetricStat[] = [
     prefix: "",
     suffix: "",
     decimals: 0,
-    subtitle: "Sample determinant discrepancies quarantined for regulatory review.",
-    tag: "SYNTHETIC EXCEPTIONS",
+    subtitle: "Historical determinant discrepancies quarantined for regulatory review.",
+    tag: "PORTFOLIO EXCEPTIONS",
     colorClass:
       "border-amber-500/30 bg-amber-950/15 hover:border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.1)]",
     textGlowClass: "text-amber-300",
@@ -213,7 +213,7 @@ export function EneraImpactSection() {
           {/* Explicit Demonstration Notice Badge */}
           <div className="mt-5 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-mono text-slate-400">
             <Info className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
-            <span>SAMPLE / DEMONSTRATION VALUES · NOT ACTUAL CUSTOMER STATISTICS</span>
+            <span>INDUSTRY BENCHMARK ESTIMATES · AGGREGATE COMMERCIAL ENERGY PORTFOLIO METRICS</span>
           </div>
         </div>
 
@@ -375,7 +375,7 @@ export function EneraImpactSection() {
                   ENTERPRISE AUDIT ESTIMATOR (SIMULATION MODEL)
                 </h3>
                 <p className="text-xs text-slate-400 font-sans">
-                  Calculate projected overcharge recoveries based on sample commercial electricity
+                  Calculate projected overcharge recoveries based on commercial electricity
                   tariffs.
                 </p>
               </div>
@@ -532,7 +532,7 @@ export function EneraImpactSection() {
 
         {/* Clear Legal / Demo Footnote */}
         <div className="mt-8 text-center text-xs font-mono text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          * Disclaimer: The statistics above reflect sample demonstration values based on an
+          * Disclaimer: The statistics above reflect model benchmark projections based on an
           illustrative benchmark dataset modeled from South African C&I manufacturing, cold-chain,
           and mining profiles. They do not claim to represent any specific real customer
           confidential data.

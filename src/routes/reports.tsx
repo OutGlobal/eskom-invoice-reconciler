@@ -200,15 +200,6 @@ function ReportsPage() {
               >
                 Upload Invoices
               </a>
-              <button
-                onClick={() => {
-                  useApp.getState().loadMarch2026SampleInvoice();
-                  toast.success("Loaded March 2026 Sandbox Invoice");
-                }}
-                className="px-3.5 py-1.5 text-xs font-semibold text-foreground border border-border hover:bg-muted rounded-md"
-              >
-                Load Sandbox Sample
-              </button>
             </div>
           </div>
         ) : (

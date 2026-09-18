@@ -250,7 +250,7 @@ function TelemetryPage() {
               onClick={runInitialDemoStream}
               className="px-3.5 py-2 text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100"
             >
-              Reload Stream Sample
+              Run Ingestion Benchmark (500)
             </button>
             <button
               onClick={() => handleRunBenchmark(10000)}

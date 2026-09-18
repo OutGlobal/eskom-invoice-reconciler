@@ -286,7 +286,7 @@ export class ReconciliationStorageService {
         completed_at: row.completed_at || row.created_at,
         status: row.status,
         classification: row.classification,
-        result_checksum: row.result_checksum || "SHA256:MOCK",
+        result_checksum: row.result_checksum || "SHA256:UNCOMPUTED",
         billed_total_zar: new Decimal(row.billed_total_zar || 0),
         calculated_total_zar: new Decimal(row.calculated_total_zar || 0),
         variance_total_zar: new Decimal(row.variance_total_zar || 0),

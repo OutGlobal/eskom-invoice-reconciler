@@ -48,6 +48,7 @@ export default defineConfig({
       "src/lib/__tests__/stage24_empty_states.test.ts",
       "src/lib/__tests__/stage25_frontend_backend_contract.test.ts",
       "src/lib/__tests__/stage26_security.test.ts",
+      "src/lib/__tests__/stage27_remove_prototype_language.test.ts",
     ],
     testTimeout: 60000,
     fileParallelism: false,

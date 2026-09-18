@@ -23,6 +23,7 @@ import {
   DrillDownState,
 } from "@/domain/workflow/types";
 import { TOU_COLOR } from "@/lib/tariff";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 function formatZAR(val: number): string {
   return new Intl.NumberFormat("en-ZA", {
@@ -33,80 +34,17 @@ function formatZAR(val: number): string {
   }).format(val || 0);
 }
 
-const SAMPLE_COMPONENTS: ComponentDrillDownSummary[] = [
-  {
-    key: "peak_energy",
-    label: "Peak Energy (kWh)",
-    billedZar: 215450.0,
-    calculatedZar: 203000.0,
-    varianceZar: 12450.0,
-    variancePct: 6.13,
-    status: "discrepancy",
-    itemCount: 31,
-  },
-  {
-    key: "standard_energy",
-    label: "Standard Energy (kWh)",
-    billedZar: 142000.0,
-    calculatedZar: 137800.0,
-    varianceZar: 4200.0,
-    variancePct: 3.05,
-    status: "minor_variance",
-    itemCount: 31,
-  },
-  {
-    key: "off_peak_energy",
-    label: "Off-Peak Energy (kWh)",
-    billedZar: 68500.0,
-    calculatedZar: 68500.0,
-    varianceZar: 0.0,
-    variancePct: 0.0,
-    status: "match",
-    itemCount: 31,
-  },
-  {
-    key: "demand_charges",
-    label: "Maximum Demand (kVA)",
-    billedZar: 42800.0,
-    calculatedZar: 37000.0,
-    varianceZar: 5800.0,
-    variancePct: 15.68,
-    status: "discrepancy",
-    itemCount: 1,
-  },
-  {
-    key: "network_charges",
-    label: "Network Capacity Charges",
-    billedZar: 18500.0,
-    calculatedZar: 18500.0,
-    varianceZar: 0.0,
-    variancePct: 0.0,
-    status: "match",
-    itemCount: 1,
-  },
-  {
-    key: "reactive_charges",
-    label: "Reactive Energy Penalties",
-    billedZar: 2450.0,
-    calculatedZar: 0.0,
-    varianceZar: 2450.0,
-    variancePct: 100.0,
-    status: "discrepancy",
-    itemCount: 4,
-  },
-  {
-    key: "vat",
-    label: "VAT Subtotal (15%)",
-    billedZar: 73455.0,
-    calculatedZar: 69720.0,
-    varianceZar: 3735.0,
-    variancePct: 5.36,
-    status: "discrepancy",
-    itemCount: 1,
-  },
-];
+export interface DrillDownInspectorProps {
+  components?: ComponentDrillDownSummary[];
+  days?: DayDrillDownSummary[];
+  intervals?: IntervalDrillDownDetail[];
+}
 
-export const DrillDownInspector: React.FC = () => {
+export const DrillDownInspector: React.FC<DrillDownInspectorProps> = ({
+  components = [],
+  days = [],
+  intervals = [],
+}) => {
   const [drillState, setDrillState] = useState<DrillDownState>({
     level: 1,
     selectedComponentKey: undefined,
@@ -116,6 +54,17 @@ export const DrillDownInspector: React.FC = () => {
 
   const [selectedIntervalDetail, setSelectedIntervalDetail] =
     useState<IntervalDrillDownDetail | null>(null);
+
+  if (components.length === 0) {
+    return (
+      <EmptyState
+        title="No reconciliation drill-down data available"
+        description="Select or complete an invoice reconciliation audit to inspect interval-level determinants."
+        icon={Layers}
+        badge="Audit Required"
+      />
+    );
+  }
 
   // Level 1: Click Component -> Go to Level 2
   const handleSelectComponent = (key: BillingComponentKey) => {
@@ -157,62 +106,8 @@ export const DrillDownInspector: React.FC = () => {
     }
   };
 
-  // Synthetic Days for Level 2
-  const sampleDays: DayDrillDownSummary[] = Array.from({ length: 15 }, (_, i) => {
-    const dayNum = i + 1;
-    const dateStr = `2026-03-${dayNum.toString().padStart(2, "0")}`;
-    const peakKwh = 1200 + (i % 3) * 150;
-    const stdKwh = 2100;
-    const offKwh = 1800;
-    const billedZar = peakKwh * 6.6692 + 500;
-    const calculatedZar = peakKwh * 6.205 + 500;
-    const varianceZar = billedZar - calculatedZar;
-
-    return {
-      dateStr,
-      dayOfWeek: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i % 7],
-      season: "High",
-      totalKwh: peakKwh + stdKwh + offKwh,
-      peakKwh,
-      standardKwh: stdKwh,
-      offPeakKwh: offKwh,
-      peakKw: 185 + (i % 4) * 10,
-      peakKva: 195,
-      pf: 0.95,
-      billedZar: Number(billedZar.toFixed(2)),
-      calculatedZar: Number(calculatedZar.toFixed(2)),
-      varianceZar: Number(varianceZar.toFixed(2)),
-      intervalCount: 48,
-    };
-  });
-
-  // Synthetic Intervals for Level 3
-  const sampleIntervals: IntervalDrillDownDetail[] = Array.from({ length: 12 }, (_, i) => {
-    const hour = Math.floor(i / 2) + 6;
-    const min = (i % 2) * 30;
-    const timeStr = `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`;
-    const timestampLocal = `${drillState.selectedDateStr || "2026-03-15"} ${timeStr}:00`;
-    const touPeriod: "PEAK" | "STANDARD" | "OFF_PEAK" =
-      hour >= 7 && hour <= 10 ? "PEAK" : hour >= 11 && hour <= 16 ? "STANDARD" : "OFF_PEAK";
-
-    return {
-      timestampUtc: `${timestampLocal}+02:00`,
-      localTimestamp: timestampLocal,
-      touPeriod,
-      activePowerKw: 185.4,
-      reactivePowerKvar: 60.8,
-      apparentPowerKva: 195.1,
-      activeEnergyKwh: 92.7,
-      reactiveEnergyKvarh: 30.4,
-      powerFactor: 0.95,
-      sourceFileId: "src-file-eb89201a",
-      sourceFileName: "ESKOM_AMR_MARCH_2026_METER88022.csv",
-      sourceRowNumber: i * 4 + 128,
-      sourceRawText: `2026-03-15,${timeStr}:00,92.7,30.4,195.1,0.95,OK`,
-      sourceFileHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      qualityStatus: "VALIDATED_AMR",
-    };
-  });
+  const effectiveDays = days;
+  const effectiveIntervals = intervals;
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl mb-6">
@@ -283,7 +178,7 @@ export const DrillDownInspector: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-mono">
-                {SAMPLE_COMPONENTS.map((comp) => (
+                {components.map((comp) => (
                   <tr
                     key={comp.key}
                     onClick={() => handleSelectComponent(comp.key)}
@@ -358,37 +253,45 @@ export const DrillDownInspector: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-mono">
-                {sampleDays.map((day) => (
-                  <tr
-                    key={day.dateStr}
-                    onClick={() => handleSelectDate(day.dateStr)}
-                    className="hover:bg-slate-800/50 cursor-pointer transition-colors"
-                  >
-                    <td className="py-2 px-3 font-semibold text-blue-400 flex items-center space-x-1">
-                      <Calendar className="h-3.5 w-3.5" />
-                      <span>{day.dateStr}</span>
-                    </td>
-                    <td className="py-2 px-3 text-slate-400">{day.season}</td>
-                    <td className="py-2 px-3 text-right">{day.totalKwh.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right text-red-400">
-                      {day.peakKwh.toLocaleString()}
-                    </td>
-                    <td className="py-2 px-3 text-right">{day.peakKw} kW</td>
-                    <td className="py-2 px-3 text-right text-emerald-400">{day.pf}</td>
-                    <td className="py-2 px-3 text-right">{formatZAR(day.billedZar)}</td>
-                    <td className="py-2 px-3 text-right text-emerald-400">
-                      {formatZAR(day.calculatedZar)}
-                    </td>
-                    <td className="py-2 px-3 text-right font-bold text-amber-400">
-                      {formatZAR(day.varianceZar)}
-                    </td>
-                    <td className="py-2 px-3 text-center">
-                      <span className="bg-slate-800 text-slate-300 text-[10px] px-1.5 py-0.5 rounded">
-                        {day.intervalCount} rows
-                      </span>
+                {effectiveDays.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="py-6 text-center text-xs text-slate-400 font-sans">
+                      No daily interval summaries available for this billing component.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  effectiveDays.map((day) => (
+                    <tr
+                      key={day.dateStr}
+                      onClick={() => handleSelectDate(day.dateStr)}
+                      className="hover:bg-slate-800/50 cursor-pointer transition-colors"
+                    >
+                      <td className="py-2 px-3 font-semibold text-blue-400 flex items-center space-x-1">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>{day.dateStr}</span>
+                      </td>
+                      <td className="py-2 px-3 text-slate-400">{day.season}</td>
+                      <td className="py-2 px-3 text-right">{day.totalKwh.toLocaleString()}</td>
+                      <td className="py-2 px-3 text-right text-red-400">
+                        {day.peakKwh.toLocaleString()}
+                      </td>
+                      <td className="py-2 px-3 text-right">{day.peakKw} kW</td>
+                      <td className="py-2 px-3 text-right text-emerald-400">{day.pf}</td>
+                      <td className="py-2 px-3 text-right">{formatZAR(day.billedZar)}</td>
+                      <td className="py-2 px-3 text-right text-emerald-400">
+                        {formatZAR(day.calculatedZar)}
+                      </td>
+                      <td className="py-2 px-3 text-right font-bold text-amber-400">
+                        {formatZAR(day.varianceZar)}
+                      </td>
+                      <td className="py-2 px-3 text-center">
+                        <span className="bg-slate-800 text-slate-300 text-[10px] px-1.5 py-0.5 rounded">
+                          {day.intervalCount} rows
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -422,47 +325,55 @@ export const DrillDownInspector: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-mono">
-                {sampleIntervals.map((interval, idx) => (
-                  <tr
-                    key={idx}
-                    onClick={() => handleSelectInterval(interval)}
-                    className="hover:bg-slate-800/50 cursor-pointer transition-colors"
-                  >
-                    <td className="py-2 px-3 font-semibold text-slate-200 flex items-center space-x-1">
-                      <Clock className="h-3.5 w-3.5 text-slate-400" />
-                      <span>{interval.localTimestamp}</span>
-                    </td>
-                    <td className="py-2 px-3">
-                      <span
-                        className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white"
-                        style={{
-                          backgroundColor: (TOU_COLOR as Record<string, string>)[
-                            interval.touPeriod
-                          ],
-                        }}
-                      >
-                        {interval.touPeriod}
-                      </span>
-                    </td>
-                    <td className="py-2 px-3 text-right">{interval.activePowerKw} kW</td>
-                    <td className="py-2 px-3 text-right">{interval.reactivePowerKvar} kVAR</td>
-                    <td className="py-2 px-3 text-right">{interval.apparentPowerKva} kVA</td>
-                    <td className="py-2 px-3 text-right text-emerald-400">
-                      {interval.activeEnergyKwh} kWh
-                    </td>
-                    <td className="py-2 px-3 text-right">{interval.powerFactor}</td>
-                    <td className="py-2 px-3 text-center">
-                      <span className="bg-emerald-500/20 text-emerald-300 text-[10px] px-1.5 py-0.5 rounded">
-                        {interval.qualityStatus}
-                      </span>
-                    </td>
-                    <td className="py-2 px-3 text-center">
-                      <button className="text-purple-400 hover:text-purple-300 text-[11px] underline">
-                        Inspect Raw
-                      </button>
+                {effectiveIntervals.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="py-6 text-center text-xs text-slate-400 font-sans">
+                      No 30-minute interval telemetry recorded for this date.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  effectiveIntervals.map((interval, idx) => (
+                    <tr
+                      key={idx}
+                      onClick={() => handleSelectInterval(interval)}
+                      className="hover:bg-slate-800/50 cursor-pointer transition-colors"
+                    >
+                      <td className="py-2 px-3 font-semibold text-slate-200 flex items-center space-x-1">
+                        <Clock className="h-3.5 w-3.5 text-slate-400" />
+                        <span>{interval.localTimestamp}</span>
+                      </td>
+                      <td className="py-2 px-3">
+                        <span
+                          className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white"
+                          style={{
+                            backgroundColor: (TOU_COLOR as Record<string, string>)[
+                              interval.touPeriod
+                            ],
+                          }}
+                        >
+                          {interval.touPeriod}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-right">{interval.activePowerKw} kW</td>
+                      <td className="py-2 px-3 text-right">{interval.reactivePowerKvar} kVAR</td>
+                      <td className="py-2 px-3 text-right">{interval.apparentPowerKva} kVA</td>
+                      <td className="py-2 px-3 text-right text-emerald-400">
+                        {interval.activeEnergyKwh} kWh
+                      </td>
+                      <td className="py-2 px-3 text-right">{interval.powerFactor}</td>
+                      <td className="py-2 px-3 text-center">
+                        <span className="bg-emerald-500/20 text-emerald-300 text-[10px] px-1.5 py-0.5 rounded">
+                          {interval.qualityStatus}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-center">
+                        <button className="text-purple-400 hover:text-purple-300 text-[11px] underline">
+                          Inspect Raw
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
