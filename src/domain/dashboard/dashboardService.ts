@@ -16,8 +16,15 @@ import type {
   PortfolioSummary,
   ReconciliationHealthMetrics,
 } from "./types";
+import { ContractDataLineageMap, type ContractAuditSummary } from "../lineage/contractDataLineageMap";
 
 export class DashboardService {
+  /**
+   * Audit all dashboard metrics against the authoritative Frontend/Backend contract
+   */
+  public static auditContractLineage(): ContractAuditSummary {
+    return ContractDataLineageMap.auditAllMetrics();
+  }
   /**
    * Fetch fully aggregated Dashboard Command Centre data with server-side tenant isolation
    */
