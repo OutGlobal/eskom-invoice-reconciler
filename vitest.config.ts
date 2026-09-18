@@ -51,6 +51,7 @@ export default defineConfig({
       "src/lib/__tests__/stage27_remove_prototype_language.test.ts",
       "src/lib/__tests__/stage28_real_data_verification.test.ts",
       "src/lib/__tests__/stage29_end_to_end.test.ts",
+      "src/lib/__tests__/stage30_data_persistence.test.ts",
     ],
     testTimeout: 60000,
     fileParallelism: false,
