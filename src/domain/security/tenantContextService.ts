@@ -198,4 +198,27 @@ export class TenantContextService {
 
     return { success: true, previousRole, newRole };
   }
+
+  /**
+   * Asserts that a user owns a record or has administrative write authority before allowing mutation
+   */
+  public static assertRecordOwnership(
+    context: UserSecurityContext,
+    record: { organisation_id?: string; organisationId?: string; owner_id?: string; created_by?: string },
+    action: "READ" | "MODIFY" | "DELETE" = "MODIFY",
+  ): void {
+    const { SecurityHardeningService } = require("./securityHardeningService");
+    SecurityHardeningService.assertUserOwnsRecord(context, record, action);
+  }
+
+  /**
+   * Asserts that the caller has administrative privileges
+   */
+  public static assertAdminRole(
+    context: UserSecurityContext,
+    requiredPermission: SecurityPermission = "PERM_MANAGE_ORGANISATION",
+  ): void {
+    const { SecurityHardeningService } = require("./securityHardeningService");
+    SecurityHardeningService.assertAdminPrivilege(context, requiredPermission);
+  }
 }
