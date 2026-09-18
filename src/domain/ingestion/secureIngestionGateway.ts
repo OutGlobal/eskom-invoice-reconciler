@@ -110,6 +110,7 @@ export class SecureIngestionGateway {
     uploaderId = "user-system-admin",
     onProgress?: (state: IngestionLifecycleState, pct: number, msg: string) => void,
     context?: UserSecurityContext,
+    existingDocumentId?: string,
   ): Promise<IngestionGatewayResult> {
     // Enforce caller security context if provided
     if (context && context.role !== "SUPER_ADMIN") {
@@ -124,7 +125,7 @@ export class SecureIngestionGateway {
     const logs: IngestionBatchJob["logs"] = [];
     const errors: IngestionErrorRecord[] = [];
 
-    const documentId = crypto.randomUUID();
+    const documentId = existingDocumentId || crypto.randomUUID();
     const jobId = `job-${Date.now()}`;
     const batchId = `batch-${Date.now()}`;
     const fileSize = file instanceof File ? file.size : file.byteLength;
@@ -455,13 +456,37 @@ export class SecureIngestionGateway {
       file instanceof File
         ? file
         : new File([bytes as any], sanitizedFilename, { type: mimeResult.detectedMimeType });
-    const extractRes = await adapter.extract(fileObj, bytes, jobId);
+    let extractRes: any;
+    try {
+      extractRes = await adapter.extract(fileObj, bytes, jobId);
+    } catch (adapterErr: any) {
+      extractRes = {
+        success: false,
+        documentType: resolvedFileType as any,
+        extractedFields: null,
+        rawTextPreview: "",
+        confidenceScore: 0.0,
+        needsHumanReview: true,
+        ambiguityReasons: ["Unable to extract required invoice information."],
+        errors: [
+          {
+            id: `ERR-${Date.now()}-uncaught`,
+            jobId,
+            errorCode: "EXTRACTION_FAILED",
+            errorMessage: "Unable to extract required invoice information.",
+            severity: "critical",
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      };
+    }
 
     if (!extractRes.success) {
       addLog("PARSER", "error", "Layout adapter extraction failed");
       errors.push(...extractRes.errors);
 
-      const errorMsg = extractRes.ambiguityReasons.join("; ") || "Adapter extraction failed";
+      const errorMsg =
+        extractRes.ambiguityReasons.join("; ") || "Unable to extract required invoice information.";
       uploadRecord = await UploadStorageService.updateUploadStatus(
         documentId,
         {
@@ -481,7 +506,7 @@ export class SecureIngestionGateway {
         jobId,
         documentId,
         documentType: extractRes.documentType,
-        state: "QUARANTINED",
+        state: "FAILED",
         overallConfidenceScore: 0.0,
         processingDurationMs: Date.now() - startTime,
         rowsSeen: 1,
@@ -495,12 +520,34 @@ export class SecureIngestionGateway {
 
       await QuarantineManager.quarantineJob(batchJob, errors);
 
+      try {
+        const { AuditTrailService } = await import("../audit/auditTrailService");
+        await AuditTrailService.recordAction({
+          organisationId,
+          category: "data_extraction",
+          action: "EXTRACTION_FAILED",
+          description: `Data extraction failed for ${sanitizedFilename}: ${errorMsg}`,
+          actor: { userId: uploaderId },
+          record: { entityType: "source_file", recordId: documentId, recordLabel: sanitizedFilename },
+          newState: {
+            processingStatus: "FAILED",
+            errorMessage: errorMsg,
+            originalFileStored: true,
+            storageLocation,
+          },
+        });
+      } catch {}
+
+      const { signedUrl } = await SignedUrlService.getSignedDownloadUrl(storageLocation);
+
       return {
         success: false,
         fileHeader,
         batchJob,
         confidenceScore: 0.0,
         errors,
+        logs,
+        signedDownloadUrl: signedUrl,
         isIdempotentDuplicate: false,
         uploadRecord,
       };
@@ -1052,6 +1099,83 @@ export class SecureIngestionGateway {
 
     // Cache SHA-256 for idempotency lookup
     this.processedHashes.set(sha256Checksum, result);
+
+    return result;
+  }
+
+  /**
+   * Retries processing an existing stored upload from persistent storage vault
+   * Never discards the original file.
+   */
+  public static async retryProcessing(
+    uploadId: string,
+    options?: {
+      enableOcrFallback?: boolean;
+      layoutAdapterOverride?: string;
+      customDeterminants?: Record<string, any>;
+    },
+    context?: UserSecurityContext,
+    onProgress?: (state: IngestionLifecycleState, pct: number, msg: string) => void,
+  ): Promise<IngestionGatewayResult> {
+    const uploadRecord = await UploadStorageService.getUploadById(uploadId, context);
+    if (!uploadRecord) {
+      throw new Error(`Upload record '${uploadId}' not found`);
+    }
+
+    const downloadRes = await FileStorageSecurityService.downloadOriginalFile(
+      uploadRecord.storageLocation,
+      context,
+    );
+    if (!downloadRes.success || !downloadRes.data) {
+      throw new Error(
+        `Original file for upload '${uploadId}' could not be retrieved from vault storage`,
+      );
+    }
+
+    // Clear from processed hashes cache to ensure a fresh processing run
+    if (uploadRecord.fileHashSha256) {
+      this.processedHashes.delete(uploadRecord.fileHashSha256);
+    }
+
+    try {
+      const { AuditTrailService } = await import("../audit/auditTrailService");
+      await AuditTrailService.recordAction({
+        organisationId: uploadRecord.organisationId,
+        category: "processing",
+        action: "PROCESSING_RETRY_INITIATED",
+        description: `Processing retry initiated for ${uploadRecord.filename} from preserved vault storage`,
+        actor: { userId: uploadRecord.userId || undefined },
+        record: { entityType: "source_file", recordId: uploadId, recordLabel: uploadRecord.filename },
+        newState: { processingStatus: "PROCESSING", retryOptions: options },
+      });
+    } catch {}
+
+    const result = await this.processUpload(
+      downloadRes.data,
+      uploadRecord.filename,
+      uploadRecord.organisationId,
+      uploadRecord.userId || "user-system-admin",
+      onProgress,
+      context,
+      uploadId,
+    );
+
+    try {
+      const { AuditTrailService } = await import("../audit/auditTrailService");
+      await AuditTrailService.recordAction({
+        organisationId: uploadRecord.organisationId,
+        category: "processing",
+        action: result.success ? "PROCESSING_RETRY_SUCCEEDED" : "PROCESSING_RETRY_FAILED",
+        description: `Processing retry ${result.success ? "succeeded" : "failed"} for ${uploadRecord.filename}`,
+        actor: { userId: uploadRecord.userId || undefined },
+        record: { entityType: "source_file", recordId: uploadId, recordLabel: uploadRecord.filename },
+        newState: {
+          processingStatus: result.uploadRecord?.processingStatus || (result.success ? "PROCESSED" : "FAILED"),
+          validationStatus: result.uploadRecord?.validationStatus,
+          errorSummary: result.uploadRecord?.errorMessage,
+        },
+      });
+    } catch {}
 
     return result;
   }

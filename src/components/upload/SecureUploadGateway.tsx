@@ -188,6 +188,44 @@ export function SecureUploadGateway() {
     await loadHistory();
   };
 
+  // Stage 23: Retry Processing State & Handler
+  const [retryingUploadId, setRetryingUploadId] = useState<string | null>(null);
+
+  const handleRetryProcessing = async (uploadId: string) => {
+    setRetryingUploadId(uploadId);
+    setProcessing(true);
+    setCurrentState("PROCESSING");
+    setProgressPct(15);
+    setStatusMessage("Retrying processing from preserved original file in secure vault...");
+
+    try {
+      const res = await SecureIngestionGateway.retryProcessing(
+        uploadId,
+        undefined,
+        undefined,
+        (state, pct, msg) => {
+          setCurrentState(state);
+          setProgressPct(pct);
+          setStatusMessage(msg);
+        },
+      );
+      setIngestionResult(res);
+      await loadHistory();
+      if (res.success) {
+        RealtimeRefreshManager.notifyProcessingComplete({
+          entityType: res.fileHeader?.fileExtension === "pdf" ? "invoice" : "meter_telemetry",
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (err: any) {
+      console.error("Retry processing failure:", err);
+      await loadHistory();
+    } finally {
+      setProcessing(false);
+      setRetryingUploadId(null);
+    }
+  };
+
   const runAutomatedPipeline = async (
     invoiceFile: File,
     meterFile: File,
@@ -952,59 +990,121 @@ export function SecureUploadGateway() {
           </div>
         )}
 
-        {/* Ingestion Result Summary Banner */}
+        {/* Stage 23: Ingestion Result & Failure Display (Zero Silent Discards) */}
         {ingestionResult && !processing && (
-          <div
-            className={`mt-6 p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-              ingestionResult.success
-                ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-300"
-                : "border-rose-500/30 bg-rose-500/5 text-rose-300"
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              {ingestionResult.success ? (
+          ingestionResult.success ? (
+            <div className="mt-6 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 text-emerald-300 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-              ) : (
-                <XCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-              )}
-              <div>
-                <div className="font-semibold text-sm">
-                  {ingestionResult.success
-                    ? `Ingestion Succeeded — ${ingestionResult.fileHeader.filename}`
-                    : `Ingestion Quarantined — ${ingestionResult.fileHeader.filename}`}
-                </div>
-                <div className="text-xs opacity-90 mt-0.5">
-                  {ingestionResult.success
-                    ? `Status: ${ingestionResult.uploadRecord?.processingStatus || "PROCESSED"} | Rows: ${ingestionResult.uploadRecord?.rowCount || 1} | Records: ${ingestionResult.uploadRecord?.recordCount || 1} | Confidence: ${(ingestionResult.confidenceScore * 100).toFixed(0)}%`
-                    : ingestionResult.uploadRecord?.errorMessage ||
-                      ingestionResult.batchJob.quarantineReason ||
-                      "Verification error"}
+                <div>
+                  <div className="font-semibold text-sm">
+                    Ingestion Succeeded — {ingestionResult.fileHeader.filename}
+                  </div>
+                  <div className="text-xs opacity-90 mt-0.5">
+                    Status: {ingestionResult.uploadRecord?.processingStatus || "PROCESSED"} | Rows: {ingestionResult.uploadRecord?.rowCount || 1} | Records: {ingestionResult.uploadRecord?.recordCount || 1} | Confidence: {(ingestionResult.confidenceScore * 100).toFixed(0)}%
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-              {ingestionResult.uploadRecord && (
-                <button
-                  onClick={() => setSelectedUpload(ingestionResult.uploadRecord!)}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-card/60 hover:bg-card text-foreground transition-all"
-                >
-                  View Details
-                </button>
-              )}
-              {ingestionResult.signedDownloadUrl && (
-                <a
-                  href={ingestionResult.signedDownloadUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 transition-all flex items-center gap-1.5"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Download
-                </a>
-              )}
+              <div className="flex items-center gap-2">
+                {ingestionResult.uploadRecord && (
+                  <button
+                    onClick={() => setSelectedUpload(ingestionResult.uploadRecord!)}
+                    className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-card/60 hover:bg-card text-foreground transition-all"
+                  >
+                    View Details
+                  </button>
+                )}
+                {ingestionResult.signedDownloadUrl && (
+                  <a
+                    href={ingestionResult.signedDownloadUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1.5 text-xs font-medium rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 transition-all flex items-center gap-1.5"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download
+                  </a>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="mt-6 p-6 rounded-2xl border-2 border-rose-500/40 bg-rose-500/10 space-y-4 animate-in fade-in duration-300 shadow-lg">
+              <div className="flex items-start gap-3">
+                <XCircle className="w-6 h-6 text-rose-400 shrink-0 mt-0.5" />
+                <div className="space-y-1 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-rose-300 tracking-wide uppercase">
+                      PROCESSING FAILED
+                    </h3>
+                    <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 uppercase">
+                      FAILED SAFELY
+                    </span>
+                  </div>
+                  <div className="text-sm font-semibold text-foreground mt-1">
+                    Reason:
+                  </div>
+                  <p className="text-sm text-rose-200/90 font-medium">
+                    {ingestionResult.uploadRecord?.errorMessage ||
+                      ingestionResult.batchJob?.quarantineReason ||
+                      "Unable to extract required invoice information."}
+                  </p>
+                </div>
+              </div>
+
+              {/* File Preservation Guarantee Notice */}
+              <div className="p-3.5 rounded-xl border border-border/40 bg-card/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2 text-foreground font-medium">
+                  <Lock className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>The original file remains stored in encrypted storage vault (ID: {ingestionResult.fileHeader?.documentId || ingestionResult.uploadRecord?.id}).</span>
+                </div>
+                <span className="text-[11px] text-emerald-400 font-mono font-semibold">
+                  Never Silently Discarded
+                </span>
+              </div>
+
+              {/* Error Recorded in Audit Trail */}
+              <div className="text-xs text-muted-foreground flex items-center gap-2 px-1">
+                <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span>The error is recorded in the persistent audit trail and ingestion error registry.</span>
+              </div>
+
+              {/* Retry & Download Actions */}
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <button
+                  onClick={() =>
+                    handleRetryProcessing(
+                      ingestionResult.uploadRecord?.id || ingestionResult.fileHeader?.documentId,
+                    )
+                  }
+                  disabled={processing}
+                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${processing ? "animate-spin" : ""}`} />
+                  <span>Retry Processing</span>
+                </button>
+                {ingestionResult.uploadRecord && (
+                  <button
+                    onClick={() => setSelectedUpload(ingestionResult.uploadRecord!)}
+                    className="px-3.5 py-2 text-xs font-medium rounded-xl border border-border bg-card/60 hover:bg-card text-foreground transition-all"
+                  >
+                    View Error Details
+                  </button>
+                )}
+                {ingestionResult.signedDownloadUrl && (
+                  <a
+                    href={ingestionResult.signedDownloadUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3.5 py-2 text-xs font-medium rounded-xl border border-border/60 bg-card/60 hover:bg-card text-foreground transition-all flex items-center gap-1.5"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download Stored File</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          )
         )}
 
         {/* Stage 21: Controlled Duplicate Protection & Correction Handling Card */}
@@ -1370,13 +1470,30 @@ export function SecureUploadGateway() {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <button
-                          onClick={() => setSelectedUpload(rec)}
-                          className="p-1.5 rounded-lg border border-border/60 hover:bg-secondary/40 text-foreground transition-all"
-                          title="Inspect Upload Metadata"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          {rec.processingStatus === "FAILED" && (
+                            <button
+                              onClick={() => handleRetryProcessing(rec.id)}
+                              disabled={retryingUploadId === rec.id}
+                              className="p-1.5 rounded-lg border border-rose-500/40 hover:bg-rose-500/10 text-rose-400 hover:text-rose-300 transition-all"
+                              title="Retry Processing from Stored File"
+                              aria-label="Retry Processing"
+                            >
+                              <RefreshCw
+                                className={`w-3.5 h-3.5 ${
+                                  retryingUploadId === rec.id ? "animate-spin" : ""
+                                }`}
+                              />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setSelectedUpload(rec)}
+                            className="p-1.5 rounded-lg border border-border/60 hover:bg-secondary/40 text-foreground transition-all"
+                            title="Inspect Upload Metadata"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -1506,16 +1623,31 @@ export function SecureUploadGateway() {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-border/40 flex items-center justify-between">
-              <button
-                onClick={() => handleDownloadSecureFile(selectedUpload)}
-                disabled={downloadingUrl}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border/60 hover:bg-secondary/40 text-foreground transition-all disabled:opacity-50"
-                title="Download via time-limited signed URL"
-              >
-                <Download className="w-3.5 h-3.5" />
-                {downloadingUrl ? "Generating Link..." : "Download Secure File"}
-              </button>
+            <div className="pt-3 border-t border-border/40 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {selectedUpload.processingStatus === "FAILED" && (
+                  <button
+                    onClick={() => {
+                      const id = selectedUpload.id;
+                      setSelectedUpload(null);
+                      handleRetryProcessing(id);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-sm"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Retry Processing</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => handleDownloadSecureFile(selectedUpload)}
+                  disabled={downloadingUrl}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border/60 hover:bg-secondary/40 text-foreground transition-all disabled:opacity-50"
+                  title="Download via time-limited signed URL"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  {downloadingUrl ? "Generating Link..." : "Download Secure File"}
+                </button>
+              </div>
               <button
                 onClick={() => setSelectedUpload(null)}
                 className="px-4 py-1.5 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all"

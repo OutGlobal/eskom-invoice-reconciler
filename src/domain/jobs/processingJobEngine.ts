@@ -297,6 +297,69 @@ export class ProcessingJobEngine {
   }
 
   /**
+   * Retries an existing job from preserved input files
+   */
+  public static async retryJob(
+    jobId: string,
+    context?: UserSecurityContext,
+  ): Promise<ProcessingJob> {
+    const job = this.jobs.get(jobId);
+    if (!job) {
+      throw new Error(`Job '${jobId}' not found`);
+    }
+
+    if (
+      context &&
+      context.role !== "SUPER_ADMIN" &&
+      job.organisationId !== context.organisationId
+    ) {
+      throw new TenantIsolationViolationError(context.organisationId, job.organisationId);
+    }
+
+    const cachedInput = this.pendingJobInputs.get(jobId);
+    if (!cachedInput) {
+      throw new Error(`Original input data for job '${jobId}' is no longer available`);
+    }
+
+    job.status = "QUEUED";
+    job.currentStage = "QUEUED";
+    job.progressPercentage = 0;
+    job.recordsProcessed = 0;
+    job.errorSummary = undefined;
+    job.stageMessage = "Processing retry queued for server-side execution";
+    job.updatedAt = new Date().toISOString();
+
+    this.updateProgress(
+      jobId,
+      "QUEUED",
+      0,
+      0,
+      job.totalRecords,
+      "Processing retry queued for server-side execution",
+    );
+
+    try {
+      void AuditTrailService.recordAction({
+        organisationId: job.organisationId,
+        category: "processing",
+        action: "PROCESSING_RETRY_INITIATED",
+        description: `Processing job ${jobId} retry initiated`,
+        actor: { userId: context?.userId },
+        record: { entityType: "processing_job", recordId: jobId, recordLabel: `Job ${jobId}` },
+        newState: { jobId, status: "QUEUED", stage: "QUEUED" },
+      });
+    } catch {}
+
+    setTimeout(() => {
+      this.executeJob(jobId, cachedInput).catch((err) => {
+        this.failJob(jobId, err?.message || "Resumed processing retry failed");
+      });
+    }, 10);
+
+    return { ...job };
+  }
+
+  /**
    * Cancels an active or queued job
    */
   public static async cancelJob(
@@ -380,13 +443,21 @@ export class ProcessingJobEngine {
           orgId,
           userId,
         );
+        if (!invoiceIngestResult.success) {
+          const failReason =
+            invoiceIngestResult.uploadRecord?.errorMessage ||
+            invoiceIngestResult.batchJob?.quarantineReason ||
+            "Unable to extract required invoice information.";
+          this.failJob(jobId, failReason);
+          return;
+        }
         extractedInvoice = invoiceIngestResult.extractedInvoice || this.buildFallbackInvoice(invoiceName);
         if (!extractedInvoice.meterNumber) {
           extractedInvoice.meterNumber = this.buildFallbackInvoice(invoiceName).meterNumber;
         }
       } catch (err: any) {
-        console.warn("[ProcessingJobEngine] Invoice parsing warning, using fallback baseline:", err?.message);
-        extractedInvoice = this.buildFallbackInvoice(invoiceName);
+        this.failJob(jobId, err?.message || "Unable to extract required invoice information.");
+        return;
       }
     } else {
       this.updateProgress(jobId, "PDF_EXTRACTION", 25, 0, undefined, "Using registered baseline determinants");
@@ -417,6 +488,14 @@ export class ProcessingJobEngine {
         orgId,
         userId,
       );
+      if (!meterIngestResult.success) {
+        const failReason =
+          meterIngestResult.uploadRecord?.errorMessage ||
+          meterIngestResult.batchJob?.quarantineReason ||
+          "Unable to parse interval telemetry stream.";
+        this.failJob(jobId, failReason);
+        return;
+      }
       rawTelemetryRecords = meterIngestResult.intervals || (meterIngestResult as any).normalizedRecords || [];
     }
 
