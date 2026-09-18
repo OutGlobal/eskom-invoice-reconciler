@@ -12,10 +12,10 @@ interface ChartEmptyStateProps {
 }
 
 export const ChartEmptyState: React.FC<ChartEmptyStateProps> = ({
-  title = "No Chart Data Available",
-  message = "Upload your first energy dataset or ingest an Eskom invoice to visualize trends.",
-  actionText = "Upload Energy Dataset",
-  actionLink = "/invoices",
+  title = "No meter data is available.",
+  message = "Upload energy data to begin. Ingest billing statements and interval readings to generate interactive charts.",
+  actionText = "Upload Energy Data",
+  actionLink = "/upload",
   icon = "chart",
   minHeight = "280px",
 }) => {

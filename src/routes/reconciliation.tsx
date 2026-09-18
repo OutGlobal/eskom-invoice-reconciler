@@ -27,6 +27,7 @@ import {
   Play,
   Layers,
   Search,
+  Upload,
 } from "lucide-react";
 import Decimal from "decimal.js-light";
 import { useApp } from "@/lib/store";
@@ -35,6 +36,7 @@ import { AuditViewer } from "@/components/audit/AuditViewer";
 import { InvoiceSelector } from "@/components/InvoiceSelector";
 import { StatutoryReconciliationWorkbench } from "@/components/reconciliation/StatutoryReconciliationWorkbench";
 import { Calculator } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export const Route = createFileRoute("/reconciliation")({
   head: () => ({ meta: [{ title: "Authoritative Reconciliation Engine — Eskom Bill Balancer" }] }),
@@ -173,32 +175,22 @@ function ReconciliationPage() {
     return (
       <div className="space-y-6">
         <InvoiceSelector />
-        <div className="rounded-xl border border-border bg-card p-12 text-center shadow-xs">
-          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
-            <Scale className="w-6 h-6" />
-          </div>
-          <h3 className="text-base font-bold text-foreground">
-            Awaiting Invoices for Reconciliation
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-            Upload your Eskom or Municipal bill and AMR interval file to execute the 14-determinant
-            reconciliation engine, or load a regression sandbox scenario.
-          </p>
-          <div className="flex items-center justify-center gap-3 pt-4">
-            <a
-              href="/upload"
-              className="px-4 py-2 text-xs font-semibold text-primary-foreground bg-primary hover:opacity-90 rounded-lg shadow-xs"
-            >
-              Upload Documents
-            </a>
-            <button
-              onClick={() => handleFixtureChange(MEGAFLEX_JULY_2025_FIXTURE.fixture_code)}
-              className="px-4 py-2 text-xs font-semibold text-foreground border border-border hover:bg-muted rounded-lg"
-            >
-              Load July 2025 Benchmark Sandbox
-            </button>
-          </div>
-        </div>
+        <EmptyState
+          icon={Scale}
+          title="No reconciliation has been completed."
+          description="Upload energy data to begin. Ingest billing invoices and AMR interval readings to execute 14-determinant reconciliation."
+          badge="Awaiting Settlement Analysis"
+          primaryAction={{
+            label: "Upload Energy Data",
+            href: "/upload",
+            icon: Upload,
+          }}
+          secondaryAction={{
+            label: "Load July 2025 Benchmark Sandbox",
+            onClick: () => handleFixtureChange(MEGAFLEX_JULY_2025_FIXTURE.fixture_code),
+            icon: RefreshCw,
+          }}
+        />
       </div>
     );
   }

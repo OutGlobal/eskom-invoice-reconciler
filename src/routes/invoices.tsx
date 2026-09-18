@@ -31,6 +31,7 @@ import type {
   InvoiceLifecycleState,
   InvoiceHeaderMeta,
 } from "@/domain/invoice/types";
+import { EmptyState } from "@/components/ui/EmptyState";
 import toast from "react-hot-toast";
 
 export const Route = createFileRoute("/invoices")({
@@ -493,40 +494,24 @@ function InvoicesPage() {
         activeDoc ? (
           <InvoiceReviewWorkspace document={activeDoc} onApprove={handleApprove} />
         ) : (
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-10 border border-gray-200 dark:border-gray-800 text-center space-y-4">
-            <div className="w-12 h-12 bg-blue-50 dark:bg-blue-950/50 rounded-full flex items-center justify-center mx-auto text-blue-600">
-              <FileText className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">
-                No Invoice Active in Workspace
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-md mx-auto">
-                Select an ingested invoice from the register to audit determinants, upload a utility
-                bill, or explore the Megaflex sandbox sample.
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <button
-                onClick={() => setViewMode("upload")}
-                className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs"
-              >
-                Upload Bill
-              </button>
-              <button
-                onClick={() => setViewMode("table")}
-                className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 rounded-lg"
-              >
-                View Register
-              </button>
-              <button
-                onClick={loadSampleInvoice}
-                className="px-4 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-lg"
-              >
-                Load Sandbox Sample
-              </button>
-            </div>
-          </div>
+          <EmptyState
+            title="No invoices have been uploaded yet."
+            description="Upload energy data to begin. Select an ingested invoice from the register to audit determinants, upload a utility bill, or explore the Megaflex sandbox sample."
+            icon={FileText}
+            badge="Awaiting Ingestion"
+            primaryAction={{
+              label: "Upload Invoice",
+              onClick: () => setViewMode("upload"),
+            }}
+            secondaryAction={{
+              label: "View Register",
+              onClick: () => setViewMode("table"),
+            }}
+            tertiaryAction={{
+              label: "Load Sandbox Sample",
+              onClick: loadSampleInvoice,
+            }}
+          />
         )
       ) : (
         /* Invoice Register Table */
@@ -543,21 +528,59 @@ function InvoicesPage() {
             </button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-800 text-gray-500 uppercase font-semibold bg-gray-50/50 dark:bg-gray-950/50">
-                  <th className="py-3 px-4">Invoice #</th>
-                  <th className="py-3 px-4">Account Number</th>
-                  <th className="py-3 px-4">Customer / Premise</th>
-                  <th className="py-3 px-4">Billing Period</th>
-                  <th className="py-3 px-4">Tariff</th>
-                  <th className="py-3 px-4">Lifecycle State</th>
-                  <th className="py-3 px-4">Validation</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+          {filteredInvoices.length === 0 ? (
+            <div className="p-6">
+              {invoices.length === 0 ? (
+                <EmptyState
+                  title="No invoices have been uploaded yet."
+                  description="Upload energy data to begin. Ingest Eskom or municipal utility bills to initiate automated rate auditing, TOU extraction, and reconciliation."
+                  icon={FileText}
+                  badge="Invoice Register Empty"
+                  primaryAction={{
+                    label: "Upload Invoice",
+                    onClick: () => setViewMode("upload"),
+                  }}
+                  secondaryAction={{
+                    label: "Load Sandbox Sample",
+                    onClick: loadSampleInvoice,
+                  }}
+                />
+              ) : (
+                <EmptyState
+                  title="No invoices match current filter criteria"
+                  description="Try clearing your search query or selecting 'All Lifecycle States'."
+                  icon={Filter}
+                  compact
+                  primaryAction={{
+                    label: "Clear Filters",
+                    onClick: () =>
+                      setFilter({
+                        accountNumber: "",
+                        invoiceNumber: "",
+                        tariffName: "",
+                        lifecycleState: "ALL",
+                        discrepancyOnly: false,
+                      }),
+                  }}
+                />
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-800 text-gray-500 uppercase font-semibold bg-gray-50/50 dark:bg-gray-950/50">
+                    <th className="py-3 px-4">Invoice #</th>
+                    <th className="py-3 px-4">Account Number</th>
+                    <th className="py-3 px-4">Customer / Premise</th>
+                    <th className="py-3 px-4">Billing Period</th>
+                    <th className="py-3 px-4">Tariff</th>
+                    <th className="py-3 px-4">Lifecycle State</th>
+                    <th className="py-3 px-4">Validation</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
                 {filteredInvoices.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-8 text-center text-gray-500 italic">

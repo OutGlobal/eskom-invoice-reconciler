@@ -36,6 +36,7 @@ import {
   type RawTelemetryRowInput,
 } from "@/domain/telemetry/telemetryQualityEngine";
 import { TelemetryStorageService } from "@/domain/telemetry/telemetryStorageService";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { EstimationFrameworkEngine } from "@/domain/telemetry/estimationFramework";
 import {
   LoadTestBenchmarkEngine,
@@ -331,9 +332,27 @@ function TelemetryPage() {
       </div>
 
       {workspaceTab === "stream" && (
-        <>
-          {/* Overview KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        !isProcessing && intervals.length === 0 ? (
+          <EmptyState
+            icon={Activity}
+            title="No meter data is available."
+            description="Upload energy data to begin. Ingest raw AMR interval streams or benchmark suites to analyze telemetry health and missing interval gaps."
+            badge="Zero Intervals Ingested"
+            primaryAction={{
+              label: "Upload Energy Data",
+              href: "/upload",
+              icon: Upload,
+            }}
+            secondaryAction={{
+              label: "Load Benchmark Suite",
+              onClick: () => handleRunBenchmark(1000),
+              icon: Sparkles,
+            }}
+          />
+        ) : (
+          <>
+            {/* Overview KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xs">
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Processed Intervals

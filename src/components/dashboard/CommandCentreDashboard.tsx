@@ -17,12 +17,14 @@ import {
   TrendingDown,
   Building2,
   Calendar,
+  Upload,
 } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { useDerived, ZAR, NUM } from "@/components/dashboard/parts";
 import { DashboardService } from "@/domain/dashboard/dashboardService";
 import { EnterpriseAnalyticsCharts } from "@/components/charts/EnterpriseAnalyticsCharts";
 import { useAutoRefresh } from "@/domain/realtime/useAutoRefresh";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type {
   AggregatedDashboardData,
   CriticalAlertItem,
@@ -687,9 +689,17 @@ export function CommandCentreDashboard() {
             </div>
 
             {data.monthlyConsumption.length === 0 ? (
-              <div className="p-6 text-center text-xs text-muted-foreground border border-dashed rounded-lg">
-                No monthly billing consumption records found for the active filter.
-              </div>
+              <EmptyState
+                compact
+                icon={FileText}
+                title="No invoices have been uploaded yet."
+                description="Upload energy data to begin. Ingest billing statements and meter intervals to view consumption and settlement lineage."
+                primaryAction={{
+                  label: "Upload Energy Data",
+                  href: "/upload",
+                  icon: Upload,
+                }}
+              />
             ) : (
               <div className="overflow-x-auto rounded-lg border border-border">
                 <table className="w-full text-xs text-left">

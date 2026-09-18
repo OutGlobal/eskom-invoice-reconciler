@@ -32,6 +32,7 @@ import type {
 import { DeterministicDiagnosticsEngine } from "@/domain/discrepancy/deterministicDiagnosticsEngine";
 import { DiscrepancyStorageService } from "@/domain/discrepancy/discrepancyStorageService";
 import { NUM } from "@/components/dashboard/parts";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export const AnomalyDashboard: React.FC = () => {
   const [records, setRecords] = useState<DiscrepancyRecord[]>([]);
@@ -229,8 +230,42 @@ export const AnomalyDashboard: React.FC = () => {
       </div>
 
       {/* Discrepancy Card List */}
-      <div className="space-y-4">
-        {filteredRecords.map((r) => (
+      {filteredRecords.length === 0 ? (
+        records.length === 0 ? (
+          <EmptyState
+            title="No anomalies have been identified."
+            description="Upload energy data to begin. All billing determinants match meter telemetry and gazetted tariff schedules within acceptable tolerances, or no reconciliation run has been executed yet."
+            icon={ShieldAlert}
+            badge="0 Anomalies Detected"
+            primaryAction={{
+              label: "Upload Energy Data",
+              href: "/upload",
+            }}
+            secondaryAction={{
+              label: "Run Reconciliation",
+              href: "/reconciliation",
+            }}
+          />
+        ) : (
+          <EmptyState
+            title="No anomalies match the active filters"
+            description="Adjust your code, severity, or lifecycle status filters to inspect other discrepancy categories."
+            icon={Filter}
+            compact
+            primaryAction={{
+              label: "Clear Filters",
+              onClick: () => {
+                setSelectedCodeFilter("ALL");
+                setSelectedSeverityFilter("ALL");
+                setSelectedStatusFilter("ALL");
+                setSearchTerm("");
+              },
+            }}
+          />
+        )
+      ) : (
+        <div className="space-y-4">
+          {filteredRecords.map((r) => (
           <div
             key={r.id}
             className="rounded-lg border border-border bg-card p-4 space-y-3 hover:border-primary/50 transition-colors"

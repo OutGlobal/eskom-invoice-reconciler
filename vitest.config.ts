@@ -45,6 +45,7 @@ export default defineConfig({
       "src/lib/__tests__/stage21_duplicate_protection.test.ts",
       "src/lib/__tests__/stage22_audit_trail.test.ts",
       "src/lib/__tests__/stage23_error_handling.test.ts",
+      "src/lib/__tests__/stage24_empty_states.test.ts",
     ],
     testTimeout: 60000,
     fileParallelism: false,

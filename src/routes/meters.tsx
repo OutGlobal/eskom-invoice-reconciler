@@ -26,7 +26,9 @@ import {
   FileText,
   X,
   Check,
+  Upload,
 } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { MeterStorageService } from "@/domain/meter/meterStorageService";
 import { MeterCalculationService } from "@/domain/meter/meterCalculationService";
 import { MeterValidationEngine } from "@/domain/meter/meterValidationEngine";
@@ -213,28 +215,22 @@ export function MetersPage() {
 
       {/* If no sites or meters exist */}
       {!isLoading && (!hierarchy || hierarchy.sites.length === 0 || !activeMeterData) ? (
-        <div className="bg-white dark:bg-gray-900 rounded-xl p-12 border border-gray-200 dark:border-gray-800 text-center space-y-4 shadow-sm">
-          <div className="w-14 h-14 bg-blue-50 dark:bg-blue-950/50 rounded-full flex items-center justify-center mx-auto text-blue-600">
-            <Gauge className="w-7 h-7" />
-          </div>
-          <div className="max-w-md mx-auto">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-              No Meter Infrastructure Configured
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Add your Point of Delivery (POD) and Meter profiles to begin tracking CT/VT ratios,
-              overall multipliers, pulse scaling, and calibration audit logs.
-            </p>
-          </div>
-          <div className="pt-2">
-            <button
-              onClick={() => setShowConfigModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"
-            >
-              <Plus className="w-4 h-4" /> Add Meter Profile
-            </button>
-          </div>
-        </div>
+        <EmptyState
+          icon={Gauge}
+          title="No meter data is available."
+          description="Upload energy data to begin, or configure Point of Delivery (POD) and meter channels to track CT/VT ratios, pulse scaling, and calibration audit logs."
+          badge="Zero Meters Found"
+          primaryAction={{
+            label: "Upload Energy Data",
+            href: "/upload",
+            icon: Upload,
+          }}
+          secondaryAction={{
+            label: "Add Meter Profile",
+            onClick: () => setShowConfigModal(true),
+            icon: Plus,
+          }}
+        />
       ) : (
         <>
           {/* KPI Overview Cards */}
