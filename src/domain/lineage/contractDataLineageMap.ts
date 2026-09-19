@@ -38,6 +38,8 @@ export interface DashboardMetricContract {
   query: string;
   transformation: string;
   lineageChain: string[];
+  downwardProvenance?: string[];
+  aliases?: string[];
   status: "VERIFIED" | "FLAGGED_NO_SOURCE";
   flagReason?: string;
 }
@@ -160,6 +162,21 @@ export class ContractDataLineageMap {
         "invoice/reconciliation results",
         "aggregation query",
         "Dashboard Total Cost Display",
+      ],
+      downwardProvenance: [
+        "Dashboard",
+        "Total Energy Cost",
+        "Reconciliation Results",
+        "Invoice Charges",
+        "Invoice Record",
+        "Uploaded PDF",
+      ],
+      aliases: [
+        "Total Energy Cost",
+        "Total Cost",
+        "Billed Total",
+        "total_energy_cost",
+        "Total Billed Amount",
       ],
       status: "VERIFIED",
     });
@@ -491,6 +508,21 @@ export class ContractDataLineageMap {
         "invoice_records (total_kwh)",
         "Total Energy Highlight Box",
       ],
+      downwardProvenance: [
+        "Dashboard",
+        "Actual kWh",
+        "Monthly Energy Aggregation",
+        "Validated Interval Data",
+        "AMR CSV",
+        "Original Uploaded File",
+      ],
+      aliases: [
+        "Actual kWh",
+        "Total Energy",
+        "Total Energy (kWh)",
+        "actual_kwh",
+        "total_kwh",
+      ],
       status: "VERIFIED",
     });
 
@@ -742,6 +774,98 @@ export class ContractDataLineageMap {
 
     // Return reversed or user-standard arrow format
     return metric.lineageChain.slice().reverse().join(" ← ");
+  }
+
+  /**
+   * Resolve a metric by metricId, displayName, or natural language alias
+   */
+  public static resolveMetric(metricIdOrName: string): DashboardMetricContract | undefined {
+    const direct = this.registry.get(metricIdOrName);
+    if (direct) return direct;
+
+    const normalizedQuery = metricIdOrName.toLowerCase().replace(/[^a-z0-9]/g, "");
+    for (const metric of this.registry.values()) {
+      const idMatch = metric.metricId.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const nameMatch = metric.displayName.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (idMatch === normalizedQuery || nameMatch === normalizedQuery) {
+        return metric;
+      }
+      if (
+        metric.aliases &&
+        metric.aliases.some(
+          (a) => a.toLowerCase().replace(/[^a-z0-9]/g, "") === normalizedQuery,
+        )
+      ) {
+        return metric;
+      }
+    }
+
+    // Secondary search for substring match
+    for (const metric of this.registry.values()) {
+      const nameMatch = metric.displayName.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (nameMatch.includes(normalizedQuery) || normalizedQuery.includes(nameMatch)) {
+        return metric;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Traces the top-down provenance hierarchy for any number in ENERA:
+   *
+   * Dashboard
+   *    ↓
+   * Total Energy Cost
+   *    ↓
+   * Reconciliation Results
+   *    ↓
+   * Invoice Charges
+   *    ↓
+   * Invoice Record
+   *    ↓
+   * Uploaded PDF
+   */
+  public static traceDownwardProvenance(metricIdOrName: string): string[] {
+    const metric = this.resolveMetric(metricIdOrName);
+    if (metric?.downwardProvenance && metric.downwardProvenance.length > 0) {
+      return metric.downwardProvenance;
+    }
+    if (metric?.lineageChain && metric.lineageChain.length > 0) {
+      const reversed = metric.lineageChain.slice().reverse();
+      if (reversed[0] !== "Dashboard") {
+        return ["Dashboard", ...reversed];
+      }
+      return reversed;
+    }
+    return [
+      "Dashboard",
+      metricIdOrName,
+      "Aggregation Query",
+      "Database Source of Truth",
+      "Original Uploaded File",
+    ];
+  }
+
+  /**
+   * Formats downward provenance trace into ASCII arrow notation:
+   *
+   * Dashboard
+   *    ↓
+   * Total Energy Cost
+   *    ↓
+   * ...
+   */
+  public static formatDownwardProvenance(metricIdOrName: string): string {
+    const chain = this.traceDownwardProvenance(metricIdOrName);
+    return chain.join("\n   ↓\n");
+  }
+
+  /**
+   * Answers the fundamental engineering question: "Where did this number come from?"
+   */
+  public static traceNumberOrigin(metricIdOrName: string): string {
+    return this.formatDownwardProvenance(metricIdOrName);
   }
 
   /**
