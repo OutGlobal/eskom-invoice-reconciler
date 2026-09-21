@@ -1,16 +1,5 @@
 import { create } from "zustand";
-import { generateFallbackIntervalReadings, type Measurement } from "./parseMeter";
-import { TARIFF as DEFAULT_TARIFF } from "./tariff";
-import {
-  SAMPLE_MARCH_2026_INVOICE,
-  SAMPLE_MARCH_2026_LINE_ITEMS,
-  SAMPLE_FEB_2026_INVOICE,
-  SAMPLE_FEB_2026_LINE_ITEMS,
-  SAMPLE_APRIL_2026_INVOICE,
-  SAMPLE_APRIL_2026_LINE_ITEMS,
-  SAMPLE_MAY_2026_INVOICE,
-  SAMPLE_MAY_2026_LINE_ITEMS,
-} from "./sampleInvoice";
+import type { Measurement } from "./parseMeter";
 
 export interface TariffData {
   name: string;
@@ -256,16 +245,28 @@ interface AppState {
   batchInvoices: InvoiceData[];
   addBatchInvoice: (inv: InvoiceData) => void;
 
-  loadMarch2026SampleInvoice: () => void;
-  loadFeb2026SampleInvoice: () => void;
-  loadApril2026SampleInvoice: () => void;
-  loadMay2026SampleInvoice: () => void;
-
   overrideInvoiceField: (fieldPath: string, newValue: number | string) => void;
   overrideInvoiceChargeLine: (labelOrNormalized: string, newAmount: number) => void;
 }
 
-const initialTariff: TariffData = { ...DEFAULT_TARIFF } as TariffData;
+const initialTariff: TariffData = {
+  name: "Awaiting tariff upload",
+  voltage: "",
+  zone: "",
+  powerFactor: 0,
+  networkCapacity: 0,
+  networkDemand: 0,
+  generationCapacity: 0,
+  transmissionNetwork: 0,
+  legacy: 0,
+  ancillary: 0,
+  electrification: 0,
+  affordability: 0,
+  energy: {
+    high: { peak: 0, standard: 0, offPeak: 0 },
+    low: { peak: 0, standard: 0, offPeak: 0 },
+  },
+};
 
 function invoiceLinesFromItems(invoice: InvoiceData, items: InvoiceLineItemStored[]) {
   const lines: Record<string, number> = {};
@@ -364,24 +365,12 @@ export const useApp = create<AppState>((set) => ({
   validation: [],
   setValidation: (validation) => set({ validation }),
 
-  billingStart: "2026-02-17",
-  billingEnd: "2026-03-18",
+  billingStart: "",
+  billingEnd: "",
   setBilling: (billingStart, billingEnd) => set({ billingStart, billingEnd }),
 
   batchInvoices: [],
   addBatchInvoice: (inv) => set((s) => ({ batchInvoices: [...s.batchInvoices, inv] })),
-
-  loadMarch2026SampleInvoice: () =>
-    set(activateInvoice(SAMPLE_MARCH_2026_INVOICE, SAMPLE_MARCH_2026_LINE_ITEMS)),
-
-  loadFeb2026SampleInvoice: () =>
-    set(activateInvoice(SAMPLE_FEB_2026_INVOICE, SAMPLE_FEB_2026_LINE_ITEMS)),
-
-  loadApril2026SampleInvoice: () =>
-    set(activateInvoice(SAMPLE_APRIL_2026_INVOICE, SAMPLE_APRIL_2026_LINE_ITEMS)),
-
-  loadMay2026SampleInvoice: () =>
-    set(activateInvoice(SAMPLE_MAY_2026_INVOICE, SAMPLE_MAY_2026_LINE_ITEMS)),
 
   overrideInvoiceField: (fieldPath, newValue) =>
     set((s) => {

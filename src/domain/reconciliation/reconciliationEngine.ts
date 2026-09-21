@@ -32,7 +32,6 @@ import { DeterminantEngine } from "../determinants/determinantEngine";
 import { ToleranceEngine } from "./toleranceEngine";
 import { RootCauseInferenceEngine } from "./rootCauseInferenceEngine";
 import type { ExtractedInvoiceDocument } from "../invoice/types";
-import { REGRESSION_FIXTURES } from "./regressionFixtures";
 import { ESKOM_MEGAFLEX_2025_2026, ESKOM_MINIFLEX_2025_2026 } from "../tariff/tariffFixtures";
 import { InvoiceStorageService } from "../invoice/invoiceStorageService";
 import { TelemetryStorageService } from "../telemetry/telemetryStorageService";
@@ -112,48 +111,15 @@ export class DeterministicReconciliationEngine {
         : ESKOM_MEGAFLEX_2025_2026;
     const tariffVerId = `${tariffDef.header.tariff_code}_${tariffDef.header.version}`;
 
-    // 1. Resolve calculated telemetry values (fallback to regression fixture baseline or billed)
-    const matchingFixture = REGRESSION_FIXTURES.find(
-      (f) => f.invoice_inputs.invoice_number === input.invoice_id,
-    );
-    const baseline = matchingFixture?.invoice_inputs;
-
-    const peakKwh =
-      input.calc_peak_kwh ??
-      (baseline && !input.billed_peak_kwh.equals(baseline.peak_kwh)
-        ? baseline.peak_kwh
-        : input.billed_peak_kwh);
-    const stdKwh =
-      input.calc_standard_kwh ??
-      (baseline && !input.billed_standard_kwh.equals(baseline.standard_kwh)
-        ? baseline.standard_kwh
-        : input.billed_standard_kwh);
-    const offKwh =
-      input.calc_off_peak_kwh ??
-      (baseline && !input.billed_off_peak_kwh.equals(baseline.off_peak_kwh)
-        ? baseline.off_peak_kwh
-        : input.billed_off_peak_kwh);
-    const totalKwh =
-      input.calc_total_kwh ??
-      (baseline && !input.billed_total_kwh.equals(baseline.total_kwh)
-        ? baseline.total_kwh
-        : input.billed_total_kwh);
-    const maxKva =
-      input.calc_maximum_demand_kva ??
-      (baseline && !input.billed_maximum_demand_kva.equals(baseline.maximum_demand_kva)
-        ? baseline.maximum_demand_kva
-        : input.billed_maximum_demand_kva);
+    // 1. Resolve calculated telemetry values from uploaded determinants only.
+    const peakKwh = input.calc_peak_kwh ?? input.billed_peak_kwh;
+    const stdKwh = input.calc_standard_kwh ?? input.billed_standard_kwh;
+    const offKwh = input.calc_off_peak_kwh ?? input.billed_off_peak_kwh;
+    const totalKwh = input.calc_total_kwh ?? input.billed_total_kwh;
+    const maxKva = input.calc_maximum_demand_kva ?? input.billed_maximum_demand_kva;
     const maxDemandKva = maxKva;
-    const ratchetDemandKva =
-      input.calc_ratcheted_demand_kva ??
-      (baseline && !input.billed_ratcheted_demand_kva.equals(baseline.ratcheted_demand_kva)
-        ? baseline.ratcheted_demand_kva
-        : input.billed_ratcheted_demand_kva);
-    const reactiveKvarh =
-      input.calc_reactive_energy_kvarh ??
-      (baseline && !input.billed_reactive_energy_kvarh.equals(baseline.reactive_energy_kvarh)
-        ? baseline.reactive_energy_kvarh
-        : input.billed_reactive_energy_kvarh);
+    const ratchetDemandKva = input.calc_ratcheted_demand_kva ?? input.billed_ratcheted_demand_kva;
+    const reactiveKvarh = input.calc_reactive_energy_kvarh ?? input.billed_reactive_energy_kvarh;
     const powerFactor = input.calc_power_factor ?? new Decimal("0.96");
 
     // 2. Execute deterministic tariff engine over telemetry determinants
