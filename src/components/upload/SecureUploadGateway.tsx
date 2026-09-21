@@ -1661,6 +1661,12 @@ export function SecureUploadGateway() {
               </div>
             </div>
 
+            {downloadError && (
+              <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-300">
+                {downloadError}
+              </div>
+            )}
+
             <div className="pt-3 border-t border-border/40 flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 {selectedUpload.processingStatus === "FAILED" && (
