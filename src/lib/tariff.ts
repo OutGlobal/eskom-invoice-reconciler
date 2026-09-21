@@ -2,52 +2,6 @@
 // Voltage: >=500V & <66kV (33kV supply)  |  Transmission Zone: <=300km
 // Source: Eskom Schedule of Standard Prices 2025/2026, NERSA-approved, Table 3, p.16
 
-export const TARIFF = {
-  name: "Megaflex (Non-local Authority)",
-  voltage: ">=500V & <66kV",
-  zone: "<=300km",
-  powerFactor: 0.96,
-
-  // R/kVA/month  (applied to NMD or annual utilised capacity)
-  networkCapacity: 35.98, // Distribution network capacity charge (Table 3, p.16)
-  networkDemand: 24.17, // Distribution network demand charge (Table 3, p.16)
-  generationCapacity: 8.09, // Generation capacity charge (Table 3, p.16)
-  transmissionNetwork: 10.25, // Transmission network charge (Table 3, p.16)
-
-  // c/kWh (converted to R/kWh in code)
-  legacy: 22.2, // c/kWh (Table 3, p.16)
-  ancillary: 0.39, // c/kWh (Table 3, p.16)
-  electrification: 4.94, // 4.94 c/kWh in 2025/26 (Table 3, p.16)
-  affordability: 4.69, // c/kWh (Table 3, p.16)
-
-  // Active energy c/kWh (Table 3, p.16)
-  energy: {
-    high: { peak: 666.92, standard: 166.73, offPeak: 111.15 }, // Jun-Aug
-    low: { peak: 276.78, standard: 155.62, offPeak: 111.15 }, // Sep-May
-  },
-  // Eskom 2026/27 rates effective 1 April 2026. April bills are day/interval weighted (13d vs 16d).
-  next: {
-    effectiveFrom: "2026-04-01",
-    networkCapacity: 39.13,
-    networkDemand: 26.29,
-    generationCapacity: 12.27,
-    transmissionNetwork: 11.15,
-    legacy: 24.14,
-    ancillary: 0.42,
-    electrification: 5.37, // 5.37 c/kWh in 2026/27
-    affordability: 5.1,
-    administrationDaily: 21.07,
-    serviceDaily: 1216.44,
-    energy: {
-      high: { peak: 720.27, standard: 180.07, offPeak: 120.03 },
-      low: { peak: 298.89, standard: 168.05, offPeak: 120.03 },
-    },
-  },
-  administrationDaily: 19.37,
-  serviceDaily: 1118.46,
-  connectionMonthly: 351887.21, // Total connection charges ex VAT (R 174 681 + R 130 684 + R 34 861.21 + R 11 661)
-} as const;
-
 export type TouPeriod = "peak" | "standard" | "offPeak";
 export type Season = "high" | "low";
 

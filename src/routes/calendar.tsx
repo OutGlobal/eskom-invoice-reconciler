@@ -39,13 +39,18 @@ export function CalendarPage() {
   );
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [tariffVersions, setTariffVersions] = useState<any[]>([]);
 
   // Load holidays
   useEffect(() => {
     async function load() {
       setIsLoading(true);
-      const data = await CalendarStorageService.getHolidays();
+      const [data, uploadedTariffs] = await Promise.all([
+        CalendarStorageService.getHolidays(),
+        TariffStorageService.getAllVersions(),
+      ]);
       setHolidays(data);
+      setTariffVersions(uploadedTariffs);
 
       setIsLoading(false);
     }
@@ -56,7 +61,7 @@ export function CalendarPage() {
   const handleEvaluateTimestamp = (ts: string) => {
     setTestTimestamp(ts);
     try {
-      const tariffVersion = TariffStorageService.getVersionsForCode("")[0];
+      const tariffVersion = tariffVersions[0];
       if (!tariffVersion || !ts) {
         setExplanation(null);
         return;

@@ -35,19 +35,17 @@ export function AiCopilotModal({ isOpen, onClose }: AiCopilotModalProps) {
   >([
     {
       sender: "ai",
-      text: "Hello! I am your AI Commercial Energy Copilot. I have audited your active Eskom Megaflex invoice and 5,747 30-minute meter readings. How can I assist you today?",
-      time: "08:00",
+      text: "Upload an invoice, interval meter data, and a tariff document to begin an evidence-based audit.",
+      time: "",
     },
   ]);
   const [userQuery, setUserQuery] = useState("");
   const [copiedDispute, setCopiedDispute] = useState(false);
 
   // Selected Dispute details
-  const [disputeCategory, setDisputeCategory] = useState("Peak Demand Curtailment Reversal");
-  const [disputeAmount, setDisputeAmount] = useState(601365.0);
-  const [disputeReason, setDisputeReason] = useState(
-    "Maximum demand was inflated to 92,948.29 kVA during a mandatory load curtailment event on 04 March 2026. The peak must be excluded from the 12-month demand ratchet under Rule 7.1.",
-  );
+  const [disputeCategory, setDisputeCategory] = useState("");
+  const [disputeAmount, setDisputeAmount] = useState(0);
+  const [disputeReason, setDisputeReason] = useState("");
 
   const insights = useMemo(
     () => runAiInvoiceAudit(invoice, totals, charges, nmd),
@@ -59,7 +57,7 @@ export function AiCopilotModal({ isOpen, onClose }: AiCopilotModalProps) {
       invoice,
       claimCategory: disputeCategory,
       claimAmountR: disputeAmount,
-      nersaCitation: "NERSA Megaflex Schedule 2025/26 Rule 7.1 & System Operator Protocol",
+      nersaCitation: "Uploaded tariff source",
       detailedReason: disputeReason,
       preparedBy: "CFO / Commercial Energy Audit Team",
     });
@@ -78,18 +76,20 @@ export function AiCopilotModal({ isOpen, onClose }: AiCopilotModalProps) {
     };
 
     let responseText =
-      "I have analyzed your request against NERSA tariff schedules and meter readings.";
+      "I can analyze this request after the required invoice, meter, and tariff evidence is uploaded.";
     const q = textToSubmit.toLowerCase();
 
-    if (q.includes("audit") || q.includes("march") || q.includes("invoice")) {
-      responseText = `AI Audit Findings for ${invoice?.accountMonth || "March 2026"}:\n\n1. Disputed Peak Spike: 92,948.29 kVA recorded during curtailment on 04 Mar 12:00. Billed Demand Charge = R 2,102,463.71.\n2. Potential Overcharge Recovery: R 601,365.00 across 12-month ratchet exposure.\n3. Recommendation: File formal dispute notice with Eskom Key Accounts Manager to exclude curtailment window.`;
+    if (q.includes("audit") || q.includes("invoice")) {
+      responseText = invoice
+        ? `The uploaded invoice contains ${invoice.totalKWh?.toLocaleString("en-ZA") || 0} kWh and a total of ${ZAR(invoice.totalInclVat || invoice.invoiceTotal || 0)}. Review the audit findings for uploaded-data discrepancies.`
+        : "No invoice has been uploaded yet.";
     } else if (q.includes("nmd") || q.includes("ratchet") || q.includes("demand")) {
-      responseText = `NMD Optimization Analysis:\n\nAgreed NMD: ${nmd.toLocaleString("en-ZA")} kVA.\nSub-Incomer Peak: ${totals.maxDemandKVA.toLocaleString("en-ZA")} kVA.\n\nEvery 1,000 kVA reduction in peak demand saves R 54,320.00/month (R 651,840.00/year). Installing a 5MW / 10MWh BESS battery would eliminate NMD exceedance penalties completely.`;
+      responseText = `NMD Analysis:\n\nUploaded NMD: ${nmd.toLocaleString("en-ZA")} kVA.\nMeasured peak: ${totals.maxDemandKVA.toLocaleString("en-ZA")} kVA.\n\nFinancial exposure requires an uploaded tariff rate.`;
     } else if (q.includes("dispute") || q.includes("letter") || q.includes("claim")) {
       responseText = `I have generated your formal Eskom Commercial Dispute Letter! Switch to the 'Dispute Letter' tab to view, copy, or download your ready-to-submit PDF/text memo.`;
       setActiveTab("dispute");
     } else if (q.includes("wheeling") || q.includes("solar") || q.includes("ppa")) {
-      responseText = `Solar Wheeling Netting Analysis:\n\nElectrification and Affordability subsidies are billed on gross active energy intake. Under Eskom's 2026 wheeling framework, Impala can reclaim R 318,000.00 by netting out clean solar intake from monthly subsidy surcharges.`;
+      responseText = "Upload the applicable wheeling agreement and tariff schedule before assessing credits or subsidy treatment.";
     }
 
     const aiMsg = {
