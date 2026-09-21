@@ -639,13 +639,15 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
   const embeddedText = embeddedLines.map((l) => l.text).join("\n");
 
   // EMBEDDED TEXT FIRST POLICY:
-  // If PDF.js extracted 2 or more text lines containing Eskom numbers/keywords, USE embedded text immediately!
-  if (
-    embeddedLines.length >= 2 &&
-    /\d{4}|TOTAL|CHARGES|CONSUMPTION|ACCOUNT|INVOICE|Eskom|IMPALA|Megaflex|kWh|kVA/i.test(
-      embeddedText,
-    )
-  ) {
+  // Only trust the embedded layer when it actually carries billing content
+  // (monetary amounts or consumption determinants). A thin text layer on a
+  // scanned bill would otherwise short-circuit the image pipeline and yield
+  // zero-value extractions.
+  const hasMonetaryAmounts = (embeddedText.match(/\d[\d,\s]*\.\d{2}/g) || []).length >= 3;
+  const hasBillingKeywords =
+    /(TOTAL|CHARGE|CONSUMPTION|ACCOUNT|INVOICE|TARIFF|kWh|kVA|VAT)/i.test(embeddedText);
+
+  if (embeddedLines.length >= 8 && hasBillingKeywords && hasMonetaryAmounts) {
     return {
       documentType: "embedded-text",
       lines: embeddedLines,
@@ -654,16 +656,24 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
     };
   }
 
-  // Fallback to OCR only if PDF has no embedded text (true scanned PDF)
+  // Otherwise render the pages and read them with image recognition, keeping any
+  // embedded lines as an additional signal.
   const ocr = await ocrScannedPdf(doc);
 
-  // If OCR ran, combine embedded lines with OCR lines as a safety net
   const mergedLines = [...embeddedLines, ...ocr.lines];
+  if (mergedLines.length === 0 && embeddedLines.length > 0) {
+    return {
+      documentType: "embedded-text",
+      lines: embeddedLines,
+      rawText: embeddedText,
+      confidence: 80,
+    };
+  }
   return {
-    documentType: "scanned-pdf",
-    lines: mergedLines.length ? mergedLines : ocr.lines,
-    rawText: `${embeddedText}\n${ocr.rawText}`,
-    confidence: ocr.confidence || 90,
+    documentType: ocr.lines.length ? "scanned-pdf" : "embedded-text",
+    lines: mergedLines,
+    rawText: `${embeddedText}\n${ocr.rawText}`.trim(),
+    confidence: ocr.confidence || (embeddedLines.length ? 80 : 0),
   };
 }
 
