@@ -256,6 +256,17 @@ export function SecureUploadGateway() {
   ) => {
     setActiveInvoiceFile(invoiceFile);
     setActiveMeterFile(meterFile);
+    // Keep both original documents retrievable for later download
+    void LocalFileVault.store(invoiceFile, {
+      fileName: invoiceFile.name,
+      mimeType: invoiceFile.type,
+      storagePath: `local/${invoiceFile.name}`,
+    });
+    void LocalFileVault.store(meterFile, {
+      fileName: meterFile.name,
+      mimeType: meterFile.type,
+      storagePath: `local/${meterFile.name}`,
+    });
     setAutomatedPipelineRunning(true);
     setAmbiguityReport(null);
     setAutomatedResult(null);
