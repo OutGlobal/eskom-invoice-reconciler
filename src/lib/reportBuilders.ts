@@ -138,8 +138,8 @@ export function buildDetailedPdfReport(input: DetailedReportInput): jsPDF {
     doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
     doc.rect(x + barW * 0.38, baseY - iH, barW * 0.34, iH, "F");
     doc.setFontSize(5.6).setTextColor(90, 96, 104);
-    const label = r.charge.length > 18 ? `${r.charge.slice(0, 17)}…` : r.charge;
-    doc.text(label, x, baseY + 10, { angle: 32, maxWidth: 70 } as any);
+    const label = r.charge.length > 14 ? `${r.charge.slice(0, 13)}…` : r.charge;
+    doc.text(label, x, baseY + 10, { angle: 32, maxWidth: 52 } as any);
   });
   doc.setFontSize(7.5).setTextColor(90, 96, 104);
   doc.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
