@@ -9,7 +9,7 @@
 - [x] Verify clean empty pages and build
 
 # Upload-to-account loading
-- [ ] Persist upload registry, extracted account records, and loaded datasets across reloads
-- [ ] Create/update customer accounts from extracted invoice facts
-- [ ] Associate uploaded files with account/customer and show the relationship
+- [x] Persist upload registry, extracted account records, and loaded datasets across reloads
+- [x] Create/update customer accounts from extracted invoice facts
+- [x] Associate uploaded files with account/customer and show the relationship
 - [ ] Restore uploaded data automatically and verify upload/customer screens

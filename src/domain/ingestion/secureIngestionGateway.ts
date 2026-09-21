@@ -41,6 +41,7 @@ import type {
   IngestionGatewayResult,
   IngestionLifecycleState,
 } from "./types";
+import { LocalWorkspaceStore } from "@/lib/localWorkspaceStore";
 
 export class SecureIngestionGateway {
   private static processedHashes: Map<string, IngestionGatewayResult> = new Map();
@@ -563,6 +564,38 @@ export class SecureIngestionGateway {
       addLog("NORMALIZED", "info", "Registered uploaded tariff version for reconciliation");
     }
 
+    const extractedAccountNumber = extractRes.extractedFields?.accountNumber?.trim() || "";
+    const extractedMeterNumber = extractRes.extractedFields?.meterNumber?.trim() || "";
+    let linkedCustomer = extractedAccountNumber
+      ? {
+          accountNumber: extractedAccountNumber,
+          customerName:
+            extractRes.extractedFields?.customerName?.trim() || extractedAccountNumber,
+          meterNumber: extractedMeterNumber,
+          address: "",
+          nmd: Number(extractRes.extractedFields?.notifiedMaximumDemand || 0),
+          updatedAt: new Date().toISOString(),
+        }
+      : extractedMeterNumber
+        ? await LocalWorkspaceStore.findCustomerByMeter(extractedMeterNumber)
+        : null;
+
+    if (linkedCustomer) {
+      await LocalWorkspaceStore.saveCustomer(linkedCustomer);
+      uploadRecord = await UploadStorageService.updateUploadStatus(
+        documentId,
+        {
+          metadata: {
+            accountNumber: linkedCustomer.accountNumber,
+            customerName: linkedCustomer.customerName,
+            meterNumber: extractedMeterNumber || linkedCustomer.meterNumber,
+            billingPeriod: extractRes.extractedFields?.billingPeriod || "",
+          },
+        },
+        context,
+      );
+    }
+
     // Reflect normalized invoice/telemetry into database
     onProgress?.("NORMALIZED", 80, "Persisting normalized records to database repository...");
     addLog("NORMALIZED", "info", "Storing raw text & normalized records in authoritative database");
@@ -624,7 +657,7 @@ export class SecureIngestionGateway {
         const bStart = fields.billingStart || new Date().toISOString().substring(0, 10);
         const bEnd = fields.billingEnd || new Date().toISOString().substring(0, 10);
         const clientName =
-          (fields as any).clientName || (fields as any).customerName || "Enterprise Client";
+          (fields as any).clientName || (fields as any).customerName || fields.accountNumber;
 
         // Step 9: Link invoice to account / site (Master Data Auto-Link)
         let customerId: string | null = null;
@@ -994,6 +1027,11 @@ export class SecureIngestionGateway {
           confidenceScore: extractRes.confidenceScore,
           parserAdapter: adapter.constructor.name,
           documentType: extractRes.documentType,
+          accountNumber: linkedCustomer?.accountNumber || "",
+          customerName: linkedCustomer?.customerName || "",
+          meterNumber: extractedMeterNumber,
+          billingPeriod: extractRes.extractedFields?.billingPeriod || "",
+          associationStatus: linkedCustomer ? "LINKED" : "UNASSIGNED",
         },
       },
       context,
