@@ -84,6 +84,7 @@ export function SecureUploadGateway() {
 
   const handleDownloadSecureFile = async (upload: UploadRecord) => {
     setDownloadingUrl(true);
+    setDownloadError(null);
     try {
       // 1. Remote secure object store (time-limited signed URL)
       const res = await fetch(`/api/uploads/${upload.id}/signed-url`, {
