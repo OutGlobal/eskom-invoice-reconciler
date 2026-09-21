@@ -98,9 +98,9 @@ export class DeterministicReconciliationEngine {
     const runId = `RECON-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
     const createdAt = new Date().toISOString();
 
-    const tenantId = input.tenant_id || "DEFAULT_TENANT";
-    const telemetryBatchId = input.telemetry_batch_id || "BATCH_DEFAULT";
-    const calendarVersionId = input.calendar_version_id || "2025.1";
+    const tenantId = input.tenant_id || "";
+    const telemetryBatchId = input.telemetry_batch_id || "";
+    const calendarVersionId = input.calendar_version_id || "";
 
     if (
       !input.tariff_version ||
@@ -121,7 +121,7 @@ export class DeterministicReconciliationEngine {
     const maxDemandKva = maxKva;
     const ratchetDemandKva = input.calc_ratcheted_demand_kva ?? input.billed_ratcheted_demand_kva;
     const reactiveKvarh = input.calc_reactive_energy_kvarh ?? input.billed_reactive_energy_kvarh;
-    const powerFactor = input.calc_power_factor ?? new Decimal("0.96");
+    const powerFactor = input.calc_power_factor ?? new Decimal(0);
 
     // 2. Execute deterministic tariff engine over telemetry determinants
     const billingDemandKva = ratchetDemandKva.gt(maxDemandKva) ? ratchetDemandKva : maxDemandKva;

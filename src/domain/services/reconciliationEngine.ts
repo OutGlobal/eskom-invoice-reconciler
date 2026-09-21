@@ -22,15 +22,15 @@ export class ReconciliationEngine {
    */
   public static evaluateNmdRatchet(
     measuredPeakKVA: number,
-    contractedNmdKVA = 85740,
-    historical12MonthMaxKVA = 86986.5,
+    contractedNmdKVA = 0,
+    historical12MonthMaxKVA = 0,
   ): NmdRatchetStatus {
     const effectiveCeiling = Math.max(contractedNmdKVA, historical12MonthMaxKVA);
     const exceedanceKVA = Math.max(0, FinancialMath.sub(measuredPeakKVA, effectiveCeiling));
     const isRatchetActive = exceedanceKVA > 0;
 
     // NMD Exceedance Capacity Ceiling Rate (Network Capacity + Transmission + Generation)
-    const ratePerKVA = 54.32;
+    const ratePerKVA = 0;
     const ratchetPenaltyAmount = FinancialMath.roundCurrency(
       FinancialMath.mul(exceedanceKVA, ratePerKVA),
     );
@@ -86,7 +86,7 @@ export class ReconciliationEngine {
     }
 
     const totalKWh = FinancialMath.add(peakKWh, FinancialMath.add(standardKWh, offPeakKWh));
-    const activePeakKVA = invoiceHeader.maxDemandKVA || maxDemandKVA || 85740;
+    const activePeakKVA = invoiceHeader.maxDemandKVA || maxDemandKVA || 0;
     const nmdStatus = this.evaluateNmdRatchet(activePeakKVA);
 
     // Evaluate Reactive Energy Penalty

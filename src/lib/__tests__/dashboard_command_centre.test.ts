@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DashboardService } from "../../domain/dashboard/dashboardService";
-import { SAMPLE_MARCH_2026_INVOICE } from "../sampleInvoice";
+import { SAMPLE_MARCH_2026_INVOICE } from "./fixtures/sampleInvoice";
 import { computeTotals, computeCharges } from "../reconciliation";
 
 describe("Utility Reconciliation Command Centre Tests", () => {

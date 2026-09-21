@@ -305,7 +305,7 @@ function CustomersPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Impala Smelter Operations"
+                  placeholder="Customer or site name"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   className="w-full bg-background border border-border rounded px-3 py-2 text-sm"
@@ -315,7 +315,7 @@ function CustomersPage() {
                 <label className="block text-muted-foreground mb-1">Meter ID</label>
                 <input
                   type="text"
-                  placeholder="e.g. 7856504226"
+                  placeholder="Meter number"
                   value={newMeter}
                   onChange={(e) => setNewMeter(e.target.value)}
                   className="w-full bg-background border border-border rounded px-3 py-2 text-sm"

@@ -482,14 +482,14 @@ function TelemetryPage() {
                               {item.multiplier_applied}×
                             </td>
                             <td className="py-2.5 px-4 font-bold text-gray-900 dark:text-gray-100 font-mono">
-                              {item.engineering_value.toLocaleString()} {item.unit}
+                              {(item.engineering_value ?? 0).toLocaleString()} {item.unit}
                             </td>
                             <td className="py-2.5 px-4 font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                              {item.billed_value.toLocaleString()} {item.unit}
+                              {(item.billed_value ?? 0).toLocaleString()} {item.unit}
                             </td>
                             <td className="py-2.5 px-4 text-right">
                               <span
-                                className={`px-2 py-0.5 rounded text-2xs font-extrabold ${getStateStyle(item.quality_state)}`}
+                                className={`px-2 py-0.5 rounded text-2xs font-extrabold ${getStateStyle(item.quality_state || "VALID")}`}
                               >
                                 {item.quality_state}
                               </span>

@@ -97,18 +97,18 @@ export class TariffStorageService {
         const header: TariffScheduleHeader = {
           tariff_code: row.tariff_code,
           tariff_name: row.tariff_name || row.tariff_code,
-          utility: row.utility || "Eskom",
-          tariff_family: (row.tariff_family || "megaflex") as TariffFamilyType,
-          version: row.version || "1.0",
+          utility: row.utility || "",
+          tariff_family: (row.tariff_family || "") as TariffFamilyType,
+          version: row.version || "",
           effective_date: row.effective_date,
           expiry_date: row.expiry_date || undefined,
-          season: (row.season || "high") as any,
-          voltage_level: (row.voltage_category || "high") as any,
-          customer_class: (row.customer_category || "urban_transmission") as any,
+          season: (row.season || "all") as any,
+          voltage_level: (row.voltage_category || "all") as any,
+          customer_class: (row.customer_category || "") as any,
           status: (row.status || "active") as any,
           vat_treatment: "standard_15",
-          source_document: row.source_document || "NERSA Gazette",
-          source_hash: row.source_hash || "SHA256:VERIFIED",
+          source_document: row.source_document || "",
+          source_hash: row.source_hash || "",
           is_locked: row.is_locked ?? true,
           lock_reason: row.lock_reason,
         };
@@ -180,6 +180,7 @@ export class TariffStorageService {
     targetDate: string | Date,
   ): TariffVersionDefinition | null {
     const dateObj = typeof targetDate === "string" ? new Date(targetDate) : targetDate;
+    if (!tariffCodeOrFamily || Number.isNaN(dateObj.getTime())) return null;
     const targetIso = dateObj.toISOString().substring(0, 10);
 
     const candidates = Array.from(this.store.values()).filter((v) => {
@@ -197,15 +198,7 @@ export class TariffStorageService {
       }
     }
 
-    // Fallback: match by year if date is close to boundary
-    const year = dateObj.getFullYear();
-    const yearCandidate = candidates.find(
-      (v) =>
-        v.header.effective_date.startsWith(String(year)) || v.header.version.includes(String(year)),
-    );
-    if (yearCandidate) return yearCandidate;
-
-    return candidates[0] || null;
+    return null;
   }
 
   /**

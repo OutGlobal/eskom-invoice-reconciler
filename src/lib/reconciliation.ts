@@ -433,29 +433,18 @@ export function buildStandardReconciliationTable(
 interface SeasonBreak {
   high: { peak: number; standard: number; offPeak: number; totalKWh: number };
   low: { peak: number; standard: number; offPeak: number; totalKWh: number };
-  highOld: { peak: number; standard: number; offPeak: number };
-  lowOld: { peak: number; standard: number; offPeak: number };
-  highNew: { peak: number; standard: number; offPeak: number };
-  lowNew: { peak: number; standard: number; offPeak: number };
 }
 
 function seasonBreakdown(rows: Measurement[]): SeasonBreak {
   const s: SeasonBreak = {
     high: { peak: 0, standard: 0, offPeak: 0, totalKWh: 0 },
     low: { peak: 0, standard: 0, offPeak: 0, totalKWh: 0 },
-    highOld: { peak: 0, standard: 0, offPeak: 0 },
-    lowOld: { peak: 0, standard: 0, offPeak: 0 },
-    highNew: { peak: 0, standard: 0, offPeak: 0 },
-    lowNew: { peak: 0, standard: 0, offPeak: 0 },
   };
   for (const r of rows) {
     const kWh = r.kW * 0.5;
     const bucket = getSeason(r.ts) === "high" ? s.high : s.low;
     bucket[r.tou] += kWh;
     bucket.totalKWh += kWh;
-    const era = r.ts < new Date("2026-04-01T00:00:00") ? "Old" : "New";
-    const season = getSeason(r.ts) === "high" ? "high" : "low";
-    s[`${season}${era}` as "highOld" | "lowOld" | "highNew" | "lowNew"][r.tou] += kWh;
   }
   return s;
 }
