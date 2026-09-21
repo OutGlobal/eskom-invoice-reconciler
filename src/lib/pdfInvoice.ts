@@ -580,10 +580,20 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
   const pdfjs = await import("pdfjs-dist");
   try {
     if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-      pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version || "4.10.38"}/build/pdf.worker.min.mjs`;
+      // Prefer the worker bundled with the installed pdfjs-dist version so text
+      // extraction works without any network access or version mismatch.
+      const workerUrl = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")) as {
+        default: string;
+      };
+      pdfjs.GlobalWorkerOptions.workerSrc = workerUrl.default;
     }
-  } catch (err) {
-    console.warn("PDF.js worker initialization notice:", err);
+  } catch {
+    try {
+      pdfjs.GlobalWorkerOptions.workerSrc =
+        `https://unpkg.com/pdfjs-dist@${pdfjs.version || "6.1.200"}/build/pdf.worker.min.mjs`;
+    } catch (err) {
+      console.warn("PDF.js worker initialization notice:", err);
+    }
   }
 
   const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
@@ -629,13 +639,15 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
   const embeddedText = embeddedLines.map((l) => l.text).join("\n");
 
   // EMBEDDED TEXT FIRST POLICY:
-  // If PDF.js extracted 2 or more text lines containing Eskom numbers/keywords, USE embedded text immediately!
-  if (
-    embeddedLines.length >= 2 &&
-    /\d{4}|TOTAL|CHARGES|CONSUMPTION|ACCOUNT|INVOICE|Eskom|IMPALA|Megaflex|kWh|kVA/i.test(
-      embeddedText,
-    )
-  ) {
+  // Only trust the embedded layer when it actually carries billing content
+  // (monetary amounts or consumption determinants). A thin text layer on a
+  // scanned bill would otherwise short-circuit the image pipeline and yield
+  // zero-value extractions.
+  const hasMonetaryAmounts = (embeddedText.match(/\d[\d,\s]*\.\d{2}/g) || []).length >= 3;
+  const hasBillingKeywords =
+    /(TOTAL|CHARGE|CONSUMPTION|ACCOUNT|INVOICE|TARIFF|kWh|kVA|VAT)/i.test(embeddedText);
+
+  if (embeddedLines.length >= 8 && hasBillingKeywords && hasMonetaryAmounts) {
     return {
       documentType: "embedded-text",
       lines: embeddedLines,
@@ -644,16 +656,24 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
     };
   }
 
-  // Fallback to OCR only if PDF has no embedded text (true scanned PDF)
+  // Otherwise render the pages and read them with image recognition, keeping any
+  // embedded lines as an additional signal.
   const ocr = await ocrScannedPdf(doc);
 
-  // If OCR ran, combine embedded lines with OCR lines as a safety net
   const mergedLines = [...embeddedLines, ...ocr.lines];
+  if (mergedLines.length === 0 && embeddedLines.length > 0) {
+    return {
+      documentType: "embedded-text",
+      lines: embeddedLines,
+      rawText: embeddedText,
+      confidence: 80,
+    };
+  }
   return {
-    documentType: "scanned-pdf",
-    lines: mergedLines.length ? mergedLines : ocr.lines,
-    rawText: `${embeddedText}\n${ocr.rawText}`,
-    confidence: ocr.confidence || 90,
+    documentType: ocr.lines.length ? "scanned-pdf" : "embedded-text",
+    lines: mergedLines,
+    rawText: `${embeddedText}\n${ocr.rawText}`.trim(),
+    confidence: ocr.confidence || (embeddedLines.length ? 80 : 0),
   };
 }
 
@@ -683,31 +703,71 @@ async function ocrImageFile(file: File) {
   return ocrCanvases(await imageFileToCanvases(file));
 }
 
+async function createOcrWorker(tesseract: typeof import("tesseract.js")) {
+  // Prefer the recognition assets served from this application so processing
+  // works without third-party network access; fall back to the library default.
+  try {
+    return await tesseract.createWorker("eng", 1, {
+      workerPath: "/tesseract/worker.min.js",
+      corePath: "/tesseract",
+      langPath: "/tessdata",
+      gzip: true,
+    });
+  } catch (localErr) {
+    console.warn("Local recognition assets unavailable, using library default:", localErr);
+    return await tesseract.createWorker("eng");
+  }
+}
+
 async function ocrCanvases(
   canvases: HTMLCanvasElement[],
 ): Promise<{ lines: TextLine[]; rawText: string; confidence: number }> {
-  if (typeof document === "undefined") return { lines: [], rawText: "", confidence: 0 };
-  const tesseract = await import("tesseract.js");
-  // Use clean, robust CDN creation without fragile local server path configuration
-  const worker = await tesseract.createWorker("eng");
+  if (typeof document === "undefined" || canvases.length === 0) {
+    return { lines: [], rawText: "", confidence: 0 };
+  }
 
   const lines: TextLine[] = [];
   const pageTexts: string[] = [];
   const confidences: number[] = [];
 
+  let worker: Awaited<ReturnType<typeof createOcrWorker>> | null = null;
   try {
+    const tesseract = await import("tesseract.js");
+    worker = await createOcrWorker(tesseract);
+
+    // Tuned for dense tabular utility bills: keep column spacing and allow
+    // the engine to segment mixed text/number blocks automatically.
+    try {
+      await worker.setParameters({
+        preserve_interword_spaces: "1",
+        tessedit_pageseg_mode: "3" as any,
+      });
+    } catch {
+      /* parameter tuning is best-effort */
+    }
+
     for (let i = 0; i < canvases.length; i++) {
-      const result = await worker.recognize(canvases[i]);
-      const confidence = clampConfidence(result.data.confidence ?? 0);
-      confidences.push(confidence);
-      pageTexts.push(`--- OCR PAGE ${i + 1} ---\n${result.data.text}`);
-      for (const text of result.data.text.split(/\r?\n/)) {
-        const cleaned = cleanOcrLine(text);
-        if (cleaned) lines.push({ text: cleaned, confidence });
+      try {
+        const result = await worker.recognize(canvases[i]);
+        const confidence = clampConfidence(result.data.confidence ?? 0);
+        confidences.push(confidence);
+        pageTexts.push(`--- OCR PAGE ${i + 1} ---\n${result.data.text}`);
+        for (const text of result.data.text.split(/\r?\n/)) {
+          const cleaned = cleanOcrLine(text);
+          if (cleaned) lines.push({ text: cleaned, confidence });
+        }
+      } catch (pageErr) {
+        console.warn(`Page ${i + 1} could not be read, continuing:`, pageErr);
       }
     }
+  } catch (err) {
+    console.warn("Document image recognition unavailable:", err);
   } finally {
-    await worker.terminate();
+    try {
+      await worker?.terminate();
+    } catch {
+      /* ignore */
+    }
   }
 
   const confidence = confidences.length
