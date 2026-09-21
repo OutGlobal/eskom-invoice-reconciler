@@ -25,6 +25,7 @@ import {
   type InvoiceSearchFilter,
 } from "@/domain/invoice/invoiceStorageService";
 import { InvoiceLifecycleService } from "@/domain/invoice/invoiceLifecycleService";
+import { LayeredExtractor } from "@/domain/invoice/layeredExtractor";
 import type {
   ExtractedInvoiceDocument,
   InvoiceLifecycleState,
