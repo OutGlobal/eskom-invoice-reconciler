@@ -1,7 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { format } from "date-fns";
+import { useMemo } from "react";
 import toast from "react-hot-toast";
 import { Download, FileJson, FileText, FileSpreadsheet } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
+  Legend,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import {
   Panel,
   MetricCard,
@@ -11,21 +24,42 @@ import {
   useDerived,
 } from "@/components/dashboard/parts";
 import { useApp } from "@/lib/store";
-import { exportToExcel, exportToCsv, exportToJson } from "@/lib/exportReports";
+import { exportToCsv, exportToJson } from "@/lib/exportReports";
+import {
+  downloadDetailedPdfReport,
+  downloadDetailedWorkbook,
+  type DetailedReportInput,
+  type ReportTimelinePoint,
+} from "@/lib/reportBuilders";
 import { buildStandardReconciliationTable } from "@/lib/reconciliation";
 
 import { InvoiceSelector } from "@/components/InvoiceSelector";
 
 export const Route = createFileRoute("/reports")({
-  head: () => ({ meta: [{ title: "Reconciliation Reports — Eskom Bill Balancer" }] }),
+  head: () => ({
+    meta: [
+      { title: "Reconciliation Reports & Audit Exports — ENERA" },
+      {
+        name: "description",
+        content:
+          "Generate detailed utility billing reconciliation reports with corporate charts, billing timelines, and PDF or Excel downloads.",
+      },
+      { property: "og:title", content: "Reconciliation Reports & Audit Exports — ENERA" },
+      {
+        property: "og:description",
+        content:
+          "Detailed reconciliation reporting with charge-level variance charts, billing timelines, and PDF/Excel exports.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: ReportsPage,
 });
 
 function ReportsPage() {
   useBootstrapMeter();
-  const { rows, totals, charges, calculatedTotal } = useDerived();
-  const customer = useApp((s) => s.customer);
-  const tariff = useApp((s) => s.tariff);
+  const { totals, charges, calculatedTotal } = useDerived();
   const invoiceTotal = useApp((s) => s.invoiceTotal);
   const invoice = useApp((s) => s.invoice);
   const invoiceLines = useApp((s) => s.invoiceLines);
@@ -54,9 +88,72 @@ function ReportsPage() {
     reason: r.reason,
   }));
 
+  const timeline: ReportTimelinePoint[] = useMemo(
+    () =>
+      invoicesToCompare.map((inv, idx) => ({
+        label: inv.accountMonth || inv.billingPeriod || `Period ${idx + 1}`,
+        invoiceNumber: inv.invoiceNo || inv.invoiceNumber || undefined,
+        billingPeriod:
+          inv.billingPeriod ||
+          (inv.billingPeriodStart || inv.billingPeriodEnd
+            ? `${inv.billingPeriodStart || "—"} to ${inv.billingPeriodEnd || "—"}`
+            : undefined),
+        totalKWh: inv.totalKWh || 0,
+        maxDemandKVA: inv.maxDemandKVA || inv.simMaxDemand || 0,
+        invoicedExclVat: inv.invoiceTotal || 0,
+      })),
+    [invoicesToCompare],
+  );
+
+  const varianceChartData = useMemo(
+    () =>
+      reconRows
+        .filter((r) => r.calculated > 0 || r.invoice > 0)
+        .slice(0, 14)
+        .map((r) => ({
+          name: r.charge.length > 22 ? `${r.charge.slice(0, 21)}…` : r.charge,
+          calculated: Number(r.calculated.toFixed(2)),
+          invoiced: Number((r.invoice > 0 ? r.invoice : 0).toFixed(2)),
+          variance: Number((r.invoice > 0 ? r.varianceR : 0).toFixed(2)),
+        })),
+    [reconRows],
+  );
+
+  const reportInput: DetailedReportInput = {
+    invoice,
+    rows: exportRows,
+    lineItems: invoiceItems,
+    consumption: {
+      peakKWh: totals.peakKWh,
+      standardKWh: totals.standardKWh,
+      offPeakKWh: totals.offPeakKWh,
+      totalKWh: totals.totalKWh,
+      maxDemandKVA: totals.maxDemandKVA,
+      maxDemandAt: totals.maxDemandAt ?? null,
+    },
+    calculatedTotal,
+    invoiceTotal,
+    timeline,
+  };
+
+  const hasData = exportRows.length > 0 || timeline.length > 0;
+
   const handleExportExcel = () => {
-    exportToExcel(invoice, exportRows, invoiceItems);
-    toast.success("Excel report downloaded");
+    if (!hasData) {
+      toast.error("Upload an invoice and meter data before generating reports");
+      return;
+    }
+    downloadDetailedWorkbook(reportInput);
+    toast.success("Detailed Excel report downloaded");
+  };
+
+  const handleExportPdf = () => {
+    if (!hasData) {
+      toast.error("Upload an invoice and meter data before generating reports");
+      return;
+    }
+    downloadDetailedPdfReport(reportInput);
+    toast.success("Detailed PDF report downloaded");
   };
 
   const handleExportCsv = () => {
@@ -67,10 +164,6 @@ function ReportsPage() {
   const handleExportJson = () => {
     exportToJson(invoice);
     toast.success("JSON extracted data downloaded");
-  };
-
-  const handleExportPdf = () => {
-    window.print();
   };
 
   return (
