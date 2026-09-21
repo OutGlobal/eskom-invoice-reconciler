@@ -1,7 +1,7 @@
 /**
  * Evidence Storage Service
  * Enterprise Persistence Service for 12-Node Evidence Chains & Authorization Security
- * Interacts with Supabase `evidence_chains` and `evidence_chain_nodes` with fallback to engine.
+ * Reads persisted evidence produced from uploaded reconciliation records.
  */
 
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,7 @@ import { EvidenceChainEngine } from "./evidenceChainEngine";
 
 export class EvidenceStorageService {
   /**
-   * Fetch complete 12-node evidence chain by variance ID or return fixture chain
+   * Fetch a complete persisted evidence chain by variance ID.
    */
   public static async getEvidenceChain(
     varianceId: string,
@@ -23,12 +23,7 @@ export class EvidenceStorageService {
         .eq("variance_id", varianceId)
         .maybeSingle();
 
-      if (error || !dbChain) {
-        console.warn(
-          "[EvidenceStorageService] Supabase evidence chain empty or unavailable, building fixture chain.",
-        );
-        return EvidenceChainEngine.buildChain(varianceId, "RECON-RUN-01", authContext);
-      }
+      if (error || !dbChain) return null;
 
       const { data: dbNodes } = await supabase
         .from("evidence_chain_nodes")
@@ -65,7 +60,7 @@ export class EvidenceStorageService {
       return chain;
     } catch (e) {
       console.warn("[EvidenceStorageService] Exception fetching evidence chain:", e);
-      return EvidenceChainEngine.buildChain(varianceId, "RECON-RUN-01", authContext);
+      return null;
     }
   }
 }

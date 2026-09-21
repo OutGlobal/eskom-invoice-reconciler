@@ -5,20 +5,6 @@ import type {
   InvoiceMeterReadingStored,
   NormalizedInvoiceJson,
 } from "./store";
-import {
-  SAMPLE_FEB_2026_INVOICE,
-  SAMPLE_FEB_2026_CHARGE_LINES,
-  SAMPLE_FEB_2026_LINE_ITEMS,
-  SAMPLE_MARCH_2026_INVOICE,
-  SAMPLE_MARCH_2026_CHARGE_LINES,
-  SAMPLE_MARCH_2026_LINE_ITEMS,
-  SAMPLE_APRIL_2026_INVOICE,
-  SAMPLE_APRIL_2026_CHARGE_LINES,
-  SAMPLE_APRIL_2026_LINE_ITEMS,
-  SAMPLE_MAY_2026_INVOICE,
-  SAMPLE_MAY_2026_CHARGE_LINES,
-  SAMPLE_MAY_2026_LINE_ITEMS,
-} from "./sampleInvoice";
 
 const PARSER_VERSION = "eskom-invoice-parser-v4.4.0";
 const REVIEW_THRESHOLD = 90;
@@ -101,221 +87,6 @@ const CHARGE_ALIASES: Array<{ key: ChargeKey; test: (s: string) => boolean }> = 
 ];
 
 export function matchKnownInvoice(fileName: string, rawText: string = "") {
-  const name = fileName.toLowerCase();
-  const text = rawText.toLowerCase();
-
-  // Stage 28 Representative Controlled Multi-Site & Multi-Period Matchers
-  if (/site_cpt|cpt_jan2026/i.test(name)) {
-    return {
-      invoice: {
-        accountNumber: "ACC-CPT-9001",
-        invoiceNumber: "INV-CPT-2026-01",
-        customerName: "Apex Industrial Hub",
-        billingPeriod: "January 2026",
-        billingPeriodStart: "2026-01-01",
-        billingPeriodEnd: "2026-01-31",
-        billingDate: "2026-01-31",
-        tariffName: "Megaflex High Voltage",
-        meterNumber: "MTR-CPT-001",
-        premiseId: "SITE-CPT-01",
-        peakKWh: 100000,
-        standardKWh: 250000,
-        offPeakKWh: 150000,
-        totalKWh: 500000,
-        maxDemandKVA: 1200,
-        demandPeak: 1200,
-        reactiveTotal: 50000,
-        energyCharges: 1330745,
-        demandCharges: 51420,
-        networkCharges: 77640,
-        serviceCharge: 5750.50,
-        ancillaryService: 13200,
-        vat: 221813.33,
-        invoiceTotal: 1700568.83,
-        totalInclVat: 1700568.83,
-        source: fileName,
-      } as any,
-      chargeLines: {
-        peakEnergy: 666920,
-        standardEnergy: 497100,
-        offPeakEnergy: 166725,
-        demandCharges: 51420,
-        networkCharges: 77640,
-        serviceCharge: 5750.50,
-        ancillaryService: 13200,
-        vat: 221813.33,
-        totalInclVat: 1700568.83,
-      },
-      lineItems: [
-        { code: "E01", description: "Megaflex Peak Energy", amount: 666920, category: "energy" },
-        { code: "E02", description: "Megaflex Standard Energy", amount: 497100, category: "energy" },
-        { code: "E03", description: "Megaflex Off-Peak Energy", amount: 166725, category: "energy" },
-        { code: "D01", description: "Demand Charge", amount: 51420, category: "demand" },
-        { code: "N01", description: "Network Capacity Charge", amount: 77640, category: "network" },
-        { code: "S01", description: "Service Charge", amount: 5750.50, category: "service" },
-        { code: "A01", description: "Ancillary Service", amount: 13200, category: "ancillary" },
-        { code: "V01", description: "VAT 15%", amount: 221813.33, category: "tax" },
-      ],
-      rawText: rawText || "Eskom Tax Invoice Apex Industrial Hub ACC-CPT-9001 January 2026 MTR-CPT-001",
-    };
-  }
-
-  if (/site_jhb|jhb_feb2026/i.test(name)) {
-    return {
-      invoice: {
-        accountNumber: "ACC-JHB-9002",
-        invoiceNumber: "INV-JHB-2026-02",
-        customerName: "Vanguard Logistics Depot",
-        billingPeriod: "February 2026",
-        billingPeriodStart: "2026-02-01",
-        billingPeriodEnd: "2026-02-28",
-        billingDate: "2026-02-28",
-        tariffName: "Miniflex Medium Voltage",
-        meterNumber: "MTR-JHB-002",
-        premiseId: "SITE-JHB-02",
-        peakKWh: 20000,
-        standardKWh: 50000,
-        offPeakKWh: 30000,
-        totalKWh: 100000,
-        maxDemandKVA: 300,
-        demandPeak: 300,
-        reactiveTotal: 5000,
-        energyCharges: 147776,
-        demandCharges: 7251,
-        networkCharges: 10794,
-        serviceCharge: 31319.45,
-        ancillaryService: 390,
-        vat: 29629.57,
-        invoiceTotal: 227160.02,
-        totalInclVat: 227160.02,
-        source: fileName,
-      } as any,
-      chargeLines: {
-        energyCharges: 147776,
-        demandCharges: 7251,
-        networkCharges: 10794,
-        serviceCharge: 31319.45,
-        ancillaryService: 390,
-        vat: 29629.57,
-        totalInclVat: 227160.02,
-      },
-      lineItems: [
-        { code: "E01", description: "Miniflex Energy", amount: 147776, category: "energy" },
-        { code: "D01", description: "Demand Charge", amount: 7251, category: "demand" },
-        { code: "N01", description: "Network Access Charge", amount: 10794, category: "network" },
-        { code: "S01", description: "Service Charge", amount: 31319.45, category: "service" },
-        { code: "A01", description: "Ancillary Service", amount: 390, category: "ancillary" },
-        { code: "V01", description: "VAT 15%", amount: 29629.57, category: "tax" },
-      ],
-      rawText: rawText || "Eskom Tax Invoice Vanguard Logistics Depot ACC-JHB-9002 February 2026 MTR-JHB-002",
-    };
-  }
-
-  // Pipeline Test Match for Jan 2025 Fixtures
-  if (
-    /jan2025|jan_2025|eskom_invoice_jan2025|eskom_invoice_multi/i.test(name)
-  ) {
-    return {
-      invoice: {
-        accountNumber: "9182374650",
-        invoiceNumber: "INV-9182374650",
-        customerName: "Rustenburg Mining Complex",
-        billingPeriod: "January 2025",
-        billingPeriodStart: "2025-01-01",
-        billingPeriodEnd: "2025-01-31",
-        billingDate: "2025-01-31",
-        tariffName: "Megaflex High Voltage",
-        meterNumber: "MTR-90210",
-        premiseId: "PRM-90210",
-        invoiceTotal: 3542000,
-        totalInclVat: 3542000,
-        energyCharges: 2450000,
-        demandCharges: 350000,
-        networkCharges: 220000,
-        serviceCharge: 15000,
-        vat: 462000,
-        source: fileName,
-      } as any,
-      chargeLines: {},
-      lineItems: [],
-      rawText: rawText || "Eskom Tax Invoice 9182374650 January 2025 MTR-90210",
-    };
-  }
-
-  // General test fixture invoice match (Stage 8 & Ingestion Test Fixtures)
-  if (
-    /account_link|bill_status|recon_ready|scanned_eskom|invoice_duplicate|job_track|eskom_invoice_feb|stage8/i.test(name)
-  ) {
-    return {
-      invoice: {
-        ...SAMPLE_FEB_2026_INVOICE,
-        source: fileName,
-        extraction: name.includes("scanned") ? { needsReview: true } : undefined,
-      },
-      chargeLines: SAMPLE_FEB_2026_CHARGE_LINES,
-      lineItems: SAMPLE_FEB_2026_LINE_ITEMS,
-      rawText: rawText || "Eskom Tax Invoice Test 785101497007",
-    };
-  }
-
-  // Strict Feb 2026 Benchmark Match (Only match exact benchmark file name or verified invoice number)
-  if (
-    /785101497007/.test(text) ||
-    /impala_mine_february_2026_eskom_invoice/i.test(name) ||
-    /sample_feb_2026/i.test(name)
-  ) {
-    return {
-      invoice: { ...SAMPLE_FEB_2026_INVOICE, source: fileName },
-      chargeLines: SAMPLE_FEB_2026_CHARGE_LINES,
-      lineItems: SAMPLE_FEB_2026_LINE_ITEMS,
-      rawText:
-        rawText || "Impala Plats Rustenburg Mine FEBRUARY 2026 Eskom Tax Invoice 785101497007",
-    };
-  }
-
-  // Strict March 2026 Benchmark Match
-  if (
-    /785762166034/.test(text) ||
-    /impala_mine_march_2026/i.test(name) ||
-    /impala_march_2026/i.test(name) ||
-    /sample_march_2026/i.test(name)
-  ) {
-    return {
-      invoice: { ...SAMPLE_MARCH_2026_INVOICE, source: fileName },
-      chargeLines: SAMPLE_MARCH_2026_CHARGE_LINES,
-      lineItems: SAMPLE_MARCH_2026_LINE_ITEMS,
-      rawText: rawText || "Impala Plats Rustenburg Mine MARCH 2026 Eskom Tax Invoice 7856504676",
-    };
-  }
-
-  // Strict April 2026 Benchmark Match
-  if (
-    /785684906677/.test(text) ||
-    /impala_mine_april_2026_eskom_invoice/i.test(name) ||
-    /sample_april_2026/i.test(name)
-  ) {
-    return {
-      invoice: { ...SAMPLE_APRIL_2026_INVOICE, source: fileName },
-      chargeLines: SAMPLE_APRIL_2026_CHARGE_LINES,
-      lineItems: SAMPLE_APRIL_2026_LINE_ITEMS,
-      rawText: rawText || "Impala Plats Rustenburg Mine APRIL 2026 Eskom Tax Invoice 785684906677",
-    };
-  }
-
-  // Strict May 2026 Benchmark Match
-  if (
-    /785595072130/.test(text) ||
-    /impala_mine_may_2026_eskom_invoice/i.test(name) ||
-    /sample_may_2026/i.test(name)
-  ) {
-    return {
-      invoice: { ...SAMPLE_MAY_2026_INVOICE, source: fileName },
-      chargeLines: SAMPLE_MAY_2026_CHARGE_LINES,
-      lineItems: SAMPLE_MAY_2026_LINE_ITEMS,
-      rawText: rawText || "Impala Plats Rustenburg Mine MAY 2026 Eskom Tax Invoice 785595072130",
-    };
-  }
-
   return null;
 }
 
@@ -325,18 +96,12 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   lineItems: InvoiceLineItem[];
   rawText: string;
 }> {
-  // Check known benchmark / fixture filename or content patterns
   let initialText = "";
   try {
     const rawBuffer = await file.slice(0, 100000).arrayBuffer();
     initialText = new TextDecoder().decode(rawBuffer);
   } catch {
     // Non-blocking buffer slice error ignore
-  }
-
-  const benchmarkMatch = matchKnownInvoice(file.name, initialText);
-  if (benchmarkMatch) {
-    return benchmarkMatch;
   }
 
   let extracted: ExtractedDocumentText;

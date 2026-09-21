@@ -85,19 +85,19 @@ export class IngestionService {
 
     let intervals: CanonicalTelemetryInterval[] = [];
     let invoiceHeader: CanonicalInvoiceHeader = {
-      invoiceNumber: `INV-${Date.now()}`,
-      accountNumber: "7856504676",
-      customerName: "Impala Plats Rustenburg Mine",
-      premiseId: "7856504226",
-      tariffName: "Megaflex Non-Local Authority",
-      billingStart: new Date("2026-02-17T00:00:00Z"),
-      billingEnd: new Date("2026-03-18T00:00:00Z"),
-      peakKWh: 17290000,
-      standardKWh: 21540000,
-      offPeakKWh: 12850000,
-      totalKWh: 51680000,
-      maxDemandKVA: 92948.29,
-      invoicedTotal: 133276632.74,
+      invoiceNumber: "",
+      accountNumber: "",
+      customerName: "",
+      premiseId: "",
+      tariffName: "",
+      billingStart: new Date(0),
+      billingEnd: new Date(0),
+      peakKWh: 0,
+      standardKWh: 0,
+      offPeakKWh: 0,
+      totalKWh: 0,
+      maxDemandKVA: 0,
+      invoicedTotal: 0,
       status: "Processed",
     };
     let lineItemsInvoiced: { label: string; amount: number }[] = [];
