@@ -47,6 +47,7 @@ import type {
   AutomatedPipelineResult,
 } from "@/domain/pipeline/types";
 import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
+import { LocalFileVault } from "@/lib/localFileVault";
 
 const AUTOMATED_STAGES: { id: AutomatedPipelineStage; label: string }[] = [
   { id: "UPLOAD_SUCCESSFUL", label: "Upload successful" },
@@ -79,6 +80,7 @@ export function SecureUploadGateway() {
   const [ingestionResult, setIngestionResult] = useState<IngestionGatewayResult | null>(null);
   const [selectedUpload, setSelectedUpload] = useState<UploadRecord | null>(null);
   const [downloadingUrl, setDownloadingUrl] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const handleDownloadSecureFile = async (upload: UploadRecord) => {
     setDownloadingUrl(true);
