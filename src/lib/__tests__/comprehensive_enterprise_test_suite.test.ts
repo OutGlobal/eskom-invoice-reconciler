@@ -293,9 +293,17 @@ async function runMasterTestSuite() {
 
   // Scenario 14: Tariff effective-date transition = correct
   console.log("--- Scenario 14: Tariff effective-date transition = correct ---");
-  const splitRes = TariffVersionSelector.splitBillingPeriod("megaflex", "2025-03-15", "2025-04-15");
-  assert(splitRes.length >= 1, "Cross-boundary billing period split into pro-rata sub-periods");
-  console.log("✅ SCENARIO 14 PASSED: Tariff effective-date transition split pro-rata\n");
+  let splitRejected = false;
+  try {
+    TariffVersionSelector.splitBillingPeriod("megaflex", "2025-03-15", "2025-04-15");
+  } catch (err) {
+    splitRejected = /no uploaded tariff/i.test((err as Error).message);
+  }
+  assert(
+    splitRejected,
+    "Billing period split refuses to run without an uploaded tariff version (upload-only policy)",
+  );
+  console.log("✅ SCENARIO 14 PASSED: Tariff effective-date transition requires uploaded tariff\n");
   passedScenarios++;
 
   // Scenario 15: PDF extraction confidence failure = review
