@@ -83,6 +83,7 @@ export function SecureUploadGateway() {
   const handleDownloadSecureFile = async (upload: UploadRecord) => {
     setDownloadingUrl(true);
     try {
+      // 1. Remote secure object store (time-limited signed URL)
       const res = await fetch(`/api/uploads/${upload.id}/signed-url`, {
         method: "POST",
         headers: {
@@ -90,15 +91,34 @@ export function SecureUploadGateway() {
           "X-Tenant-ID": upload.organisationId,
         },
       });
-      if (!res.ok) {
-        throw new Error(`Failed to generate signed URL (${res.status})`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.signedUrl) {
+          window.open(data.signedUrl, "_blank");
+          return;
+        }
       }
-      const data = await res.json();
-      if (data.signedUrl) {
-        window.open(data.signedUrl, "_blank");
+      // 2. Durable local vault copy of the original uploaded file
+      const served =
+        (await LocalFileVault.download(upload.id, upload.filename)) ||
+        (upload.storageLocation
+          ? await LocalFileVault.download(upload.storageLocation, upload.filename)
+          : false);
+      if (!served) {
+        setDownloadError(
+          `Original file for "${upload.filename}" is not available on this device. Re-upload the document to restore the downloadable copy.`,
+        );
       }
     } catch (err: any) {
       console.error("Secure download failure:", err);
+      const served =
+        (await LocalFileVault.download(upload.id, upload.filename)) ||
+        (upload.storageLocation
+          ? await LocalFileVault.download(upload.storageLocation, upload.filename)
+          : false);
+      if (!served) {
+        setDownloadError(`Unable to retrieve "${upload.filename}" for download.`);
+      }
     } finally {
       setDownloadingUrl(false);
     }
