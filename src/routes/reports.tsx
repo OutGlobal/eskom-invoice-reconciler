@@ -4,9 +4,7 @@ import toast from "react-hot-toast";
 import { Download, FileJson, FileText, FileSpreadsheet } from "lucide-react";
 import {
   Bar,
-  BarChart,
   CartesianGrid,
-  Cell,
   ComposedChart,
   Legend,
   Line,
