@@ -251,6 +251,7 @@ export function buildDetailedPdfReport(input: DetailedReportInput): jsPDF {
   if (timeline.length > 0) {
     autoTable(doc, {
       ...tableTheme,
+      startY: section("5. Billing period timeline"),
       head: [
         [
           "Billing month",
