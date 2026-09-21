@@ -172,10 +172,9 @@ export class AuditTrailService {
     // Trigger auto-refresh for UI subscribers
     try {
       RealtimeRefreshManager.notifyDataMutated("audit_events", {
-        entityId: rawRecord.id,
         organisationId: rawRecord.organisationId,
-        action: "INSERT",
         timestamp,
+        metadata: { recordId: rawRecord.id, action: "INSERT" },
       });
     } catch {
       // Non-blocking in headless environments
