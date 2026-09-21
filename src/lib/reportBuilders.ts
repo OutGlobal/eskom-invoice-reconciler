@@ -195,6 +195,7 @@ export function buildDetailedPdfReport(input: DetailedReportInput): jsPDF {
 
   autoTable(doc, {
     ...tableTheme,
+    startY: section("2. Metered consumption determinants"),
     head: [["Consumption determinant", "Value"]],
     body: [
       ["Peak energy (kWh)", num(consumption.peakKWh, 0)],
@@ -211,6 +212,7 @@ export function buildDetailedPdfReport(input: DetailedReportInput): jsPDF {
 
   autoTable(doc, {
     ...tableTheme,
+    startY: section("3. Charge-level reconciliation"),
     head: [["Charge item", "Calculated (R)", "Invoiced (R)", "Variance (R)", "Variance %", "Status"]],
     body: rows.map((r) => [
       r.charge,
@@ -231,6 +233,7 @@ export function buildDetailedPdfReport(input: DetailedReportInput): jsPDF {
   if (lineItems.length > 0) {
     autoTable(doc, {
       ...tableTheme,
+      startY: section("4. Extracted invoice line items"),
       head: [["Invoice line label", "Normalised charge", "Qty", "Unit", "Rate", "Amount (R)", "Flag"]],
       body: lineItems.map((li) => [
         li.label,
