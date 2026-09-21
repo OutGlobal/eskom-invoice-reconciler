@@ -422,12 +422,12 @@ export class ProcessingJobEngine {
 
     const orgId = job.organisationId;
     const userId = job.userId || "system";
+    const invoiceName = input.invoiceFile?.name || (input.invoiceFile as any)?.filename || "invoice.pdf";
+    const invoiceSize = input.invoiceFile?.size ?? (input.invoiceFile as any)?.data?.byteLength ?? 0;
 
     let extractedInvoice = this.buildFallbackInvoice("invoice.pdf");
     if (input.invoiceFile) {
       const invoiceBytes = await this.resolveFileBytes(input.invoiceFile, "invoice.pdf");
-      const invoiceName = input.invoiceFile?.name || (input.invoiceFile as any)?.filename || "invoice.pdf";
-
       // -------------------------------------------------------------
       // STAGE 2: PDF_EXTRACTION & OCR
       // -------------------------------------------------------------

@@ -29,38 +29,39 @@ export class TelemetryXmlAdapter implements ILayoutAdapter {
       const totalKwhMatch = text.match(/<TotalKwh>(.*?)<\/TotalKwh>/i);
       const totalInvMatch = text.match(/<TotalInvoice>(.*?)<\/TotalInvoice>/i);
 
-      const accountNumber = accountMatch ? accountMatch[1] : "7856504676";
-      const totalKwh = totalKwhMatch ? Number(totalKwhMatch[1]) : 51680000;
-      const totalInvoice = totalInvMatch ? Number(totalInvMatch[1]) : 98380358.13;
+      const accountNumber = accountMatch?.[1]?.trim() || "";
+      const totalKwh = totalKwhMatch ? Number(totalKwhMatch[1]) : 0;
+      const totalInvoice = totalInvMatch ? Number(totalInvMatch[1]) : 0;
+      const hasRequiredValues = Boolean(accountNumber && totalKwhMatch && totalInvMatch);
 
       return {
         success: true,
         documentType: "TELEMETRY_XML",
         extractedFields: {
           accountNumber,
-          pod: "7856504226",
-          premiseId: "7856504226",
-          meterNumber: "7856504226",
-          meterSerial: "7856504226",
+          pod: "",
+          premiseId: "",
+          meterNumber: "",
+          meterSerial: "",
           billingPeriod: "XML Feed Period",
-          invoiceDate: new Date().toISOString().substring(0, 10),
-          tariff: "Megaflex Non-Local Authority",
-          voltage: "132 kV",
-          notifiedMaximumDemand: 85740,
-          billedMaximumDemand: 85740,
-          utilisedCapacity: 85740,
-          peakKwh: totalKwh * 0.33,
-          standardKwh: totalKwh * 0.42,
-          offPeakKwh: totalKwh * 0.25,
+          invoiceDate: "",
+          tariff: "",
+          voltage: "",
+          notifiedMaximumDemand: 0,
+          billedMaximumDemand: 0,
+          utilisedCapacity: 0,
+          peakKwh: 0,
+          standardKwh: 0,
+          offPeakKwh: 0,
           totalKwh,
-          kva: 85740,
+          kva: 0,
           kvarh: 0,
-          powerFactor: 0.96,
-          energyCharges: totalInvoice * 0.7,
-          demandCharges: totalInvoice * 0.2,
-          networkCharges: totalInvoice * 0.05,
-          serviceCharges: 1000,
-          ancillaryCharges: 500,
+          powerFactor: 0,
+          energyCharges: 0,
+          demandCharges: 0,
+          networkCharges: 0,
+          serviceCharges: 0,
+          ancillaryCharges: 0,
           subsidies: 0,
           vat: totalInvoice * 0.15,
           totalInvoice,
@@ -71,9 +72,9 @@ export class TelemetryXmlAdapter implements ILayoutAdapter {
           debits: totalInvoice,
         },
         rawTextPreview: text.substring(0, 500),
-        confidenceScore: 0.95,
-        needsHumanReview: false,
-        ambiguityReasons,
+        confidenceScore: hasRequiredValues ? 0.95 : 0.4,
+        needsHumanReview: !hasRequiredValues,
+        ambiguityReasons: hasRequiredValues ? ambiguityReasons : ["Required XML billing fields are missing"],
         errors,
       };
     } catch (err: any) {
