@@ -16,6 +16,7 @@ import {
   Tooltip,
   Legend,
   ReferenceLine,
+  Treemap,
 } from "recharts";
 import {
   BarChart3,
@@ -27,6 +28,7 @@ import {
   AlertTriangle,
   History,
   RefreshCw,
+  MapPinned,
 } from "lucide-react";
 import { TOU_COLOR } from "@/lib/tariff";
 import { ZAR, NUM } from "@/components/dashboard/parts";
@@ -46,7 +48,8 @@ export type ChartTabKey =
   | "variance_trend"
   | "site_comparison"
   | "billing_trend"
-  | "anomaly_trend";
+  | "anomaly_trend"
+  | "location_zones";
 
 interface EnterpriseAnalyticsChartsProps {
   filters?: DashboardFilterState;
@@ -124,6 +127,7 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
     { id: "site_comparison", label: "6. Site Comparison", icon: Building2 },
     { id: "billing_trend", label: "7. Billing Trend", icon: History },
     { id: "anomaly_trend", label: "8. Anomaly Trend", icon: AlertTriangle },
+    { id: "location_zones", label: "9. Location Zones", icon: MapPinned },
   ];
 
   return (
@@ -604,6 +608,53 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                   title="No Anomalies Detected"
                   message={chartsData.anomalyTrend.emptyReason}
                   icon="info"
+                />
+              )
+            )}
+
+            {activeTab === "location_zones" && (
+              chartsData.locationZones.hasData ? (
+                <div className="space-y-3">
+                  <ResponsiveContainer width="100%" height={320}>
+                    <Treemap
+                      data={chartsData.locationZones.data.map((point) => ({
+                        ...point,
+                        value: Math.max(point.totalKwh, point.billedZar, 1),
+                      }))}
+                      dataKey="value"
+                      nameKey="zone"
+                      stroke="var(--color-border)"
+                      fill="var(--color-primary)"
+                    >
+                      <Tooltip
+                        formatter={(value: number) => [NUM(value), "Uploaded activity"]}
+                        contentStyle={{
+                          backgroundColor: "var(--color-popover)",
+                          borderColor: "var(--color-border)",
+                          borderRadius: "8px",
+                        }}
+                      />
+                    </Treemap>
+                  </ResponsiveContainer>
+                  <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                    {chartsData.locationZones.data.map((point) => (
+                      <div key={`${point.zone}-${point.name}`} className="rounded-md border border-border bg-secondary/30 p-3">
+                        <div className="text-sm font-semibold text-foreground">{point.zone}</div>
+                        <div className="mt-1 text-xs text-muted-foreground">{point.name}</div>
+                        {point.address && <div className="text-xs text-muted-foreground">{point.address}</div>}
+                        <div className="mt-2 flex gap-3 text-xs tabular-nums">
+                          <span>{NUM(point.totalKwh)} kWh</span>
+                          <span>{point.invoiceCount} invoice{point.invoiceCount === 1 ? "" : "s"}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <ChartEmptyState
+                  title="No Location Zones Available"
+                  message={chartsData.locationZones.emptyReason}
+                  icon="database"
                 />
               )
             )}

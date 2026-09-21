@@ -82,7 +82,10 @@ export function useDerived() {
     const PF = invoice?.extraction?.fields?.powerFactor?.value
       ? Number(invoice.extraction.fields.powerFactor.value)
       : 1;
-    const maxDemandAt = invoice?.billingDate ? new Date(invoice.billingDate) : null;
+    const parsedDemandDate = invoice?.billingDate ? new Date(invoice.billingDate) : null;
+    const maxDemandAt = parsedDemandDate && !Number.isNaN(parsedDemandDate.getTime())
+      ? parsedDemandDate
+      : null;
     const exceedanceKVA = Math.max(0, maxDemandKVA - nmd);
 
     return {
@@ -97,7 +100,7 @@ export function useDerived() {
       maxDemandKVA,
       maxDemandAt,
       nmdExceedances:
-        exceedanceKVA > 0
+        exceedanceKVA > 0 && maxDemandAt
           ? [
               {
                 ts: maxDemandAt,

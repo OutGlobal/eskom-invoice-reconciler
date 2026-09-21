@@ -17,6 +17,7 @@ import type {
   DemandProfilePoint,
   MonthlyConsumptionPoint,
   MonthlyCostPoint,
+  LocationZonePoint,
   SiteComparisonPoint,
   TouBreakdownPoint,
   TouDistributionSlice,
@@ -66,6 +67,7 @@ export class ChartDataService {
     const siteComparison = await this.buildSiteComparison(filters, invoices, storeData, timestamp);
     const billingTrend = this.buildBillingTrend(invoices, timestamp);
     const anomalyTrend = await this.buildAnomalyTrend(filters, storeData, timestamp);
+    const locationZones = await this.buildLocationZones(filters, invoices, storeData, timestamp);
 
     return {
       monthlyConsumption,
@@ -76,9 +78,67 @@ export class ChartDataService {
       siteComparison,
       billingTrend,
       anomalyTrend,
+      locationZones,
       isLiveDatabase: isLiveDb,
       lastUpdated: timestamp,
     };
+  }
+
+  private static async buildLocationZones(
+    filters: DashboardFilterState,
+    invoices: UnifiedInvoiceRecord[],
+    storeData: ChartQueryStoreData | undefined,
+    timestamp: string,
+  ): Promise<ChartDatasetResult<LocationZonePoint>> {
+    const points = new Map<string, LocationZonePoint>();
+    try {
+      let query = supabase.from("sites").select("id, name, address, supply_zone");
+      if (filters.organisationId) query = query.eq("organisation_id", filters.organisationId);
+      if (filters.siteId) query = query.eq("id", filters.siteId);
+      const { data } = await query;
+      for (const site of data || []) {
+        const zone = site.supply_zone || site.address;
+        if (!zone) continue;
+        const related = invoices.filter((invoice) => invoice.siteId === site.id);
+        points.set(site.id, {
+          name: site.name || site.address || "Uploaded site",
+          zone,
+          address: site.address || "",
+          siteCount: 1,
+          invoiceCount: related.length,
+          totalKwh: related.reduce((sum, invoice) => sum + invoice.totalKwh, 0),
+          billedZar: related.reduce((sum, invoice) => sum + invoice.invoicedTotalZar, 0),
+        });
+      }
+    } catch {
+      // Session uploads are handled below.
+    }
+
+    const customer = storeData?.customer;
+    const sessionZone = customer?.supplyZone || customer?.supply_zone || customer?.supplyLocation;
+    const sessionAddress = customer?.address || "";
+    if (sessionZone || sessionAddress) {
+      points.set("active-upload", {
+        name: customer?.name || "Active uploaded account",
+        zone: sessionZone || sessionAddress,
+        address: sessionAddress,
+        siteCount: 1,
+        invoiceCount: storeData?.batchInvoices?.length || (storeData?.invoice ? 1 : 0),
+        totalKwh: Number(storeData?.totals?.totalKWh) || 0,
+        billedZar: Number(storeData?.invoiceTotal) || 0,
+      });
+    }
+
+    const data = Array.from(points.values());
+    return data.length > 0
+      ? { hasData: true, data, recordCount: data.length, lastUpdated: timestamp }
+      : {
+          hasData: false,
+          data: [],
+          recordCount: 0,
+          lastUpdated: timestamp,
+          emptyReason: "No uploaded site includes a supply zone or address yet.",
+        };
   }
 
   /**
