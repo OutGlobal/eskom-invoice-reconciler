@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Database, Lock, Upload } from "lucide-react";
+import { Database, Upload } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type {
   CompleteEvidenceChain,
@@ -23,10 +23,10 @@ export const AuditViewer: React.FC = () => {
   // Authorization context
   const authContext: AuthorizationContext = useMemo(
     () => ({
-      user_id: "USER_AUDITOR_01",
-      tenant_id: "DEFAULT_TENANT",
+      user_id: "CURRENT_USER",
+      tenant_id: "CURRENT_TENANT",
       role: "AUDITOR",
-      permitted_site_ids: ["SITE_01"],
+      permitted_site_ids: [],
     }),
     [],
   );
@@ -75,34 +75,25 @@ export const AuditViewer: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-semibold tracking-tight">
-              Navigable Evidence Explorer &amp; Auditability Subsystem
+              Evidence Ledger
             </h1>
             <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full">
-              12-NODE LINEAGE &bull; STABLE OBJECT IDs
+              VERIFIED RECORD TRAIL
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Complete 12-step audit trail connecting source PDF documents, extracted line items,
-            telemetry intervals, multipliers, NERSA tariff rules, and calculations.
+            Uploaded source records, extracted billing values, meter readings, applied tariff rules,
+            calculations, and reconciliation results.
           </p>
         </div>
 
-        {/* Tenant Authorization Security Badge */}
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border rounded text-xs">
-          <Lock className="h-3.5 w-3.5 text-emerald-500" />
-          <span className="text-muted-foreground">Tenant:</span>
-          <span className="font-mono font-medium text-foreground">{authContext.tenant_id}</span>
-          <span className="text-[10px] bg-emerald-500/10 text-emerald-500 font-mono px-1.5 rounded">
-            AUTHORIZED
-          </span>
-        </div>
       </div>
 
       {/* 12-Node Navigable Stepper Graph */}
       <div className="rounded-lg border border-border bg-card p-4 space-y-3">
         <div className="flex items-center justify-between border-b border-border pb-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Navigable 12-Node Lineage Chain (Chain ID: {chain.chain_id})
+            Reconciliation evidence timeline
           </span>
           <span className="text-[10px] font-mono text-muted-foreground">
             Click any node to inspect evidence
@@ -122,7 +113,7 @@ export const AuditViewer: React.FC = () => {
             >
               <div className="flex items-center justify-between">
                 <span className="text-[9px] font-mono font-bold text-muted-foreground">
-                  Step {node.sequence_index}/12
+                  Step {node.sequence_index}/{chain.nodes.length}
                 </span>
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               </div>
@@ -145,10 +136,6 @@ export const AuditViewer: React.FC = () => {
               Node {activeNode.sequence_index}: {activeNode.node_type}
             </span>
             <h3 className="font-semibold text-sm">{activeNode.title}</h3>
-          </div>
-          <div className="text-xs font-mono text-muted-foreground">
-            Stable Object ID:{" "}
-            <span className="text-foreground font-semibold">{activeNode.stable_object_id}</span>
           </div>
         </div>
 

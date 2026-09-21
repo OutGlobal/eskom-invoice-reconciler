@@ -144,7 +144,7 @@ function ReconciliationPage() {
 
   return (
     <div className="space-y-6">
-      {/* Impala Platinum 4-Month Billing Period Selector */}
+          {/* Uploaded billing period selector */}
       <InvoiceSelector />
 
       {/* Header */}
@@ -233,7 +233,7 @@ function ReconciliationPage() {
           }`}
         >
           <ShieldCheck className="h-4 w-4 text-emerald-500" />
-          <span>12-Node Evidence Ledger & Cryptographic Trace</span>
+              <span>Evidence Ledger</span>
           <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-emerald-500/10 text-emerald-600 font-mono">
             Audited
           </span>

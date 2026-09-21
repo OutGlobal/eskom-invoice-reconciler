@@ -1,7 +1,6 @@
 // PDF Tariff extraction service. Parses Eskom Tariff Booklet-style PDFs and
 // returns a structured TariffData object. Uses pdfjs-dist in the browser.
 import type { TariffData } from "./store";
-import { TARIFF as DEFAULTS } from "./tariff";
 
 export async function extractTariffFromPdf(
   file: File,
@@ -20,36 +19,37 @@ export async function extractTariffFromPdf(
     text += content.items.map((it) => ("str" in it ? it.str : "")).join(" ") + "\n";
   }
 
-  // Heuristic numeric extraction. Fall back to defaults if a number isn't found.
-  const num = (re: RegExp, dflt: number) => {
+  const num = (re: RegExp) => {
     const m = text.match(re);
-    if (!m) return dflt;
+    if (!m) return 0;
     const v = parseFloat(m[1].replace(/,/g, ""));
-    return isFinite(v) ? v : dflt;
+    return isFinite(v) ? v : 0;
   };
 
   const tariff: TariffData = {
-    name: /Megaflex/i.test(text) ? "Megaflex (Non-local Authority)" : DEFAULTS.name,
-    voltage: DEFAULTS.voltage,
-    zone: DEFAULTS.zone,
-    powerFactor: 0.96,
-    networkCapacity: num(/Network capacity[^R\d]*R?\s*([\d.,]+)/i, DEFAULTS.networkCapacity),
-    networkDemand: num(/Network demand[^R\d]*R?\s*([\d.,]+)/i, DEFAULTS.networkDemand),
-    generationCapacity: num(
-      /Generation capacity[^R\d]*R?\s*([\d.,]+)/i,
-      DEFAULTS.generationCapacity,
-    ),
-    transmissionNetwork: num(
-      /Transmission network[^R\d]*R?\s*([\d.,]+)/i,
-      DEFAULTS.transmissionNetwork,
-    ),
-    legacy: num(/Legacy[^c\d]*([\d.,]+)\s*c/i, DEFAULTS.legacy),
-    ancillary: num(/Ancillary[^c\d]*([\d.,]+)\s*c/i, DEFAULTS.ancillary),
-    electrification: num(/Electrification[^c\d]*([\d.,]+)\s*c/i, DEFAULTS.electrification),
-    affordability: num(/Affordability[^c\d]*([\d.,]+)\s*c/i, DEFAULTS.affordability),
+    name: text.match(/\b(Megaflex|Miniflex|Nightsave)\b/i)?.[1] || "Uploaded tariff",
+    voltage: text.match(/\b(\d+(?:\.\d+)?)\s*kV\b/i)?.[0] || "",
+    zone: text.match(/\bZone\s+(\d+)\b/i)?.[1] || "",
+    powerFactor: num(/power factor[^\d]*([\d.]+)/i),
+    networkCapacity: num(/Network capacity[^R\d]*R?\s*([\d.,]+)/i),
+    networkDemand: num(/Network demand[^R\d]*R?\s*([\d.,]+)/i),
+    generationCapacity: num(/Generation capacity[^R\d]*R?\s*([\d.,]+)/i),
+    transmissionNetwork: num(/Transmission network[^R\d]*R?\s*([\d.,]+)/i),
+    legacy: num(/Legacy[^c\d]*([\d.,]+)\s*c/i),
+    ancillary: num(/Ancillary[^c\d]*([\d.,]+)\s*c/i),
+    electrification: num(/Electrification[^c\d]*([\d.,]+)\s*c/i),
+    affordability: num(/Affordability[^c\d]*([\d.,]+)\s*c/i),
     energy: {
-      high: { ...DEFAULTS.energy.high },
-      low: { ...DEFAULTS.energy.low },
+      high: {
+        peak: num(/high season[^]*?peak[^\d]*([\d.,]+)/i),
+        standard: num(/high season[^]*?standard[^\d]*([\d.,]+)/i),
+        offPeak: num(/high season[^]*?off[- ]?peak[^\d]*([\d.,]+)/i),
+      },
+      low: {
+        peak: num(/low season[^]*?peak[^\d]*([\d.,]+)/i),
+        standard: num(/low season[^]*?standard[^\d]*([\d.,]+)/i),
+        offPeak: num(/low season[^]*?off[- ]?peak[^\d]*([\d.,]+)/i),
+      },
     },
     source: file.name,
   };

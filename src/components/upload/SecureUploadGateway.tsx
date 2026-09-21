@@ -166,12 +166,12 @@ export function SecureUploadGateway() {
         periodName: candidateResult.extractedInvoice?.billingPeriod,
       },
       metrics: {
-        totalAmount: candidateResult.extractedInvoice?.totalInvoice,
-        vatAmount: candidateResult.extractedInvoice?.vat,
-        totalKwh: candidateResult.extractedInvoice?.totalKwh,
-        peakKwh: candidateResult.extractedInvoice?.peakKwh,
-        standardKwh: candidateResult.extractedInvoice?.standardKwh,
-        offPeakKwh: candidateResult.extractedInvoice?.offPeakKwh,
+        totalAmount: candidateResult.extractedInvoice?.totalInvoice ?? undefined,
+        vatAmount: candidateResult.extractedInvoice?.vat ?? undefined,
+        totalKwh: candidateResult.extractedInvoice?.totalKwh ?? undefined,
+        peakKwh: candidateResult.extractedInvoice?.peakKwh ?? undefined,
+        standardKwh: candidateResult.extractedInvoice?.standardKwh ?? undefined,
+        offPeakKwh: candidateResult.extractedInvoice?.offPeakKwh ?? undefined,
       },
     };
 
@@ -312,7 +312,6 @@ export function SecureUploadGateway() {
             extractedInvoice: current.resultPayload?.invoiceDeterminants as any,
             reconciliation: current.resultPayload?.reconciliation as any,
             discrepancyAnalysis: current.resultPayload?.diagnostics as any,
-            lineageGraphId: `LINEAGE-${current.jobId}`,
             startedAt: current.startedAt || current.createdAt,
             completedAt: current.completedAt || new Date().toISOString(),
           };
