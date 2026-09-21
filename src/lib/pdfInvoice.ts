@@ -114,10 +114,9 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
       .filter((l) => l.text.length > 0);
     extracted = {
       documentType: "embedded-text",
-      pageCount: 1,
       lines: fallbackLines,
-      overallConfidence: 80,
-      lowConfidenceCount: 0,
+      rawText: fallbackLines.map((line) => line.text).join("\n"),
+      confidence: fallbackLines.length > 0 ? 80 : 0,
     };
   }
 
