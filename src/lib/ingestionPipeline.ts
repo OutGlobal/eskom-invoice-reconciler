@@ -175,12 +175,12 @@ export async function runIngestionPipeline(
   addLog("Data Sync", "Reflecting normalized invoice record into secure store");
 
   await syncInvoiceToSupabase({
-    account_number: invoice.accountNumber || "7856504676",
+    account_number: invoice.accountNumber || "",
     invoice_number: invoice.invoiceNumber || invoice.invoiceNo || `INV-${Date.now()}`,
-    customer_name: invoice.customerName || "Impala Plats Rustenburg Mine",
-    premise_id: invoice.premiseId || "7856504226",
-    tariff_name: invoice.tariffName || "Megaflex Non-Local Authority",
-    billing_period: invoice.billingPeriod || "Current Period",
+    customer_name: invoice.customerName || "",
+    premise_id: invoice.premiseId || "",
+    tariff_name: invoice.tariffName || "",
+    billing_period: invoice.billingPeriod || "",
     peak_kwh: invoice.peakKWh,
     standard_kwh: invoice.standardKWh,
     off_peak_kwh: invoice.offPeakKWh,

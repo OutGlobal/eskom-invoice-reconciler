@@ -15,12 +15,7 @@ import {
   Cell,
 } from "recharts";
 import { format } from "date-fns";
-import meterAsset from "@/assets/meter.xlsx.asset.json";
-import {
-  parseMeterWorkbook,
-  generateFallbackIntervalReadings,
-  type Measurement,
-} from "@/lib/parseMeter";
+import { parseMeterWorkbook, type Measurement } from "@/lib/parseMeter";
 import { computeTotals, computeCharges, type Charge } from "@/lib/reconciliation";
 import { TARIFF, TOU_COLOR, TOU_LABEL, getSeason, type TouPeriod } from "@/lib/tariff";
 import { useApp } from "@/lib/store";
@@ -84,24 +79,10 @@ export function useDerived() {
       invoice?.maxDemandKVA ??
       invoice?.normalizedJson?.consumption?.peakDemand ??
       0;
-    const PF = 0.96;
-
-    // Resolve exact peak timestamp based on active billing period
-    const getInvoicePeakDate = () => {
-      if (!invoice) return new Date("2026-03-04T12:00:00");
-      const month = (invoice.accountMonth || "").toUpperCase();
-      const invNo = invoice.invoiceNo || invoice.taxInvoiceNo || "";
-      if (month.includes("FEB") || invNo === "785101497007") return new Date("2026-02-04T12:00:00");
-      if (month.includes("MARCH") || invNo === "785762166034")
-        return new Date("2026-03-04T12:00:00");
-      if (month.includes("APRIL") || invNo === "785684906677")
-        return new Date("2026-03-30T14:00:00");
-      if (month.includes("MAY") || invNo === "785595072130") return new Date("2026-05-04T11:30:00");
-      if (invoice.billingPeriodStart) return new Date(`${invoice.billingPeriodStart}T12:00:00`);
-      return new Date("2026-03-04T12:00:00");
-    };
-
-    const maxDemandAt = getInvoicePeakDate();
+    const PF = invoice?.extraction?.fields?.powerFactor?.value
+      ? Number(invoice.extraction.fields.powerFactor.value)
+      : 1;
+    const maxDemandAt = invoice?.billingDate ? new Date(invoice.billingDate) : null;
     const exceedanceKVA = Math.max(0, maxDemandKVA - nmd);
 
     return {

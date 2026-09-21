@@ -179,7 +179,7 @@ export const AuditViewer: React.FC = () => {
             activeNode.node_type !== "TELEMETRY_INTERVAL" &&
             activeNode.node_type !== "TARIFF_RULE" &&
             activeNode.node_type !== "MULTIPLIER" && (
-              <BusinessNodeDisplay data={activeNode.node_data} />
+              <BusinessNodeDisplay data={activeNode.node_data as unknown as Record<string, unknown>} />
             )}
         </div>
       </div>
