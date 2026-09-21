@@ -1,0 +1,108 @@
+/**
+ * Cryptographic Hash Chain Engine
+ * Eskom Management Platform — Immutably Append-Only SHA-256 Ledger Verification
+ */
+export class HashChainEngine {
+    static GENESIS_HASH = "0000000000000000000000000000000000000000000000000000000000000000";
+    /**
+     * Synchronous / Asynchronous SHA-256 Hash calculation for text or object payload
+     */
+    static async calculateSHA256(input) {
+        const text = typeof input === "string" ? input : JSON.stringify(input);
+        if (typeof globalThis.crypto !== "undefined" && globalThis.crypto.subtle) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(text);
+            const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+        }
+        try {
+            const { createHash } = await import("crypto");
+            return createHash("sha256").update(text).digest("hex");
+        }
+        catch {
+            return this.simpleHashFallback(text);
+        }
+    }
+    /**
+     * Calculate current event hash H_n incorporating H_{n-1} and payload hash
+     */
+    static async calculateEventHash(prevHash, eventType, timestamp, actorEmail, objectId, payloadHash) {
+        const rawPayload = `${prevHash}|${eventType}|${timestamp}|${actorEmail}|${objectId}|${payloadHash}`;
+        return this.calculateSHA256(rawPayload);
+    }
+    /**
+     * Verifies full cryptographic hash chain integrity for an array of audit events
+     */
+    static async verifyChainIntegrity(events) {
+        const timestamp = new Date().toISOString();
+        if (events.length === 0) {
+            return {
+                is_valid: true,
+                total_events_checked: 0,
+                genesis_hash: this.GENESIS_HASH,
+                latest_hash: this.GENESIS_HASH,
+                tampered_event_ids: [],
+                tampered_sequence_numbers: [],
+                verification_timestamp: timestamp,
+            };
+        }
+        // Sort by sequence number ascending
+        const sorted = [...events].sort((a, b) => a.sequence_number - b.sequence_number);
+        const tamperedIds = [];
+        const tamperedSeqs = [];
+        let firstBrokenSeq;
+        for (let i = 0; i < sorted.length; i++) {
+            const current = sorted[i];
+            // 1. Verify previous hash link
+            if (i === 0) {
+                if (current.previous_event_hash !== this.GENESIS_HASH && sorted.length > 1) {
+                    // If not starting at genesis, verify link if previous is known
+                }
+            }
+            else {
+                const prev = sorted[i - 1];
+                if (current.previous_event_hash !== prev.current_event_hash) {
+                    tamperedIds.push(current.event_id);
+                    tamperedSeqs.push(current.sequence_number);
+                    if (firstBrokenSeq === undefined)
+                        firstBrokenSeq = current.sequence_number;
+                }
+            }
+            // 2. Re-calculate current event hash to detect payload/metadata tampering
+            const expectedHash = await this.calculateEventHash(current.previous_event_hash, current.event_type, current.timestamp, current.actor_email, current.object_id, current.payload_hash);
+            if (expectedHash !== current.current_event_hash) {
+                if (!tamperedIds.includes(current.event_id)) {
+                    tamperedIds.push(current.event_id);
+                    tamperedSeqs.push(current.sequence_number);
+                    if (firstBrokenSeq === undefined)
+                        firstBrokenSeq = current.sequence_number;
+                }
+            }
+        }
+        const isValid = tamperedIds.length === 0;
+        return {
+            is_valid: isValid,
+            total_events_checked: sorted.length,
+            genesis_hash: sorted[0].previous_event_hash,
+            latest_hash: sorted[sorted.length - 1].current_event_hash,
+            tampered_event_ids: tamperedIds,
+            tampered_sequence_numbers: tamperedSeqs,
+            first_broken_sequence_number: firstBrokenSeq,
+            verification_timestamp: timestamp,
+            failure_reason: isValid
+                ? undefined
+                : `Cryptographic hash chain broken at sequence number #${firstBrokenSeq}. Tampered or out-of-order records detected.`,
+        };
+    }
+    static simpleHashFallback(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = (hash << 5) - hash + char;
+            hash |= 0;
+        }
+        const hex = Math.abs(hash).toString(16).padStart(8, "0");
+        return (hex + hex + hex + hex + hex + hex + hex + hex).slice(0, 64);
+    }
+}

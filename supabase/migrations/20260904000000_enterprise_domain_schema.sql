@@ -9,31 +9,26 @@ CREATE TABLE IF NOT EXISTS public.tenants (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Seed Default Tenant for Impala Platinum
-INSERT INTO public.tenants (id, tenant_name, account_number)
-VALUES ('7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c'::uuid, 'Impala Platinum Rustenburg', '7856504676')
-ON CONFLICT (account_number) DO NOTHING;
-
 -- 2. Add tenant_id Columns to Core Tables
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'tenant_id') THEN
-        ALTER TABLE public.customers ADD COLUMN tenant_id UUID REFERENCES public.tenants(id) DEFAULT '7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c'::uuid;
+        ALTER TABLE public.customers ADD COLUMN tenant_id UUID REFERENCES public.tenants(id);
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'invoices' AND column_name = 'tenant_id') THEN
-        ALTER TABLE public.invoices ADD COLUMN tenant_id UUID REFERENCES public.tenants(id) DEFAULT '7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c'::uuid;
+        ALTER TABLE public.invoices ADD COLUMN tenant_id UUID REFERENCES public.tenants(id);
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'uploads' AND column_name = 'tenant_id') THEN
-        ALTER TABLE public.uploads ADD COLUMN tenant_id UUID REFERENCES public.tenants(id) DEFAULT '7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c'::uuid;
+        ALTER TABLE public.uploads ADD COLUMN tenant_id UUID REFERENCES public.tenants(id);
     END IF;
 END $$;
 
 -- 3. Create Audit Ledger Table (Immutable Execution Lineage)
 CREATE TABLE IF NOT EXISTS public.audit_ledger (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID REFERENCES public.tenants(id) DEFAULT '7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c'::uuid,
+    tenant_id UUID REFERENCES public.tenants(id),
     job_id TEXT NOT NULL,
     correlation_id TEXT NOT NULL,
     action TEXT NOT NULL,

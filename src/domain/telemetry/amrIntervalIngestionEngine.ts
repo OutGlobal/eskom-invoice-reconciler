@@ -73,7 +73,7 @@ export class AmrIntervalIngestionEngine {
     organisationId?: string;
   }): Promise<IngestionEngineResult> {
     return this.processIntervalStream(params.filename, params.fileBuffer, {
-      meterIdOverride: params.meterIdOverride,
+      meterId: params.meterIdOverride,
       sourceFileId: params.sourceFileId,
     });
   }

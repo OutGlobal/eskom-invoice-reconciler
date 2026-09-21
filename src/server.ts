@@ -497,7 +497,7 @@ export default {
             name: body.invoice_file.name || "invoice.pdf",
             size: rawBytes.byteLength,
             type: body.invoice_file.type || "application/pdf",
-            data: rawBytes,
+            content: rawBytes,
           };
         }
 
@@ -510,7 +510,7 @@ export default {
             name: body.meter_file.name || "meter_intervals.csv",
             size: rawBytes.byteLength,
             type: body.meter_file.type || "text/csv",
-            data: rawBytes,
+            content: rawBytes,
           };
         }
 

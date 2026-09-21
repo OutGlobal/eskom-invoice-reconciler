@@ -14,8 +14,8 @@ import Decimal from "decimal.js-light";
 import type { TelemetryIntervalRecord, TelemetryQualityState } from "./types";
 import {
   TenantIsolationViolationError,
-  type UserSecurityContext,
 } from "../security/tenantContextService";
+import type { UserSecurityContext } from "../security/types";
 import { TelemetryStorageService } from "./telemetryStorageService";
 import type {
   AggregationCadence,
@@ -262,7 +262,7 @@ export class LargeDatasetQueryEngine {
           readingCount: 0,
           estimatedCount: 0,
           outageCount: 0,
-          touCounts: { PEAK: 0, STANDARD: 0, OFF_PEAK: 0 },
+          touCounts: { peak: 0, standard: 0, offPeak: 0 },
         };
         bucketsMap.set(bucketKey, bucket);
       }
@@ -287,15 +287,15 @@ export class LargeDatasetQueryEngine {
 
       // TOU breakdown
       const tou: TouPeriod = rec.tou_period || classifyTou(dt);
-      if (tou === "PEAK") {
+      if (tou === "peak") {
         bucket.peakKwh = bucket.peakKwh.plus(kwhVal);
-        bucket.touCounts.PEAK++;
-      } else if (tou === "STANDARD") {
+        bucket.touCounts.peak++;
+      } else if (tou === "standard") {
         bucket.standardKwh = bucket.standardKwh.plus(kwhVal);
-        bucket.touCounts.STANDARD++;
+        bucket.touCounts.standard++;
       } else {
         bucket.offPeakKwh = bucket.offPeakKwh.plus(kwhVal);
-        bucket.touCounts.OFF_PEAK++;
+        bucket.touCounts.offPeak++;
       }
 
       // Quality state tracking
@@ -348,11 +348,11 @@ export class LargeDatasetQueryEngine {
       summarySumPf += avgPf;
 
       // Determine dominant TOU
-      let dominantTou: TouPeriod = "STANDARD";
-      if (b.touCounts.PEAK >= b.touCounts.STANDARD && b.touCounts.PEAK >= b.touCounts.OFF_PEAK) {
-        dominantTou = "PEAK";
-      } else if (b.touCounts.OFF_PEAK > b.touCounts.STANDARD && b.touCounts.OFF_PEAK > b.touCounts.PEAK) {
-        dominantTou = "OFF_PEAK";
+      let dominantTou: TouPeriod = "standard";
+      if (b.touCounts.peak >= b.touCounts.standard && b.touCounts.peak >= b.touCounts.offPeak) {
+        dominantTou = "peak";
+      } else if (b.touCounts.offPeak > b.touCounts.standard && b.touCounts.offPeak > b.touCounts.peak) {
+        dominantTou = "offPeak";
       }
 
       const bucketRecord: AggregatedTimeSeriesBucket = {
@@ -618,7 +618,7 @@ export class LargeDatasetQueryEngine {
       let readingCount = 0;
       let estimatedCount = 0;
       let outageCount = 0;
-      const touCounts: Record<TouPeriod, number> = { PEAK: 0, STANDARD: 0, OFF_PEAK: 0 };
+      const touCounts: Record<TouPeriod, number> = { peak: 0, standard: 0, offPeak: 0 };
 
       for (const b of slice) {
         sumKwh = sumKwh.plus(b.totalKwh);
@@ -631,9 +631,9 @@ export class LargeDatasetQueryEngine {
         readingCount += b.readingCount;
         estimatedCount += b.estimatedCount;
         outageCount += b.outageCount;
-        touCounts.PEAK += b.touCounts.PEAK;
-        touCounts.STANDARD += b.touCounts.STANDARD;
-        touCounts.OFF_PEAK += b.touCounts.OFF_PEAK;
+        touCounts.peak += b.touCounts.peak;
+        touCounts.standard += b.touCounts.standard;
+        touCounts.offPeak += b.touCounts.offPeak;
 
         if (b.maxKva > maxKva) {
           maxKva = b.maxKva;

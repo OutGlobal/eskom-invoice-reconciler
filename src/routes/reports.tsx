@@ -41,7 +41,7 @@ function ReportsPage() {
   const reconRows = buildStandardReconciliationTable(
     invoiceLines,
     charges,
-    invoice?.vat,
+    invoice?.vat ?? undefined,
     invoice?.invoiceTotal || invoiceTotal,
   );
   const exportRows = reconRows.map((r) => ({
