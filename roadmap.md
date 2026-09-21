@@ -6,4 +6,4 @@
 
 - [x] Fix all current TypeScript build errors
 - [x] Remove stale persisted/demo upload registry records
-- [ ] Verify clean empty pages and build
+- [x] Verify clean empty pages and build
