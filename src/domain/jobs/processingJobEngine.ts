@@ -546,7 +546,7 @@ export class ProcessingJobEngine {
       jobId,
       extractedInvoice,
       rawTelemetryRecords,
-      "TELEMETRY_PARSING",
+      "PROCESSING",
       {
         overrideMeterId: resolution?.resolvedMeterId,
         overrideTariffCode: resolution?.confirmedTariffCode,
@@ -587,7 +587,6 @@ export class ProcessingJobEngine {
       {
         defaultSiteId: "",
         defaultMeterId: assignedMeterId,
-        sourceUnits: { activeEnergy: "kWh", reactiveEnergy: "kvarh", demand: "kVA" },
       },
     );
 
@@ -783,7 +782,7 @@ export class ProcessingJobEngine {
         action: "PROCESSING_JOB_COMPLETED",
         description: `Processing job ${jobId} completed successfully. Records processed: ${totalRecords}.`,
         record: { entityType: "processing_job", recordId: jobId, recordLabel: `Job ${jobId}` },
-        newState: { jobId, status: "COMPLETED", totalRecords, errorCount: job.errors.length },
+        newState: { jobId, status: "COMPLETED", totalRecords, errorCount: job.errorSummary ? 1 : 0 },
       });
     } catch {}
 

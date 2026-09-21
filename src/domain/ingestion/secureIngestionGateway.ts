@@ -15,6 +15,7 @@ import { AmrXlsxAdapter } from "./adapters/amrXlsxAdapter";
 import { TelemetryXmlAdapter } from "./adapters/telemetryXmlAdapter";
 import { RawMeterLogAdapter } from "./adapters/rawMeterLogAdapter";
 import { TariffDocumentAdapter } from "./adapters/tariffDocumentAdapter";
+import { TariffStorageService } from "../tariff/tariffStorageService";
 import { UploadStorageService } from "../upload/uploadStorageService";
 import { InvoiceStorageService } from "../invoice/invoiceStorageService";
 import { TelemetryStorageService } from "../telemetry/telemetryStorageService";
@@ -551,6 +552,15 @@ export class SecureIngestionGateway {
         isIdempotentDuplicate: false,
         uploadRecord,
       };
+    }
+
+    if (extractRes.documentType === "TARIFF_DOCUMENT") {
+      if (!extractRes.tariffDefinition) throw new Error("The uploaded tariff document did not contain a complete tariff definition.");
+      await TariffStorageService.saveTariffVersion(extractRes.tariffDefinition, {
+        userId: uploaderId,
+        changeSummary: `Uploaded tariff document ${sanitizedFilename}`,
+      });
+      addLog("NORMALIZED", "info", "Registered uploaded tariff version for reconciliation");
     }
 
     // Reflect normalized invoice/telemetry into database
