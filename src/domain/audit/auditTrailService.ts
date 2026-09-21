@@ -172,7 +172,6 @@ export class AuditTrailService {
     // Trigger auto-refresh for UI subscribers
     try {
       RealtimeRefreshManager.notifyDataMutated("audit_events", {
-        entityType: "audit_events",
         entityId: rawRecord.id,
         organisationId: rawRecord.organisationId,
         action: "INSERT",
