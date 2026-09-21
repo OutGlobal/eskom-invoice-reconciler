@@ -24,10 +24,10 @@ interface DisputePackModalProps {
 export const DisputePackModal: React.FC<DisputePackModalProps> = ({
   isOpen,
   onClose,
-  customerName = "ACME Industrial Manufacturing (Pty) Ltd",
-  accountNumber = "8905743120",
-  invoiceNumber = "INV-2026-03-8891",
-  disputedAmount = 22500.0,
+  customerName = "",
+  accountNumber = "",
+  invoiceNumber = "",
+  disputedAmount = 0,
 }) => {
   const [isExporting, setIsExporting] = useState(false);
 

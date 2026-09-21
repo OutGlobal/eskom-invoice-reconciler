@@ -403,7 +403,7 @@ export class DeterministicCalendarEngine {
    */
   public static resolveDayType(
     sast: SastTimeComponents,
-    holidayList: CalendarHolidayConfig[] = DEFAULT_SA_HOLIDAYS,
+    holidayList: CalendarHolidayConfig[] = [],
   ): { dayType: ExtendedDayType; matchedHoliday?: CalendarHolidayConfig } {
     // 1. Check direct match in holiday list
     const matched = holidayList.find((h) => h.is_active && h.holiday_date === sast.local_date_str);
@@ -454,7 +454,7 @@ export class DeterministicCalendarEngine {
     timestampUtc: string | Date,
     kwhValue: Decimal = new Decimal(0),
     tariffVersion: TariffVersionDefinition,
-    holidayList: CalendarHolidayConfig[] = DEFAULT_SA_HOLIDAYS,
+    holidayList: CalendarHolidayConfig[] = [],
   ): IntervalClassificationResult {
     const sast = this.getSastComponents(timestampUtc);
     const season = this.resolveSeason(sast);
@@ -529,7 +529,7 @@ export class DeterministicCalendarEngine {
   public static explainIntervalClassification(
     timestampUtc: string | Date,
     tariffVersion: TariffVersionDefinition,
-    holidayList: CalendarHolidayConfig[] = DEFAULT_SA_HOLIDAYS,
+    holidayList: CalendarHolidayConfig[] = [],
   ): IntervalClassificationExplanation {
     const classification = this.classifyInterval(
       timestampUtc,
@@ -587,7 +587,7 @@ export class DeterministicCalendarEngine {
   public static aggregateIntervals(
     intervals: Array<{ timestamp: string; kwh: Decimal }>,
     tariffVersion: TariffVersionDefinition,
-    holidayList: CalendarHolidayConfig[] = DEFAULT_SA_HOLIDAYS,
+    holidayList: CalendarHolidayConfig[] = [],
   ): TouIntervalAggregation {
     let peakKwh = new Decimal(0);
     let standardKwh = new Decimal(0);

@@ -32,7 +32,6 @@ import { DeterminantEngine } from "../determinants/determinantEngine";
 import { ToleranceEngine } from "./toleranceEngine";
 import { RootCauseInferenceEngine } from "./rootCauseInferenceEngine";
 import type { ExtractedInvoiceDocument } from "../invoice/types";
-import { ESKOM_MEGAFLEX_2025_2026, ESKOM_MINIFLEX_2025_2026 } from "../tariff/tariffFixtures";
 import { InvoiceStorageService } from "../invoice/invoiceStorageService";
 import { TelemetryStorageService } from "../telemetry/telemetryStorageService";
 import { ReconciliationStorageService } from "./reconciliationStorageService";
@@ -103,12 +102,14 @@ export class DeterministicReconciliationEngine {
     const telemetryBatchId = input.telemetry_batch_id || "BATCH_DEFAULT";
     const calendarVersionId = input.calendar_version_id || "2025.1";
 
-    const tariffDef: TariffVersionDefinition =
-      input.tariff_version &&
-      typeof input.tariff_version === "object" &&
-      input.tariff_version.header
-        ? input.tariff_version
-        : ESKOM_MEGAFLEX_2025_2026;
+    if (
+      !input.tariff_version ||
+      typeof input.tariff_version !== "object" ||
+      !input.tariff_version.header
+    ) {
+      throw new Error("Upload an applicable tariff document before reconciliation.");
+    }
+    const tariffDef: TariffVersionDefinition = input.tariff_version;
     const tariffVerId = `${tariffDef.header.tariff_code}_${tariffDef.header.version}`;
 
     // 1. Resolve calculated telemetry values from uploaded determinants only.
@@ -513,13 +514,14 @@ export class DeterministicReconciliationEngine {
     };
 
     // 2. Resolve Tariff Version using temporal validity selector
-    const tariffDef: TariffVersionDefinition =
+    const tariffDef =
       dataset.tariff_definition && dataset.tariff_definition.header
         ? dataset.tariff_definition
         : TariffVersionSelector.selectVersionForDate(
-            inv.tariff_code || inv.tariff_name || "MEGAFLEX",
+            inv.tariff_code || inv.tariff_name || "",
             bStart.toISOString().substring(0, 10),
           );
+    if (!tariffDef) throw new Error("Upload an applicable tariff document before reconciliation.");
 
     // 3. Filter and Dynamically Aggregate Real Stored Source Telemetry Intervals
     const allIntervals = dataset.intervals || [];

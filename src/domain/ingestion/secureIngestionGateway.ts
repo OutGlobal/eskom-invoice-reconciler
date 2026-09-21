@@ -874,7 +874,7 @@ export class SecureIngestionGateway {
       // 5. Persist extracted telemetry intervals to telemetry_intervals
       if (extractRes.intervals && extractRes.intervals.length > 0) {
         const intervalPayloads = extractRes.intervals.slice(0, 5000).map((intv) => ({
-          meter_id: intv.meter_id || "7856504226",
+          meter_id: intv.meter_id || "",
           organisation_id: organisationId,
           upload_id: documentId,
           source_file_id: documentId,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Panel, NUM } from "@/components/dashboard/parts";
 import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
 import {
@@ -22,7 +22,9 @@ import {
   Layers,
   Plus,
   Calendar,
+  Upload,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Decimal from "decimal.js-light";
 import { CalendarPage } from "@/routes/calendar";
 
@@ -102,10 +104,35 @@ function TariffPage() {
     setIsExplainerOpen(true);
   };
 
-  if (isLoading || !activeVersion) {
+  if (isLoading) {
     return (
       <div className="p-8 text-center text-sm text-muted-foreground">
-        Loading Data-Driven Tariff Engine...
+        Loading tariff schedules...
+      </div>
+    );
+  }
+
+  if (!activeVersion) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Tariff Management</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Uploaded tariff books and extracted rate schedules will appear here.
+          </p>
+        </div>
+        <section className="flex min-h-[420px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card px-6 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-md border border-primary/30 bg-primary/10 text-primary">
+            <FileText className="h-6 w-6" />
+          </div>
+          <h2 className="mt-4 text-base font-semibold">No tariff documents uploaded</h2>
+          <p className="mt-2 max-w-md text-sm text-muted-foreground">
+            Upload the applicable tariff booklet before running billing calculations.
+          </p>
+          <Button asChild className="mt-5">
+            <Link to="/upload"><Upload className="h-4 w-4" />Upload tariff document</Link>
+          </Button>
+        </section>
       </div>
     );
   }

@@ -13,7 +13,7 @@ import {
   NUM,
   ZAR,
 } from "@/components/dashboard/parts";
-import { TOU_COLOR, TOU_LABEL, TARIFF } from "@/lib/tariff";
+import { TOU_COLOR, TOU_LABEL } from "@/lib/tariff";
 import { useApp } from "@/lib/store";
 import { InvoiceSelector } from "@/components/InvoiceSelector";
 import {
@@ -89,7 +89,7 @@ export function DemandPage() {
   const activePeakDate = totals.maxDemandAt || new Date();
 
   const activeDemandChargeR =
-    invoice?.networkDemandCharge || activeBilledPeakKVA * TARIFF.networkDemand;
+    invoice?.networkDemandCharge || 0;
 
   const activeExceedanceKVA = Math.max(0, activeBilledPeakKVA - nmd);
   const isExceeded = nmd > 0 && activeExceedanceKVA > 0.01;
@@ -111,7 +111,7 @@ export function DemandPage() {
     const billedPeak = inv.maxDemandKVA || inv.simMaxDemand || totals.maxDemandKVA || 0;
     const subIncomerPeak = totals.maxDemandKVA || billedPeak * 1.011558;
     const exceedance = nmd > 0 ? Math.max(0, billedPeak - nmd) : 0;
-    const demandCharge = inv.networkDemandCharge || billedPeak * TARIFF.networkDemand;
+    const demandCharge = inv.networkDemandCharge || 0;
     const isExceed = exceedance > 0.01;
 
     return {
@@ -126,7 +126,7 @@ export function DemandPage() {
         : "Interval Peak",
       lineLossRatio: 1.011558,
       exceedanceKVA: exceedance,
-      ratchetExposureMonthly: exceedance * 54.32,
+      ratchetExposureMonthly: 0,
       networkDemandChargeExVat: demandCharge,
       status: isExceed ? "exceeded" : "compliant",
       statusText: isExceed ? `🔴 Exceeded (+${NUM(exceedance)} kVA)` : "🟢 Compliant",
