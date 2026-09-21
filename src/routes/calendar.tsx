@@ -247,7 +247,11 @@ export function CalendarPage() {
         title={`Configuration-Driven Holiday Register (${holidays.length} Days)`}
         subtitle="Official gazetted public holidays, special election days, and observed Monday substitutions"
       >
-        <div className="border border-border rounded-md overflow-hidden">
+        {holidays.length === 0 ? (
+          <div className="border border-dashed border-border rounded-md p-8 text-center text-xs text-muted-foreground">
+            No holiday calendar has been uploaded or configured.
+          </div>
+        ) : <div className="border border-border rounded-md overflow-hidden">
           <table className="w-full text-xs text-left">
             <thead className="bg-muted/50 text-muted-foreground">
               <tr>
@@ -288,7 +292,7 @@ export function CalendarPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </div>}
       </Panel>
 
       {/* Add Holiday Modal */}

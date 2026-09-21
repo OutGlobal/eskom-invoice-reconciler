@@ -48,36 +48,10 @@ export const DisputePackModal: React.FC<DisputePackModalProps> = ({
         null,
         [
           {
-            "Claim ID": "CL-2026-0391",
-            "Discrepancy Category": "Peak Energy TOU Misclassification",
-            "Billed Amount (ZAR)": 215450.0,
-            "Calculated Amount (ZAR)": 203000.0,
-            "Disputed Overcharge (ZAR)": 12450.0,
-            "Evidence Reference": "SHA256:e3b0c442... | 312 peak intervals",
-          },
-          {
-            "Claim ID": "CL-2026-0392",
-            "Discrepancy Category": "Unwarranted NMD Ratchet Penalty",
-            "Billed Amount (ZAR)": 42800.0,
-            "Calculated Amount (ZAR)": 37000.0,
-            "Disputed Overcharge (ZAR)": 5800.0,
-            "Evidence Reference": "Peak demand 195 kVA vs NMD 250 kVA",
-          },
-          {
-            "Claim ID": "CL-2026-0393",
-            "Discrepancy Category": "Reactive Energy Calculation Mismatch",
-            "Billed Amount (ZAR)": 2450.0,
-            "Calculated Amount (ZAR)": 0.0,
-            "Disputed Overcharge (ZAR)": 2450.0,
-            "Evidence Reference": "Power factor 0.962 > threshold 0.96",
-          },
-          {
-            "Claim ID": "CL-2026-0394",
-            "Discrepancy Category": "VAT Subtotal Delta",
-            "Billed Amount (ZAR)": 73455.0,
-            "Calculated Amount (ZAR)": 69720.0,
-            "Disputed Overcharge (ZAR)": 1800.0,
-            "Evidence Reference": "Derived 15% VAT on disputed overcharges",
+            Customer: customerName,
+            "Account Number": accountNumber,
+            "Invoice Number": invoiceNumber,
+            "Disputed Amount (ZAR)": disputedAmount,
           },
         ] as any,
         [],
@@ -140,26 +114,9 @@ export const DisputePackModal: React.FC<DisputePackModalProps> = ({
 
           <div className="border-t border-slate-800/80 pt-3">
             <span className="text-[10px] text-slate-400 uppercase block font-semibold mb-1">
-              Included Discrepancy Evidence (4 Items)
+              Included Discrepancy Evidence
             </span>
-            <ul className="space-y-1 text-[11px] text-slate-300">
-              <li className="flex items-center justify-between bg-slate-900/60 p-2 rounded border border-slate-800">
-                <span>1. Peak Energy TOU Classification Mismatch (312 intervals)</span>
-                <span className="text-amber-400 font-bold">R 12,450.00</span>
-              </li>
-              <li className="flex items-center justify-between bg-slate-900/60 p-2 rounded border border-slate-800">
-                <span>2. Unwarranted NMD Ratchet Penalty Charge</span>
-                <span className="text-amber-400 font-bold">R 5,800.00</span>
-              </li>
-              <li className="flex items-center justify-between bg-slate-900/60 p-2 rounded border border-slate-800">
-                <span>3. Reactive Energy Penalty Threshold Error (PF = 0.962)</span>
-                <span className="text-amber-400 font-bold">R 2,450.00</span>
-              </li>
-              <li className="flex items-center justify-between bg-slate-900/60 p-2 rounded border border-slate-800">
-                <span>4. Derived 15% VAT Subtotal Overcharge</span>
-                <span className="text-amber-400 font-bold">R 1,800.00</span>
-              </li>
-            </ul>
+            <p className="text-[11px] text-slate-300">Only discrepancies produced from uploaded invoice, meter, and tariff evidence are included.</p>
           </div>
         </div>
 

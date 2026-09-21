@@ -4,11 +4,9 @@ import { EneraNav } from "@/components/landing/enera/EneraNav";
 import { EneraHeroSection } from "@/components/landing/enera/EneraHeroSection";
 import { EneraCapabilitiesSection } from "@/components/landing/enera/EneraCapabilitiesSection";
 import { EneraProductSignalsSection } from "@/components/landing/enera/EneraProductSignalsSection";
-import { EneraProductInterfacePreviewSection } from "@/components/landing/enera/EneraProductInterfacePreviewSection";
 import { EneraBillSignalSection } from "@/components/landing/enera/EneraBillSignalSection";
 import { EneraAudienceSection } from "@/components/landing/enera/EneraAudienceSection";
 import { EneraAISection } from "@/components/landing/enera/EneraAISection";
-import { EneraCopilotSection } from "@/components/landing/enera/EneraCopilotSection";
 import { EneraTrustSection } from "@/components/landing/enera/EneraTrustSection";
 import { EneraContactSection } from "@/components/landing/enera/EneraContactSection";
 import { EneraFaqSection } from "@/components/landing/enera/EneraFaqSection";
@@ -105,11 +103,6 @@ function EneraLandingPage() {
           <EneraProductSignalsSection />
         </div>
 
-        {/* 6. Product visual: SEE THE SIGNAL BEHIND THE NUMBER. */}
-        <div className="enera-section-deferred">
-          <EneraProductInterfacePreviewSection />
-        </div>
-
         {/* 7. How it works: CONNECT, ANALYSE, UNDERSTAND, ACT */}
         <div className="enera-section-deferred">
           <EneraBillSignalSection />
@@ -123,11 +116,6 @@ function EneraLandingPage() {
         {/* 9. AI: ASK BETTER QUESTIONS. */}
         <div className="enera-section-deferred">
           <EneraAISection />
-        </div>
-
-        {/* 10. Financial intelligence: SEE THE FINANCIAL SIGNAL. */}
-        <div className="enera-section-deferred">
-          <EneraCopilotSection />
         </div>
 
         {/* 11. Trust: INTELLIGENCE YOU CAN TRACE. */}

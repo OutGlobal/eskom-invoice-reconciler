@@ -15,6 +15,8 @@ import { TOU_COLOR } from "@/lib/tariff";
 import { useApp } from "@/lib/store";
 import { format, startOfDay, startOfWeek, startOfMonth } from "date-fns";
 import { InvoiceSelector } from "@/components/InvoiceSelector";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { UploadCloud } from "lucide-react";
 
 export const Route = createFileRoute("/energy")({
   head: () => ({ meta: [{ title: "Energy Analysis — Meter Reconciliation" }] }),
@@ -33,8 +35,8 @@ export function EnergyPage() {
   const setBilling = useApp((s) => s.setBilling);
 
   const [bucket, setBucket] = useState<Bucket>("period");
-  const [customStart, setCustomStart] = useState<string>(billingStart || "2026-02-17");
-  const [customEnd, setCustomEnd] = useState<string>(billingEnd || "2026-03-18");
+  const [customStart, setCustomStart] = useState<string>(billingStart || "");
+  const [customEnd, setCustomEnd] = useState<string>(billingEnd || "");
 
   const filteredByBucket = useMemo(() => {
     if (!rows.length) return rows;
@@ -118,6 +120,10 @@ export function EnergyPage() {
     { period: "Standard", value: displayTotals.standardKWh, color: TOU_COLOR.standard },
     { period: "Off-Peak", value: displayTotals.offPeakKWh, color: TOU_COLOR.offPeak },
   ];
+
+  if (rows.length === 0) {
+    return <EmptyState title="No meter data uploaded" description="Upload interval meter data to view energy analysis." icon={UploadCloud} primaryAction={{ label: "Upload meter data", href: "/upload" }} />;
+  }
 
   return (
     <div className="space-y-6">

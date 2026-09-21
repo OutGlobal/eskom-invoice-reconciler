@@ -27,27 +27,22 @@ interface ApprovalWorkflowBarProps {
 export const ApprovalWorkflowBar: React.FC<ApprovalWorkflowBarProps> = ({
   initialRun,
   onRunUpdated,
-  currentUser = {
-    userId: "usr-auditor-01",
-    userName: "Senior Energy Auditor",
-    userRole: "AUDITOR",
-    timestamp: new Date().toISOString(),
-  },
+  currentUser = { userId: "", userName: "", userRole: "AUDITOR", timestamp: new Date().toISOString() },
 }) => {
   const [run, setRun] = useState<ReconciliationWorkflowRun>(
     initialRun ||
       ApprovalWorkflowEngine.createDraftRun({
-        invoiceId: "inv-2026-03-8891",
-        invoiceNumber: "INV-2026-03-8891",
-        meterId: "ESK-AGA-99104",
-        organisationId: "org-001",
-        billingPeriodStr: "March 2026",
+        invoiceId: "",
+        invoiceNumber: "",
+        meterId: "",
+        organisationId: "",
+        billingPeriodStr: "",
         actor: currentUser,
-        billedTotalZar: 495000.0,
-        calculatedTotalZar: 472500.0,
-        varianceZar: 22500.0,
-        reconciliationStatus: "MATERIAL_DISCREPANCY",
-        auditLedgerHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        billedTotalZar: 0,
+        calculatedTotalZar: 0,
+        varianceZar: 0,
+        reconciliationStatus: "MATCH",
+        auditLedgerHash: "",
       }),
   );
 

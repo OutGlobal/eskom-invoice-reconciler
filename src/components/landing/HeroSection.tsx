@@ -193,7 +193,7 @@ export function HeroSection({ onAnalyseClick }: HeroSectionProps) {
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-2.5">
                   <div>
                     <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground">
-                      Impala Mining Complex · Feeder #04 (Megaflex High Voltage)
+                      Uploaded account · Validated tariff and meter evidence
                     </div>
                     <div className="text-xs font-semibold text-foreground">
                       Active Period Billing Audit Settlement

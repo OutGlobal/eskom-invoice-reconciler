@@ -3,11 +3,13 @@
  */
 
 import type { ExtractedInvoiceFields, IngestionDocumentType, IngestionErrorRecord } from "../types";
+import type { TariffVersionDefinition } from "../../tariff/types";
 
 export interface AdapterExtractionResult {
   success: boolean;
   documentType: IngestionDocumentType;
   extractedFields?: ExtractedInvoiceFields;
+  tariffDefinition?: TariffVersionDefinition;
   intervals?: any[];
   intervalSummary?: any;
   rawTextPreview: string;

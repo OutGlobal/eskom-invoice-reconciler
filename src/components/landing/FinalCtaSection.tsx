@@ -308,7 +308,7 @@ export function FinalCtaSection({ onAnalyseClick }: FinalCtaSectionProps) {
                     required
                     value={demoForm.company}
                     onChange={(e) => setDemoForm({ ...demoForm, company: e.target.value })}
-                    placeholder="e.g. Impala Platinum SOC"
+                    placeholder="Organisation name"
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs"
                   />
                 </div>
