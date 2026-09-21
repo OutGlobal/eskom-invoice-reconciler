@@ -478,7 +478,7 @@ export function SecureUploadGateway() {
 
         // 1. If invoice fields were extracted, reflect in app store
         if (res.extractedInvoice && res.fileHeader.fileExtension === "pdf") {
-          const ext = res.extractedInvoice;
+          const ext: any = res.extractedInvoice;
           const mappedInvoice: InvoiceData = {
             source: file.name,
             invoiceNumber: ext.invoiceNumber || "",
