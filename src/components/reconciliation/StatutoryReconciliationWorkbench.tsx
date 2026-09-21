@@ -55,7 +55,7 @@ export function StatutoryReconciliationWorkbench({
   const genRate = tariff.generationCapacity;
   const demandRate = tariff.networkDemand;
 
-  // Energy rates (low season default for Impala Feb-May)
+  // Energy rates loaded from the active uploaded tariff.
   const peakRate = tariff.energy.low.peak / 100;
   const stdRate = tariff.energy.low.standard / 100;
   const offPeakRate = tariff.energy.low.offPeak / 100;

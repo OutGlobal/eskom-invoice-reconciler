@@ -1,7 +1,3 @@
-// Eskom Megaflex Non-local Authority 2025/2026 tariff (VAT-exclusive)
-// Voltage: >=500V & <66kV (33kV supply)  |  Transmission Zone: <=300km
-// Source: Eskom Schedule of Standard Prices 2025/2026, NERSA-approved, Table 3, p.16
-
 export type TouPeriod = "peak" | "standard" | "offPeak";
 export type Season = "high" | "low";
 
@@ -29,61 +25,12 @@ export function getSeason(d: Date): Season {
   return month >= 6 && month <= 8 ? "high" : "low";
 }
 
-// Eskom Public Holidays Specification (§10, p.11 of Schedule)
-// Only 5 public holidays are treated as a Sunday: New Year's Day, Good Friday, Family Day, Christmas Day, Day of Goodwill.
-// All other public holidays are treated as a Saturday.
-const SUNDAY_HOLIDAYS = new Set<string>([
-  "2025-01-01",
-  "2025-04-18",
-  "2025-04-21",
-  "2025-12-25",
-  "2025-12-26",
-  "2026-01-01",
-  "2026-04-03",
-  "2026-04-06",
-  "2026-12-25",
-  "2026-12-26",
-]);
-
-const SATURDAY_HOLIDAYS = new Set<string>([
-  "2025-03-21",
-  "2025-04-28",
-  "2025-05-01",
-  "2025-06-16",
-  "2025-08-09",
-  "2025-09-24",
-  "2025-12-16",
-  "2026-03-21",
-  "2026-04-27",
-  "2026-05-01",
-  "2026-06-16",
-  "2026-08-10",
-  "2026-09-24",
-  "2026-12-16",
-]);
-
 function getEffectiveDayOfWeek(d: Date): number {
-  const { year, month, day, dow } = getSastComponents(d);
-  const mStr = String(month).padStart(2, "0");
-  const dStr = String(day).padStart(2, "0");
-  const dateStr = `${year}-${mStr}-${dStr}`;
-
-  if (dow === 0) return 0; // Sundays remain Sunday
-  if (SUNDAY_HOLIDAYS.has(dateStr)) return 0; // Billed as Sunday
-  if (SATURDAY_HOLIDAYS.has(dateStr)) return 6; // Billed as Saturday
-  return dow;
+  return getSastComponents(d).dow;
 }
 
 /**
- * Classifies a 30-minute interval into Peak, Standard, or Off-Peak according to the
- * NERSA-published Eskom 2025/26 Time-Of-Use Clock (Schedule §3.2, p.8).
- *
- * Low Season Published Clock:
- * - Weekday Peak: 06:00–08:00 & 17:00–20:00
- * - Weekday Standard: 08:00–17:00 & 20:00–22:00
- * - Weekday Off-Peak: 22:00–06:00
- * - Saturday Standard: 07:00–12:00 & 18:00–20:00
- * - Sunday Standard: 18:00–20:00 (new 2025/26 Sunday standard window)
+ * Classifies intervals for display. Reconciliation uses the uploaded versioned tariff schedule.
  */
 export function classifyTou(d: Date): TouPeriod {
   // Meter timestamps mark the end of each 30-minute block.
