@@ -54,8 +54,6 @@ export class TariffDocumentAdapter implements ILayoutAdapter {
         }
 
         tariffData = {
-          schedule_name: "Imported Tariff Schedule",
-          version: "2025/2026",
           rates: tariffs,
         };
       }
@@ -66,15 +64,15 @@ export class TariffDocumentAdapter implements ILayoutAdapter {
         success: true,
         documentType: "TARIFF_DOCUMENT",
         extractedFields: {
-          accountNumber: tariffData.tariff_code || "TARIFF-SCHEDULE",
-          pod: tariffData.schedule_name || "NERSA Approved Schedule",
-          premiseId: "REGULATORY",
+          accountNumber: tariffData.tariff_code || "",
+          pod: tariffData.schedule_name || "",
+          premiseId: "",
           meterNumber: "",
           meterSerial: "",
-          billingPeriod: tariffData.version || "2025/2026",
-          invoiceDate: new Date().toISOString().substring(0, 10),
-          tariff: tariffData.tariff_code || "Megaflex Non-Local Authority",
-          voltage: tariffData.voltage_level || ">= 500V & < 66kV",
+          billingPeriod: tariffData.version || "",
+          invoiceDate: "",
+          tariff: tariffData.tariff_code || "",
+          voltage: tariffData.voltage_level || "",
           notifiedMaximumDemand: 0,
           billedMaximumDemand: 0,
           utilisedCapacity: 0,
@@ -84,7 +82,7 @@ export class TariffDocumentAdapter implements ILayoutAdapter {
           totalKwh: 0,
           kva: 0,
           kvarh: 0,
-          powerFactor: 0.96,
+          powerFactor: 0,
           energyCharges: 0,
           demandCharges: Number(tariffData.demand_charge_zar_per_kva || 0),
           networkCharges: Number(tariffData.network_access_charge_zar_per_kva || 0),
@@ -99,7 +97,7 @@ export class TariffDocumentAdapter implements ILayoutAdapter {
           credits: 0,
           debits: 0,
         },
-        rawTextPreview: `Imported Tariff Schedule: ${tariffData.schedule_name || "Standard TOU Tariff"} (${rateCount} rate components)`,
+        rawTextPreview: `Imported tariff schedule${tariffData.schedule_name ? `: ${tariffData.schedule_name}` : ""} (${rateCount} rate components)`,
         confidenceScore: 1.0,
         needsHumanReview: false,
         ambiguityReasons,

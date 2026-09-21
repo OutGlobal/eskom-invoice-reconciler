@@ -72,7 +72,7 @@ export class ProcessingJobEngine {
     const jobType: JobType = input.jobType || "FULL_PIPELINE";
     const now = new Date().toISOString();
 
-    const invoiceName = input.invoiceFile?.name || (input.invoiceFile as any)?.filename || "invoice.pdf";
+    const invoiceName = input.invoiceFile?.name || (input.invoiceFile as any)?.filename || "";
     const invoiceSize = input.invoiceFile?.size ?? (input.invoiceFile as any)?.data?.byteLength ?? 0;
     const meterName = input.meterFile?.name || (input.meterFile as any)?.filename || "meter_intervals.csv";
     const meterSize = input.meterFile?.size ?? (input.meterFile as any)?.data?.byteLength ?? 0;
@@ -425,7 +425,7 @@ export class ProcessingJobEngine {
     const invoiceName = input.invoiceFile?.name || (input.invoiceFile as any)?.filename || "invoice.pdf";
     const invoiceSize = input.invoiceFile?.size ?? (input.invoiceFile as any)?.data?.byteLength ?? 0;
 
-    let extractedInvoice = this.buildFallbackInvoice("invoice.pdf");
+    let extractedInvoice: any = null;
     if (input.invoiceFile) {
       const invoiceBytes = await this.resolveFileBytes(input.invoiceFile, "invoice.pdf");
       // -------------------------------------------------------------
@@ -613,6 +613,10 @@ export class ProcessingJobEngine {
       if ((rec.kva || 0) > maxDemand) {
         maxDemand = rec.kva || 0;
       }
+    }
+    if (!extractedInvoice) {
+      this.failJob(jobId, "An invoice upload is required before reconciliation can run.");
+      return;
     }
 
     const calculatedTotalKwh = aggPeak + aggStd + aggOffPeak;
