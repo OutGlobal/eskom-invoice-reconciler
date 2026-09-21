@@ -1,8 +1,4 @@
-/**
- * Emfuleni Local Municipality statements — extracted from the uploaded
- * tax invoices (accounts 11210811 and 11388677, Jan–Apr 2026).
- * All amounts excluding VAT unless suffixed Incl.
- */
+/** Municipal statement data contracts. */
 
 export type MunicipalCategory =
   "Assessment Rates" | "Refuse" | "Electricity" | "Water Services" | "Sewerage";

@@ -107,8 +107,8 @@ export class SecureIngestionGateway {
   public static async processUpload(
     file: File | Uint8Array,
     filename: string,
-    organisationId = "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
-    uploaderId = "user-system-admin",
+    organisationId = "",
+    uploaderId = "",
     onProgress?: (state: IngestionLifecycleState, pct: number, msg: string) => void,
     context?: UserSecurityContext,
     existingDocumentId?: string,
@@ -571,7 +571,7 @@ export class SecureIngestionGateway {
       // 1. Store raw document payload
       await supabase.from("raw_documents").insert({
         upload_id: documentId,
-        invoice_number: extractRes.extractedFields?.accountNumber || `INV-${Date.now()}`,
+        invoice_number: extractRes.extractedFields?.accountNumber || null,
         raw_text: extractRes.rawTextPreview,
         confidence_score: extractRes.confidenceScore,
         parser_type: mimeResult.isScannedPdf ? "tesseract_ocr" : adapter.constructor.name,
@@ -791,7 +791,7 @@ export class SecureIngestionGateway {
 
         // Step 8: Store unbundled invoice line items where present
         if (fields.lineItems && fields.lineItems.length > 0) {
-          const lineItemPayloads = fields.lineItems.map((li) => ({
+          const lineItemPayloads = fields.lineItems.map((li: NonNullable<typeof fields.lineItems>[number]) => ({
             invoice_record_id: persistedInvoiceId,
             organisation_id: organisationId,
             line_item_number: li.lineItemNumber,
@@ -883,7 +883,7 @@ export class SecureIngestionGateway {
 
       // 5. Persist extracted telemetry intervals to telemetry_intervals
       if (extractRes.intervals && extractRes.intervals.length > 0) {
-        const intervalPayloads = extractRes.intervals.slice(0, 5000).map((intv) => ({
+        const intervalPayloads = extractRes.intervals.slice(0, 5000).map((intv: any) => ({
           meter_id: intv.meter_id || "",
           organisation_id: organisationId,
           upload_id: documentId,
@@ -974,7 +974,7 @@ export class SecureIngestionGateway {
     const finalErrorStatus: UploadErrorStatus = extractRes.errors.length > 0 ? "WARNING" : "NONE";
     const finalErrorMessage =
       extractRes.errors.length > 0
-        ? extractRes.errors.map((e) => e.errorMessage).join("; ")
+        ? extractRes.errors.map((e: IngestionErrorRecord) => e.errorMessage).join("; ")
         : extractRes.ambiguityReasons.length > 0
           ? extractRes.ambiguityReasons.join("; ")
           : null;

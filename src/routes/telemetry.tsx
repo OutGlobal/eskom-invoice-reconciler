@@ -489,7 +489,7 @@ function TelemetryPage() {
                             </td>
                             <td className="py-2.5 px-4 text-right">
                               <span
-                                className={`px-2 py-0.5 rounded text-2xs font-extrabold ${getStateStyle(item.quality_state || "VALID")}`}
+                                className={`px-2 py-0.5 rounded text-2xs font-extrabold ${getStateStyle(item.quality_state || "ACTUAL")}`}
                               >
                                 {item.quality_state}
                               </span>

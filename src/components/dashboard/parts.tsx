@@ -108,7 +108,7 @@ export function useDerived() {
                 kVA: maxDemandKVA,
                 nmd,
                 exceedanceKVA,
-                penaltyR: exceedanceKVA * 54.32,
+                penaltyR: 0,
                 tou: "standard" as const,
               },
             ]
