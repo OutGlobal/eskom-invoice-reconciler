@@ -150,19 +150,33 @@ export function buildDetailedPdfReport(input: DetailedReportInput): jsPDF {
   doc.text("Invoiced", W - M - 48, y - 1);
   y = baseY + 52;
 
-  const head = [["Field", "Value"]];
   const tableTheme = {
     theme: "grid" as const,
     styles: { fontSize: 8, cellPadding: 4, lineColor: [226, 230, 235] as any },
     headStyles: { fillColor: [BRAND.r, BRAND.g, BRAND.b] as any, textColor: 255, fontSize: 8 },
     alternateRowStyles: { fillColor: [248, 250, 252] as any },
     margin: { left: M, right: M },
+    rowPageBreak: "avoid" as const,
+  };
+
+  /** Draws a section heading, adding a page when there is no room for content below it */
+  const section = (title: string, minSpace = 140, spacing = 26) => {
+    const H = doc.internal.pageSize.getHeight();
+    let sy = ((doc as any).lastAutoTable?.finalY ?? y) + spacing;
+    if (sy > H - minSpace) {
+      doc.addPage();
+      sy = 64;
+    }
+    doc.setFont("helvetica", "bold").setFontSize(10).setTextColor(BRAND.r, BRAND.g, BRAND.b);
+    doc.text(title, M, sy);
+    doc.setFont("helvetica", "normal").setTextColor(30, 30, 30);
+    return sy + 10;
   };
 
   autoTable(doc, {
     ...tableTheme,
-    startY: y,
-    head,
+    startY: section("1. Account and invoice metadata", 160, 0),
+    head: [["Field", "Value"]],
     body: [
       ["Customer", invoice?.customerName || "—"],
       ["Account number", invoice?.accountNumber || "—"],
