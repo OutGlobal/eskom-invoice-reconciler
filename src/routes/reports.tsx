@@ -267,6 +267,122 @@ function ReportsPage() {
         </div>
       </Panel>
 
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <Panel
+          title="Charge-Level Variance Profile"
+          subtitle="Calculated determinant charges against invoiced amounts, with signed variance overlay."
+        >
+          {varianceChartData.length === 0 ? (
+            <div className="h-72 flex items-center justify-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+              Upload an invoice and meter data to populate variance analytics.
+            </div>
+          ) : (
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={varianceChartData} margin={{ top: 8, right: 8, bottom: 40 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    angle={-32}
+                    textAnchor="end"
+                    interval={0}
+                    height={70}
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                  <Tooltip
+                    formatter={(v: any) => ZAR(Number(v))}
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="calculated" name="Calculated" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="invoiced" name="Invoiced" fill="#64748b" radius={[3, 3, 0, 0]} />
+                  <Line
+                    type="monotone"
+                    dataKey="variance"
+                    name="Variance"
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    dot={{ r: 2 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Panel>
+
+        <Panel
+          title="Billing Timeline — Energy, Demand & Invoiced Value"
+          subtitle="Period-over-period movement across extracted billing statements."
+        >
+          {timeline.length === 0 ? (
+            <div className="h-72 flex items-center justify-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+              Upload multiple billing periods to build the timeline.
+            </div>
+          ) : (
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={timeline} margin={{ top: 8, right: 8, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <YAxis
+                    yAxisId="left"
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar
+                    yAxisId="left"
+                    dataKey="totalKWh"
+                    name="Energy (kWh)"
+                    fill="hsl(var(--primary))"
+                    radius={[3, 3, 0, 0]}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="invoicedExclVat"
+                    name="Invoiced (R)"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="maxDemandKVA"
+                    name="Max demand (kVA)"
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    strokeDasharray="4 3"
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Panel>
+      </div>
+
+
       <Panel
         title="Historical Utility Billing Comparison Matrix"
         subtitle="Side-by-side audit tracking consumption, demand, and invoiced charges across extracted billing periods."
