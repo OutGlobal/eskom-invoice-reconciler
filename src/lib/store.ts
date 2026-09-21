@@ -277,21 +277,21 @@ function invoiceLinesFromItems(invoice: InvoiceData, items: InvoiceLineItemStore
   const ensure = (label: string, value?: number) => {
     if (value && !lines[label]) lines[label] = value;
   };
-  ensure("Administration Charge", invoice.administrationCharge);
-  ensure("Transmission Network Charge", invoice.transmissionNetworkCharge);
-  ensure("Distribution Network Capacity Charge", invoice.networkCapacityCharge);
-  ensure("Generation Capacity Charge", invoice.generationCapacityCharge);
-  ensure("Network Demand Charge", invoice.networkDemandCharge);
-  ensure("Peak Energy", invoice.peakEnergyCharge);
-  ensure("Standard Energy", invoice.standardEnergyCharge);
-  ensure("Off-Peak Energy", invoice.offPeakEnergyCharge);
-  ensure("Ancillary Service Charge", invoice.ancillary);
-  ensure("Legacy Charge", invoice.legacy);
-  ensure("Affordability Subsidy", invoice.affordability);
-  ensure("Electrification & Rural Subsidy", invoice.electrification);
-  ensure("Service Charge", invoice.serviceCharge);
-  ensure("Connection Charge", invoice.connectionCharge);
-  lines["Total Charges"] = invoice.invoiceTotal;
+  ensure("Administration Charge", invoice.administrationCharge ?? undefined);
+  ensure("Transmission Network Charge", invoice.transmissionNetworkCharge ?? undefined);
+  ensure("Distribution Network Capacity Charge", invoice.networkCapacityCharge ?? undefined);
+  ensure("Generation Capacity Charge", invoice.generationCapacityCharge ?? undefined);
+  ensure("Network Demand Charge", invoice.networkDemandCharge ?? undefined);
+  ensure("Peak Energy", invoice.peakEnergyCharge ?? undefined);
+  ensure("Standard Energy", invoice.standardEnergyCharge ?? undefined);
+  ensure("Off-Peak Energy", invoice.offPeakEnergyCharge ?? undefined);
+  ensure("Ancillary Service Charge", invoice.ancillary ?? undefined);
+  ensure("Legacy Charge", invoice.legacy ?? undefined);
+  ensure("Affordability Subsidy", invoice.affordability ?? undefined);
+  ensure("Electrification & Rural Subsidy", invoice.electrification ?? undefined);
+  ensure("Service Charge", invoice.serviceCharge ?? undefined);
+  ensure("Connection Charge", invoice.connectionCharge ?? undefined);
+  lines["Total Charges"] = invoice.invoiceTotal ?? 0;
   return lines;
 }
 
@@ -300,13 +300,13 @@ function activateInvoice(invoice: InvoiceData, items: InvoiceLineItemStored[]): 
     invoice,
     invoiceLines: invoiceLinesFromItems(invoice, items),
     invoiceItems: items,
-    invoiceTotal: invoice.invoiceTotal,
+    invoiceTotal: invoice.invoiceTotal ?? 0,
     customer: {
       name: invoice.customerName,
       meter: invoice.meterNumber,
       accountNumber: invoice.accountNumber,
       address: invoice.address || "",
-      nmd: invoice.nmd,
+      nmd: invoice.nmd ?? 0,
     },
     billingStart: invoice.billingPeriodStart || "",
     billingEnd: invoice.billingPeriodEnd || "",
@@ -324,7 +324,7 @@ export const useApp = create<AppState>((set) => ({
       invoice
         ? {
             invoice,
-            invoiceTotal: invoice.invoiceTotal,
+            invoiceTotal: invoice.invoiceTotal ?? 0,
             billingStart: invoice.billingPeriodStart || "",
             billingEnd: invoice.billingPeriodEnd || "",
           }
