@@ -15,16 +15,6 @@ import {
   type TariffFunctionalityClassification,
   TariffImmutabilityViolationError,
 } from "./types";
-import {
-  ALL_PRODUCTION_TARIFF_FIXTURES,
-  ESKOM_MEGAFLEX_2025_2026,
-  ESKOM_MEGAFLEX_2024_2025,
-  ESKOM_MEGAFLEX_2023_2024,
-  ESKOM_MEGAFLEX_2026_2027,
-  ESKOM_MINIFLEX_2025_2026,
-  ESKOM_NIGHTSAVE_2025_2026,
-  MUNICIPAL_COJ_BULK_2025_2026,
-} from "./tariffFixtures";
 
 export interface TariffFamilyRecord {
   id: string;
@@ -42,15 +32,8 @@ export interface SaveTariffOptions {
 }
 
 export class TariffStorageService {
-  /**
-   * Controlled persistent storage store (in-memory persistent cache)
-   * Seeded with all published, gazetted historical and current tariffs
-   */
+  /** Tariffs loaded from uploaded documents or persistent storage. */
   private static store: Map<string, TariffVersionDefinition> = new Map();
-
-  static {
-    this.resetToDefaults();
-  }
 
   /**
    * Generate canonical unique key for a tariff version
@@ -59,15 +42,9 @@ export class TariffStorageService {
     return `${tariffCode.toUpperCase().trim()}_${version.trim()}`;
   }
 
-  /**
-   * Resets the controlled storage to the gazetted NERSA fixtures
-   */
+  /** Clears the runtime tariff registry. */
   public static resetToDefaults(): void {
     this.store.clear();
-    for (const fixture of ALL_PRODUCTION_TARIFF_FIXTURES) {
-      const key = this.getVersionKey(fixture.header.tariff_code, fixture.header.version);
-      this.store.set(key, fixture);
-    }
   }
 
   /**
@@ -82,17 +59,17 @@ export class TariffStorageService {
    */
   public static getTariffArchitectureClassification(): TariffFunctionalityClassification {
     return {
-      is_hardcoded: true, // Baseline fixtures exist for fallback and bootstrap
+      is_hardcoded: false,
       is_database_driven: true, // Synced with public.tariff_versions & public.tariff_rates
       is_manually_entered: true, // Supported via /tariff route UI
       is_uploaded: true, // Supported via TariffDocumentAdapter
       is_versioned: true, // Versioned by NERSA effective dates and version labels
-      primary_source: "CONTROLLED_PERSISTENT_STORE",
+      primary_source: "UPLOAD",
       historical_immutability_enforced: true,
       reproducibility_guaranteed: true,
-      supported_validity_periods: ["2023/2024", "2024/2025", "2025/2026", "2026/2027"],
+      supported_validity_periods: [],
       findings_summary: [
-        "Production tariffs are migrated into controlled persistent storage.",
+        "Tariffs are registered only after upload or retrieval from persistent storage.",
         "Tariff validity periods are explicitly enforced across annual fiscal cycles.",
         "Historical tariffs are permanently locked against in-place mutations.",
         "Historical invoices reproducibly evaluate against the exact gazetted tariff active during their billing window.",
@@ -114,10 +91,7 @@ export class TariffStorageService {
         .select("*")
         .order("effective_date", { ascending: false });
 
-      if (error || !dbVersions || dbVersions.length === 0) {
-        this.resetToDefaults();
-        return Array.from(this.store.values());
-      }
+      if (error || !dbVersions || dbVersions.length === 0) return [];
 
       const mappedVersions: TariffVersionDefinition[] = dbVersions.map((row: any) => {
         const header: TariffScheduleHeader = {
@@ -155,12 +129,12 @@ export class TariffStorageService {
         return {
           header,
           tou_schedule: [],
-          components: components.length > 0 ? components : ESKOM_MEGAFLEX_2025_2026.components,
-          public_holidays: ESKOM_MEGAFLEX_2025_2026.public_holidays,
-          reactive_penalty_rate: new Decimal(row.reactive_penalty_rate || 0.145),
-          pf_threshold: new Decimal(row.pf_threshold || 0.95),
-          nmd_ratchet_multiplier: new Decimal(row.nmd_ratchet_multiplier || 2.0),
-          minimum_nmd_kva: new Decimal(row.minimum_nmd_kva || 50),
+          components,
+          public_holidays: Array.isArray(row.public_holidays) ? row.public_holidays : [],
+          reactive_penalty_rate: new Decimal(row.reactive_penalty_rate ?? 0),
+          pf_threshold: new Decimal(row.pf_threshold ?? 0),
+          nmd_ratchet_multiplier: new Decimal(row.nmd_ratchet_multiplier ?? 0),
+          minimum_nmd_kva: new Decimal(row.minimum_nmd_kva ?? 0),
         };
       });
 
@@ -171,8 +145,7 @@ export class TariffStorageService {
 
       return mappedVersions;
     } catch {
-      this.resetToDefaults();
-      return Array.from(this.store.values());
+      return [];
     }
   }
 
