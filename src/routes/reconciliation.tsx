@@ -10,7 +10,7 @@ import type {
   DeterminantComparisonItem,
   ToleranceConfig,
 } from "@/domain/reconciliation/types";
-import { ESKOM_MEGAFLEX_2025_2026 } from "@/domain/tariff/tariffFixtures";
+import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
 import {
   Scale,
   ShieldCheck,
@@ -39,6 +39,7 @@ export const Route = createFileRoute("/reconciliation")({
 
 function ReconciliationPage() {
   const activeInvoice = useApp((s) => s.invoice);
+  const meterRows = useApp((s) => s.rows);
   const [payload, setPayload] = useState<AuthoritativeReconciliationPayload | null>(null);
   const [selectedDeterminant, setSelectedDeterminant] = useState<DeterminantComparisonItem | null>(
     null,
@@ -51,20 +52,25 @@ function ReconciliationPage() {
   >("statutory");
 
   const runReconciliation = () => {
-    if (!activeInvoice) {
+    if (!activeInvoice || meterRows.length === 0) {
+      setPayload(null);
+      return;
+    }
+    const tariffVersion = TariffStorageService.getVersionForDate(
+      activeInvoice.tariffName,
+      activeInvoice.billingPeriodStart || "",
+    );
+    if (!tariffVersion) {
       setPayload(null);
       return;
     }
     const input = {
-        tenant_id: "TENANT_SOUTH_AFRICA",
-        invoice_id: activeInvoice.invoiceNumber || activeInvoice.invoiceNo || "ACTIVE_INV",
-        invoice_number: activeInvoice.invoiceNumber || activeInvoice.invoiceNo || "ACTIVE_INV",
-        account_number: activeInvoice.accountNumber || "ACC-CURRENT",
-        telemetry_batch_id: "BATCH_ACTIVE",
-        billing_start: activeInvoice.billingPeriodStart || "2026-02-17",
-        billing_end: activeInvoice.billingPeriodEnd || "2026-03-18",
-        tariff_version: ESKOM_MEGAFLEX_2025_2026,
-        calendar_version_id: "2025.1",
+        invoice_id: activeInvoice.invoiceNumber || activeInvoice.invoiceNo || "",
+        invoice_number: activeInvoice.invoiceNumber || activeInvoice.invoiceNo || "",
+        account_number: activeInvoice.accountNumber || "",
+        billing_start: activeInvoice.billingPeriodStart || "",
+        billing_end: activeInvoice.billingPeriodEnd || "",
+        tariff_version: tariffVersion,
 
         billed_peak_kwh: new Decimal(activeInvoice.peakKWh || 0),
         billed_standard_kwh: new Decimal(activeInvoice.standardKWh || 0),
@@ -97,7 +103,7 @@ function ReconciliationPage() {
 
   useEffect(() => {
     runReconciliation();
-  }, [activeInvoice]);
+  }, [activeInvoice, meterRows]);
 
   const openExplainer = (item: DeterminantComparisonItem) => {
     setSelectedDeterminant(item);
@@ -130,7 +136,7 @@ function ReconciliationPage() {
         <EmptyState
           icon={Scale}
           title="No reconciliation has been completed."
-          description="Upload energy data to begin. Ingest billing invoices and AMR interval readings to execute 14-determinant reconciliation."
+           description="Upload an invoice, interval meter data, and the applicable tariff document to begin reconciliation."
           badge="Awaiting Settlement Analysis"
           primaryAction={{
             label: "Upload Energy Data",

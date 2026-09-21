@@ -20,7 +20,7 @@ import { EnergyDataNormalizationEngine } from "../telemetry/energyDataNormalizat
 import { DeterministicReconciliationEngine } from "../reconciliation/reconciliationEngine";
 import type { AuthoritativeReconciliationInput } from "../reconciliation/reconciliationEngine";
 import { DeterministicDiagnosticsEngine } from "../discrepancy/deterministicDiagnosticsEngine";
-import { ESKOM_MEGAFLEX_2025_2026, ESKOM_MINIFLEX_2025_2026 } from "../tariff/tariffFixtures";
+import { TariffStorageService } from "../tariff/tariffStorageService";
 import Decimal from "decimal.js-light";
 import { TenantIsolationViolationError } from "../security/tenantContextService";
 import type { UserSecurityContext } from "../security/types";
@@ -451,7 +451,11 @@ export class ProcessingJobEngine {
           this.failJob(jobId, failReason);
           return;
         }
-        extractedInvoice = invoiceIngestResult.extractedInvoice || this.buildFallbackInvoice(invoiceName);
+        extractedInvoice = invoiceIngestResult.extractedInvoice;
+        if (!extractedInvoice) {
+          this.failJob(jobId, "Unable to extract required invoice information.");
+          return;
+        }
       } catch (err: any) {
         this.failJob(jobId, err?.message || "Unable to extract required invoice information.");
         return;
@@ -574,14 +578,14 @@ export class ProcessingJobEngine {
 
     if (this.isCancelled(jobId)) return;
 
-    const assignedMeterId = resolution?.resolvedMeterId || sampleMeterId || "MTR-UNKNOWN";
+    const assignedMeterId = resolution?.resolvedMeterId || sampleMeterId || "";
     const canonicalTelemetry = EnergyDataNormalizationEngine.normalizeBatch(
       rawTelemetryRecords.map((r: any) => ({
         ...r,
         meter_id: assignedMeterId,
       })),
       {
-        defaultSiteId: "SITE-DEFAULT",
+        defaultSiteId: "",
         defaultMeterId: assignedMeterId,
         sourceUnits: { activeEnergy: "kWh", reactiveEnergy: "kvarh", demand: "kVA" },
       },
@@ -621,10 +625,15 @@ export class ProcessingJobEngine {
 
     if (this.isCancelled(jobId)) return;
 
-    const tariffCode = resolution?.confirmedTariffCode || extractedInvoice.tariffName || "Megaflex";
-    const tariffVersion = tariffCode.toUpperCase().includes("MINIFLEX")
-      ? ESKOM_MINIFLEX_2025_2026
-      : ESKOM_MEGAFLEX_2025_2026;
+    const tariffCode = resolution?.confirmedTariffCode || extractedInvoice.tariffName || extractedInvoice.tariff || "";
+    const tariffVersion = TariffStorageService.getVersionForDate(
+      tariffCode,
+      extractedInvoice.billingPeriodStart || "",
+    );
+    if (!tariffVersion) {
+      this.failJob(jobId, "Upload an applicable tariff document before reconciliation can run.");
+      return;
+    }
 
     const reconInput: AuthoritativeReconciliationInput = {
       tenant_id: orgId,
@@ -890,28 +899,6 @@ export class ProcessingJobEngine {
     }
 
     return new Uint8Array();
-  }
-
-  /**
-   * Builds an empty invoice shell. Values are populated only from uploads.
-   */
-  private static buildFallbackInvoice(filename: string): any {
-    return {
-      invoiceNumber: "",
-      accountNumber: "",
-      meterNumber: "",
-      tariffName: "",
-      billingPeriodStart: "",
-      billingPeriodEnd: "",
-      peakKwh: 0,
-      standardKwh: 0,
-      offPeakKwh: 0,
-      totalKwh: 0,
-      maximumDemandKva: 0,
-      reactiveKvarh: 0,
-      totalInvoice: 0,
-      sourceFilename: filename,
-    };
   }
 
   /**

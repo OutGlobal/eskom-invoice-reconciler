@@ -800,6 +800,7 @@ export function DeficitAnalysis({
 }
 
 export function DailyCostPanel({ rows }: { rows: Measurement[] }) {
+  const tariff = useApp((s) => s.tariff);
   const daily = useMemo(() => {
     if (!rows.length) return [];
     const map = new Map<
@@ -823,7 +824,7 @@ export function DailyCostPanel({ rows }: { rows: Measurement[] }) {
       map.set(day, cur);
     }
     return Array.from(map.values());
-  }, [rows]);
+  }, [rows, tariff]);
 
   if (!daily.length) return null;
 
