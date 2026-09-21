@@ -17,7 +17,7 @@ import {
 import { format } from "date-fns";
 import { parseMeterWorkbook, type Measurement } from "@/lib/parseMeter";
 import { computeTotals, computeCharges, type Charge } from "@/lib/reconciliation";
-import { TARIFF, TOU_COLOR, TOU_LABEL, getSeason, type TouPeriod } from "@/lib/tariff";
+import { TOU_COLOR, TOU_LABEL, getSeason, type TouPeriod } from "@/lib/tariff";
 import { useApp } from "@/lib/store";
 import { validateMeterRows } from "@/lib/validation";
 import { lttb } from "@/lib/downsample";
@@ -48,6 +48,7 @@ export function useDerived() {
   const be = useApp((s) => s.billingEnd);
   const nmd = useApp((s) => s.customer.nmd);
   const invoice = useApp((s) => s.invoice);
+  const tariff = useApp((s) => s.tariff);
 
   const filtered = useMemo(() => {
     if (!rows.length) return [];
@@ -115,7 +116,10 @@ export function useDerived() {
     };
   }, [filtered, invoice, nmd]);
 
-  const charges = useMemo(() => computeCharges(totals, nmd, filtered), [totals, nmd, filtered]);
+  const charges = useMemo(
+    () => computeCharges(totals, nmd, filtered, tariff),
+    [totals, nmd, filtered, tariff],
+  );
   const calculatedTotal = useMemo(
     () => charges.find((c) => c.label === "Total Charges")?.amount ?? 0,
     [charges],
@@ -806,9 +810,9 @@ export function DailyCostPanel({ rows }: { rows: Measurement[] }) {
       const day = format(r.ts, "dd MMM");
       const kWh = r.kW * 0.5;
       const season = getSeason(r.ts);
-      const rate = TARIFF.energy[season][r.tou] / 100;
+      const rate = tariff.energy[season][r.tou] / 100;
       const add =
-        (TARIFF.ancillary + TARIFF.legacy + TARIFF.affordability + TARIFF.electrification) / 100;
+        (tariff.ancillary + tariff.legacy + tariff.affordability + tariff.electrification) / 100;
       const cost = kWh * (rate + add);
       const cur = map.get(day) || { day, kWh: 0, cost: 0, peak: 0, std: 0, off: 0 };
       cur.kWh += kWh;
