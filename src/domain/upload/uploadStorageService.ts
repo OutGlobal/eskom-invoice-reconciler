@@ -284,7 +284,9 @@ export class UploadStorageService {
       if (!error && Array.isArray(data)) {
         const records = data.map((r: any) => this.mapRowToRecord(r));
         records.forEach((rec: any) => this.memoryStore.set(rec.id, rec));
-        return records;
+        // Records may also exist only in the local session store (when the
+        // remote write was rejected), so continue to the merge below instead of
+        // returning the remote page in isolation.
       }
     } catch (err) {
       if (err instanceof TenantIsolationViolationError) throw err;
