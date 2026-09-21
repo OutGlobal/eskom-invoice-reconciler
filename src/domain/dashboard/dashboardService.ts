@@ -256,9 +256,9 @@ export class DashboardService {
       );
       for (const r of memRuns || []) {
         mergedRuns.push({
-          id: r.run_id || r.id,
+          id: r.run_id,
           status: (r.status || "completed").toLowerCase(),
-          run_at: r.run_at || r.created_at || new Date().toISOString(),
+          run_at: r.created_at,
           invoice_record_id: r.invoice_id,
         });
       }

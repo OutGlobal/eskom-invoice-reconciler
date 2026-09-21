@@ -285,11 +285,11 @@ export class DuplicateProtectionService {
             description: `Accidental duplicate detected and skipped for ${candidate.sourceFile.name}`,
             actor: { email: actor },
             record: {
-              entityType: candidate.sourceType === "INVOICE_PDF" ? "invoice" : "source_file",
+              entityType: candidate.sourceType === "INVOICE" ? "invoice" : "source_file",
               recordId: checkResult.existingRecord?.id || "unknown",
               recordLabel: candidate.sourceFile.name,
             },
-            metadata: { matchedCriteria: checkResult.matchedCriteria, actionTaken: "KEEP_EXISTING_SKIP" },
+            metadata: { matchedCriteria: checkResult.matchCriteria, actionTaken: "KEEP_EXISTING_SKIP" },
           });
         } catch {}
 
@@ -329,11 +329,11 @@ export class DuplicateProtectionService {
             description: `Accepted legitimate correction for ${candidate.invoiceNumber || candidate.sourceFile.name}, superseding prior version`,
             actor: { email: actor },
             record: {
-              entityType: candidate.sourceType === "INVOICE_PDF" ? "invoice" : "source_file",
+              entityType: candidate.sourceType === "INVOICE" ? "invoice" : "source_file",
               recordId: priorId || candidate.invoiceNumber || "unknown",
               recordLabel: candidate.invoiceNumber || candidate.sourceFile.name,
             },
-            previousState: checkResult.existingRecord?.metrics || null,
+            previousState: checkResult.existingRecord || null,
             newState: candidate.metrics || null,
             metadata: { differences: checkResult.differences, supersedesId: priorId },
           });

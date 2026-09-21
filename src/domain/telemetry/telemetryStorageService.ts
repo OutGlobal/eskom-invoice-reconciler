@@ -84,7 +84,7 @@ export class TelemetryStorageService {
           billed_value: item.billed_value,
           unit: item.unit,
           source_file_id:
-            item.source_file_id !== "src-file-local" && item.source_file_id.length > 10
+            item.source_file_id && item.source_file_id !== "src-file-local" && item.source_file_id.length > 10
               ? item.source_file_id
               : null,
           ingestion_batch_id:
@@ -212,8 +212,9 @@ export class TelemetryStorageService {
     };
 
     for (const item of intervals) {
-      if (countsByState[item.quality_state] !== undefined) {
-        countsByState[item.quality_state]++;
+      const qualityState = item.quality_state;
+      if (qualityState && countsByState[qualityState] !== undefined) {
+        countsByState[qualityState]++;
       }
     }
 

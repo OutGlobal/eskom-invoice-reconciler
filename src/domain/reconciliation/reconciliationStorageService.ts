@@ -224,7 +224,7 @@ export class ReconciliationStorageService {
             billedTotal,
             calculatedTotal,
             varianceTotal,
-            variancePercentage,
+            variancePercentage: variancePct,
             invoiceId,
           },
         });
@@ -322,7 +322,7 @@ export class ReconciliationStorageService {
       }
 
       const map = new Map<string, any>();
-      for (const r of runs) map.set(r.run_id || r.id, r);
+      for (const r of runs) map.set(r.run_id, r);
       for (const m of inMemory) map.set(m.run_id || m.id, m);
 
       return Array.from(map.values());
