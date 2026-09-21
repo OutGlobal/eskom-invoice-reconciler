@@ -294,7 +294,7 @@ function CustomersPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. 7856504676"
+                  placeholder="Enter account number"
                   value={newAcc}
                   onChange={(e) => setNewAcc(e.target.value)}
                   className="w-full bg-background border border-border rounded px-3 py-2 text-sm"

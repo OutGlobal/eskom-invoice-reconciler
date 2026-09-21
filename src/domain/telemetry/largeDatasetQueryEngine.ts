@@ -401,7 +401,7 @@ export class LargeDatasetQueryEngine {
     const durationMs = Math.max(1, Math.round(performance.now() - startTime));
 
     return {
-      meterId: filter.meterId || filtered[0]?.meter_id || "MTR-ESKOM-001",
+      meterId: filter.meterId || filtered[0]?.meter_id || "",
       periodStart,
       periodEnd,
       cadence,
