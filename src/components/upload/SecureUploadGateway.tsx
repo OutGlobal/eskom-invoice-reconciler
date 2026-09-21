@@ -31,6 +31,7 @@ import { UploadStorageService } from "@/domain/upload/uploadStorageService";
 import { DuplicateProtectionService } from "@/domain/ingestion/duplicateProtectionService";
 import type {
   DuplicateCheckResult,
+  DuplicateEvaluationCandidate,
   DuplicateHandlingStatus,
   DuplicateResolutionAction,
 } from "@/domain/ingestion/duplicateTypes";
@@ -147,7 +148,7 @@ export function SecureUploadGateway() {
     action: DuplicateResolutionAction,
   ) => {
     if (!candidateResult.duplicateResult) return;
-    const file = files[0];
+    const file = candidateResult.fileHeader.fileExtension === "pdf" ? activeInvoiceFile : activeMeterFile;
     const candidate: DuplicateEvaluationCandidate = {
       organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
       sourceType: candidateResult.fileHeader.fileExtension === "pdf" ? "INVOICE" : "TELEMETRY",
@@ -158,7 +159,7 @@ export function SecureUploadGateway() {
       },
       accountNumber: candidateResult.extractedInvoice?.accountNumber,
       meterNumber: candidateResult.extractedInvoice?.meterNumber,
-      invoiceNumber: candidateResult.extractedInvoice?.invoiceNumber,
+      invoiceNumber: undefined,
       billingPeriod: {
         startDate: candidateResult.extractedInvoice?.billingStart,
         endDate: candidateResult.extractedInvoice?.billingEnd,
@@ -310,9 +311,9 @@ export function SecureUploadGateway() {
             meterIngestion: { intervals: [] } as any,
             extractedInvoice: current.resultPayload?.invoiceDeterminants as any,
             reconciliation: current.resultPayload?.reconciliation as any,
-            discrepancySummary: current.resultPayload?.diagnostics as any,
+            discrepancyAnalysis: current.resultPayload?.diagnostics as any,
             lineageGraphId: `LINEAGE-${current.jobId}`,
-            processingDurationMs: current.resultPayload?.processingDurationMs || 0,
+            startedAt: current.startedAt || current.createdAt,
             completedAt: current.completedAt || new Date().toISOString(),
           };
           setAutomatedResult(syntheticResult);
@@ -1226,7 +1227,7 @@ export function SecureUploadGateway() {
               </p>
 
               <div className="flex items-center gap-2">
-                {ingestionResult.duplicateResult.resolutionOptions.map((opt) => (
+                {ingestionResult.duplicateResult?.resolutionOptions.map((opt) => (
                   <button
                     key={opt.action}
                     aria-label={
@@ -1239,7 +1240,7 @@ export function SecureUploadGateway() {
                     onClick={() => handleDuplicateResolution(ingestionResult, opt.action)}
                     className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
                       opt.isRecommended
-                        ? ingestionResult.duplicateResult.status === "CORRECTION"
+                        ? ingestionResult.duplicateResult?.status === "CORRECTION"
                           ? "bg-purple-600 hover:bg-purple-500 text-white border-purple-400 shadow-md"
                           : "bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-400 shadow-md"
                         : "bg-card/70 hover:bg-card border-border text-foreground"
