@@ -421,7 +421,7 @@ export function DemandLineChart({
 }) {
   const storeRows = useApp((s) => s.rows);
   const customer = useApp((s) => s.customer);
-  const nmd = customer.nmd || 85740;
+  const nmd = customer.nmd || 0;
 
   const rows = useMemo(() => {
     if (inputRows && inputRows.length > 0) return inputRows;

@@ -458,7 +458,7 @@ export function TrendsPage() {
               <li>
                 <strong className="text-foreground">AMR Meter Telemetry:</strong>{" "}
                 {rows.length > 0
-                  ? `${NUM(rows.length, 0)} interval readings collected for meter ${customer.meter || "7856504226"} at ${customer.name || "Customer Facility"}.`
+                  ? `${NUM(rows.length, 0)} interval readings collected${customer.meter ? ` for meter ${customer.meter}` : ""}${customer.name ? ` at ${customer.name}` : ""}.`
                   : "No interval readings ingested in active session."}
               </li>
               <li>
