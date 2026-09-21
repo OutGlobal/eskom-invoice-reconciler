@@ -48,6 +48,7 @@ import type {
 } from "@/domain/pipeline/types";
 import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
 import { LocalFileVault } from "@/lib/localFileVault";
+import { LocalWorkspaceStore } from "@/lib/localWorkspaceStore";
 
 const AUTOMATED_STAGES: { id: AutomatedPipelineStage; label: string }[] = [
   { id: "UPLOAD_SUCCESSFUL", label: "Upload successful" },
@@ -147,6 +148,21 @@ export function SecureUploadGateway() {
 
   useEffect(() => {
     loadHistory();
+    LocalWorkspaceStore.loadDataset().then((dataset) => {
+      if (!dataset) return;
+      const store = useApp.getState();
+      if (dataset.invoice) {
+        store.setInvoice(dataset.invoice);
+        store.setCustomer({
+          name: dataset.invoice.customerName,
+          accountNumber: dataset.invoice.accountNumber,
+          meter: dataset.invoice.meterNumber,
+          address: dataset.invoice.address || "",
+          nmd: dataset.invoice.nmd || 0,
+        });
+      }
+      if (dataset.rows.length > 0) store.setRows(dataset.rows);
+    });
   }, []);
 
   // Automated Pipeline State (Stage 15)
@@ -387,6 +403,14 @@ export function SecureUploadGateway() {
               totalInclVat: ext.totalInvoice || 0,
             };
             useApp.getState().setInvoice(mappedInvoice);
+            useApp.getState().setCustomer({
+              name: mappedInvoice.customerName,
+              accountNumber: mappedInvoice.accountNumber,
+              meter: mappedInvoice.meterNumber,
+              address: mappedInvoice.address || "",
+              nmd: mappedInvoice.nmd || 0,
+            });
+            await LocalWorkspaceStore.saveDataset(mappedInvoice, useApp.getState().rows);
           }
 
           RealtimeRefreshManager.notifyProcessingComplete({
@@ -556,12 +580,20 @@ export function SecureUploadGateway() {
           };
 
           store.setInvoice(mappedInvoice);
+          store.setCustomer({
+            name: mappedInvoice.customerName,
+            accountNumber: mappedInvoice.accountNumber,
+            meter: mappedInvoice.meterNumber,
+            address: mappedInvoice.address || "",
+            nmd: mappedInvoice.nmd || 0,
+          });
           store.addUpload({
             name: file.name,
             size: file.size,
             type: "invoice",
             uploadedAt: new Date(),
           });
+          await LocalWorkspaceStore.saveDataset(mappedInvoice, store.rows);
         }
 
         // 2. If interval telemetry was extracted, reflect in app store rows
@@ -586,6 +618,7 @@ export function SecureUploadGateway() {
             type: "meter",
             uploadedAt: new Date(),
           });
+          await LocalWorkspaceStore.saveDataset(store.invoice, measurements);
         }
 
         // Notify realtime refresh manager for automatic dashboard/charts update
@@ -1435,6 +1468,7 @@ export function SecureUploadGateway() {
               <thead className="bg-muted/40 text-muted-foreground uppercase font-semibold text-[10px] tracking-wider border-b border-border/40">
                 <tr>
                   <th className="py-3 px-4">Filename</th>
+                  <th className="py-3 px-4">Account / Customer</th>
                   <th className="py-3 px-4">Source Type</th>
                   <th className="py-3 px-4">Size</th>
                   <th className="py-3 px-4">Uploaded</th>
@@ -1448,7 +1482,7 @@ export function SecureUploadGateway() {
               <tbody className="divide-y divide-border/20 font-mono">
                 {filteredUploads.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-8 text-center text-muted-foreground font-sans">
+                    <td colSpan={10} className="py-8 text-center text-muted-foreground font-sans">
                       No upload records match the current filter.
                     </td>
                   </tr>
@@ -1461,6 +1495,14 @@ export function SecureUploadGateway() {
                         </div>
                         <div className="text-[10px] text-muted-foreground font-mono truncate max-w-[220px]">
                           {rec.id}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="font-medium text-foreground">
+                          {rec.metadata?.accountNumber || "Unassigned"}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground max-w-[180px] truncate">
+                          {rec.metadata?.customerName || rec.metadata?.meterNumber || "Awaiting account match"}
                         </div>
                       </td>
                       <td className="py-3 px-4">
@@ -1575,6 +1617,18 @@ export function SecureUploadGateway() {
                   <span className="text-muted-foreground">File Type:</span>
                   <div className="font-medium text-foreground mt-0.5">
                     {selectedUpload.fileType}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Linked Account:</span>
+                  <div className="font-medium text-foreground mt-0.5">
+                    {selectedUpload.metadata?.accountNumber || "Unassigned"}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Customer / Meter:</span>
+                  <div className="font-medium text-foreground mt-0.5">
+                    {selectedUpload.metadata?.customerName || selectedUpload.metadata?.meterNumber || "Awaiting match"}
                   </div>
                 </div>
                 <div>

@@ -47,6 +47,7 @@ export interface FileMetadataHeader {
 }
 
 export interface ExtractedInvoiceFields {
+  customerName?: string;
   accountNumber: string;
   pod: string;
   premiseId: string;
