@@ -495,6 +495,14 @@ export function SecureUploadGateway() {
       );
       setIngestionResult(res);
 
+      // Retain a durable local copy of the original document so it stays downloadable
+      await LocalFileVault.store(file, {
+        uploadId: res.uploadRecord?.id || res.fileHeader?.documentId,
+        storagePath: res.uploadRecord?.storageLocation,
+        fileName: file.name,
+        mimeType: file.type,
+      });
+
       if (res.success) {
         const store = useApp.getState();
 
