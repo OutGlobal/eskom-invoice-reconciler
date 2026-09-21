@@ -1,7 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { format } from "date-fns";
+import { useMemo } from "react";
 import toast from "react-hot-toast";
 import { Download, FileJson, FileText, FileSpreadsheet } from "lucide-react";
+import {
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  Legend,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import {
   Panel,
   MetricCard,
@@ -11,21 +22,42 @@ import {
   useDerived,
 } from "@/components/dashboard/parts";
 import { useApp } from "@/lib/store";
-import { exportToExcel, exportToCsv, exportToJson } from "@/lib/exportReports";
+import { exportToCsv, exportToJson } from "@/lib/exportReports";
+import {
+  downloadDetailedPdfReport,
+  downloadDetailedWorkbook,
+  type DetailedReportInput,
+  type ReportTimelinePoint,
+} from "@/lib/reportBuilders";
 import { buildStandardReconciliationTable } from "@/lib/reconciliation";
 
 import { InvoiceSelector } from "@/components/InvoiceSelector";
 
 export const Route = createFileRoute("/reports")({
-  head: () => ({ meta: [{ title: "Reconciliation Reports — Eskom Bill Balancer" }] }),
+  head: () => ({
+    meta: [
+      { title: "Reconciliation Reports & Audit Exports — ENERA" },
+      {
+        name: "description",
+        content:
+          "Generate detailed utility billing reconciliation reports with corporate charts, billing timelines, and PDF or Excel downloads.",
+      },
+      { property: "og:title", content: "Reconciliation Reports & Audit Exports — ENERA" },
+      {
+        property: "og:description",
+        content:
+          "Detailed reconciliation reporting with charge-level variance charts, billing timelines, and PDF/Excel exports.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: ReportsPage,
 });
 
 function ReportsPage() {
   useBootstrapMeter();
-  const { rows, totals, charges, calculatedTotal } = useDerived();
-  const customer = useApp((s) => s.customer);
-  const tariff = useApp((s) => s.tariff);
+  const { totals, charges, calculatedTotal } = useDerived();
   const invoiceTotal = useApp((s) => s.invoiceTotal);
   const invoice = useApp((s) => s.invoice);
   const invoiceLines = useApp((s) => s.invoiceLines);
@@ -54,9 +86,72 @@ function ReportsPage() {
     reason: r.reason,
   }));
 
+  const timeline: ReportTimelinePoint[] = useMemo(
+    () =>
+      invoicesToCompare.map((inv, idx) => ({
+        label: inv.accountMonth || inv.billingPeriod || `Period ${idx + 1}`,
+        invoiceNumber: inv.invoiceNo || inv.invoiceNumber || undefined,
+        billingPeriod:
+          inv.billingPeriod ||
+          (inv.billingPeriodStart || inv.billingPeriodEnd
+            ? `${inv.billingPeriodStart || "—"} to ${inv.billingPeriodEnd || "—"}`
+            : undefined),
+        totalKWh: inv.totalKWh || 0,
+        maxDemandKVA: inv.maxDemandKVA || inv.simMaxDemand || 0,
+        invoicedExclVat: inv.invoiceTotal || 0,
+      })),
+    [invoicesToCompare],
+  );
+
+  const varianceChartData = useMemo(
+    () =>
+      reconRows
+        .filter((r) => r.calculated > 0 || r.invoice > 0)
+        .slice(0, 14)
+        .map((r) => ({
+          name: r.charge.length > 22 ? `${r.charge.slice(0, 21)}…` : r.charge,
+          calculated: Number(r.calculated.toFixed(2)),
+          invoiced: Number((r.invoice > 0 ? r.invoice : 0).toFixed(2)),
+          variance: Number((r.invoice > 0 ? r.varianceR : 0).toFixed(2)),
+        })),
+    [reconRows],
+  );
+
+  const reportInput: DetailedReportInput = {
+    invoice,
+    rows: exportRows,
+    lineItems: invoiceItems,
+    consumption: {
+      peakKWh: totals.peakKWh,
+      standardKWh: totals.standardKWh,
+      offPeakKWh: totals.offPeakKWh,
+      totalKWh: totals.totalKWh,
+      maxDemandKVA: totals.maxDemandKVA,
+      maxDemandAt: totals.maxDemandAt ?? null,
+    },
+    calculatedTotal,
+    invoiceTotal,
+    timeline,
+  };
+
+  const hasData = exportRows.length > 0 || timeline.length > 0;
+
   const handleExportExcel = () => {
-    exportToExcel(invoice, exportRows, invoiceItems);
-    toast.success("Excel report downloaded");
+    if (!hasData) {
+      toast.error("Upload an invoice and meter data before generating reports");
+      return;
+    }
+    downloadDetailedWorkbook(reportInput);
+    toast.success("Detailed Excel report downloaded");
+  };
+
+  const handleExportPdf = () => {
+    if (!hasData) {
+      toast.error("Upload an invoice and meter data before generating reports");
+      return;
+    }
+    downloadDetailedPdfReport(reportInput);
+    toast.success("Detailed PDF report downloaded");
   };
 
   const handleExportCsv = () => {
@@ -67,10 +162,6 @@ function ReportsPage() {
   const handleExportJson = () => {
     exportToJson(invoice);
     toast.success("JSON extracted data downloaded");
-  };
-
-  const handleExportPdf = () => {
-    window.print();
   };
 
   return (
@@ -104,24 +195,23 @@ function ReportsPage() {
           </div>
         </button>
 
-        <a
-          href="/system_architecture_report.pdf"
-          download="Eskom_Bill_Balancer_System_Architecture_and_Formulas.pdf"
-          className="text-left rounded-lg border border-border bg-card p-5 hover:border-primary/50 hover:bg-primary/5 transition group block"
+        <button
+          onClick={handleExportPdf}
+          className="text-left rounded-lg border border-border bg-card p-5 hover:border-primary/50 hover:bg-primary/5 transition group block w-full"
         >
           <div className="flex items-center gap-3">
             <div className="rounded-md bg-primary/10 p-2 text-primary">
               <FileText className="h-5 w-5" />
             </div>
             <div>
-              <div className="font-semibold text-sm">System Architecture PDF</div>
+              <div className="font-semibold text-sm">Full Report (.pdf)</div>
               <div className="text-xs text-muted-foreground">
-                Download full technical &amp; audit formula PDF.
+                Branded pack: summary, variance chart, tables, timeline.
               </div>
             </div>
             <Download className="ml-auto h-4 w-4 opacity-60 group-hover:opacity-100" />
           </div>
-        </a>
+        </button>
 
         <button
           onClick={handleExportJson}
@@ -174,6 +264,122 @@ function ReportsPage() {
           <MetricCard label="% Error" value={invoiceTotal ? `${pctErr.toFixed(2)}%` : "—"} />
         </div>
       </Panel>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <Panel
+          title="Charge-Level Variance Profile"
+          subtitle="Calculated determinant charges against invoiced amounts, with signed variance overlay."
+        >
+          {varianceChartData.length === 0 ? (
+            <div className="h-72 flex items-center justify-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+              Upload an invoice and meter data to populate variance analytics.
+            </div>
+          ) : (
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={varianceChartData} margin={{ top: 8, right: 8, bottom: 40 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    angle={-32}
+                    textAnchor="end"
+                    interval={0}
+                    height={70}
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                  <Tooltip
+                    formatter={(v: any) => ZAR(Number(v))}
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="calculated" name="Calculated" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="invoiced" name="Invoiced" fill="#64748b" radius={[3, 3, 0, 0]} />
+                  <Line
+                    type="monotone"
+                    dataKey="variance"
+                    name="Variance"
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    dot={{ r: 2 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Panel>
+
+        <Panel
+          title="Billing Timeline — Energy, Demand & Invoiced Value"
+          subtitle="Period-over-period movement across extracted billing statements."
+        >
+          {timeline.length === 0 ? (
+            <div className="h-72 flex items-center justify-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+              Upload multiple billing periods to build the timeline.
+            </div>
+          ) : (
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={timeline} margin={{ top: 8, right: 8, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <YAxis
+                    yAxisId="left"
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar
+                    yAxisId="left"
+                    dataKey="totalKWh"
+                    name="Energy (kWh)"
+                    fill="hsl(var(--primary))"
+                    radius={[3, 3, 0, 0]}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="invoicedExclVat"
+                    name="Invoiced (R)"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="maxDemandKVA"
+                    name="Max demand (kVA)"
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    strokeDasharray="4 3"
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Panel>
+      </div>
+
 
       <Panel
         title="Historical Utility Billing Comparison Matrix"

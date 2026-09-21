@@ -47,6 +47,7 @@ import type {
   AutomatedPipelineResult,
 } from "@/domain/pipeline/types";
 import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
+import { LocalFileVault } from "@/lib/localFileVault";
 
 const AUTOMATED_STAGES: { id: AutomatedPipelineStage; label: string }[] = [
   { id: "UPLOAD_SUCCESSFUL", label: "Upload successful" },
@@ -79,10 +80,13 @@ export function SecureUploadGateway() {
   const [ingestionResult, setIngestionResult] = useState<IngestionGatewayResult | null>(null);
   const [selectedUpload, setSelectedUpload] = useState<UploadRecord | null>(null);
   const [downloadingUrl, setDownloadingUrl] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const handleDownloadSecureFile = async (upload: UploadRecord) => {
     setDownloadingUrl(true);
+    setDownloadError(null);
     try {
+      // 1. Remote secure object store (time-limited signed URL)
       const res = await fetch(`/api/uploads/${upload.id}/signed-url`, {
         method: "POST",
         headers: {
@@ -90,15 +94,34 @@ export function SecureUploadGateway() {
           "X-Tenant-ID": upload.organisationId,
         },
       });
-      if (!res.ok) {
-        throw new Error(`Failed to generate signed URL (${res.status})`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.signedUrl) {
+          window.open(data.signedUrl, "_blank");
+          return;
+        }
       }
-      const data = await res.json();
-      if (data.signedUrl) {
-        window.open(data.signedUrl, "_blank");
+      // 2. Durable local vault copy of the original uploaded file
+      const served =
+        (await LocalFileVault.download(upload.id, upload.filename)) ||
+        (upload.storageLocation
+          ? await LocalFileVault.download(upload.storageLocation, upload.filename)
+          : false);
+      if (!served) {
+        setDownloadError(
+          `Original file for "${upload.filename}" is not available on this device. Re-upload the document to restore the downloadable copy.`,
+        );
       }
     } catch (err: any) {
       console.error("Secure download failure:", err);
+      const served =
+        (await LocalFileVault.download(upload.id, upload.filename)) ||
+        (upload.storageLocation
+          ? await LocalFileVault.download(upload.storageLocation, upload.filename)
+          : false);
+      if (!served) {
+        setDownloadError(`Unable to retrieve "${upload.filename}" for download.`);
+      }
     } finally {
       setDownloadingUrl(false);
     }
@@ -234,6 +257,17 @@ export function SecureUploadGateway() {
   ) => {
     setActiveInvoiceFile(invoiceFile);
     setActiveMeterFile(meterFile);
+    // Keep both original documents retrievable for later download
+    void LocalFileVault.store(invoiceFile, {
+      fileName: invoiceFile.name,
+      mimeType: invoiceFile.type,
+      storagePath: `local/${invoiceFile.name}`,
+    });
+    void LocalFileVault.store(meterFile, {
+      fileName: meterFile.name,
+      mimeType: meterFile.type,
+      storagePath: `local/${meterFile.name}`,
+    });
     setAutomatedPipelineRunning(true);
     setAmbiguityReport(null);
     setAutomatedResult(null);
@@ -472,6 +506,14 @@ export function SecureUploadGateway() {
         },
       );
       setIngestionResult(res);
+
+      // Retain a durable local copy of the original document so it stays downloadable
+      await LocalFileVault.store(file, {
+        uploadId: res.uploadRecord?.id || res.fileHeader?.documentId,
+        storagePath: res.uploadRecord?.storageLocation,
+        fileName: file.name,
+        mimeType: file.type,
+      });
 
       if (res.success) {
         const store = useApp.getState();
@@ -1619,6 +1661,12 @@ export function SecureUploadGateway() {
                 </pre>
               </div>
             </div>
+
+            {downloadError && (
+              <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-300">
+                {downloadError}
+              </div>
+            )}
 
             <div className="pt-3 border-t border-border/40 flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
