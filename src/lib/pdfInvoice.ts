@@ -703,31 +703,71 @@ async function ocrImageFile(file: File) {
   return ocrCanvases(await imageFileToCanvases(file));
 }
 
+async function createOcrWorker(tesseract: typeof import("tesseract.js")) {
+  // Prefer the recognition assets served from this application so processing
+  // works without third-party network access; fall back to the library default.
+  try {
+    return await tesseract.createWorker("eng", 1, {
+      workerPath: "/tesseract/worker.min.js",
+      corePath: "/tesseract",
+      langPath: "/tessdata",
+      gzip: true,
+    });
+  } catch (localErr) {
+    console.warn("Local recognition assets unavailable, using library default:", localErr);
+    return await tesseract.createWorker("eng");
+  }
+}
+
 async function ocrCanvases(
   canvases: HTMLCanvasElement[],
 ): Promise<{ lines: TextLine[]; rawText: string; confidence: number }> {
-  if (typeof document === "undefined") return { lines: [], rawText: "", confidence: 0 };
-  const tesseract = await import("tesseract.js");
-  // Use clean, robust CDN creation without fragile local server path configuration
-  const worker = await tesseract.createWorker("eng");
+  if (typeof document === "undefined" || canvases.length === 0) {
+    return { lines: [], rawText: "", confidence: 0 };
+  }
 
   const lines: TextLine[] = [];
   const pageTexts: string[] = [];
   const confidences: number[] = [];
 
+  let worker: Awaited<ReturnType<typeof createOcrWorker>> | null = null;
   try {
+    const tesseract = await import("tesseract.js");
+    worker = await createOcrWorker(tesseract);
+
+    // Tuned for dense tabular utility bills: keep column spacing and allow
+    // the engine to segment mixed text/number blocks automatically.
+    try {
+      await worker.setParameters({
+        preserve_interword_spaces: "1",
+        tessedit_pageseg_mode: "3" as any,
+      });
+    } catch {
+      /* parameter tuning is best-effort */
+    }
+
     for (let i = 0; i < canvases.length; i++) {
-      const result = await worker.recognize(canvases[i]);
-      const confidence = clampConfidence(result.data.confidence ?? 0);
-      confidences.push(confidence);
-      pageTexts.push(`--- OCR PAGE ${i + 1} ---\n${result.data.text}`);
-      for (const text of result.data.text.split(/\r?\n/)) {
-        const cleaned = cleanOcrLine(text);
-        if (cleaned) lines.push({ text: cleaned, confidence });
+      try {
+        const result = await worker.recognize(canvases[i]);
+        const confidence = clampConfidence(result.data.confidence ?? 0);
+        confidences.push(confidence);
+        pageTexts.push(`--- OCR PAGE ${i + 1} ---\n${result.data.text}`);
+        for (const text of result.data.text.split(/\r?\n/)) {
+          const cleaned = cleanOcrLine(text);
+          if (cleaned) lines.push({ text: cleaned, confidence });
+        }
+      } catch (pageErr) {
+        console.warn(`Page ${i + 1} could not be read, continuing:`, pageErr);
       }
     }
+  } catch (err) {
+    console.warn("Document image recognition unavailable:", err);
   } finally {
-    await worker.terminate();
+    try {
+      await worker?.terminate();
+    } catch {
+      /* ignore */
+    }
   }
 
   const confidence = confidences.length
