@@ -580,10 +580,20 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
   const pdfjs = await import("pdfjs-dist");
   try {
     if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-      pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version || "4.10.38"}/build/pdf.worker.min.mjs`;
+      // Prefer the worker bundled with the installed pdfjs-dist version so text
+      // extraction works without any network access or version mismatch.
+      const workerUrl = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")) as {
+        default: string;
+      };
+      pdfjs.GlobalWorkerOptions.workerSrc = workerUrl.default;
     }
-  } catch (err) {
-    console.warn("PDF.js worker initialization notice:", err);
+  } catch {
+    try {
+      pdfjs.GlobalWorkerOptions.workerSrc =
+        `https://unpkg.com/pdfjs-dist@${pdfjs.version || "6.1.200"}/build/pdf.worker.min.mjs`;
+    } catch (err) {
+      console.warn("PDF.js worker initialization notice:", err);
+    }
   }
 
   const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
