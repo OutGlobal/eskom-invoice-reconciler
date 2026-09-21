@@ -1,6 +1,5 @@
-# Roadmap
+# Cleanup roadmap
 
-- [x] Replace raw ledger/code presentation with a readable evidence timeline using actual uploaded records
-- [x] Remove runtime embedded invoice, spreadsheet, customer, municipal, and reconciliation datasets
-- [x] Upgrade charts to use uploaded data only and add a location-zone view
-- [x] Verify key pages and runtime error states
+- [ ] Remove production-reachable embedded invoice, meter, spreadsheet, customer, tariff-book, and municipal records
+- [ ] Ensure initial stores and pages are empty until upload
+- [ ] Verify key pages and production data paths
