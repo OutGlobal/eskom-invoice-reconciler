@@ -92,6 +92,16 @@ export interface AnomalyTrendPoint {
   financialImpactZar: number;
 }
 
+export interface LocationZonePoint {
+  name: string;
+  zone: string;
+  address: string;
+  siteCount: number;
+  invoiceCount: number;
+  totalKwh: number;
+  billedZar: number;
+}
+
 export interface ChartDatasetResult<T> {
   hasData: boolean;
   data: T[];
@@ -111,6 +121,7 @@ export interface AllChartsData {
   siteComparison: ChartDatasetResult<SiteComparisonPoint>;
   billingTrend: ChartDatasetResult<BillingTrendPoint>;
   anomalyTrend: ChartDatasetResult<AnomalyTrendPoint>;
+  locationZones: ChartDatasetResult<LocationZonePoint>;
   isLiveDatabase: boolean;
   lastUpdated: string;
 }

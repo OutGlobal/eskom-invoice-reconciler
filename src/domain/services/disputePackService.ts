@@ -32,18 +32,18 @@ export class DisputePackService {
 --------------------------------------------------------------------------------
 To:         Eskom Holdings SOC Ltd — Key Accounts Management Division
 Date:       ${dateStr}
-Customer:   ${inv.customerName || "Impala Platinum Ltd — Rustenburg Operation"}
-Account No: ${inv.accountNumber || "7856504676"}
-Premise ID: ${inv.premiseId || "7856504226"} (Millennium 33kV Substation Incomer)
-Invoice No: ${inv.invoiceNumber || "#785762166034"}
-Tariff:     ${inv.tariffName || "Megaflex Non-Local Authority (33kV)"}
+    Customer:   ${inv.customerName || "Not available"}
+    Account No: ${inv.accountNumber || "Not available"}
+    Premise ID: ${inv.premiseId || "Not available"}
+    Invoice No: ${inv.invoiceNumber || "Not available"}
+    Tariff:     ${inv.tariffName || "Not available"}
 --------------------------------------------------------------------------------
 
-SUBJECT: FORMAL DISPUTE REGARDING INVOICE ${inv.invoiceNumber || "#785762166034"} 
+    SUBJECT: FORMAL DISPUTE REGARDING INVOICE ${inv.invoiceNumber || "Not available"} 
 TOTAL DISPUTED RECOVERY CLAIM: R ${totalClaimR.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} (EX VAT)
 
 1. EXECUTIVE SUMMARY
-Impala Platinum Ltd hereby submits a formal commercial billing dispute under Clause 14 of the Standard Electricity Supply Agreement regarding Tax Invoice ${inv.invoiceNumber || "#785762166034"}. An independent audit of 5,747 30-minute interval telemetry readings against NERSA-approved 2025/26 and 2026/27 Megaflex schedules has identified material billing anomalies totaling R ${totalClaimR.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}.
+    The customer hereby submits a formal commercial billing dispute regarding Tax Invoice ${inv.invoiceNumber || "Not available"}. The uploaded meter and billing records identify disputed items totaling R ${totalClaimR.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}.
 
 2. DETAILED DISPUTED CLAIMS & ROOT CAUSE ANALYSIS
 
@@ -69,13 +69,13 @@ This dispute is grounded in NERSA MYPD5 Tariff Methodology §4 and Eskom Schedul
 
 5. REQUESTED RELIEF & REMEDIAL ACTIONS
 We formally request:
-1. Issue of a Credit Note for R ${totalClaimR.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} against Account ${inv.accountNumber || "7856504676"}.
+    1. Issue of a Credit Note for R ${totalClaimR.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} against Account ${inv.accountNumber || "Not available"}.
 2. Reversion of the 12-month Maximum Demand Ratchet baseline to ${recon.nmdStatus.contractedNmdKVA.toLocaleString()} kVA.
 3. Written confirmation of adjustment within 14 business days.
 
 Submitted By:
 Commercial Energy & Compliance Audit Division
-Impala Platinum Ltd — Rustenburg Operations
+    ${inv.customerName || "Customer account holder"}
 `;
   }
 }

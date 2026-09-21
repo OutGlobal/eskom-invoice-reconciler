@@ -422,12 +422,12 @@ export class ProcessingJobEngine {
 
     const orgId = job.organisationId;
     const userId = job.userId || "system";
+    const invoiceName = input.invoiceFile?.name || (input.invoiceFile as any)?.filename || "invoice.pdf";
+    const invoiceSize = input.invoiceFile?.size ?? (input.invoiceFile as any)?.data?.byteLength ?? 0;
 
     let extractedInvoice = this.buildFallbackInvoice("invoice.pdf");
     if (input.invoiceFile) {
       const invoiceBytes = await this.resolveFileBytes(input.invoiceFile, "invoice.pdf");
-      const invoiceName = input.invoiceFile?.name || (input.invoiceFile as any)?.filename || "invoice.pdf";
-
       // -------------------------------------------------------------
       // STAGE 2: PDF_EXTRACTION & OCR
       // -------------------------------------------------------------
@@ -452,16 +452,13 @@ export class ProcessingJobEngine {
           return;
         }
         extractedInvoice = invoiceIngestResult.extractedInvoice || this.buildFallbackInvoice(invoiceName);
-        if (!extractedInvoice.meterNumber) {
-          extractedInvoice.meterNumber = this.buildFallbackInvoice(invoiceName).meterNumber;
-        }
       } catch (err: any) {
         this.failJob(jobId, err?.message || "Unable to extract required invoice information.");
         return;
       }
     } else {
-      this.updateProgress(jobId, "PDF_EXTRACTION", 25, 0, undefined, "Using registered baseline determinants");
-      await this.tick();
+      this.failJob(jobId, "An invoice upload is required before reconciliation can run.");
+      return;
     }
 
     // -------------------------------------------------------------
@@ -499,19 +496,9 @@ export class ProcessingJobEngine {
       rawTelemetryRecords = meterIngestResult.intervals || (meterIngestResult as any).normalizedRecords || [];
     }
 
-    if (rawTelemetryRecords.length === 0 && input.meterFile) {
-      rawTelemetryRecords = [
-        {
-          timestamp: "2025-01-01T00:00:00Z",
-          meter_id: "MTR-ESKOM-001",
-          raw_active_energy: 150.0,
-          raw_reactive_energy: 30.0,
-          raw_apparent_power: 160.0,
-          kwh: 150.0,
-          kvarh: 30.0,
-          kva: 160.0,
-        },
-      ];
+    if (rawTelemetryRecords.length === 0) {
+      this.failJob(jobId, "A valid interval meter upload is required before reconciliation can run.");
+      return;
     }
 
     const totalRecords = rawTelemetryRecords.length;
@@ -624,7 +611,7 @@ export class ProcessingJobEngine {
       }
     }
 
-    const calculatedTotalKwh = aggPeak + aggStd + aggOffPeak || canonicalTelemetry.length * 15;
+    const calculatedTotalKwh = aggPeak + aggStd + aggOffPeak;
 
     // -------------------------------------------------------------
     // STAGE 6: RECONCILIATION
@@ -641,28 +628,28 @@ export class ProcessingJobEngine {
 
     const reconInput: AuthoritativeReconciliationInput = {
       tenant_id: orgId,
-      invoice_id: extractedInvoice.invoiceNumber || `INV-${Date.now()}`,
-      invoice_number: extractedInvoice.invoiceNumber || `INV-${Date.now()}`,
-      account_number: extractedInvoice.accountNumber || "7856504676",
-      billing_start: extractedInvoice.billingPeriodStart || "2025-01-01",
-      billing_end: extractedInvoice.billingPeriodEnd || "2025-01-31",
+      invoice_id: extractedInvoice.invoiceNumber || "",
+      invoice_number: extractedInvoice.invoiceNumber || "",
+      account_number: extractedInvoice.accountNumber || "",
+      billing_start: extractedInvoice.billingPeriodStart || "",
+      billing_end: extractedInvoice.billingPeriodEnd || "",
       tariff_version: tariffVersion,
 
       // Billed Values
-      billed_peak_kwh: new Decimal(extractedInvoice.peakKwh?.toString() || "45000"),
-      billed_standard_kwh: new Decimal(extractedInvoice.standardKwh?.toString() || "65000"),
-      billed_off_peak_kwh: new Decimal(extractedInvoice.offPeakKwh?.toString() || "90000"),
-      billed_total_kwh: new Decimal(extractedInvoice.totalKwh?.toString() || "200000"),
-      billed_maximum_demand_kva: new Decimal(extractedInvoice.maximumDemandKva?.toString() || "450"),
-      billed_ratcheted_demand_kva: new Decimal(extractedInvoice.ratchetedDemandKva?.toString() || "450"),
-      billed_reactive_energy_kvarh: new Decimal(extractedInvoice.reactiveKvarh?.toString() || "22000"),
-      billed_energy_charges_zar: new Decimal(extractedInvoice.energyCharges?.toString() || "2450000.00"),
-      billed_demand_charges_zar: new Decimal(extractedInvoice.demandCharges?.toString() || "350000.00"),
-      billed_network_charges_zar: new Decimal(extractedInvoice.networkCharges?.toString() || "220000.00"),
-      billed_service_charges_zar: new Decimal(extractedInvoice.serviceCharges?.toString() || "15000.00"),
-      billed_ancillary_charges_zar: new Decimal(extractedInvoice.ancillaryCharges?.toString() || "45000.00"),
-      billed_vat_zar: new Decimal(extractedInvoice.vat?.toString() || "462000.00"),
-      billed_total_invoice_zar: new Decimal(extractedInvoice.totalInvoice?.toString() || "3542000.00"),
+      billed_peak_kwh: new Decimal(extractedInvoice.peakKwh?.toString() || "0"),
+      billed_standard_kwh: new Decimal(extractedInvoice.standardKwh?.toString() || "0"),
+      billed_off_peak_kwh: new Decimal(extractedInvoice.offPeakKwh?.toString() || "0"),
+      billed_total_kwh: new Decimal(extractedInvoice.totalKwh?.toString() || "0"),
+      billed_maximum_demand_kva: new Decimal(extractedInvoice.maximumDemandKva?.toString() || "0"),
+      billed_ratcheted_demand_kva: new Decimal(extractedInvoice.ratchetedDemandKva?.toString() || "0"),
+      billed_reactive_energy_kvarh: new Decimal(extractedInvoice.reactiveKvarh?.toString() || "0"),
+      billed_energy_charges_zar: new Decimal(extractedInvoice.energyCharges?.toString() || "0"),
+      billed_demand_charges_zar: new Decimal(extractedInvoice.demandCharges?.toString() || "0"),
+      billed_network_charges_zar: new Decimal(extractedInvoice.networkCharges?.toString() || "0"),
+      billed_service_charges_zar: new Decimal(extractedInvoice.serviceCharges?.toString() || "0"),
+      billed_ancillary_charges_zar: new Decimal(extractedInvoice.ancillaryCharges?.toString() || "0"),
+      billed_vat_zar: new Decimal(extractedInvoice.vat?.toString() || "0"),
+      billed_total_invoice_zar: new Decimal(extractedInvoice.totalInvoice?.toString() || "0"),
 
       // Calculated Telemetry from Normalized Summary
       calc_peak_kwh: new Decimal(aggPeak.toString()),
@@ -671,7 +658,7 @@ export class ProcessingJobEngine {
       calc_total_kwh: new Decimal(calculatedTotalKwh.toString()),
       calc_maximum_demand_kva: new Decimal(maxDemand.toString()),
       calc_reactive_energy_kvarh: new Decimal(aggReactive.toString()),
-      calc_power_factor: new Decimal("0.98"),
+      calc_power_factor: new Decimal(maxDemand > 0 ? Math.min(1, calculatedTotalKwh / maxDemand).toString() : "1"),
     };
 
     const reconciliationPayload = DeterministicReconciliationEngine.reconcile(reconInput);
@@ -891,12 +878,7 @@ export class ProcessingJobEngine {
     file: AutomatedPipelineFile | File | undefined,
     fallbackName: string,
   ): Promise<Uint8Array> {
-    if (!file) {
-      if (fallbackName.endsWith(".pdf")) {
-        return new TextEncoder().encode("%PDF-1.5\n%Enera Authoritative Fallback\n%%EOF");
-      }
-      return new TextEncoder().encode(`timestamp,meter_id,active_power_kwh\n${new Date().toISOString()},MTR-ESKOM-001,100.0`);
-    }
+    if (!file) return new Uint8Array();
 
     if (typeof (file as any).data !== "undefined" && (file as any).data instanceof Uint8Array) {
       return (file as any).data;
@@ -907,27 +889,27 @@ export class ProcessingJobEngine {
       return new Uint8Array(buf);
     }
 
-    return new TextEncoder().encode(`timestamp,meter_id,active_power_kwh\n${new Date().toISOString()},MTR-ESKOM-001,100.0`);
+    return new Uint8Array();
   }
 
   /**
-   * Builds a safe standard fallback invoice
+   * Builds an empty invoice shell. Values are populated only from uploads.
    */
   private static buildFallbackInvoice(filename: string): any {
     return {
-      invoiceNumber: "INV-2025-01-ESK",
-      accountNumber: "7856504676",
-      meterNumber: "MTR-ESKOM-001",
-      tariffName: "Megaflex",
-      billingPeriodStart: "2025-01-01",
-      billingPeriodEnd: "2025-01-31",
-      peakKwh: 45000,
-      standardKwh: 65000,
-      offPeakKwh: 90000,
-      totalKwh: 200000,
-      maximumDemandKva: 450,
-      reactiveKvarh: 22000,
-      totalInvoice: 15462529.74,
+      invoiceNumber: "",
+      accountNumber: "",
+      meterNumber: "",
+      tariffName: "",
+      billingPeriodStart: "",
+      billingPeriodEnd: "",
+      peakKwh: 0,
+      standardKwh: 0,
+      offPeakKwh: 0,
+      totalKwh: 0,
+      maximumDemandKva: 0,
+      reactiveKvarh: 0,
+      totalInvoice: 0,
       sourceFilename: filename,
     };
   }
