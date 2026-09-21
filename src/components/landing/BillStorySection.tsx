@@ -119,8 +119,8 @@ export function BillStorySection() {
                 </div>
               </div>
               <div className="text-right text-[10px] text-muted-foreground">
-                <div>INV: #785101497007</div>
-                <div>ACC: #7856504676</div>
+                <div>INV: UPLOADED RECORD</div>
+                <div>ACC: VERIFIED ON UPLOAD</div>
               </div>
             </div>
 

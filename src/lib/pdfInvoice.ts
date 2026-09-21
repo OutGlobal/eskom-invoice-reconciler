@@ -86,10 +86,6 @@ const CHARGE_ALIASES: Array<{ key: ChargeKey; test: (s: string) => boolean }> = 
   { key: "connectionCharge", test: (s) => /(?:residual|premium)?\s*connection\s*charge/i.test(s) },
 ];
 
-export function matchKnownInvoice(fileName: string, rawText: string = "") {
-  return null;
-}
-
 export async function extractInvoiceFromPdf(file: File): Promise<{
   invoice: InvoiceData;
   chargeLines: Record<string, number>;
