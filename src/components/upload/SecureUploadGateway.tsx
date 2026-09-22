@@ -49,6 +49,11 @@ import type {
 import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
 import { LocalFileVault } from "@/lib/localFileVault";
 import { LocalWorkspaceStore } from "@/lib/localWorkspaceStore";
+import {
+  runAutomaticReconciliation,
+  type AutoReconciliationOutcome,
+} from "@/domain/reconciliation/autoReconciliationRunner";
+
 
 const AUTOMATED_STAGES: { id: AutomatedPipelineStage; label: string }[] = [
   { id: "UPLOAD_SUCCESSFUL", label: "Upload successful" },
