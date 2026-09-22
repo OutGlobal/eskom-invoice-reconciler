@@ -435,7 +435,9 @@ export function SecureUploadGateway() {
             timestamp: new Date().toISOString(),
           });
 
+          runReconciliationAfterUpload();
           await loadHistory();
+
         } else if (current.status === "FAILED") {
           unsubscribe();
           setAutomatedPipelineRunning(false);
@@ -643,8 +645,12 @@ export function SecureUploadGateway() {
           timestamp: new Date().toISOString(),
         });
 
+        // Reconcile immediately with everything now loaded
+        runReconciliationAfterUpload();
+
         // Refresh database history
         await loadHistory();
+
       }
     } catch (err: any) {
       console.error("Ingestion pipeline execution failure:", err);
