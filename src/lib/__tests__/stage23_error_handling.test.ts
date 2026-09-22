@@ -34,7 +34,8 @@ describe("Stage 23 — Error Handling & Safe Pipeline Failure", () => {
 
   it("Requirement 1 & 2: Safe Failure when Upload Succeeds but Extraction Fails (Status: FAILED, Reason: Unable to extract required invoice information.)", async () => {
     // Valid PDF header so upload and MIME security check succeed, but unreadable invoice body
-    const unreadablePdf = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n% Arbitrary document with no invoice determinants\n%%EOF";
+    const unreadablePdf =
+      "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n% Arbitrary document with no invoice determinants\n%%EOF";
     const bytes = new TextEncoder().encode(unreadablePdf);
     const file = new File([bytes], "unreadable_scanned_receipt.pdf", { type: "application/pdf" });
 
@@ -48,13 +49,17 @@ describe("Stage 23 — Error Handling & Safe Pipeline Failure", () => {
     // Extraction fails safely
     expect(result.success).toBe(false);
     expect(["FAILED", "QUARANTINED"]).toContain(result.batchJob.state);
-    expect(result.batchJob.quarantineReason).toContain("Unable to extract required invoice information.");
+    expect(result.batchJob.quarantineReason).toContain(
+      "Unable to extract required invoice information.",
+    );
 
     // Upload record status is FAILED
     expect(result.uploadRecord?.processingStatus).toBe("FAILED");
     expect(result.uploadRecord?.validationStatus).toBe("INVALID");
     expect(result.uploadRecord?.errorStatus).toBe("ERROR");
-    expect(result.uploadRecord?.errorMessage).toContain("Unable to extract required invoice information.");
+    expect(result.uploadRecord?.errorMessage).toContain(
+      "Unable to extract required invoice information.",
+    );
   });
 
   it("Requirement 3: The Original File Remains Stored in Object Storage Vault (Never Silently Discarded)", async () => {
@@ -63,7 +68,12 @@ describe("Stage 23 — Error Handling & Safe Pipeline Failure", () => {
     const filename = "damaged_meter_invoice.pdf";
     const file = new File([bytes], filename, { type: "application/pdf" });
 
-    const result = await SecureIngestionGateway.processUpload(file, filename, TEST_ORG_ID, TEST_USER_ID);
+    const result = await SecureIngestionGateway.processUpload(
+      file,
+      filename,
+      TEST_ORG_ID,
+      TEST_USER_ID,
+    );
 
     expect(result.success).toBe(false);
 
@@ -94,7 +104,12 @@ describe("Stage 23 — Error Handling & Safe Pipeline Failure", () => {
     const filename = "encrypted_unparseable_bill.pdf";
     const file = new File([bytes], filename, { type: "application/pdf" });
 
-    const result = await SecureIngestionGateway.processUpload(file, filename, TEST_ORG_ID, TEST_USER_ID);
+    const result = await SecureIngestionGateway.processUpload(
+      file,
+      filename,
+      TEST_ORG_ID,
+      TEST_USER_ID,
+    );
 
     expect(result.success).toBe(false);
 
@@ -109,7 +124,9 @@ describe("Stage 23 — Error Handling & Safe Pipeline Failure", () => {
     expect(quarantined.length).toBeGreaterThan(0);
     const matching = quarantined.find((q) => q.job.documentId === result.fileHeader.documentId);
     expect(matching).toBeDefined();
-    expect(matching?.job.quarantineReason).toContain("Unable to extract required invoice information.");
+    expect(matching?.job.quarantineReason).toContain(
+      "Unable to extract required invoice information.",
+    );
 
     // 3. Recorded in Persistent Audit Trail
     const { records: auditLogs } = await AuditTrailService.queryAuditTrail({
@@ -193,7 +210,11 @@ describe("Stage 23 — Error Handling & Safe Pipeline Failure", () => {
     const bytes = new TextEncoder().encode(unreadablePdf);
     const file = new File([bytes], "test_security_error.pdf", { type: "application/pdf" });
 
-    const result = await SecureIngestionGateway.processUpload(file, "test_security_error.pdf", TEST_ORG_ID);
+    const result = await SecureIngestionGateway.processUpload(
+      file,
+      "test_security_error.pdf",
+      TEST_ORG_ID,
+    );
 
     const errMsg = result.uploadRecord?.errorMessage || "";
     const quarantineMsg = result.batchJob.quarantineReason || "";

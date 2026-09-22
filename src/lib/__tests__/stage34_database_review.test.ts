@@ -32,7 +32,9 @@ describe("Stage 34 — Final Database Review & Schema Governance", () => {
 
     it("verifies account relationships (customers -> organisations, sites, invoices)", () => {
       // customer -> organisation
-      expect(fullSchemaSql).toMatch(/ALTER TABLE public\.customers ADD COLUMN organisation_id UUID REFERENCES public\.organisations/i);
+      expect(fullSchemaSql).toMatch(
+        /ALTER TABLE public\.customers ADD COLUMN organisation_id UUID REFERENCES public\.organisations/i,
+      );
       // site -> customer
       expect(fullSchemaSql).toMatch(/customer_id UUID NOT NULL REFERENCES public\.customers/i);
       // invoice_records -> customer
@@ -41,11 +43,17 @@ describe("Stage 34 — Final Database Review & Schema Governance", () => {
 
     it("verifies invoice and reconciliation run foreign keys cascade cleanly", () => {
       // invoice_line_items -> invoice_records
-      expect(fullSchemaSql).toMatch(/invoice_record_id UUID NOT NULL REFERENCES public\.invoice_records\(id\)\s+ON DELETE CASCADE/i);
+      expect(fullSchemaSql).toMatch(
+        /invoice_record_id UUID NOT NULL REFERENCES public\.invoice_records\(id\)\s+ON DELETE CASCADE/i,
+      );
       // reconciliation_results -> reconciliation_runs
-      expect(fullSchemaSql).toMatch(/reconciliation_run_id UUID NOT NULL UNIQUE REFERENCES public\.reconciliation_runs\(id\)\s+ON DELETE CASCADE/i);
+      expect(fullSchemaSql).toMatch(
+        /reconciliation_run_id UUID NOT NULL UNIQUE REFERENCES public\.reconciliation_runs\(id\)\s+ON DELETE CASCADE/i,
+      );
       // discrepancy_events -> reconciliation_runs
-      expect(fullSchemaSql).toMatch(/reconciliation_run_id UUID NOT NULL REFERENCES public\.reconciliation_runs\(id\)\s+ON DELETE CASCADE/i);
+      expect(fullSchemaSql).toMatch(
+        /reconciliation_run_id UUID NOT NULL REFERENCES public\.reconciliation_runs\(id\)\s+ON DELETE CASCADE/i,
+      );
     });
 
     it("verifies all 25 domain concepts have defined primary and foreign keys in the registry", () => {
@@ -168,9 +176,15 @@ describe("Stage 34 — Final Database Review & Schema Governance", () => {
     });
 
     it("enforces non-negative constraints on physical engineering and financial values", () => {
-      expect(fullSchemaSql).toMatch(/file_size_bytes\s+BIGINT\s+NOT\s+NULL\s+CHECK\s*\(\s*file_size_bytes\s*>=\s*0\s*\)/i);
-      expect(fullSchemaSql).toMatch(/row_count\s+INT\s+DEFAULT\s+0\s+CHECK\s*\(\s*row_count\s*>=\s*0\s*\)/i);
-      expect(fullSchemaSql).toMatch(/record_count\s+INT\s+DEFAULT\s+0\s+CHECK\s*\(\s*record_count\s*>=\s*0\s*\)/i);
+      expect(fullSchemaSql).toMatch(
+        /file_size_bytes\s+BIGINT\s+NOT\s+NULL\s+CHECK\s*\(\s*file_size_bytes\s*>=\s*0\s*\)/i,
+      );
+      expect(fullSchemaSql).toMatch(
+        /row_count\s+INT\s+DEFAULT\s+0\s+CHECK\s*\(\s*row_count\s*>=\s*0\s*\)/i,
+      );
+      expect(fullSchemaSql).toMatch(
+        /record_count\s+INT\s+DEFAULT\s+0\s+CHECK\s*\(\s*record_count\s*>=\s*0\s*\)/i,
+      );
       expect(fullSchemaSql).toMatch(/CHECK\s*\(\s*supply_voltage_kv\s*>=\s*0\s*\)/i);
       expect(fullSchemaSql).toMatch(/CHECK\s*\(\s*notified_maximum_demand_kva\s*>=\s*0\s*\)/i);
     });
@@ -179,7 +193,9 @@ describe("Stage 34 — Final Database Review & Schema Governance", () => {
       // Verifies decimal financial precision
       expect(fullSchemaSql).toMatch(/NUMERIC\s*\(\s*18\s*,\s*2\s*\)/i);
       // Verifies high precision engineering/rate precision
-      expect(fullSchemaSql).toMatch(/NUMERIC\s*\(\s*18\s*,\s*4\s*\)|NUMERIC\s*\(\s*18\s*,\s*6\s*\)/i);
+      expect(fullSchemaSql).toMatch(
+        /NUMERIC\s*\(\s*18\s*,\s*4\s*\)|NUMERIC\s*\(\s*18\s*,\s*6\s*\)/i,
+      );
     });
 
     it("enforces TIMESTAMPTZ with timezone on all audit and created_at timestamps", () => {
@@ -214,7 +230,9 @@ describe("Stage 34 — Final Database Review & Schema Governance", () => {
       for (const table of rlsTables) {
         expect(
           fullSchemaSql.includes(`ALTER TABLE public.${table} ENABLE ROW LEVEL SECURITY`) ||
-            fullSchemaSql.includes(`ALTER TABLE IF EXISTS public.${table} ENABLE ROW LEVEL SECURITY`),
+            fullSchemaSql.includes(
+              `ALTER TABLE IF EXISTS public.${table} ENABLE ROW LEVEL SECURITY`,
+            ),
           `Table ${table} must have RLS enabled!`,
         ).toBe(true);
       }
@@ -223,8 +241,12 @@ describe("Stage 34 — Final Database Review & Schema Governance", () => {
     it("verifies anon access is revoked on core tenant tables", () => {
       expect(fullSchemaSql).toMatch(/REVOKE\s+ALL\s+ON\s+public\.customers\s+FROM\s+anon;/i);
       expect(fullSchemaSql).toMatch(/REVOKE\s+ALL\s+ON\s+public\.invoice_records\s+FROM\s+anon;/i);
-      expect(fullSchemaSql).toMatch(/REVOKE\s+ALL\s+ON\s+public\.telemetry_intervals\s+FROM\s+anon;/i);
-      expect(fullSchemaSql).toMatch(/REVOKE\s+ALL\s+ON\s+public\.reconciliation_runs\s+FROM\s+anon;/i);
+      expect(fullSchemaSql).toMatch(
+        /REVOKE\s+ALL\s+ON\s+public\.telemetry_intervals\s+FROM\s+anon;/i,
+      );
+      expect(fullSchemaSql).toMatch(
+        /REVOKE\s+ALL\s+ON\s+public\.reconciliation_runs\s+FROM\s+anon;/i,
+      );
     });
   });
 });

@@ -217,7 +217,11 @@ export class ReconciliationStorageService {
           action: "RECONCILIATION_RUN_SAVED",
           description: `Authoritative reconciliation run ${runId} saved. Billed: R ${billedTotal.toFixed(2)}, Reconciled: R ${calculatedTotal.toFixed(2)}, Variance: R ${varianceTotal.toFixed(2)} (${status})`,
           actor: { userId: context?.userId },
-          record: { entityType: "reconciliation_run", recordId: runId, recordLabel: `Recon Run ${runId}` },
+          record: {
+            entityType: "reconciliation_run",
+            recordId: runId,
+            recordLabel: `Recon Run ${runId}`,
+          },
           newState: {
             runId,
             status,

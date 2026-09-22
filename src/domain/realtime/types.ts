@@ -24,7 +24,9 @@ export type RefreshEventListener = (payload: RefreshEventPayload) => void;
 
 export interface RealtimeSubscriptionOptions {
   organisationId?: string;
-  tables?: Array<"invoice_records" | "processing_jobs" | "reconciliation_runs" | "discrepancy_events">;
+  tables?: Array<
+    "invoice_records" | "processing_jobs" | "reconciliation_runs" | "discrepancy_events"
+  >;
   onRefresh?: (payload: RefreshEventPayload) => void;
   debounceMs?: number;
   enablePollingFallback?: boolean;

@@ -79,7 +79,10 @@ export class AuditSanitizer {
     }
 
     // Mask internal database schema references if present
-    result = result.replace(/public\.(invoices|meter_readings|tariffs|users|audit_events)/g, "entity.$1");
+    result = result.replace(
+      /public\.(invoices|meter_readings|tariffs|users|audit_events)/g,
+      "entity.$1",
+    );
 
     return result;
   }

@@ -147,4 +147,3 @@ export interface AggregatedDashboardData {
   availableAccounts?: AvailableAccountItem[];
   activeProcessingJobs?: ActiveProcessingJobItem[];
 }
-

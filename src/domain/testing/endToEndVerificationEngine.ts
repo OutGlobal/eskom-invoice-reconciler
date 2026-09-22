@@ -138,7 +138,13 @@ export class EndToEndVerificationEngine {
    */
   public static async runFull23StepTest(): Promise<EndToEndVerificationSummary> {
     const steps: VerificationStepResult[] = [];
-    const recordStep = (step: number, name: string, passed: boolean, details: string, metadata?: any) => {
+    const recordStep = (
+      step: number,
+      name: string,
+      passed: boolean,
+      details: string,
+      metadata?: any,
+    ) => {
       steps.push({
         step,
         name,
@@ -310,10 +316,10 @@ export class EndToEndVerificationEngine {
         (extractedInvoiceData.invoiceNumber ||
           extractedInvoiceData.accountNumber ||
           extractedInvoiceData.siteId) &&
-          (extractedInvoiceData.totalAmount ||
-            extractedInvoiceData.totalInvoice ||
-            extractedInvoiceData.totalKwh ||
-            extractedInvoiceData.energyCharges),
+        (extractedInvoiceData.totalAmount ||
+          extractedInvoiceData.totalInvoice ||
+          extractedInvoiceData.totalKwh ||
+          extractedInvoiceData.energyCharges),
       );
       recordStep(
         7,
@@ -351,12 +357,9 @@ export class EndToEndVerificationEngine {
         lifecycle_state: "VERIFIED",
       };
       await InvoiceStorageService.saveInvoiceRecord(canonicalInvoice);
-      storedInvoiceRecord = await InvoiceStorageService.getInvoiceRecordById(
-        canonicalInvoice.id,
-      );
+      storedInvoiceRecord = await InvoiceStorageService.getInvoiceRecordById(canonicalInvoice.id);
       const invoiceStored = Boolean(
-        storedInvoiceRecord &&
-          storedInvoiceRecord.organisation_id === this.ORG_ALPHA_ID,
+        storedInvoiceRecord && storedInvoiceRecord.organisation_id === this.ORG_ALPHA_ID,
       );
       recordStep(
         8,
@@ -429,7 +432,10 @@ export class EndToEndVerificationEngine {
         "Validate meter data",
         meterValid,
         `Meter data integrity validated: 0 critical sequence or range errors`,
-        { validationStatus: meterValidation.isValid, warnings: meterValidation.warnings?.length || 0 },
+        {
+          validationStatus: meterValidation.isValid,
+          warnings: meterValidation.warnings?.length || 0,
+        },
       );
 
       // -----------------------------------------------------------------------
@@ -534,10 +540,10 @@ export class EndToEndVerificationEngine {
         0;
       const dashboardUpdated = Boolean(
         initialDashboardData &&
-          (initialDashboardData.hasData ||
-            totalInvoices >= 1 ||
-            totalSpend > 0 ||
-            (initialDashboardData.energyOverview?.totalKWh || 0) > 0),
+        (initialDashboardData.hasData ||
+          totalInvoices >= 1 ||
+          totalSpend > 0 ||
+          (initialDashboardData.energyOverview?.totalKWh || 0) > 0),
       );
       recordStep(
         15,
@@ -621,9 +627,7 @@ export class EndToEndVerificationEngine {
       // -----------------------------------------------------------------------
       // STEP 19: Verify information remains
       // -----------------------------------------------------------------------
-      const reloadedInvoice = await InvoiceStorageService.getInvoiceRecordById(
-        canonicalInvoice.id,
-      );
+      const reloadedInvoice = await InvoiceStorageService.getInvoiceRecordById(canonicalInvoice.id);
       const reloadedRun = await ReconciliationStorageService.getResultById(
         reconResult.run_id,
         authContextAlpha,
@@ -635,10 +639,10 @@ export class EndToEndVerificationEngine {
       );
       const informationPersisted = Boolean(
         reloadedInvoice &&
-          reloadedInvoice.invoice_number === this.INVOICE_NUMBER &&
-          reloadedRun &&
-          reloadedRun.run_id === reconResult.run_id &&
-          reloadedDashboard,
+        reloadedInvoice.invoice_number === this.INVOICE_NUMBER &&
+        reloadedRun &&
+        reloadedRun.run_id === reconResult.run_id &&
+        reloadedDashboard,
       );
       recordStep(
         19,
@@ -775,8 +779,7 @@ export class EndToEndVerificationEngine {
       const apiRes = await server.fetch(apiReq, {}, {});
       if (apiRes.status === 403) apiBlocked = true;
 
-      const crossTenantIsolated =
-        invoiceBlocked && runBlocked && dashboardBlocked && apiBlocked;
+      const crossTenantIsolated = invoiceBlocked && runBlocked && dashboardBlocked && apiBlocked;
 
       recordStep(
         23,

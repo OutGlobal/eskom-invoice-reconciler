@@ -133,23 +133,20 @@ describe("Stage 33 — Dead Code Removal & Clean Architecture Verification", () 
 
   it("4. Verifies that active data persistence and authoritative reconciliation services remain intact", async () => {
     // Authoritative reconciliation engine is imported and functional
-    const { DeterministicReconciliationEngine } = await import(
-      "../../domain/reconciliation/reconciliationEngine"
-    );
+    const { DeterministicReconciliationEngine } =
+      await import("../../domain/reconciliation/reconciliationEngine");
     expect(DeterministicReconciliationEngine).toBeDefined();
     expect(typeof DeterministicReconciliationEngine.reconcile).toBe("function");
 
     // Secure ingestion gateway is imported and functional
-    const { SecureIngestionGateway } = await import(
-      "../../domain/ingestion/secureIngestionGateway"
-    );
+    const { SecureIngestionGateway } =
+      await import("../../domain/ingestion/secureIngestionGateway");
     expect(SecureIngestionGateway).toBeDefined();
     expect(typeof SecureIngestionGateway.processUpload).toBe("function");
 
     // Production observability service is imported and functional
-    const { ProductionObservabilityService } = await import(
-      "../../domain/observability/productionObservabilityService"
-    );
+    const { ProductionObservabilityService } =
+      await import("../../domain/observability/productionObservabilityService");
     expect(ProductionObservabilityService).toBeDefined();
   });
 });

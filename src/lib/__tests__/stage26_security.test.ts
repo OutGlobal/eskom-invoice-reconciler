@@ -124,7 +124,12 @@ describe("Stage 26 — Security Hardening & Zero-Exposure Defense", () => {
     }).toThrow(/FORBIDDEN_MUTATION/);
 
     // Another user in the same org cannot modify without admin role
-    const otherUserSameOrg = createSecurityContext("usr-alpha-003", "dan@alpha.co.za", ORG_ALPHA, "ANALYST");
+    const otherUserSameOrg = createSecurityContext(
+      "usr-alpha-003",
+      "dan@alpha.co.za",
+      ORG_ALPHA,
+      "ANALYST",
+    );
     expect(() => {
       SecurityHardeningService.assertUserOwnsRecord(otherUserSameOrg, alphaRecord, "MODIFY");
     }).toThrow(/FORBIDDEN_RECORD_OWNERSHIP/);
@@ -144,17 +149,26 @@ describe("Stage 26 — Security Hardening & Zero-Exposure Defense", () => {
     expect(pathAlpha).toBe(`tenants/${ORG_ALPHA}/uploads/${uploadId}/${filename}`);
 
     // Verify storage access policy: User Alpha has access to own tenant path
-    const accessAlpha = SecurityHardeningService.verifyStorageAccessPolicy(userAlphaRegular, pathAlpha);
+    const accessAlpha = SecurityHardeningService.verifyStorageAccessPolicy(
+      userAlphaRegular,
+      pathAlpha,
+    );
     expect(accessAlpha.allowed).toBe(true);
 
     // User Beta attempts to access Alpha's file path -> REJECTED
-    const accessBeta = SecurityHardeningService.verifyStorageAccessPolicy(userBetaRegular, pathAlpha);
+    const accessBeta = SecurityHardeningService.verifyStorageAccessPolicy(
+      userBetaRegular,
+      pathAlpha,
+    );
     expect(accessBeta.allowed).toBe(false);
     expect(accessBeta.reason).toContain("STORAGE_ACCESS_DENIED");
 
     // Malicious path traversal attempts are detected and denied
     const traversalPath = `tenants/${ORG_ALPHA}/uploads/../../../etc/passwd`;
-    const traversalCheck = SecurityHardeningService.verifyStorageAccessPolicy(userAlphaRegular, traversalPath);
+    const traversalCheck = SecurityHardeningService.verifyStorageAccessPolicy(
+      userAlphaRegular,
+      traversalPath,
+    );
     expect(traversalCheck.allowed).toBe(false);
     expect(traversalCheck.reason).toContain("path traversal");
 
@@ -230,7 +244,8 @@ describe("Stage 26 — Security Hardening & Zero-Exposure Defense", () => {
   });
 
   it("Requirement 6: Comprehensive Security Audit verifies all 10 security domains", () => {
-    const report: ComprehensiveSecurityAuditReport = SecurityHardeningService.runComprehensiveSecurityAudit();
+    const report: ComprehensiveSecurityAuditReport =
+      SecurityHardeningService.runComprehensiveSecurityAudit();
 
     expect(report.totalChecks).toBe(10);
     expect(report.vulnerabilityCount).toBe(0);

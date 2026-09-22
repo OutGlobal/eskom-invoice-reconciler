@@ -167,7 +167,9 @@ export class TenantContextService {
     previousRole: AppRole = "READ_ONLY",
   ): Promise<{ success: boolean; previousRole: AppRole; newRole: AppRole }> {
     if (!hasPermission(actorContext, "PERM_MANAGE_USERS")) {
-      throw new Error("UNAUTHORIZED: Actor does not possess PERM_MANAGE_USERS to change user roles");
+      throw new Error(
+        "UNAUTHORIZED: Actor does not possess PERM_MANAGE_USERS to change user roles",
+      );
     }
 
     const orgId = targetOrgId || actorContext.organisationId || "DEFAULT_TENANT";
@@ -204,7 +206,12 @@ export class TenantContextService {
    */
   public static assertRecordOwnership(
     context: UserSecurityContext,
-    record: { organisation_id?: string; organisationId?: string; owner_id?: string; created_by?: string },
+    record: {
+      organisation_id?: string;
+      organisationId?: string;
+      owner_id?: string;
+      created_by?: string;
+    },
     action: "READ" | "MODIFY" | "DELETE" = "MODIFY",
   ): void {
     const { SecurityHardeningService } = require("./securityHardeningService");

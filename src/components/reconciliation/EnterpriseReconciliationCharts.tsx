@@ -60,11 +60,19 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({
   // Dynamically derive monthly data from daily reconciliation records
   const monthlyData = useMemo(() => {
     if (!dailyData || dailyData.length === 0) return [];
-    const map = new Map<string, { name: string; Billed: number; Calculated: number; Variance: number }>();
+    const map = new Map<
+      string,
+      { name: string; Billed: number; Calculated: number; Variance: number }
+    >();
 
     for (const d of dailyData) {
       const monthKey = d.date.length >= 7 ? d.date.substring(0, 7) : "Active Period";
-      const existing = map.get(monthKey) || { name: monthKey, Billed: 0, Calculated: 0, Variance: 0 };
+      const existing = map.get(monthKey) || {
+        name: monthKey,
+        Billed: 0,
+        Calculated: 0,
+        Variance: 0,
+      };
       existing.Billed += d.billedZar;
       existing.Calculated += d.calculatedZar;
       existing.Variance += d.varianceZar;

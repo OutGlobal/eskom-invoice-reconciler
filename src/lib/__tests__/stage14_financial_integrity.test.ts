@@ -80,7 +80,9 @@ describe("Stage 14: Financial Calculation Integrity", () => {
       expect(DatabaseTypeRegistry.validate("-50.25", "NUMERIC(18,2)").isValid).toBe(true);
 
       // Value exceeding precision bounds
-      expect(DatabaseTypeRegistry.validate("10000000000000000.00", "NUMERIC(18,2)").isValid).toBe(false);
+      expect(DatabaseTypeRegistry.validate("10000000000000000.00", "NUMERIC(18,2)").isValid).toBe(
+        false,
+      );
     });
 
     it("validates NUMERIC(18,4) for energy and demand determinants", () => {
@@ -107,7 +109,11 @@ describe("Stage 14: Financial Calculation Integrity", () => {
 
     it("assertTypeCompliance throws TypeError on invalid database bounds", () => {
       expect(() => {
-        DatabaseTypeRegistry.assertTypeCompliance("9999999999999999999999.00", "NUMERIC(18,2)", "total_zar");
+        DatabaseTypeRegistry.assertTypeCompliance(
+          "9999999999999999999999.00",
+          "NUMERIC(18,2)",
+          "total_zar",
+        );
       }).toThrow(TypeError);
     });
   });
@@ -151,14 +157,34 @@ describe("Stage 14: Financial Calculation Integrity", () => {
 
     it("maintains strict line-item to subtotal mathematical consistency", () => {
       // 3 items with fractional half-cents
-      const item1 = FinancialPrecisionEngine.calculateLineItem("100.5", "125.5", "c/kWh", "PEAK", "Peak Energy");
-      const item2 = FinancialPrecisionEngine.calculateLineItem("200.25", "95.2", "c/kWh", "STD", "Standard Energy");
-      const item3 = FinancialPrecisionEngine.calculateLineItem("30", "150.75", "R/kVA", "DEMAND", "Demand Charge");
+      const item1 = FinancialPrecisionEngine.calculateLineItem(
+        "100.5",
+        "125.5",
+        "c/kWh",
+        "PEAK",
+        "Peak Energy",
+      );
+      const item2 = FinancialPrecisionEngine.calculateLineItem(
+        "200.25",
+        "95.2",
+        "c/kWh",
+        "STD",
+        "Standard Energy",
+      );
+      const item3 = FinancialPrecisionEngine.calculateLineItem(
+        "30",
+        "150.75",
+        "R/kVA",
+        "DEMAND",
+        "Demand Charge",
+      );
 
       const totals = FinancialPrecisionEngine.calculateReconciliationTotals([item1, item2, item3]);
 
       // Subtotal MUST equal sum of rounded items
-      const expectedSubtotal = item1.roundedAmount.plus(item2.roundedAmount).plus(item3.roundedAmount);
+      const expectedSubtotal = item1.roundedAmount
+        .plus(item2.roundedAmount)
+        .plus(item3.roundedAmount);
       expect(totals.subtotalExVat.equals(expectedSubtotal)).toBe(true);
 
       // VAT (15%) must equal roundCurrency(Subtotal * 0.15)
@@ -240,7 +266,10 @@ describe("Stage 14: Financial Calculation Integrity", () => {
 
   describe("Requirement 6: Internal Documentation & Zero Public Disclosure (Level 3 Private)", () => {
     it("internal technical specification document exists and contains comprehensive rules", () => {
-      const specPath = path.resolve(process.cwd(), "src/domain/financial/financialIntegritySpecification.md");
+      const specPath = path.resolve(
+        process.cwd(),
+        "src/domain/financial/financialIntegritySpecification.md",
+      );
       expect(fs.existsSync(specPath)).toBe(true);
 
       const content = fs.readFileSync(specPath, "utf8");
@@ -254,17 +283,18 @@ describe("Stage 14: Financial Calculation Integrity", () => {
     it("programmatic standards codify statutory citations and embargo level", () => {
       expect(FINANCIAL_INTEGRITY_STANDARDS.embargoLevel).toBe("LEVEL_3_PRIVATE");
       expect(FINANCIAL_INTEGRITY_STANDARDS.precisionStandards.intermediateWorkingDigits).toBe(28);
-      expect(FINANCIAL_INTEGRITY_STANDARDS.regulatoryReferences.sarsVatAct).toContain("South African Value-Added Tax Act");
+      expect(FINANCIAL_INTEGRITY_STANDARDS.regulatoryReferences.sarsVatAct).toContain(
+        "South African Value-Added Tax Act",
+      );
     });
 
     it("public landing and website files do NOT expose proprietary calculation logic or internal thresholds", () => {
-      const publicFiles = [
-        path.resolve(process.cwd(), "src/routes/index.tsx"),
-      ];
+      const publicFiles = [path.resolve(process.cwd(), "src/routes/index.tsx")];
 
       const publicDir = path.resolve(process.cwd(), "src/components/landing/enera");
       if (fs.existsSync(publicDir)) {
-        const componentFiles = fs.readdirSync(publicDir)
+        const componentFiles = fs
+          .readdirSync(publicDir)
           .filter((f) => f.endsWith(".tsx") || f.endsWith(".ts"))
           .map((f) => path.join(publicDir, f));
         publicFiles.push(...componentFiles);
@@ -283,7 +313,10 @@ describe("Stage 14: Financial Calculation Integrity", () => {
         if (!fs.existsSync(file)) continue;
         const text = fs.readFileSync(file, "utf8");
         for (const term of embargoedTerms) {
-          expect(text.includes(term), `Public file ${path.basename(file)} leaked embargoed term '${term}'`).toBe(false);
+          expect(
+            text.includes(term),
+            `Public file ${path.basename(file)} leaked embargoed term '${term}'`,
+          ).toBe(false);
         }
       }
     });
@@ -305,12 +338,41 @@ describe("Stage 14: Financial Calculation Integrity", () => {
       };
 
       const calculateRun = () => {
-        const peak = FinancialPrecisionEngine.calculateLineItem(inputDataset.peakKwh, inputDataset.peakRate, "c/kWh", "PEAK", "Peak");
-        const std = FinancialPrecisionEngine.calculateLineItem(inputDataset.standardKwh, inputDataset.stdRate, "c/kWh", "STD", "Standard");
-        const off = FinancialPrecisionEngine.calculateLineItem(inputDataset.offPeakKwh, inputDataset.offPeakRate, "c/kWh", "OFF", "Off-Peak");
-        const dem = FinancialPrecisionEngine.calculateLineItem(inputDataset.demandKva, inputDataset.demandRate, "R/kVA", "DEMAND", "Demand");
+        const peak = FinancialPrecisionEngine.calculateLineItem(
+          inputDataset.peakKwh,
+          inputDataset.peakRate,
+          "c/kWh",
+          "PEAK",
+          "Peak",
+        );
+        const std = FinancialPrecisionEngine.calculateLineItem(
+          inputDataset.standardKwh,
+          inputDataset.stdRate,
+          "c/kWh",
+          "STD",
+          "Standard",
+        );
+        const off = FinancialPrecisionEngine.calculateLineItem(
+          inputDataset.offPeakKwh,
+          inputDataset.offPeakRate,
+          "c/kWh",
+          "OFF",
+          "Off-Peak",
+        );
+        const dem = FinancialPrecisionEngine.calculateLineItem(
+          inputDataset.demandKva,
+          inputDataset.demandRate,
+          "R/kVA",
+          "DEMAND",
+          "Demand",
+        );
 
-        const totals = FinancialPrecisionEngine.calculateReconciliationTotals([peak, std, off, dem]);
+        const totals = FinancialPrecisionEngine.calculateReconciliationTotals([
+          peak,
+          std,
+          off,
+          dem,
+        ]);
         const checksum = FinancialPrecisionEngine.generateReproducibilityChecksum(totals);
 
         return { totals, checksum };

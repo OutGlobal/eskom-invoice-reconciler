@@ -13,13 +13,13 @@ import type { DiscrepancyAnalysisSummary } from "../discrepancy/types";
  */
 export type AutomatedPipelineStage =
   | "UPLOAD_SUCCESSFUL" // Upload successful
-  | "VALIDATING"        // Validating
-  | "PROCESSING"        // Processing
-  | "EXTRACTING"        // Extracting
-  | "NORMALISING"       // Normalising
-  | "RECONCILING"       // Reconciling
-  | "ANALYSING"         // Analysing
-  | "COMPLETE"          // Complete
+  | "VALIDATING" // Validating
+  | "PROCESSING" // Processing
+  | "EXTRACTING" // Extracting
+  | "NORMALISING" // Normalising
+  | "RECONCILING" // Reconciling
+  | "ANALYSING" // Analysing
+  | "COMPLETE" // Complete
   | "STOPPED_FOR_AMBIGUITY"
   | "FAILED";
 
@@ -74,7 +74,8 @@ export interface AmbiguityReport {
 export interface AutomatedPipelineFile {
   name: string;
   size?: number;
-  content: string | Uint8Array | ArrayBuffer;
+  content?: string | Uint8Array | ArrayBuffer;
+  data?: Uint8Array;
   type?: string;
 }
 

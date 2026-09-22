@@ -131,7 +131,11 @@ describe("Stage 17 — Large Datasets Engine", () => {
 
   describe("4. Large Interval Dataset (Full Year, 35,040 Rows)", () => {
     it("should generate and register 35,040 15-min intervals covering an entire year", () => {
-      const dataset = LargeDatasetFixtures.generateLargeIntervalDataset(35040, "MTR-ESKOM-001", TENANT_A);
+      const dataset = LargeDatasetFixtures.generateLargeIntervalDataset(
+        35040,
+        "MTR-ESKOM-001",
+        TENANT_A,
+      );
 
       expect(dataset.recordsCount).toBe(35040);
       expect(dataset.records.length).toBe(35040);
@@ -356,7 +360,11 @@ describe("Stage 17 — Large Datasets Engine", () => {
 
   describe("9. Strict Tenant Isolation & Level 3 Zero-Exposure Verification", () => {
     it("should reject cross-tenant telemetry access with TenantIsolationViolationError", async () => {
-      const dataset = LargeDatasetFixtures.generateLargeIntervalDataset(100, "MTR-ESKOM-001", TENANT_A);
+      const dataset = LargeDatasetFixtures.generateLargeIntervalDataset(
+        100,
+        "MTR-ESKOM-001",
+        TENANT_A,
+      );
 
       // User from Tenant A tries to access Tenant B
       await expect(
@@ -370,7 +378,11 @@ describe("Stage 17 — Large Datasets Engine", () => {
     });
 
     it("should never expose Level 3 private schemas or secrets in responses", async () => {
-      const dataset = LargeDatasetFixtures.generateLargeIntervalDataset(100, "MTR-ESKOM-001", TENANT_A);
+      const dataset = LargeDatasetFixtures.generateLargeIntervalDataset(
+        100,
+        "MTR-ESKOM-001",
+        TENANT_A,
+      );
 
       const paginated = await LargeDatasetQueryEngine.queryPaginatedIntervals(
         { organisationId: TENANT_A, meterId: "MTR-ESKOM-001" },

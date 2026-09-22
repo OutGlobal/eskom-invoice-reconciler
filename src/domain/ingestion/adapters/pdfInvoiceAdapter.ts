@@ -39,12 +39,10 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
 
     const hasInitialFields = Boolean(
       pdfRes?.invoice &&
-      (
-        (pdfRes.invoice.accountNumber && String(pdfRes.invoice.accountNumber).trim().length > 0) ||
+      ((pdfRes.invoice.accountNumber && String(pdfRes.invoice.accountNumber).trim().length > 0) ||
         (pdfRes.invoice.customerName && String(pdfRes.invoice.customerName).trim().length > 0) ||
         (pdfRes.invoice.invoiceTotal && Number(pdfRes.invoice.invoiceTotal) > 0) ||
-        (pdfRes.invoice.invoiceNumber && String(pdfRes.invoice.invoiceNumber).trim().length > 0)
-      )
+        (pdfRes.invoice.invoiceNumber && String(pdfRes.invoice.invoiceNumber).trim().length > 0)),
     );
 
     if (!hasInitialFields) {
@@ -100,12 +98,10 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
 
     const hasValidInvoice = Boolean(
       pdfRes?.invoice &&
-      (
-        (pdfRes.invoice.accountNumber && String(pdfRes.invoice.accountNumber).trim().length > 0) ||
+      ((pdfRes.invoice.accountNumber && String(pdfRes.invoice.accountNumber).trim().length > 0) ||
         (pdfRes.invoice.customerName && String(pdfRes.invoice.customerName).trim().length > 0) ||
         (pdfRes.invoice.invoiceTotal && Number(pdfRes.invoice.invoiceTotal) > 0) ||
-        (pdfRes.invoice.invoiceNumber && String(pdfRes.invoice.invoiceNumber).trim().length > 0)
-      )
+        (pdfRes.invoice.invoiceNumber && String(pdfRes.invoice.invoiceNumber).trim().length > 0)),
     );
 
     if (!hasValidInvoice) {

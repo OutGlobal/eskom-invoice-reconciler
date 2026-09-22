@@ -276,12 +276,7 @@ describe("Stage 29 — End-to-End Production Verification", () => {
     expect(context).toBeNull();
 
     // Sign in again
-    context = createSecurityContext(
-      "usr-e2e-001",
-      "manager@apex.co.za",
-      orgId,
-      "ENERGY_MANAGER",
-    );
+    context = createSecurityContext("usr-e2e-001", "manager@apex.co.za", orgId, "ENERGY_MANAGER");
     expect(context.userId).toBe("usr-e2e-001");
 
     // Verify data remains post sign-in
@@ -319,7 +314,11 @@ describe("Stage 29 — End-to-End Production Verification", () => {
 
     // 3. Dashboard query cross-tenant check throws TenantIsolationViolationError
     await expect(
-      DashboardService.getAggregatedDashboardData({ organisationId: orgAlphaId }, undefined, userBeta),
+      DashboardService.getAggregatedDashboardData(
+        { organisationId: orgAlphaId },
+        undefined,
+        userBeta,
+      ),
     ).rejects.toThrow(TenantIsolationViolationError);
 
     // 4. API endpoint blocks cross-tenant execution with HTTP 403 Forbidden

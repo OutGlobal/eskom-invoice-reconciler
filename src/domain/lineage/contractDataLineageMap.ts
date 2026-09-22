@@ -75,8 +75,10 @@ export class ContractDataLineageMap {
       source: "PostgreSQL Database via Supabase Client (or active tenant session store)",
       table: "organisations",
       column: "id, name, code",
-      query: "supabase.from('organisations').select('id, name, code').eq('id', filters.organisationId)",
-      transformation: "Count of unique active client organisations filtered by tenant isolation context",
+      query:
+        "supabase.from('organisations').select('id, name, code').eq('id', filters.organisationId)",
+      transformation:
+        "Count of unique active client organisations filtered by tenant isolation context",
       lineageChain: [
         "Organisation Master Data",
         "Tenant Context Service",
@@ -94,7 +96,8 @@ export class ContractDataLineageMap {
       source: "PostgreSQL Database via Supabase Client",
       table: "sites",
       column: "id, site_code, site_name, customer_id",
-      query: "supabase.from('sites').select('id, site_code, site_name, customer_id').eq('organisation_id', tenantId)",
+      query:
+        "supabase.from('sites').select('id, site_code, site_name, customer_id').eq('organisation_id', tenantId)",
       transformation: "Count of verified Point of Delivery (POD) physical delivery premises",
       lineageChain: [
         "Site / Facility Master Hierarchy",
@@ -113,8 +116,10 @@ export class ContractDataLineageMap {
       source: "PostgreSQL Database / Extracted Invoice Lineage",
       table: "invoice_records",
       column: "account_number",
-      query: "supabase.from('invoice_records').select('account_number').eq('organisation_id', tenantId)",
-      transformation: "new Set(invoices.map(i => i.account_number)).size (deduplicated account tally)",
+      query:
+        "supabase.from('invoice_records').select('account_number').eq('organisation_id', tenantId)",
+      transformation:
+        "new Set(invoices.map(i => i.account_number)).size (deduplicated account tally)",
       lineageChain: [
         "Utility Billing Invoice Document",
         "Layout / OCR Parser Extraction",
@@ -133,7 +138,8 @@ export class ContractDataLineageMap {
       source: "PostgreSQL Database (invoice_records with legacy invoices harmonization)",
       table: "invoice_records",
       column: "id, invoice_number",
-      query: "supabase.from('invoice_records').select('id, invoice_number').eq('organisation_id', tenantId)",
+      query:
+        "supabase.from('invoice_records').select('id, invoice_number').eq('organisation_id', tenantId)",
       transformation: "Deduplicated count of invoice records across primary and legacy tables",
       lineageChain: [
         "Uploaded Invoices (PDF/XLSX)",
@@ -153,8 +159,10 @@ export class ContractDataLineageMap {
       source: "PostgreSQL Database via Supabase Client",
       table: "invoice_records",
       column: "invoiced_total",
-      query: "supabase.from('invoice_records').select('invoiced_total').eq('organisation_id', tenantId)",
-      transformation: "Decimal accumulation: totalBilled = totalBilled.plus(new Decimal(inv.invoiced_total))",
+      query:
+        "supabase.from('invoice_records').select('invoiced_total').eq('organisation_id', tenantId)",
+      transformation:
+        "Decimal accumulation: totalBilled = totalBilled.plus(new Decimal(inv.invoiced_total))",
       lineageChain: [
         "Uploaded Utility Invoice File",
         "Secure Object Storage & Ingestion Gateway",
@@ -189,8 +197,10 @@ export class ContractDataLineageMap {
       source: "Deterministic NERSA Tariff Engine & Reconciliation Runs",
       table: "invoice_records",
       column: "reconciled_total",
-      query: "supabase.from('invoice_records').select('reconciled_total').eq('organisation_id', tenantId)",
-      transformation: "Decimal summation of reconciled_total validated against 14 NERSA billing determinants",
+      query:
+        "supabase.from('invoice_records').select('reconciled_total').eq('organisation_id', tenantId)",
+      transformation:
+        "Decimal summation of reconciled_total validated against 14 NERSA billing determinants",
       lineageChain: [
         "Gazetted NERSA Tariff Schedule",
         "AMR Telemetry Interval Readings",
@@ -211,7 +221,8 @@ export class ContractDataLineageMap {
       table: "invoice_records",
       column: "variance_amount (or invoiced_total - reconciled_total)",
       query: "Derived from invoiced_total and reconciled_total in invoice_records query",
-      transformation: "totalBilled.minus(totalCalculated).toNumber() (Positive = Billed > Gazetted Rate)",
+      transformation:
+        "totalBilled.minus(totalCalculated).toNumber() (Positive = Billed > Gazetted Rate)",
       lineageChain: [
         "Billed Amount",
         "Calculated NERSA Amount",
@@ -231,7 +242,8 @@ export class ContractDataLineageMap {
       table: "invoice_records / discrepancy_events",
       column: "variance_amount (where variance > 0)",
       query: "supabase.from('invoice_records').select('variance_amount')",
-      transformation: "Sum of positive overcharges: if (varAmt > 0) overbilling = overbilling.plus(varAmt)",
+      transformation:
+        "Sum of positive overcharges: if (varAmt > 0) overbilling = overbilling.plus(varAmt)",
       lineageChain: [
         "Overbilled Determinants",
         "Deterministic Discrepancy Engine",
@@ -250,7 +262,8 @@ export class ContractDataLineageMap {
       source: "Discrepancy Event Ledger",
       table: "discrepancy_events",
       column: "financial_impact_zar",
-      query: "supabase.from('discrepancy_events').select('financial_impact_zar').eq('status', 'OPEN')",
+      query:
+        "supabase.from('discrepancy_events').select('financial_impact_zar').eq('status', 'OPEN')",
       transformation: "Accumulation of positive discrepancy financial impact",
       lineageChain: [
         "Invoice Line Item Audit",
@@ -270,7 +283,8 @@ export class ContractDataLineageMap {
       table: "invoice_records",
       column: "variance_amount (where variance < 0)",
       query: "supabase.from('invoice_records').select('variance_amount')",
-      transformation: "Sum of negative variances: if (varAmt < 0) underbilling = underbilling.plus(varAmt.abs())",
+      transformation:
+        "Sum of negative variances: if (varAmt < 0) underbilling = underbilling.plus(varAmt.abs())",
       lineageChain: [
         "Underbilled Tariff Checks",
         "Variance Calculation",
@@ -350,11 +364,7 @@ export class ContractDataLineageMap {
       column: "status",
       query: "supabase.from('reconciliation_runs').select('status').eq('status', 'failed')",
       transformation: "Count of reconciliation_runs with status === 'failed'",
-      lineageChain: [
-        "Run Exception Interceptor",
-        "reconciliation_runs",
-        "Failed Runs Metric Box",
-      ],
+      lineageChain: ["Run Exception Interceptor", "reconciliation_runs", "Failed Runs Metric Box"],
       status: "VERIFIED",
     });
 
@@ -384,13 +394,10 @@ export class ContractDataLineageMap {
       source: "Processing Job Telemetry",
       table: "processing_jobs",
       column: "duration_ms",
-      query: "supabase.from('processing_jobs').select('duration_ms').not('duration_ms', 'is', null)",
+      query:
+        "supabase.from('processing_jobs').select('duration_ms').not('duration_ms', 'is', null)",
       transformation: "Sum of duration_ms / total completed jobs",
-      lineageChain: [
-        "Job Profiler Timer",
-        "processing_jobs telemetry",
-        "Average Audit Time Box",
-      ],
+      lineageChain: ["Job Profiler Timer", "processing_jobs telemetry", "Average Audit Time Box"],
       status: "VERIFIED",
     });
 
@@ -516,13 +523,7 @@ export class ContractDataLineageMap {
         "AMR CSV",
         "Original Uploaded File",
       ],
-      aliases: [
-        "Actual kWh",
-        "Total Energy",
-        "Total Energy (kWh)",
-        "actual_kwh",
-        "total_kwh",
-      ],
+      aliases: ["Actual kWh", "Total Energy", "Total Energy (kWh)", "actual_kwh", "total_kwh"],
       status: "VERIFIED",
     });
 
@@ -594,9 +595,12 @@ export class ContractDataLineageMap {
       category: "CONSUMPTION_LINEAGE",
       source: "Harmonized Production Database Invoices",
       table: "invoice_records",
-      column: "billing_start, billing_end, invoice_number, total_kwh, peak_kwh, standard_kwh, off_peak_kwh, invoiced_total, reconciled_total, variance_amount, status",
-      query: "supabase.from('invoice_records').select('*').order('billing_start', { ascending: false })",
-      transformation: "Mapped array of verified billing cycles with determinant reconciliation outcomes",
+      column:
+        "billing_start, billing_end, invoice_number, total_kwh, peak_kwh, standard_kwh, off_peak_kwh, invoiced_total, reconciled_total, variance_amount, status",
+      query:
+        "supabase.from('invoice_records').select('*').order('billing_start', { ascending: false })",
+      transformation:
+        "Mapped array of verified billing cycles with determinant reconciliation outcomes",
       lineageChain: [
         "Utility Billing Invoice Upload",
         "Extraction & Validation Engine",
@@ -702,7 +706,9 @@ export class ContractDataLineageMap {
   /**
    * Get metrics filtered by category
    */
-  public static getMetricsByCategory(category: DashboardMetricContract["category"]): DashboardMetricContract[] {
+  public static getMetricsByCategory(
+    category: DashboardMetricContract["category"],
+  ): DashboardMetricContract[] {
     return this.getAllMetrics().filter((m) => m.category === category);
   }
 
@@ -792,9 +798,7 @@ export class ContractDataLineageMap {
       }
       if (
         metric.aliases &&
-        metric.aliases.some(
-          (a) => a.toLowerCase().replace(/[^a-z0-9]/g, "") === normalizedQuery,
-        )
+        metric.aliases.some((a) => a.toLowerCase().replace(/[^a-z0-9]/g, "") === normalizedQuery)
       ) {
         return metric;
       }

@@ -351,7 +351,10 @@ export class LargeDatasetQueryEngine {
       let dominantTou: TouPeriod = "STANDARD";
       if (b.touCounts.PEAK >= b.touCounts.STANDARD && b.touCounts.PEAK >= b.touCounts.OFF_PEAK) {
         dominantTou = "PEAK";
-      } else if (b.touCounts.OFF_PEAK > b.touCounts.STANDARD && b.touCounts.OFF_PEAK > b.touCounts.PEAK) {
+      } else if (
+        b.touCounts.OFF_PEAK > b.touCounts.STANDARD &&
+        b.touCounts.OFF_PEAK > b.touCounts.PEAK
+      ) {
         dominantTou = "OFF_PEAK";
       }
 
@@ -459,13 +462,11 @@ export class LargeDatasetQueryEngine {
       }
 
       // Cooperative event-loop tick yield
-      await new Promise<void>((resolve) =>
-        setTimeout(resolve, options?.yieldTickIntervalMs ?? 0),
-      );
+      await new Promise<void>((resolve) => setTimeout(resolve, options?.yieldTickIntervalMs ?? 0));
     }
 
     const durationMs = Math.max(1, Math.round(performance.now() - startTime));
-    const throughputRowsPerSec = Math.round((totalItems / (durationMs / 1000)));
+    const throughputRowsPerSec = Math.round(totalItems / (durationMs / 1000));
 
     return {
       totalProcessed: processed,
@@ -494,18 +495,18 @@ export class LargeDatasetQueryEngine {
         ).getTime()
       : undefined;
 
-    const qualitySet = filter.qualityStates && filter.qualityStates.length > 0
-      ? new Set(filter.qualityStates)
-      : undefined;
+    const qualitySet =
+      filter.qualityStates && filter.qualityStates.length > 0
+        ? new Set(filter.qualityStates)
+        : undefined;
 
     const touSet =
       filter.touPeriods && filter.touPeriods.length > 0
         ? new Set(filter.touPeriods.map((t) => String(t).toUpperCase().replace(/_/g, "")))
         : undefined;
 
-    const channelSet = filter.channels && filter.channels.length > 0
-      ? new Set(filter.channels)
-      : undefined;
+    const channelSet =
+      filter.channels && filter.channels.length > 0 ? new Set(filter.channels) : undefined;
 
     return records.filter((rec) => {
       // Meter ID matching

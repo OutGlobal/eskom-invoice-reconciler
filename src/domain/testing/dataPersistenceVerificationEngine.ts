@@ -122,10 +122,7 @@ export class EphemeralBrowserMemorySimulator {
    * Check if any business information lingers in ephemeral memory
    */
   public static isMemoryEmpty(): boolean {
-    return (
-      this.volatileHeap.size === 0 &&
-      Object.keys(this.windowGlobals).length === 0
-    );
+    return this.volatileHeap.size === 0 && Object.keys(this.windowGlobals).length === 0;
   }
 
   public static getIsOpen(): boolean {
@@ -350,15 +347,17 @@ startxref
       EphemeralBrowserMemorySimulator.allocateClientState("activeRecon", reconResult);
 
       const uploadPassed = Boolean(
-        invoiceUpload.success &&
-        meterUpload.success &&
-        reconResult.run_id,
+        invoiceUpload.success && meterUpload.success && reconResult.run_id,
       );
       recordStep(
         "UPLOAD",
         uploadPassed,
         `Uploaded invoice '${this.INVOICE_NUMBER}' and meter interval series. Ingestion & reconciliation completed.`,
-        { invoiceId: canonicalInvoice.id, intervalsCount: intervalsToStore.length, runId: reconResult.run_id },
+        {
+          invoiceId: canonicalInvoice.id,
+          intervalsCount: intervalsToStore.length,
+          runId: reconResult.run_id,
+        },
       );
 
       // -----------------------------------------------------------------------
@@ -580,15 +579,16 @@ startxref
           (inv.invoice_id && inv.invoice_id.includes(this.INVOICE_NUMBER)),
       );
       const authoritativeSourceVerified = Boolean(
-        postReauthInvoices.length > 0 &&
-        hasMatchingInvoice &&
-        memoryWasEmpty,
+        postReauthInvoices.length > 0 && hasMatchingInvoice && memoryWasEmpty,
       );
       recordStep(
         "The system must never depend on browser memory for persistent business information",
         authoritativeSourceVerified,
         "Zero dependency on browser memory verified. All determinants, intervals, runs, and dashboards reside authoritatively in backend persistence.",
-        { volatileMemoryEmpty: memoryWasEmpty, persistentStoreSource: "DATABASE_AND_BACKEND_VAULT" },
+        {
+          volatileMemoryEmpty: memoryWasEmpty,
+          persistentStoreSource: "DATABASE_AND_BACKEND_VAULT",
+        },
       );
     } catch (err: any) {
       recordStep(

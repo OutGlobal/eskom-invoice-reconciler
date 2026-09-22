@@ -40,10 +40,7 @@ export class RealtimeRefreshManager {
   /**
    * Subscribe to in-memory refresh events
    */
-  public static subscribe(
-    eventType: RefreshEventType,
-    listener: RefreshEventListener,
-  ): () => void {
+  public static subscribe(eventType: RefreshEventType, listener: RefreshEventListener): () => void {
     let listeners = this.eventListeners.get(eventType);
     if (!listeners) {
       listeners = new Set();
@@ -115,10 +112,7 @@ export class RealtimeRefreshManager {
   /**
    * Notify that a table's data was mutated (e.g. invoice inserted, discrepancy updated)
    */
-  public static notifyDataMutated(
-    table: string,
-    payload?: Partial<RefreshEventPayload>,
-  ): void {
+  public static notifyDataMutated(table: string, payload?: Partial<RefreshEventPayload>): void {
     const fullPayload: RefreshEventPayload = {
       entityType: table as any,
       timestamp: new Date().toISOString(),

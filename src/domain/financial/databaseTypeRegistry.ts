@@ -16,7 +16,8 @@ export class DatabaseTypeRegistry {
       type: "NUMERIC(18,2)",
       precision: 18,
       scale: 2,
-      description: "Financial currency values (subtotal, total, VAT, charges, variances, credits, ledgers)",
+      description:
+        "Financial currency values (subtotal, total, VAT, charges, variances, credits, ledgers)",
       minValue: new Decimal("-9999999999999999.99"),
       maxValue: new Decimal("9999999999999999.99"),
       unit: "ZAR",
@@ -34,7 +35,8 @@ export class DatabaseTypeRegistry {
       type: "NUMERIC(18,6)",
       precision: 18,
       scale: 6,
-      description: "Gazetted tariff rates (c/kWh, R/kVA, R/day) and high-precision telemetry measurements",
+      description:
+        "Gazetted tariff rates (c/kWh, R/kVA, R/day) and high-precision telemetry measurements",
       minValue: new Decimal("-999999999999.999999"),
       maxValue: new Decimal("999999999999.999999"),
       unit: "c/kWh / R/kVA / R/day / Ratio",

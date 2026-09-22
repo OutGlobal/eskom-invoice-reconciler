@@ -96,7 +96,8 @@ export class ChartDataService {
         data: [],
         recordCount: 0,
         lastUpdated: timestamp,
-        emptyReason: "No monthly consumption records found. Ingest invoices or AMR interval data to populate.",
+        emptyReason:
+          "No monthly consumption records found. Ingest invoices or AMR interval data to populate.",
       };
     }
 
@@ -135,7 +136,8 @@ export class ChartDataService {
         data: [],
         recordCount: 0,
         lastUpdated: timestamp,
-        emptyReason: "No billing cost records available. Ingest energy invoices to visualize costs.",
+        emptyReason:
+          "No billing cost records available. Ingest energy invoices to visualize costs.",
       };
     }
 
@@ -202,28 +204,29 @@ export class ChartDataService {
     });
 
     const totalTou = sumPeak + sumStd + sumOff;
-    const distribution: TouDistributionSlice[] = totalTou > 0
-      ? [
-          {
-            name: "Peak Energy",
-            value: Math.round(sumPeak),
-            percentage: Number(((sumPeak / totalTou) * 100).toFixed(1)),
-            color: TOU_COLOR.peak,
-          },
-          {
-            name: "Standard Energy",
-            value: Math.round(sumStd),
-            percentage: Number(((sumStd / totalTou) * 100).toFixed(1)),
-            color: TOU_COLOR.standard,
-          },
-          {
-            name: "Off-Peak Energy",
-            value: Math.round(sumOff),
-            percentage: Number(((sumOff / totalTou) * 100).toFixed(1)),
-            color: TOU_COLOR.offPeak,
-          },
-        ]
-      : [];
+    const distribution: TouDistributionSlice[] =
+      totalTou > 0
+        ? [
+            {
+              name: "Peak Energy",
+              value: Math.round(sumPeak),
+              percentage: Number(((sumPeak / totalTou) * 100).toFixed(1)),
+              color: TOU_COLOR.peak,
+            },
+            {
+              name: "Standard Energy",
+              value: Math.round(sumStd),
+              percentage: Number(((sumStd / totalTou) * 100).toFixed(1)),
+              color: TOU_COLOR.standard,
+            },
+            {
+              name: "Off-Peak Energy",
+              value: Math.round(sumOff),
+              percentage: Number(((sumOff / totalTou) * 100).toFixed(1)),
+              color: TOU_COLOR.offPeak,
+            },
+          ]
+        : [];
 
     return {
       hasData: true,
@@ -325,7 +328,8 @@ export class ChartDataService {
         data: [],
         recordCount: 0,
         lastUpdated: timestamp,
-        emptyReason: "No reconciliation variance records available. Run reconciliation to generate variance trends.",
+        emptyReason:
+          "No reconciliation variance records available. Run reconciliation to generate variance trends.",
       };
     }
 
@@ -391,7 +395,10 @@ export class ChartDataService {
     for (const inv of invoices) {
       const key = inv.siteId || inv.accountNumber || "Main Facility";
       const siteName =
-        inv.siteName || sitesMap.get(inv.siteId || "") || storeData?.customer?.name || (inv.accountNumber ? `Acc: ${inv.accountNumber}` : "Facility A");
+        inv.siteName ||
+        sitesMap.get(inv.siteId || "") ||
+        storeData?.customer?.name ||
+        (inv.accountNumber ? `Acc: ${inv.accountNumber}` : "Facility A");
 
       const existing = siteGroups.get(key) || {
         siteId: key,
@@ -454,13 +461,13 @@ export class ChartDataService {
         data: [],
         recordCount: 0,
         lastUpdated: timestamp,
-        emptyReason: "Insufficient billing cycles for historical trend analysis. At least 1 billing cycle required.",
+        emptyReason:
+          "Insufficient billing cycles for historical trend analysis. At least 1 billing cycle required.",
       };
     }
 
     const data: BillingTrendPoint[] = valid.map((inv) => {
-      const effRate =
-        inv.totalKwh > 0 ? (inv.invoicedTotalZar / inv.totalKwh) : 0;
+      const effRate = inv.totalKwh > 0 ? inv.invoicedTotalZar / inv.totalKwh : 0;
 
       return {
         period: inv.billingPeriod,
@@ -636,7 +643,10 @@ export class ChartDataService {
         }
         const { data: legacyInvoices } = await legQuery;
 
-        if ((invRecords && invRecords.length > 0) || (legacyInvoices && legacyInvoices.length > 0)) {
+        if (
+          (invRecords && invRecords.length > 0) ||
+          (legacyInvoices && legacyInvoices.length > 0)
+        ) {
           isLiveDb = true;
 
           for (const leg of legacyInvoices || []) {
@@ -722,7 +732,8 @@ export class ChartDataService {
 
             invoiceMap.set(key, {
               id: binv.id || key,
-              accountNumber: binv.accountNumber || storeData.customer?.accountNumber || "Batch Account",
+              accountNumber:
+                binv.accountNumber || storeData.customer?.accountNumber || "Batch Account",
               invoiceNumber: key,
               siteId: binv.siteId || null,
               siteName: binv.siteName || storeData.customer?.name || null,
@@ -746,13 +757,15 @@ export class ChartDataService {
         const inv = storeData.invoice;
         const key = inv.invoiceNo || inv.id || "active-invoice";
         if (!invoiceMap.has(key)) {
-          const billed = Number(storeData.invoiceTotal || inv.invoiceTotal || inv.totalInclVat) || 0;
+          const billed =
+            Number(storeData.invoiceTotal || inv.invoiceTotal || inv.totalInclVat) || 0;
           const calc = Number(storeData.calculatedTotal || inv.reconciledTotal) || 0;
           const variance = billed - calc;
 
           invoiceMap.set(key, {
             id: inv.id || key,
-            accountNumber: inv.accountNumber || storeData.customer?.accountNumber || "Active Account",
+            accountNumber:
+              inv.accountNumber || storeData.customer?.accountNumber || "Active Account",
             invoiceNumber: key,
             siteId: inv.siteId || null,
             siteName: storeData.customer?.name || null,

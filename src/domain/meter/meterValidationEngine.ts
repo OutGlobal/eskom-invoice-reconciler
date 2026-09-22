@@ -207,7 +207,9 @@ export class MeterValidationEngine {
   /**
    * Validate raw or normalized interval telemetry records
    */
-  public static validateIntervalData(intervals: any[]): ValidationResult & { warnings?: ValidationIssue[] } {
+  public static validateIntervalData(
+    intervals: any[],
+  ): ValidationResult & { warnings?: ValidationIssue[] } {
     const issues: ValidationIssue[] = [];
     const warnings: ValidationIssue[] = [];
 

@@ -50,7 +50,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
     USER_ID,
     USER_EMAIL,
     TENANT_ID,
-    "ENERGY_MANAGER"
+    "ENERGY_MANAGER",
   );
 
   beforeEach(() => {
@@ -58,12 +58,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
     InvoiceStorageService.clearMemoryStore();
     ProcessingJobEngine.clearState();
     ProductionObservabilityService.clearLogs();
-    activeSecurityContext = createSecurityContext(
-      USER_ID,
-      USER_EMAIL,
-      TENANT_ID,
-      "ENERGY_MANAGER"
-    );
+    activeSecurityContext = createSecurityContext(USER_ID, USER_EMAIL, TENANT_ID, "ENERGY_MANAGER");
   });
 
   // Imperative 1: REAL DATA GOES IN
@@ -78,7 +73,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
     const result = AmrIntervalIngestionEngine.processIntervalStream(
       "real_telemetry_2026.csv",
       rawTelemetryCsv,
-      { meterIdOverride: "MTR-66KV-01" }
+      { meterId: "MTR-66KV-01" },
     );
 
     expect(result.success).toBe(true);
@@ -96,11 +91,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
     const uploadId = "upl-stage38-verified";
 
     // Build tenant-isolated storage path
-    const storagePath = FileStorageSecurityService.buildStoragePath(
-      TENANT_ID,
-      uploadId,
-      filename
-    );
+    const storagePath = FileStorageSecurityService.buildStoragePath(TENANT_ID, uploadId, filename);
     expect(storagePath).toBe(`tenants/${TENANT_ID}/uploads/${uploadId}/${filename}`);
 
     // Create authoritative upload record
@@ -109,12 +100,12 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
         id: uploadId,
         organisationId: TENANT_ID,
         filename,
-        fileType: "METER_DATA",
+        fileType: "AMR_DATA",
         fileSizeBytes: bytes.byteLength,
         fileHashSha256: "sha256-stage38-verified-telemetry-data",
         storageLocation: storagePath,
       },
-      activeSecurityContext
+      activeSecurityContext,
     );
     expect(uploadRecord.id).toBe(uploadId);
 
@@ -123,7 +114,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
       storagePath,
       bytes,
       "text/csv",
-      activeSecurityContext
+      activeSecurityContext,
     );
     expect(uploadRes.success).toBe(true);
 
@@ -131,7 +122,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
     const signed = await FileStorageSecurityService.createSignedDownloadUrl(
       uploadId,
       activeSecurityContext,
-      900
+      900,
     );
     expect(signed.success).toBe(true);
     expect(signed.signedUrl).toBeDefined();
@@ -146,7 +137,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
   // Imperative 3: REAL DATA IS PROCESSED
   it("Imperative 3: REAL DATA IS PROCESSED (Asynchronous Pipeline Processing)", async () => {
     const samplePdfBytes = new TextEncoder().encode(
-      "%PDF-1.5\nEskom Megaflex Tax Invoice Account: 7856504676 Period: 2025-01-01 to 2025-01-31 Total: 15462529.74\n%%EOF"
+      "%PDF-1.5\nEskom Megaflex Tax Invoice Account: 7856504676 Period: 2025-01-01 to 2025-01-31 Total: 15462529.74\n%%EOF",
     );
 
     const sampleCsvContent = `Date and Time,Meter Serial Number,Active Power Total (kW),Reactive Power Total (kVAr),Apparent Power Total (kVA)
@@ -162,16 +153,16 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
           name: "Eskom_Invoice_Jan2025.pdf",
           size: samplePdfBytes.byteLength,
           type: "application/pdf",
-          data: samplePdfBytes,
+          content: samplePdfBytes,
         },
         meterFile: {
           name: "Telemetry_Jan2025.csv",
           size: sampleCsvContent.length,
           type: "text/csv",
-          data: new TextEncoder().encode(sampleCsvContent),
+          content: new TextEncoder().encode(sampleCsvContent),
         },
       },
-      activeSecurityContext
+      activeSecurityContext,
     );
 
     expect(job.jobId).toBeDefined();
@@ -193,10 +184,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
     expect(varianceZar.toFixed(2)).toBe("43870.50");
 
     // Select authoritative gazetted tariff version
-    const megaflexTariff = TariffVersionSelector.selectVersionForDate(
-      "megaflex",
-      "2025-06-15"
-    );
+    const megaflexTariff = TariffVersionSelector.selectVersionForDate("megaflex", "2025-06-15");
 
     const consumptionInput = {
       notified_maximum_demand_kva: new Decimal(2800),
@@ -212,10 +200,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
       billing_end: "2025-06-30",
     };
 
-    const calculated = DeterministicTariffEngine.calculate(
-      consumptionInput,
-      megaflexTariff
-    );
+    const calculated = DeterministicTariffEngine.calculate(consumptionInput, megaflexTariff);
 
     expect(calculated.subtotal_ex_vat.toNumber()).toBeGreaterThan(0);
     expect(calculated.audit_trace.length).toBeGreaterThanOrEqual(1);
@@ -240,7 +225,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
     const dashboardData = await DashboardService.getAggregatedDashboardData(
       { organisationId: TENANT_ID },
       undefined,
-      activeSecurityContext
+      activeSecurityContext,
     );
 
     expect(dashboardData.hasData).toBe(true);
@@ -267,7 +252,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
     const refreshedData = await DashboardService.getAggregatedDashboardData(
       { organisationId: TENANT_ID },
       undefined,
-      activeSecurityContext
+      activeSecurityContext,
     );
     expect(refreshedData.hasData).toBe(true);
     expect(refreshedData.portfolioSummary.totalInvoices).toBeGreaterThanOrEqual(1);
@@ -281,21 +266,21 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
       USER_ID,
       USER_EMAIL,
       TENANT_ID,
-      "ENERGY_MANAGER"
+      "ENERGY_MANAGER",
     );
 
     const reloggedData = await DashboardService.getAggregatedDashboardData(
       { organisationId: TENANT_ID },
       undefined,
-      reauthenticatedContext
+      reauthenticatedContext,
     );
 
     expect(reloggedData.hasData).toBe(true);
     expect(reloggedData.portfolioSummary.totalInvoices).toBe(
-      refreshedData.portfolioSummary.totalInvoices
+      refreshedData.portfolioSummary.totalInvoices,
     );
     expect(reloggedData.portfolioSummary.totalBilledAmountZar).toBe(
-      refreshedData.portfolioSummary.totalBilledAmountZar
+      refreshedData.portfolioSummary.totalBilledAmountZar,
     );
   });
 
@@ -305,7 +290,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
       "usr-intruder",
       "intruder@other-firm.co.za",
       "org-foreign-tenant-beta",
-      "ENERGY_MANAGER"
+      "ENERGY_MANAGER",
     );
 
     // Attempt cross-tenant access to TENANT_ID data
@@ -314,7 +299,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
       await DashboardService.getAggregatedDashboardData(
         { organisationId: TENANT_ID },
         undefined,
-        unauthorizedContext
+        unauthorizedContext,
       );
     } catch (err) {
       if (err instanceof TenantIsolationViolationError) {
@@ -331,6 +316,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
     const tracking = await ProductionObservabilityService.trackEvent({
       category: "DATABASE_ERROR",
       severity: "ERROR",
+      operationName: "billing_invoice_query",
       error: new Error("Connection pool exhausted at db.internal:5432 into public.invoices"),
       organisationId: TENANT_ID,
       customUserMessage: "Unable to complete billing database query at this time.",
@@ -354,7 +340,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
       1980000.0,
       1894799.5,
       "run-dyn-001",
-      "v2.0"
+      "v2.0",
     );
 
     // 1. PDF generation works dynamically without mock data
@@ -371,6 +357,8 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
     // 3. Authoritative schema registry provides dynamic query mapping without manual SQL
     expect(AuthoritativeSchemaRegistry.getPhysicalTableName("INVOICES")).toBe("invoice_records");
     expect(AuthoritativeSchemaRegistry.getPhysicalTableName("METERS")).toBe("meters");
-    expect(AuthoritativeSchemaRegistry.getPhysicalTableName("METER_READINGS")).toBe("meter_readings");
+    expect(AuthoritativeSchemaRegistry.getPhysicalTableName("METER_READINGS")).toBe(
+      "meter_readings",
+    );
   });
 });

@@ -44,7 +44,12 @@
     "spreadsheetml",
     "Overbilled",
     "Underbilled",
-    "Ruraflex"
+    "Ruraflex",
+    "relogin",
+    "Relogin",
+    "RELOGIN",
+    "reauthenticated",
+    "relogged"
   ],
   "ignorePaths": ["node_modules/**", "dist/**", ".tanstack/**", "package-lock.json", "bun.lock"]
 }

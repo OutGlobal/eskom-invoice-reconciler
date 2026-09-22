@@ -97,7 +97,15 @@ export function CommandCentreDashboard() {
 
   useEffect(() => {
     loadData();
-  }, [filters, invoice, calculatedTotal, invoiceTotal, rows.length, batchInvoices?.length, uploads?.length]);
+  }, [
+    filters,
+    invoice,
+    calculatedTotal,
+    invoiceTotal,
+    rows.length,
+    batchInvoices?.length,
+    uploads?.length,
+  ]);
 
   // Stage 20: Auto-refresh data on automated processing completion and database mutations
   const { lastRefreshedAt, isAutoRefreshActive } = useAutoRefresh(loadData, {
@@ -234,7 +242,8 @@ export function CommandCentreDashboard() {
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500" />
               </span>
               <h3 className="text-xs font-bold uppercase tracking-wider text-blue-500 flex items-center gap-1.5">
-                <Cpu className="h-4 w-4" /> Data Processing In Progress ({data.activeProcessingJobs.length} active)
+                <Cpu className="h-4 w-4" /> Data Processing In Progress (
+                {data.activeProcessingJobs.length} active)
               </h3>
             </div>
             <span className="text-[10px] font-mono text-muted-foreground">
@@ -272,7 +281,6 @@ export function CommandCentreDashboard() {
           </div>
         </div>
       )}
-
 
       {/* 2. Global Filter Bar */}
       <div className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
@@ -413,7 +421,9 @@ export function CommandCentreDashboard() {
       </div>
 
       {/* 2b. If no processed data but active processing jobs exist: Display prominent processing progress card */}
-      {data.activeProcessingJobs && data.activeProcessingJobs.length > 0 && !portfolioSummary.hasData ? (
+      {data.activeProcessingJobs &&
+      data.activeProcessingJobs.length > 0 &&
+      !portfolioSummary.hasData ? (
         <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-12 text-center space-y-5">
           <div className="mx-auto w-14 h-14 rounded-full bg-blue-500/10 flex items-center justify-center">
             <RefreshCw className="h-7 w-7 text-blue-500 animate-spin" />
@@ -423,9 +433,9 @@ export function CommandCentreDashboard() {
               Ingesting & Reconciling Energy Datasets
             </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              We are currently parsing interval telemetry, validating tariff determinants, and running
-              deterministic NERSA audit calculations. Your dashboard will reveal full portfolio results
-              as soon as analysis completes.
+              We are currently parsing interval telemetry, validating tariff determinants, and
+              running deterministic NERSA audit calculations. Your dashboard will reveal full
+              portfolio results as soon as analysis completes.
             </p>
           </div>
           <div className="flex items-center justify-center gap-2 text-xs text-blue-500 font-semibold">
@@ -444,7 +454,8 @@ export function CommandCentreDashboard() {
               Welcome to Utility Reconciliation Command Centre
             </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Follow these three simple steps to audit your Eskom accounts, reconcile 30-minute interval readings against gazetted NERSA tariffs, and recover billing overcharges.
+              Follow these three simple steps to audit your Eskom accounts, reconcile 30-minute
+              interval readings against gazetted NERSA tariffs, and recover billing overcharges.
             </p>
           </div>
 
@@ -457,7 +468,8 @@ export function CommandCentreDashboard() {
                 <Upload className="h-4 w-4 text-primary" /> Upload Billing & Telemetry
               </h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Ingest monthly Eskom PDF statements, AMR interval telemetry (CSV or Excel), or bulk account history.
+                Ingest monthly Eskom PDF statements, AMR interval telemetry (CSV or Excel), or bulk
+                account history.
               </p>
             </div>
 
@@ -469,7 +481,8 @@ export function CommandCentreDashboard() {
                 <Zap className="h-4 w-4 text-amber-500" /> Deterministic NERSA Audit
               </h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Zero AI hallucination: Exact gazetted Megaflex/Miniflex rates, TOU calendar splits, and NMD analysis.
+                Zero AI hallucination: Exact gazetted Megaflex/Miniflex rates, TOU calendar splits,
+                and NMD analysis.
               </p>
             </div>
 
@@ -481,7 +494,8 @@ export function CommandCentreDashboard() {
                 <ShieldCheck className="h-4 w-4 text-emerald-500" /> Overcharge Recovery & Disputes
               </h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Identify exact variance amounts, quantify potential recoveries, and generate dispute packs for refund claims.
+                Identify exact variance amounts, quantify potential recoveries, and generate dispute
+                packs for refund claims.
               </p>
             </div>
           </div>
@@ -500,7 +514,8 @@ export function CommandCentreDashboard() {
               }}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold rounded-md border border-border transition"
             >
-              <Sparkles className="h-4 w-4 text-primary" /> Explore with Sample Reconciliation Dataset
+              <Sparkles className="h-4 w-4 text-primary" /> Explore with Sample Reconciliation
+              Dataset
             </button>
           </div>
         </div>
@@ -519,7 +534,9 @@ export function CommandCentreDashboard() {
                   <Building2 className="h-3 w-3" /> Total Clients
                 </div>
                 <div className="mt-1 text-xl font-bold">{portfolioSummary.totalClients}</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">Active enterprise orgs</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  Active enterprise orgs
+                </div>
               </div>
 
               {/* Total Sites */}
@@ -537,7 +554,9 @@ export function CommandCentreDashboard() {
                   Total Accounts
                 </div>
                 <div className="mt-1 text-xl font-bold">{portfolioSummary.totalAccounts}</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">Eskom billing accounts</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  Eskom billing accounts
+                </div>
               </div>
 
               {/* Total Invoices */}
@@ -755,7 +774,9 @@ export function CommandCentreDashboard() {
                   </div>
                 </div>
                 <div className="rounded border border-border p-3 bg-card">
-                  <div className="text-[10px] uppercase text-muted-foreground">Recovered Credit</div>
+                  <div className="text-[10px] uppercase text-muted-foreground">
+                    Recovered Credit
+                  </div>
                   <div className="text-lg font-bold text-emerald-500 mt-0.5">
                     {ZAR(financialRecovery.recoveredAmountZar)}
                   </div>
@@ -815,7 +836,9 @@ export function CommandCentreDashboard() {
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
               <div className="rounded border border-border p-3">
                 <div className="text-[10px] uppercase text-muted-foreground">PEAK ENERGY</div>
-                <div className="text-base font-bold mt-0.5">{NUM(energyOverview.peakKWh, 0)} kWh</div>
+                <div className="text-base font-bold mt-0.5">
+                  {NUM(energyOverview.peakKWh, 0)} kWh
+                </div>
               </div>
               <div className="rounded border border-border p-3">
                 <div className="text-[10px] uppercase text-muted-foreground">STANDARD ENERGY</div>
@@ -846,7 +869,8 @@ export function CommandCentreDashboard() {
               <div className="rounded border border-border p-3">
                 <div className="text-[10px] uppercase text-muted-foreground">REACTIVE ENERGY</div>
                 <div className="text-base font-bold mt-0.5">
-                  {energyOverview.reactiveEnergyKVARh !== null && energyOverview.reactiveEnergyKVARh > 0
+                  {energyOverview.reactiveEnergyKVARh !== null &&
+                  energyOverview.reactiveEnergyKVARh > 0
                     ? `${NUM(energyOverview.reactiveEnergyKVARh, 0)} kVARh`
                     : "Not recorded"}
                 </div>
@@ -854,7 +878,8 @@ export function CommandCentreDashboard() {
               <div className="rounded border border-border p-3">
                 <div className="text-[10px] uppercase text-muted-foreground">AVG POWER FACTOR</div>
                 <div className="text-base font-bold mt-0.5 text-emerald-500">
-                  {energyOverview.averagePowerFactor !== null && energyOverview.averagePowerFactor > 0
+                  {energyOverview.averagePowerFactor !== null &&
+                  energyOverview.averagePowerFactor > 0
                     ? energyOverview.averagePowerFactor.toFixed(2)
                     : "Not measured"}
                 </div>
@@ -872,10 +897,12 @@ export function CommandCentreDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-semibold tracking-tight uppercase flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4 text-primary" /> 6. Monthly Consumption & Billing Lineage
+                  <Calendar className="h-4 w-4 text-primary" /> 6. Monthly Consumption & Billing
+                  Lineage
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Verified database billing periods, TOU consumption determinants & reconciliation outcomes
+                  Verified database billing periods, TOU consumption determinants & reconciliation
+                  outcomes
                 </p>
               </div>
               <span className="text-xs font-mono px-2 py-0.5 rounded bg-muted text-muted-foreground border">
@@ -934,7 +961,9 @@ export function CommandCentreDashboard() {
                           {ZAR(m.invoicedTotalZar)}
                         </td>
                         <td className="px-3 py-2.5 text-right text-emerald-500">
-                          {typeof m.reconciledTotalZar === "number" ? ZAR(m.reconciledTotalZar) : "Pending"}
+                          {typeof m.reconciledTotalZar === "number"
+                            ? ZAR(m.reconciledTotalZar)
+                            : "Pending"}
                         </td>
                         <td
                           className={`px-3 py-2.5 text-right font-semibold ${
@@ -974,7 +1003,8 @@ export function CommandCentreDashboard() {
           <section className="rounded-lg border border-border bg-card p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold tracking-tight uppercase flex items-center gap-1.5">
-                <AlertTriangle className="h-4 w-4 text-red-500" /> 7. Actionable Critical Billing Alerts
+                <AlertTriangle className="h-4 w-4 text-red-500" /> 7. Actionable Critical Billing
+                Alerts
               </h2>
               <span className="text-xs font-semibold px-2 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20">
                 {criticalAlerts.length} Active Alerts

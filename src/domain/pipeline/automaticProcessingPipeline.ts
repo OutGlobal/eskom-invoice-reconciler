@@ -148,10 +148,7 @@ export class AutomaticProcessingPipeline {
         (sum: number, r: any) => sum + (r.off_peak_kwh || 0),
         0,
       );
-      const totalKwh = canonicalIntervals.reduce(
-        (sum: number, r: any) => sum + (r.kwh || 0),
-        0,
-      );
+      const totalKwh = canonicalIntervals.reduce((sum: number, r: any) => sum + (r.kwh || 0), 0);
       const maxDemandKva = canonicalIntervals.reduce(
         (max: number, r: any) => Math.max(max, r.kva || 0),
         0,

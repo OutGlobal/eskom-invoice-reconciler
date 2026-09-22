@@ -151,8 +151,20 @@ describe("Stage 16 — Server-Side Processing Jobs Engine", () => {
   it("3. processes Excel workbooks on backend worker without browser heap crashes", async () => {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet([
-      { timestamp: "2025-01-01T00:00:00Z", meter_id: "MTR-ESKOM-001", kwh: 120.5, kvarh: 30.2, kva: 125.0 },
-      { timestamp: "2025-01-01T00:30:00Z", meter_id: "MTR-ESKOM-001", kwh: 118.0, kvarh: 29.5, kva: 122.0 },
+      {
+        timestamp: "2025-01-01T00:00:00Z",
+        meter_id: "MTR-ESKOM-001",
+        kwh: 120.5,
+        kvarh: 30.2,
+        kva: 125.0,
+      },
+      {
+        timestamp: "2025-01-01T00:30:00Z",
+        meter_id: "MTR-ESKOM-001",
+        kwh: 118.0,
+        kvarh: 29.5,
+        kva: 122.0,
+      },
     ]);
     XLSX.utils.book_append_sheet(wb, ws, "Intervals");
     const xlsxBuffer = new Uint8Array(XLSX.write(wb, { type: "array", bookType: "xlsx" }));
@@ -215,7 +227,9 @@ describe("Stage 16 — Server-Side Processing Jobs Engine", () => {
 
     // Monotonically increasing progress
     for (let i = 1; i < updates.length; i++) {
-      expect(updates[i].progressPercentage).toBeGreaterThanOrEqual(updates[i - 1].progressPercentage);
+      expect(updates[i].progressPercentage).toBeGreaterThanOrEqual(
+        updates[i - 1].progressPercentage,
+      );
     }
   });
 

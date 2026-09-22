@@ -210,7 +210,8 @@ export const AuditTrailWorkspace: React.FC = () => {
                 Authoritative Audit Trail & Governance Ledger
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Tamper-evident system activity log capturing uploads, processing, data extractions, corrections, and configuration mutations.
+                Tamper-evident system activity log capturing uploads, processing, data extractions,
+                corrections, and configuration mutations.
               </p>
             </div>
           </div>
@@ -357,7 +358,9 @@ export const AuditTrailWorkspace: React.FC = () => {
             ) : records.length === 0 ? (
               <div className="p-12 text-center text-sm text-muted-foreground space-y-2">
                 <History className="w-8 h-8 mx-auto text-muted-foreground/50" />
-                <p className="font-semibold text-foreground">No audit entries match current filters</p>
+                <p className="font-semibold text-foreground">
+                  No audit entries match current filters
+                </p>
                 <p className="text-xs text-muted-foreground">
                   Try clearing the category filter, search query, or date range.
                 </p>
@@ -385,7 +388,10 @@ export const AuditTrailWorkspace: React.FC = () => {
                       return (
                         <tr key={rec.id} className="hover:bg-muted/10 transition-colors">
                           <td className="py-3 px-4 whitespace-nowrap font-mono text-[11px] text-muted-foreground">
-                            {new Date(rec.timestamp).toISOString().replace("T", " ").substring(0, 19)}
+                            {new Date(rec.timestamp)
+                              .toISOString()
+                              .replace("T", " ")
+                              .substring(0, 19)}
                           </td>
                           <td className="py-3 px-4 whitespace-nowrap">
                             <div className="flex items-center gap-2">
@@ -488,7 +494,8 @@ export const AuditTrailWorkspace: React.FC = () => {
                 <div>
                   <span className="text-muted-foreground">Target Record:</span>
                   <div className="font-semibold text-foreground mt-0.5">
-                    {selectedRecordForDiff.record.recordLabel || selectedRecordForDiff.record.recordId}
+                    {selectedRecordForDiff.record.recordLabel ||
+                      selectedRecordForDiff.record.recordId}
                   </div>
                   <div className="text-[10px] text-muted-foreground uppercase">
                     {selectedRecordForDiff.record.entityType}
@@ -497,7 +504,10 @@ export const AuditTrailWorkspace: React.FC = () => {
                 <div>
                   <span className="text-muted-foreground">Timestamp (UTC):</span>
                   <div className="font-mono text-muted-foreground mt-0.5 text-[11px]">
-                    {new Date(selectedRecordForDiff.timestamp).toISOString().replace("T", " ").slice(0, 19)}
+                    {new Date(selectedRecordForDiff.timestamp)
+                      .toISOString()
+                      .replace("T", " ")
+                      .slice(0, 19)}
                   </div>
                 </div>
                 <div>
@@ -545,8 +555,8 @@ export const AuditTrailWorkspace: React.FC = () => {
                                   d.changeType === "modified"
                                     ? "bg-purple-500/20 text-purple-300"
                                     : d.changeType === "added"
-                                    ? "bg-emerald-500/20 text-emerald-300"
-                                    : "bg-rose-500/20 text-rose-300"
+                                      ? "bg-emerald-500/20 text-emerald-300"
+                                      : "bg-rose-500/20 text-rose-300"
                                 }`}
                               >
                                 {d.changeType}

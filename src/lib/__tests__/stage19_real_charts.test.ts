@@ -1,6 +1,6 @@
 /**
  * STAGE 19 — CHARTS VERIFICATION TEST SUITE
- * 
+ *
  * Requirements:
  * 1. All charts must use real database data.
  * 2. Charts should update when new data is processed.
@@ -119,8 +119,16 @@ vi.mock("@/lib/supabase", () => {
             then: vi.fn((resolve) =>
               resolve({
                 data: [
-                  { id: "site-sandton-01", site_code: "JHB-SDN-01", site_name: "Sandton Primary Data Centre" },
-                  { id: "site-cpt-01", site_code: "CPT-PLT-01", site_name: "Cape Town Regional Plant" },
+                  {
+                    id: "site-sandton-01",
+                    site_code: "JHB-SDN-01",
+                    site_name: "Sandton Primary Data Centre",
+                  },
+                  {
+                    id: "site-cpt-01",
+                    site_code: "CPT-PLT-01",
+                    site_name: "Cape Town Regional Plant",
+                  },
                 ],
                 error: null,
               }),
@@ -242,7 +250,9 @@ describe("STAGE 19 — CHARTS: Real Database Visualizations & Aggregations", () 
 
       expect(tou.distribution[0].name).toBe("Peak Energy");
       expect(tou.distribution[0].value).toBe(totalPeak);
-      expect(tou.distribution[0].percentage).toBe(Number(((totalPeak / totalKwh) * 100).toFixed(1)));
+      expect(tou.distribution[0].percentage).toBe(
+        Number(((totalPeak / totalKwh) * 100).toFixed(1)),
+      );
     });
 
     it("4. Demand Profile: tracks real max demand against contracted NMD threshold", async () => {
@@ -423,7 +433,9 @@ describe("STAGE 19 — CHARTS: Real Database Visualizations & Aggregations", () 
 
       expect(emptyData.monthlyConsumption.hasData).toBe(false);
       expect(emptyData.monthlyConsumption.data).toHaveLength(0);
-      expect(emptyData.monthlyConsumption.emptyReason).toContain("No monthly consumption records found");
+      expect(emptyData.monthlyConsumption.emptyReason).toContain(
+        "No monthly consumption records found",
+      );
 
       expect(emptyData.monthlyCost.hasData).toBe(false);
       expect(emptyData.monthlyCost.emptyReason).toContain("No billing cost records available");

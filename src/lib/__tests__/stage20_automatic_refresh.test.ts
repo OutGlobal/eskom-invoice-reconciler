@@ -159,7 +159,9 @@ describe("Stage 20: Realtime Refresh Manager & Auto-Update Architecture", () => 
         expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["dashboard"] });
         expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["charts"] });
         expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["invoices"] });
-        expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["reconciliations"] });
+        expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
+          queryKey: ["reconciliations"],
+        });
         expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["jobs"] });
       } finally {
         vi.useRealTimers();
@@ -318,12 +320,17 @@ describe("Stage 20: Realtime Refresh Manager & Auto-Update Architecture", () => 
 
   describe("5. Component Integration & Zero Browser Refresh", () => {
     it("CommandCentreDashboard integrates useAutoRefresh and displays live refresh indicator", () => {
-      const filePath = path.resolve(__dirname, "../../components/dashboard/CommandCentreDashboard.tsx");
+      const filePath = path.resolve(
+        __dirname,
+        "../../components/dashboard/CommandCentreDashboard.tsx",
+      );
       const content = fs.readFileSync(filePath, "utf-8");
 
       // Verify useAutoRefresh is imported and called
       expect(content).toContain("useAutoRefresh");
-      expect(content).toContain("const { lastRefreshedAt, isAutoRefreshActive } = useAutoRefresh(loadData");
+      expect(content).toContain(
+        "const { lastRefreshedAt, isAutoRefreshActive } = useAutoRefresh(loadData",
+      );
 
       // Verify UI displays live indicator and data freshness
       expect(content).toContain("Live Auto-Refresh");
@@ -332,7 +339,10 @@ describe("Stage 20: Realtime Refresh Manager & Auto-Update Architecture", () => 
     });
 
     it("EnterpriseAnalyticsCharts integrates useAutoRefresh and displays auto-sync badge", () => {
-      const filePath = path.resolve(__dirname, "../../components/charts/EnterpriseAnalyticsCharts.tsx");
+      const filePath = path.resolve(
+        __dirname,
+        "../../components/charts/EnterpriseAnalyticsCharts.tsx",
+      );
       const content = fs.readFileSync(filePath, "utf-8");
 
       // Verify useAutoRefresh is imported and called
@@ -361,8 +371,14 @@ describe("Stage 20: Realtime Refresh Manager & Auto-Update Architecture", () => 
 
   describe("6. Public Disclosure Model & Security Governance Compliance", () => {
     it("does not expose private schemas, raw SQL, or API routes in client UI components", () => {
-      const dashboardPath = path.resolve(__dirname, "../../components/dashboard/CommandCentreDashboard.tsx");
-      const chartsPath = path.resolve(__dirname, "../../components/charts/EnterpriseAnalyticsCharts.tsx");
+      const dashboardPath = path.resolve(
+        __dirname,
+        "../../components/dashboard/CommandCentreDashboard.tsx",
+      );
+      const chartsPath = path.resolve(
+        __dirname,
+        "../../components/charts/EnterpriseAnalyticsCharts.tsx",
+      );
 
       const dashboardContent = fs.readFileSync(dashboardPath, "utf-8");
       const chartsContent = fs.readFileSync(chartsPath, "utf-8");

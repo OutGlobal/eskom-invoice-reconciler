@@ -83,7 +83,8 @@ describe("Stage 25 — Frontend / Backend Contract & Internal Data Lineage Map",
     // ← invoice records
     // ← uploaded invoice
 
-    const formattedChain = ContractDataLineageMap.getFormattedLineageChain("cmd_total_billed_amount");
+    const formattedChain =
+      ContractDataLineageMap.getFormattedLineageChain("cmd_total_billed_amount");
     expect(formattedChain).toBeDefined();
 
     // Check that every stage of the user's example is represented in the chain

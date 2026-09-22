@@ -106,9 +106,15 @@ describe("Stage 28 — Controlled Test Process with Representative Real Data", (
     expect(xlsxRes.success).toBe(true);
 
     // Test storage
-    const pdfMeta = await FileStorageSecurityService.getSourceFileMetadata(pdfRes.fileHeader.documentId);
-    const csvMeta = await FileStorageSecurityService.getSourceFileMetadata(csvRes.fileHeader.documentId);
-    const xlsxMeta = await FileStorageSecurityService.getSourceFileMetadata(xlsxRes.fileHeader.documentId);
+    const pdfMeta = await FileStorageSecurityService.getSourceFileMetadata(
+      pdfRes.fileHeader.documentId,
+    );
+    const csvMeta = await FileStorageSecurityService.getSourceFileMetadata(
+      csvRes.fileHeader.documentId,
+    );
+    const xlsxMeta = await FileStorageSecurityService.getSourceFileMetadata(
+      xlsxRes.fileHeader.documentId,
+    );
 
     expect(pdfMeta).toBeDefined();
     expect(pdfMeta?.retentionPolicy).toBe("PERMANENT");

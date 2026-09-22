@@ -59,7 +59,9 @@ describe("Stage 32 — Production Observability & Zero-Exposure Error Governance
   });
 
   it("1. Tracks Processing Failures with Sanitized User Notices and Protected Logs", async () => {
-    const rawError = new Error("Worker heap out of memory at PDFParser.parseBuffer (/app/worker.js:142:12)");
+    const rawError = new Error(
+      "Worker heap out of memory at PDFParser.parseBuffer (/app/worker.js:142:12)",
+    );
 
     const userNotice = await ProductionObservabilityService.trackProcessingFailure({
       operationName: "PDF Parsing Pipeline",
@@ -86,7 +88,9 @@ describe("Stage 32 — Production Observability & Zero-Exposure Error Governance
   });
 
   it("2. Tracks Upload Failures Safely without Exposing Internal Hostnames or Cloud Paths", async () => {
-    const rawUploadError = new Error("S3 Upload Failed: Bucket s3://enera-internal-storage-prod-frankfurt/tenants/ timed out after 30000ms");
+    const rawUploadError = new Error(
+      "S3 Upload Failed: Bucket s3://enera-internal-storage-prod-frankfurt/tenants/ timed out after 30000ms",
+    );
 
     const userNotice = await ProductionObservabilityService.trackUploadFailure({
       filename: "eskom_invoice_july_2026.pdf",
@@ -108,7 +112,8 @@ describe("Stage 32 — Production Observability & Zero-Exposure Error Governance
 
   it("3. Tracks Database Errors and Strictly Redacts SQLSTATE, Table Names & Stack Traces", async () => {
     const rawDbError = {
-      message: 'relation "public.invoices" violates check constraint "billing_end_after_start" (SQLSTATE 23514) at Client.query (/node_modules/pg/lib/client.js:526:17)',
+      message:
+        'relation "public.invoices" violates check constraint "billing_end_after_start" (SQLSTATE 23514) at Client.query (/node_modules/pg/lib/client.js:526:17)',
       code: "23514",
       detail: "Failing row contains (inv-123, 2026-08-01, 2026-07-01).",
     };
@@ -136,7 +141,9 @@ describe("Stage 32 — Production Observability & Zero-Exposure Error Governance
   });
 
   it("4. Tracks Reconciliation Failures with Actionable Domain Guidance", async () => {
-    const rawReconError = new Error("Unmatched rate determinants: Megaflex Peak Energy rate R/kWh missing for active season");
+    const rawReconError = new Error(
+      "Unmatched rate determinants: Megaflex Peak Energy rate R/kWh missing for active season",
+    );
 
     const userNotice = await ProductionObservabilityService.trackReconciliationFailure({
       operationName: "Deterministic Tariff Engine Run",
@@ -147,7 +154,9 @@ describe("Stage 32 — Production Observability & Zero-Exposure Error Governance
 
     expect(userNotice.title).toBe("Reconciliation Notice");
     expect(userNotice.message).toContain("missing");
-    expect(userNotice.actionableHint).toContain("confirm that the assigned tariff and meter interval readings cover the entire billing period");
+    expect(userNotice.actionableHint).toContain(
+      "confirm that the assigned tariff and meter interval readings cover the entire billing period",
+    );
 
     const logs = ProductionObservabilityService.getProtectedLogs(SUPER_ADMIN_CONTEXT);
     expect(logs[0].category).toBe("RECONCILIATION_FAILURE");
@@ -187,7 +196,9 @@ describe("Stage 32 — Production Observability & Zero-Exposure Error Governance
 
     expect(extractionNotice.title).toBe("Extraction Incomplete");
     expect(extractionNotice.message).toContain("unable to extract complete billing details");
-    expect(extractionNotice.actionableHint).toContain("ensure your document is a clear, legible PDF");
+    expect(extractionNotice.actionableHint).toContain(
+      "ensure your document is a clear, legible PDF",
+    );
 
     // 6b. Invalid File
     const invalidFileNotice = await ProductionObservabilityService.trackInvalidFile({
@@ -219,7 +230,9 @@ describe("Stage 32 — Production Observability & Zero-Exposure Error Governance
 
     const logs = ProductionObservabilityService.getProtectedLogs(SUPER_ADMIN_CONTEXT);
     expect(logs[0].category).toBe("UNEXPECTED_STATE");
-    expect(logs[0].technicalDetails.rawErrorMessage).toContain("expected 'PROCESSING | NORMALISING'");
+    expect(logs[0].technicalDetails.rawErrorMessage).toContain(
+      "expected 'PROCESSING | NORMALISING'",
+    );
   });
 
   it("8. Enforces Strict RBAC: Ordinary Users Denied Access to Protected Logs", async () => {

@@ -58,12 +58,8 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
           {sanitized.title || "This page didn't load"}
         </h1>
-        <p className="text-sm text-muted-foreground">
-          {sanitized.message}
-        </p>
-        <p className="text-xs text-muted-foreground/60 font-mono">
-          Ref: {sanitized.referenceCode}
-        </p>
+        <p className="text-sm text-muted-foreground">{sanitized.message}</p>
+        <p className="text-xs text-muted-foreground/60 font-mono">Ref: {sanitized.referenceCode}</p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {

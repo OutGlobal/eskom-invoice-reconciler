@@ -74,8 +74,7 @@ export function EnergyPage() {
   const invoicePeakKWh = invoice?.peakKWh ?? 0;
   const invoiceStdKWh = invoice?.standardKWh ?? 0;
   const invoiceOffKWh = invoice?.offPeakKWh ?? 0;
-  const invoiceTotalKWh =
-    invoice?.totalKWh ?? (invoicePeakKWh + invoiceStdKWh + invoiceOffKWh);
+  const invoiceTotalKWh = invoice?.totalKWh ?? invoicePeakKWh + invoiceStdKWh + invoiceOffKWh;
 
   const comparisonData = [
     {

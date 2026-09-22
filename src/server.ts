@@ -468,8 +468,7 @@ export default {
         const headerUserId = request.headers.get("X-User-ID") || "user-session";
         const headerEmail = request.headers.get("X-User-Email") || "user@enera.energy";
 
-        const targetOrgId =
-          body.organisation_id || headerTenantId || "DEFAULT_TENANT";
+        const targetOrgId = body.organisation_id || headerTenantId || "DEFAULT_TENANT";
 
         let context;
         if (headerTenantId) {
@@ -786,9 +785,8 @@ export default {
     // Stage 17 — Large Dataset Server-Side Pagination
     if (url.pathname === "/api/telemetry/paginated" && request.method === "GET") {
       try {
-        const { LargeDatasetQueryEngine } = await import(
-          "./domain/telemetry/largeDatasetQueryEngine"
-        );
+        const { LargeDatasetQueryEngine } =
+          await import("./domain/telemetry/largeDatasetQueryEngine");
         const { createSecurityContext } = await import("./domain/security/tenantContextService");
 
         const headerTenantId =
@@ -855,9 +853,8 @@ export default {
     // Stage 17 — Large Dataset Time-Series Aggregation for Charts (<= 300 points, < 50 KB)
     if (url.pathname === "/api/telemetry/aggregated" && request.method === "GET") {
       try {
-        const { LargeDatasetQueryEngine } = await import(
-          "./domain/telemetry/largeDatasetQueryEngine"
-        );
+        const { LargeDatasetQueryEngine } =
+          await import("./domain/telemetry/largeDatasetQueryEngine");
         const { createSecurityContext } = await import("./domain/security/tenantContextService");
 
         const headerTenantId =
@@ -913,9 +910,8 @@ export default {
     if (url.pathname === "/api/telemetry/query" && request.method === "POST") {
       try {
         const body = await request.json();
-        const { LargeDatasetQueryEngine } = await import(
-          "./domain/telemetry/largeDatasetQueryEngine"
-        );
+        const { LargeDatasetQueryEngine } =
+          await import("./domain/telemetry/largeDatasetQueryEngine");
         const { createSecurityContext } = await import("./domain/security/tenantContextService");
 
         const headerTenantId =

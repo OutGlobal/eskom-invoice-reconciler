@@ -4,18 +4,30 @@
 
 The **Eskom Bill Balancer** is an enterprise-grade utility billing reconciliation and telemetry analysis platform deployed across a hybrid Cloudflare Workers / Nitro SSR Edge layer and a Supabase PostgreSQL backend.
 
+### Architectural Principle — Four Pillars of Truth
+
+1. **DATABASE = BUSINESS DATA SOURCE OF TRUTH**:
+   All permanent business data, accounts, sites, meters, extracted invoices, canonical telemetry, reconciliation runs, and cryptographic audit records reside in PostgreSQL. The frontend is never the permanent source of truth.
+2. **OBJECT STORAGE = ORIGINAL SOURCE FILES**:
+   All raw, untouched source files (vendor AMR CSVs, scanned/digital PDF utility bills, dispute packages) are permanently archived in encrypted, tenant-isolated object storage (`source_files` and `dispute-packs`).
+3. **BACKEND PROCESSING = DATA TRANSFORMATION**:
+   Extraction, parsing, normalization, validation, and tariff calculations execute deterministically through backend processing pipelines (`ProcessingJobEngine`, ingestion gateways, RPCs).
+4. **FRONTEND = PRESENTATION**:
+   Client interfaces serve strictly as presentational and interactive command surfaces. No critical business data exists solely in React state, `localStorage`, `sessionStorage`, hardcoded arrays, or browser memory.
+
 ```
-[ BROWSER / CLIENT ]
+[ BROWSER / CLIENT ] (Presentation Only — Zero Permanent Business State)
        │
        ▼ (HTTPS / TLS 1.3)
 [ CLOUDFLARE WORKERS EDGE (SSR / Nitro Engine) ]
        │
        ├──────────────────────────┐
-       ▼ (PostgREST / WSS)        ▼ (Signed Storage SDK)
+       ▼ (PostgREST / WSS / RPC)  ▼ (Signed Storage SDK)
 [ SUPABASE POSTGRESQL DB ]    [ SUPABASE S3 STORAGE BUCKETS ]
-  • Tenant RLS Policies        • /invoices
-  • Partitioned Telemetry      • /amr-telemetry
-  • Audit Ledger Hash Chain    • /dispute-packs
+  • Business Source of Truth   • /source_files (Tenant-isolated raw files)
+  • Tenant RLS Policies        • /dispute-packs (Generated dispute packs)
+  • Partitioned Telemetry
+  • Audit Ledger Hash Chain
 ```
 
 ---
@@ -26,9 +38,9 @@ The **Eskom Bill Balancer** is an enterprise-grade utility billing reconciliatio
 
 - **Runtime:** Cloudflare Module Worker with Nitro SSR bundling.
 - **Framework:** React 18, TanStack Router (SSR), TanStack Query, Tailwind CSS.
-- **Client Processing:** Browser-side Web Streams for AMR telemetry streaming ingestion, Tesseract OCR for PDF invoice parsing, and PDFKit/ExcelJS for client-side dispute pack export.
+- **Client Role (Presentation Only):** Renders views, visualizes telemetry charts, captures user input/file selection, and dispatches processing jobs. Does not act as an authoritative business data store.
 
-### B. Relational Database Layer (Supabase PostgreSQL)
+### B. Relational Database Layer (Supabase PostgreSQL) — Business Data Source of Truth
 
 - **Host:** AWS eu-central-1 (Frankfurt) / Supabase Dedicated Pool.
 - **Tables & Views:**
@@ -38,12 +50,11 @@ The **Eskom Bill Balancer** is an enterprise-grade utility billing reconciliatio
   - `reconciliation_runs`, `reconciliation_line_items` (Deterministic Results)
   - `audit_ledger`, `processing_logs` (Append-Only Cryptographic Traces)
 
-### C. Object Storage Layer (Supabase S3 Storage)
+### C. Object Storage Layer (Supabase S3 Storage) — Original Source Files
 
 - **Buckets:**
-  - `invoices`: Encrypted tax invoice PDF uploads.
-  - `amr-telemetry`: Raw vendor CSV/XLSX AMR telemetry dumps.
-  - `dispute-packs`: Generated executive dispute ZIP/PDF packs.
+  - `source_files`: Tenant-isolated encrypted storage for raw uploaded utility bills (PDFs) and vendor AMR telemetry files (CSV/XLSX/TXT). Governed by strict tenant isolation RLS.
+  - `dispute-packs`: Generated executive dispute ZIP/PDF packages for billing claims.
 
 ---
 

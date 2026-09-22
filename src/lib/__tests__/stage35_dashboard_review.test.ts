@@ -87,7 +87,12 @@ describe("Stage 35 — Final Dashboard Review", () => {
           charges,
           calculatedTotal,
           invoiceTotal: SAMPLE_MARCH_2026_INVOICE.invoiceTotal,
-          customer: { name: "Impala Platinum", meter: "7856504226", accountNumber: "1234567890", nmd: 85740 },
+          customer: {
+            name: "Impala Platinum",
+            meter: "7856504226",
+            accountNumber: "1234567890",
+            nmd: 85740,
+          },
           rows: dummyRows,
           batchInvoices: [SAMPLE_MARCH_2026_INVOICE],
         },
@@ -96,11 +101,15 @@ describe("Stage 35 — Final Dashboard Review", () => {
       expect(data.hasData).toBe(true);
       expect(data.portfolioSummary.hasData).toBe(true);
       expect(data.portfolioSummary.totalInvoices).toBe(1);
-      expect(data.portfolioSummary.totalBilledAmountZar).toBe(SAMPLE_MARCH_2026_INVOICE.invoiceTotal);
+      expect(data.portfolioSummary.totalBilledAmountZar).toBe(
+        SAMPLE_MARCH_2026_INVOICE.invoiceTotal,
+      );
       expect(data.portfolioSummary.totalCalculatedAmountZar).toBe(calculatedTotal);
       expect(data.energyOverview.totalKWh).toBeGreaterThan(0);
       expect(data.monthlyConsumption.length).toBe(1);
-      expect(data.monthlyConsumption[0].invoiceNumber).toBe(SAMPLE_MARCH_2026_INVOICE.invoiceNumber);
+      expect(data.monthlyConsumption[0].invoiceNumber).toBe(
+        SAMPLE_MARCH_2026_INVOICE.invoiceNumber,
+      );
     });
   });
 
@@ -116,7 +125,12 @@ describe("Stage 35 — Final Dashboard Review", () => {
           charges,
           calculatedTotal,
           invoiceTotal: SAMPLE_MARCH_2026_INVOICE.invoiceTotal,
-          customer: { name: "Impala Platinum", meter: "7856504226", accountNumber: "1234567890", nmd: 85740 },
+          customer: {
+            name: "Impala Platinum",
+            meter: "7856504226",
+            accountNumber: "1234567890",
+            nmd: 85740,
+          },
           rows: dummyRows,
         },
       );
@@ -135,7 +149,8 @@ describe("Stage 35 — Final Dashboard Review", () => {
       ];
       const extendedTotals = computeTotals(extendedRows, 85740);
       const extendedCharges = computeCharges(extendedTotals, 85740, extendedRows);
-      const extendedCalculated = extendedCharges.find((c) => c.label === "Total Charges")?.amount || 0;
+      const extendedCalculated =
+        extendedCharges.find((c) => c.label === "Total Charges")?.amount || 0;
 
       const updatedData = await DashboardService.getAggregatedDashboardData(
         {},
@@ -145,7 +160,12 @@ describe("Stage 35 — Final Dashboard Review", () => {
           charges: extendedCharges,
           calculatedTotal: extendedCalculated,
           invoiceTotal: SAMPLE_MARCH_2026_INVOICE.invoiceTotal,
-          customer: { name: "Impala Platinum", meter: "7856504226", accountNumber: "1234567890", nmd: 85740 },
+          customer: {
+            name: "Impala Platinum",
+            meter: "7856504226",
+            accountNumber: "1234567890",
+            nmd: 85740,
+          },
           rows: extendedRows,
         },
       );
@@ -172,7 +192,12 @@ describe("Stage 35 — Final Dashboard Review", () => {
           charges: [{ label: "Total Charges", group: "tax", amount: calcTotal }],
           calculatedTotal: calcTotal,
           invoiceTotal: billedTotal,
-          customer: { name: "Impala Platinum", meter: "7856504226", accountNumber: "1234567890", nmd: 85740 },
+          customer: {
+            name: "Impala Platinum",
+            meter: "7856504226",
+            accountNumber: "1234567890",
+            nmd: 85740,
+          },
           rows: dummyRows,
         },
       );
@@ -213,7 +238,12 @@ describe("Stage 35 — Final Dashboard Review", () => {
           charges,
           calculatedTotal,
           invoiceTotal: multiSiteInvoices[0].invoiceTotal,
-          customer: { name: "Impala Platinum", meter: "7856504226", accountNumber: "1234567890", nmd: 85740 },
+          customer: {
+            name: "Impala Platinum",
+            meter: "7856504226",
+            accountNumber: "1234567890",
+            nmd: 85740,
+          },
           rows: dummyRows,
           batchInvoices: multiSiteInvoices,
         },
@@ -239,7 +269,12 @@ describe("Stage 35 — Final Dashboard Review", () => {
           charges,
           calculatedTotal,
           invoiceTotal: SAMPLE_MARCH_2026_INVOICE.invoiceTotal,
-          customer: { name: "Impala Platinum", meter: "7856504226", accountNumber: "1234567890", nmd: 85740 },
+          customer: {
+            name: "Impala Platinum",
+            meter: "7856504226",
+            accountNumber: "1234567890",
+            nmd: 85740,
+          },
           rows: dummyRows,
           batchInvoices,
         },
@@ -259,8 +294,8 @@ describe("Stage 35 — Final Dashboard Review", () => {
     it("sanitizes raw database constraint and schema errors, redacting technical internals", () => {
       const rawError = new Error(
         'error: relation "public.invoice_records" does not exist at character 15\n' +
-        '    at Parser.parse (/app/node_modules/pg-protocol/dist/parser.js:287:87)\n' +
-        '    at Connection.query (SELECT * FROM public.invoice_records WHERE id = $1)',
+          "    at Parser.parse (/app/node_modules/pg-protocol/dist/parser.js:287:87)\n" +
+          "    at Connection.query (SELECT * FROM public.invoice_records WHERE id = $1)",
       );
 
       const sanitized = UserFacingErrorSanitizer.sanitize("DATABASE_ERROR", rawError);

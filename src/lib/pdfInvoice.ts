@@ -128,7 +128,7 @@ export function matchKnownInvoice(fileName: string, rawText: string = "") {
         energyCharges: 1330745,
         demandCharges: 51420,
         networkCharges: 77640,
-        serviceCharge: 5750.50,
+        serviceCharge: 5750.5,
         ancillaryService: 13200,
         vat: 221813.33,
         invoiceTotal: 1700568.83,
@@ -141,22 +141,33 @@ export function matchKnownInvoice(fileName: string, rawText: string = "") {
         offPeakEnergy: 166725,
         demandCharges: 51420,
         networkCharges: 77640,
-        serviceCharge: 5750.50,
+        serviceCharge: 5750.5,
         ancillaryService: 13200,
         vat: 221813.33,
         totalInclVat: 1700568.83,
       },
       lineItems: [
         { code: "E01", description: "Megaflex Peak Energy", amount: 666920, category: "energy" },
-        { code: "E02", description: "Megaflex Standard Energy", amount: 497100, category: "energy" },
-        { code: "E03", description: "Megaflex Off-Peak Energy", amount: 166725, category: "energy" },
+        {
+          code: "E02",
+          description: "Megaflex Standard Energy",
+          amount: 497100,
+          category: "energy",
+        },
+        {
+          code: "E03",
+          description: "Megaflex Off-Peak Energy",
+          amount: 166725,
+          category: "energy",
+        },
         { code: "D01", description: "Demand Charge", amount: 51420, category: "demand" },
         { code: "N01", description: "Network Capacity Charge", amount: 77640, category: "network" },
-        { code: "S01", description: "Service Charge", amount: 5750.50, category: "service" },
+        { code: "S01", description: "Service Charge", amount: 5750.5, category: "service" },
         { code: "A01", description: "Ancillary Service", amount: 13200, category: "ancillary" },
         { code: "V01", description: "VAT 15%", amount: 221813.33, category: "tax" },
       ],
-      rawText: rawText || "Eskom Tax Invoice Apex Industrial Hub ACC-CPT-9001 January 2026 MTR-CPT-001",
+      rawText:
+        rawText || "Eskom Tax Invoice Apex Industrial Hub ACC-CPT-9001 January 2026 MTR-CPT-001",
     };
   }
 
@@ -207,14 +218,14 @@ export function matchKnownInvoice(fileName: string, rawText: string = "") {
         { code: "A01", description: "Ancillary Service", amount: 390, category: "ancillary" },
         { code: "V01", description: "VAT 15%", amount: 29629.57, category: "tax" },
       ],
-      rawText: rawText || "Eskom Tax Invoice Vanguard Logistics Depot ACC-JHB-9002 February 2026 MTR-JHB-002",
+      rawText:
+        rawText ||
+        "Eskom Tax Invoice Vanguard Logistics Depot ACC-JHB-9002 February 2026 MTR-JHB-002",
     };
   }
 
   // Pipeline Test Match for Jan 2025 Fixtures
-  if (
-    /jan2025|jan_2025|eskom_invoice_jan2025|eskom_invoice_multi/i.test(name)
-  ) {
+  if (/jan2025|jan_2025|eskom_invoice_jan2025|eskom_invoice_multi/i.test(name)) {
     return {
       invoice: {
         accountNumber: "9182374650",
@@ -244,7 +255,9 @@ export function matchKnownInvoice(fileName: string, rawText: string = "") {
 
   // General test fixture invoice match (Stage 8 & Ingestion Test Fixtures)
   if (
-    /account_link|bill_status|recon_ready|scanned_eskom|invoice_duplicate|job_track|eskom_invoice_feb|stage8/i.test(name)
+    /account_link|bill_status|recon_ready|scanned_eskom|invoice_duplicate|job_track|eskom_invoice_feb|stage8/i.test(
+      name,
+    )
   ) {
     return {
       invoice: {

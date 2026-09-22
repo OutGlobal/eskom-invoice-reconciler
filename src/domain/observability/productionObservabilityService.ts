@@ -241,7 +241,10 @@ export class ProductionObservabilityService {
     });
   }
 
-  public static async trackSlowJob(metrics: SlowJobMetrics, organisationId?: string): Promise<UserFacingMessage> {
+  public static async trackSlowJob(
+    metrics: SlowJobMetrics,
+    organisationId?: string,
+  ): Promise<UserFacingMessage> {
     return this.trackEvent({
       category: "SLOW_JOB",
       severity: "WARNING",
@@ -379,9 +382,17 @@ export class ProductionObservabilityService {
     filter?: ObservabilityFilter,
   ): ProtectedLogRecord[] {
     // Ordinary users or unauthorized requests are strictly denied access to raw technical logs
-    const privilegedRoles = ["SUPER_ADMIN", "ADMIN", "ORGANISATION_ADMIN", "COMPLIANCE_OFFICER", "SYSTEM_AUDITOR"];
+    const privilegedRoles = [
+      "SUPER_ADMIN",
+      "ADMIN",
+      "ORGANISATION_ADMIN",
+      "COMPLIANCE_OFFICER",
+      "SYSTEM_AUDITOR",
+    ];
     if (!privilegedRoles.includes(context.role)) {
-      throw new Error("Access Denied: Protected operational logs require administrative or auditor privileges.");
+      throw new Error(
+        "Access Denied: Protected operational logs require administrative or auditor privileges.",
+      );
     }
 
     let records = [...this.protectedLogs];
@@ -448,7 +459,8 @@ export class ProductionObservabilityService {
 
     return {
       rawErrorMessage,
-      errorName: errorObj?.name || (typeof error === "object" && error ? (error as any).name : undefined),
+      errorName:
+        errorObj?.name || (typeof error === "object" && error ? (error as any).name : undefined),
       errorCode:
         typeof error === "object" && error
           ? (error as any).code || (error as any).status || (error as any).statusCode

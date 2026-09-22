@@ -81,8 +81,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       {/* Action Buttons */}
       {(primaryAction || secondaryAction || tertiaryAction) && (
         <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
-          {primaryAction && (
-            primaryAction.href ? (
+          {primaryAction &&
+            (primaryAction.href ? (
               <a
                 href={primaryAction.href}
                 data-testid="empty-state-primary-action"
@@ -103,11 +103,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
                 <span>{primaryAction.label}</span>
                 {!primaryAction.icon && <ArrowRight className="w-3.5 h-3.5 ml-0.5" />}
               </button>
-            )
-          )}
+            ))}
 
-          {secondaryAction && (
-            secondaryAction.href ? (
+          {secondaryAction &&
+            (secondaryAction.href ? (
               <a
                 href={secondaryAction.href}
                 data-testid="empty-state-secondary-action"
@@ -126,11 +125,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
                 {secondaryAction.icon && <secondaryAction.icon className="w-3.5 h-3.5" />}
                 <span>{secondaryAction.label}</span>
               </button>
-            )
-          )}
+            ))}
 
-          {tertiaryAction && (
-            tertiaryAction.href ? (
+          {tertiaryAction &&
+            (tertiaryAction.href ? (
               <a
                 href={tertiaryAction.href}
                 data-testid="empty-state-tertiary-action"
@@ -149,8 +147,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
                 {tertiaryAction.icon && <tertiaryAction.icon className="w-3.5 h-3.5" />}
                 <span>{tertiaryAction.label}</span>
               </button>
-            )
-          )}
+            ))}
         </div>
       )}
     </div>

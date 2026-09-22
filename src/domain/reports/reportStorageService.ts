@@ -48,7 +48,10 @@ export async function saveGeneratedReportMetadata(
       await AuditTrailService.recordAction({
         organisationId: "DEFAULT_TENANT",
         category: "report_generation",
-        action: meta.reportType === "DISPUTE_PACK_EXCEL" ? "DISPUTE_PACK_EXCEL_GENERATED" : "DISPUTE_PACK_PDF_GENERATED",
+        action:
+          meta.reportType === "DISPUTE_PACK_EXCEL"
+            ? "DISPUTE_PACK_EXCEL_GENERATED"
+            : "DISPUTE_PACK_PDF_GENERATED",
         description: `Generated dispute report ${meta.fileName} for run ${meta.runId}`,
         actor: { userId: meta.createdBy },
         record: { entityType: "report", recordId: meta.reportId, recordLabel: meta.fileName },

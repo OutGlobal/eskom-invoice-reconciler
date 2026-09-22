@@ -14,7 +14,7 @@ export type DatabaseNumericType =
   | "NUMERIC(18,2)" // Monetary currency values (ZAR cents)
   | "NUMERIC(18,4)" // Determinants (kWh, kVA, kVARh)
   | "NUMERIC(18,6)" // Tariff unit rates (c/kWh, R/kVA, R/day, multipliers)
-  | "NUMERIC(8,4)"  // Variance percentages, power factors
+  | "NUMERIC(8,4)" // Variance percentages, power factors
   | "NUMERIC(5,4)"; // Statutory ratios (VAT 0.1500)
 
 export interface DatabaseTypeSpecification {

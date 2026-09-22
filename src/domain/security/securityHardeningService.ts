@@ -51,7 +51,12 @@ export class SecurityHardeningService {
    */
   public static assertUserOwnsRecord(
     context: UserSecurityContext,
-    record: { organisation_id?: string; organisationId?: string; owner_id?: string; created_by?: string },
+    record: {
+      organisation_id?: string;
+      organisationId?: string;
+      owner_id?: string;
+      created_by?: string;
+    },
     action: "READ" | "MODIFY" | "DELETE" = "MODIFY",
   ): void {
     if (!context) {
@@ -65,7 +70,9 @@ export class SecurityHardeningService {
 
     const recordOrgId = record.organisation_id || record.organisationId;
     if (!recordOrgId) {
-      throw new Error(`SECURITY_VIOLATION: Target record lacks organisation attribution for ${action}`);
+      throw new Error(
+        `SECURITY_VIOLATION: Target record lacks organisation attribution for ${action}`,
+      );
     }
 
     // Tenant Isolation Check
@@ -142,7 +149,10 @@ export class SecurityHardeningService {
 
     // Path traversal check
     if (storagePath.includes("..") || storagePath.includes("//") || storagePath.includes("\\")) {
-      return { allowed: false, reason: "SECURITY_ALERT: Malicious path traversal sequence detected" };
+      return {
+        allowed: false,
+        reason: "SECURITY_ALERT: Malicious path traversal sequence detected",
+      };
     }
 
     // Super Admin has global read access
@@ -227,7 +237,8 @@ export class SecurityHardeningService {
       category: "AUTHENTICATION",
       status: "SECURE",
       description: "User identity verification through Supabase Auth JWT tokens",
-      evidence: "Active session JWT verification with valid cryptographic signature required on all gateway calls.",
+      evidence:
+        "Active session JWT verification with valid cryptographic signature required on all gateway calls.",
     });
 
     // 2. Authorization Check
@@ -235,7 +246,8 @@ export class SecurityHardeningService {
       category: "AUTHORIZATION",
       status: "SECURE",
       description: "7-Tier Role-Based Access Control (RBAC) enforced in domain logic",
-      evidence: "ROLE_PERMISSIONS_MAP restricts write operations to authorized roles (SUPER_ADMIN, ORGANISATION_ADMIN, ENERGY_MANAGER).",
+      evidence:
+        "ROLE_PERMISSIONS_MAP restricts write operations to authorized roles (SUPER_ADMIN, ORGANISATION_ADMIN, ENERGY_MANAGER).",
     });
 
     // 3. Row Level Security Check
@@ -243,7 +255,8 @@ export class SecurityHardeningService {
       category: "ROW_LEVEL_SECURITY",
       status: "SECURE",
       description: "Row Level Security enabled and forced across all business tables",
-      evidence: "PostgreSQL migration 20260915010000_tenant_isolation_rls.sql enables RLS on 33 business tables.",
+      evidence:
+        "PostgreSQL migration 20260915010000_tenant_isolation_rls.sql enables RLS on 33 business tables.",
     });
 
     // 4. Storage Permissions Check
@@ -251,7 +264,8 @@ export class SecurityHardeningService {
       category: "STORAGE_PERMISSIONS",
       status: "SECURE",
       description: "Strict tenant path isolation in object storage with time-limited signed URLs",
-      evidence: "Storage bucket 'source_files' enforces path format tenants/{org_id}/* and HMAC-signed URLs with 15-min TTL.",
+      evidence:
+        "Storage bucket 'source_files' enforces path format tenants/{org_id}/* and HMAC-signed URLs with 15-min TTL.",
     });
 
     // 5. Database Policies Check
@@ -259,7 +273,8 @@ export class SecurityHardeningService {
       category: "DATABASE_POLICIES",
       status: "SECURE",
       description: "Database policies enforce tenant isolation and check conditions on mutations",
-      evidence: "Policies enforce organisation_id = public.auth_user_organisation_id() WITH CHECK on INSERT/UPDATE.",
+      evidence:
+        "Policies enforce organisation_id = public.auth_user_organisation_id() WITH CHECK on INSERT/UPDATE.",
     });
 
     // 6. API Access Check
@@ -267,7 +282,8 @@ export class SecurityHardeningService {
       category: "API_ACCESS",
       status: "SECURE",
       description: "Anonymous mutation rights strictly revoked from PostgREST API",
-      evidence: "REVOKE ALL ON public.* FROM anon migration executed; API mutations reject unauthenticated requests.",
+      evidence:
+        "REVOKE ALL ON public.* FROM anon migration executed; API mutations reject unauthenticated requests.",
     });
 
     // 7. Service Roles Check
@@ -283,7 +299,8 @@ export class SecurityHardeningService {
     checks.push({
       category: "ENVIRONMENT_VARIABLES",
       status: envAudit.isSecure ? "SECURE" : "VULNERABILITY_DETECTED",
-      description: "Client environment only receives public VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY",
+      description:
+        "Client environment only receives public VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY",
       evidence: "Zero private cloud credentials or database passwords bundled in frontend assets.",
     });
 
@@ -292,15 +309,18 @@ export class SecurityHardeningService {
       category: "FRONTEND_EXPOSURE",
       status: "SECURE",
       description: "Level 3 Private Zero-Exposure Embargo strictly enforced",
-      evidence: "Zero database schema names, internal endpoints, or SQL queries rendered into public DOM attributes.",
+      evidence:
+        "Zero database schema names, internal endpoints, or SQL queries rendered into public DOM attributes.",
     });
 
     // 10. Admin Permissions Check
     checks.push({
       category: "ADMIN_PERMISSIONS",
       status: "SECURE",
-      description: "Administrative functions protected by assertAdminPrivilege, independent of UI route protection",
-      evidence: "Direct invocation of administrative actions fails safely with ADMIN_ACCESS_DENIED if caller lacks admin role.",
+      description:
+        "Administrative functions protected by assertAdminPrivilege, independent of UI route protection",
+      evidence:
+        "Direct invocation of administrative actions fails safely with ADMIN_ACCESS_DENIED if caller lacks admin role.",
     });
 
     const vulnerabilityCount = checks.filter((c) => c.status === "VULNERABILITY_DETECTED").length;

@@ -197,7 +197,8 @@ export class MeterStorageService {
 
       try {
         const { AuditTrailService } = await import("../audit/auditTrailService");
-        const prevConfig = existingConfigs.length > 0 ? existingConfigs[existingConfigs.length - 1] : null;
+        const prevConfig =
+          existingConfigs.length > 0 ? existingConfigs[existingConfigs.length - 1] : null;
         await AuditTrailService.recordAction({
           organisationId: "DEFAULT_TENANT",
           category: "configuration_changes",

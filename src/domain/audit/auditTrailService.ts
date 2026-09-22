@@ -166,7 +166,10 @@ export class AuditTrailService {
         },
       });
     } catch (err: any) {
-      console.warn("[AuditTrailService] DB persistence fallback to in-memory:", err?.message || err);
+      console.warn(
+        "[AuditTrailService] DB persistence fallback to in-memory:",
+        err?.message || err,
+      );
     }
 
     // Trigger auto-refresh for UI subscribers
@@ -348,7 +351,9 @@ export class AuditTrailService {
 
     const rows = records.map((r) => {
       const diffSummary = (r.diff || [])
-        .map((d) => `${d.field}: ${JSON.stringify(d.previousValue)} -> ${JSON.stringify(d.newValue)}`)
+        .map(
+          (d) => `${d.field}: ${JSON.stringify(d.previousValue)} -> ${JSON.stringify(d.newValue)}`,
+        )
         .join("; ");
 
       return [

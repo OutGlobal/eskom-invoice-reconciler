@@ -126,7 +126,11 @@ export class AmbiguityDetector {
 
     // Case B: Invoice meter does not match interval dataset meter
     const intervalMeter = meterIds.size === 1 ? Array.from(meterIds)[0] : "";
-    if (invoiceMeter && intervalMeter && invoiceMeter.toLowerCase() !== intervalMeter.toLowerCase()) {
+    if (
+      invoiceMeter &&
+      intervalMeter &&
+      invoiceMeter.toLowerCase() !== intervalMeter.toLowerCase()
+    ) {
       return {
         ambiguityId: `AMB-METER-MISMATCH-${Date.now()}`,
         pipelineRunId,
@@ -135,11 +139,9 @@ export class AmbiguityDetector {
         stage,
         title: "Meter Identifier Discrepancy",
         summary: `Invoice specifies meter '${invoiceMeter}', but meter file contains records for '${intervalMeter}'.`,
-        whatNeedsAttention:
-          `Confirm whether meter '${intervalMeter}' is an associated feeder meter or whether a different telemetry file should be provided.`,
+        whatNeedsAttention: `Confirm whether meter '${intervalMeter}' is an associated feeder meter or whether a different telemetry file should be provided.`,
         requiresAttention: true,
-        humanAttentionPrompt:
-          `Confirm whether meter '${intervalMeter}' is an associated feeder meter or whether a different telemetry file should be provided.`,
+        humanAttentionPrompt: `Confirm whether meter '${intervalMeter}' is an associated feeder meter or whether a different telemetry file should be provided.`,
         affectedFields: ["meterNumber", "meter_id"],
         suggestedResolutions: [
           {
@@ -252,7 +254,11 @@ export class AmbiguityDetector {
     const tariffRaw = (invoice?.tariff || invoice?.tariffName || "").trim();
 
     // If tariff name is missing or generic (e.g. "UNKNOWN" or "ESKOM TARIFF")
-    if (!tariffRaw || tariffRaw.toUpperCase() === "UNKNOWN" || tariffRaw.toUpperCase() === "ESKOM") {
+    if (
+      !tariffRaw ||
+      tariffRaw.toUpperCase() === "UNKNOWN" ||
+      tariffRaw.toUpperCase() === "ESKOM"
+    ) {
       return {
         ambiguityId: `AMB-TARIFF-UNRESOLVED-${Date.now()}`,
         pipelineRunId,

@@ -79,7 +79,10 @@ export class LargeDatasetFixtures {
   /**
    * 2. Medium CSV: 1 month of 30-minute intervals (1,488 rows, ~120 KB)
    */
-  public static generateMediumCsv(recordsCount = 1488, meterId = "MTR-ESKOM-001"): {
+  public static generateMediumCsv(
+    recordsCount = 1488,
+    meterId = "MTR-ESKOM-001",
+  ): {
     filename: string;
     csvContent: string;
     bytes: Uint8Array;
@@ -104,7 +107,7 @@ export class LargeDatasetFixtures {
 
       const kwh = Number((baseLoad + noise).toFixed(2));
       const kvarh = Number((kwh * 0.28).toFixed(2));
-      const kva = Number((Math.sqrt(kwh * kwh + kvarh * kvarh)).toFixed(2));
+      const kva = Number(Math.sqrt(kwh * kwh + kvarh * kvarh).toFixed(2));
       const pf = Number((kwh / Math.max(1, kva)).toFixed(3));
 
       lines.push(`${iso},${meterId},${kwh},${kvarh},${kva},${pf}`);
@@ -122,7 +125,10 @@ export class LargeDatasetFixtures {
   /**
    * 3. Large CSV: Multi-month / annual 30-min intervals (10,000+ rows, ~1.5 MB)
    */
-  public static generateLargeCsv(recordsCount = 10000, meterId = "MTR-ESKOM-001"): {
+  public static generateLargeCsv(
+    recordsCount = 10000,
+    meterId = "MTR-ESKOM-001",
+  ): {
     filename: string;
     csvContent: string;
     bytes: Uint8Array;
@@ -139,9 +145,11 @@ export class LargeDatasetFixtures {
       const iso = dt.toISOString();
       const hour = dt.getUTCHours();
 
-      const kwh = Number((150 + Math.sin(i / 20) * 45 + (hour >= 7 && hour <= 19 ? 60 : 0)).toFixed(2));
+      const kwh = Number(
+        (150 + Math.sin(i / 20) * 45 + (hour >= 7 && hour <= 19 ? 60 : 0)).toFixed(2),
+      );
       const kvarh = Number((kwh * 0.25).toFixed(2));
-      const kva = Number((Math.sqrt(kwh * kwh + kvarh * kvarh)).toFixed(2));
+      const kva = Number(Math.sqrt(kwh * kwh + kvarh * kvarh).toFixed(2));
       const pf = 0.97;
 
       lines.push(`${iso},${meterId},${kwh},${kvarh},${kva},${pf}`);
@@ -217,7 +225,10 @@ export class LargeDatasetFixtures {
   /**
    * 5. Large Excel Workbook: Multi-sheet .xlsx binary workbook (thousands of interval records)
    */
-  public static generateLargeExcelWorkbook(rowsCount = 3000, meterId = "MTR-ESKOM-001"): {
+  public static generateLargeExcelWorkbook(
+    rowsCount = 3000,
+    meterId = "MTR-ESKOM-001",
+  ): {
     filename: string;
     bytes: Uint8Array;
     rowsCount: number;

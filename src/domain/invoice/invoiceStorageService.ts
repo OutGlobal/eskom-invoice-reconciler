@@ -56,12 +56,14 @@ export class InvoiceStorageService {
       billingPeriod: payload.billing_period_name,
       billingStart: payload.billing_start,
       billingEnd: payload.billing_end,
-      totalAmount: payload.invoiced_total !== undefined ? Number(payload.invoiced_total) : undefined,
+      totalAmount:
+        payload.invoiced_total !== undefined ? Number(payload.invoiced_total) : undefined,
       totalKwh: payload.total_kwh !== undefined ? Number(payload.total_kwh) : undefined,
       peakKwh: payload.peak_kwh !== undefined ? Number(payload.peak_kwh) : undefined,
       standardKwh: payload.standard_kwh !== undefined ? Number(payload.standard_kwh) : undefined,
       offPeakKwh: payload.off_peak_kwh !== undefined ? Number(payload.off_peak_kwh) : undefined,
-      maxDemandKva: payload.max_demand_kva !== undefined ? Number(payload.max_demand_kva) : undefined,
+      maxDemandKva:
+        payload.max_demand_kva !== undefined ? Number(payload.max_demand_kva) : undefined,
       sha256Hash: payload.sha256_hash,
       sourceFileName: payload.source_file_name || payload.source,
       importedAt: payload.created_at || new Date().toISOString(),
@@ -85,7 +87,11 @@ export class InvoiceStorageService {
     const memory = this.getInvoiceRecord(id);
     if (memory) return memory;
     try {
-      const { data } = await supabase.from("invoice_records").select("*").eq("id", id).maybeSingle();
+      const { data } = await supabase
+        .from("invoice_records")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
       return data;
     } catch {
       return null;
@@ -440,11 +446,28 @@ export class InvoiceStorageService {
         if (!item || typeof item !== "object") continue;
         const itemOrg = item.organisation_id || item.tenant_id;
         if (targetOrg && itemOrg && itemOrg !== targetOrg) continue;
-        if (filter.accountNumber && item.account_number && !item.account_number.toLowerCase().includes(filter.accountNumber.toLowerCase())) continue;
-        if (filter.invoiceNumber && item.invoice_number && !item.invoice_number.toLowerCase().includes(filter.invoiceNumber.toLowerCase())) continue;
-        
+        if (
+          filter.accountNumber &&
+          item.account_number &&
+          !item.account_number.toLowerCase().includes(filter.accountNumber.toLowerCase())
+        )
+          continue;
+        if (
+          filter.invoiceNumber &&
+          item.invoice_number &&
+          !item.invoice_number.toLowerCase().includes(filter.invoiceNumber.toLowerCase())
+        )
+          continue;
+
         const invoiceId = item.id || item.invoice_id || item.invoice_number;
-        if (!results.some((r) => r.invoice_id === invoiceId || r.account_number === item.account_number && r.billing_period_start === item.billing_start)) {
+        if (
+          !results.some(
+            (r) =>
+              r.invoice_id === invoiceId ||
+              (r.account_number === item.account_number &&
+                r.billing_period_start === item.billing_start),
+          )
+        ) {
           results.push({
             invoice_id: invoiceId,
             account_number: item.account_number || "ACC-DEFAULT",

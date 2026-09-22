@@ -11,10 +11,7 @@
 export type DuplicateHandlingStatus = "NEW" | "DUPLICATE" | "CORRECTION" | "REPLACEMENT";
 
 export type DuplicateResolutionAction =
-  | "KEEP_EXISTING_SKIP"
-  | "ACCEPT_CORRECTION"
-  | "REPLACE_EXISTING"
-  | "FORCE_IMPORT_NEW";
+  "KEEP_EXISTING_SKIP" | "ACCEPT_CORRECTION" | "REPLACE_EXISTING" | "FORCE_IMPORT_NEW";
 
 export interface DuplicateMetricComparison {
   field: string;

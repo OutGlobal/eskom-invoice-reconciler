@@ -266,93 +266,93 @@ export const AnomalyDashboard: React.FC = () => {
       ) : (
         <div className="space-y-4">
           {filteredRecords.map((r) => (
-          <div
-            key={r.id}
-            className="rounded-lg border border-border bg-card p-4 space-y-3 hover:border-primary/50 transition-colors"
-          >
-            {/* Card Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-2.5">
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20 rounded">
-                  {r.code}
-                </span>
-                <span className="text-xs font-semibold text-foreground">{r.category}</span>
-                <span
-                  className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded ${
-                    r.severity === "CRITICAL"
-                      ? "bg-red-500/10 text-red-500 border border-red-500/20"
-                      : r.severity === "HIGH"
-                        ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
-                        : "bg-blue-500/10 text-blue-500 border border-blue-500/20"
-                  }`}
-                >
-                  {r.severity}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                  R {NUM(r.financial_impact_zar.toNumber())}
+            <div
+              key={r.id}
+              className="rounded-lg border border-border bg-card p-4 space-y-3 hover:border-primary/50 transition-colors"
+            >
+              {/* Card Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20 rounded">
+                    {r.code}
+                  </span>
+                  <span className="text-xs font-semibold text-foreground">{r.category}</span>
+                  <span
+                    className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded ${
+                      r.severity === "CRITICAL"
+                        ? "bg-red-500/10 text-red-500 border border-red-500/20"
+                        : r.severity === "HIGH"
+                          ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                          : "bg-blue-500/10 text-blue-500 border border-blue-500/20"
+                    }`}
+                  >
+                    {r.severity}
+                  </span>
                 </div>
-                {/* Status Dropdown */}
-                <select
-                  value={r.status}
-                  onChange={(e) => handleStatusChange(r.id, e.target.value as DiscrepancyStatus)}
-                  className="bg-background border border-border rounded px-2 py-0.5 text-[11px] font-mono font-semibold"
+
+                <div className="flex items-center gap-3">
+                  <div className="text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                    R {NUM(r.financial_impact_zar.toNumber())}
+                  </div>
+                  {/* Status Dropdown */}
+                  <select
+                    value={r.status}
+                    onChange={(e) => handleStatusChange(r.id, e.target.value as DiscrepancyStatus)}
+                    className="bg-background border border-border rounded px-2 py-0.5 text-[11px] font-mono font-semibold"
+                  >
+                    <option value="OPEN">OPEN</option>
+                    <option value="UNDER_REVIEW">UNDER REVIEW</option>
+                    <option value="CONFIRMED">CONFIRMED</option>
+                    <option value="DISPUTED">DISPUTED</option>
+                    <option value="RESOLVED">RESOLVED</option>
+                    <option value="REJECTED">REJECTED</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Description & Evidence */}
+              <div className="text-xs space-y-1.5">
+                <div className="font-medium text-foreground">{r.description}</div>
+                <div className="p-2.5 bg-muted/40 rounded border border-border text-muted-foreground font-mono text-[11px]">
+                  Evidence: {r.evidence}
+                </div>
+              </div>
+
+              {/* Root Cause Propagation Chain */}
+              <div className="p-2.5 bg-background rounded border border-border space-y-1.5">
+                <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  Root-Cause Propagation Chain
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                  {r.root_cause_chain.map((step, idx) => (
+                    <React.Fragment key={step.step}>
+                      <span className="px-2 py-0.5 bg-muted rounded font-mono text-[10px] text-foreground">
+                        {step.step}. {step.description}
+                      </span>
+                      {idx < r.root_cause_chain.length - 1 && (
+                        <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-between pt-1 text-xs">
+                <div className="text-[10px] text-muted-foreground font-mono">
+                  Source File: {r.drill_down_path.source_file_name} &bull; Tariff Rule:{" "}
+                  {r.source_records.tariff_rule_id || "GAZETTE_2025"}
+                </div>
+                <button
+                  onClick={() => openDrillDown(r)}
+                  className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                 >
-                  <option value="OPEN">OPEN</option>
-                  <option value="UNDER_REVIEW">UNDER REVIEW</option>
-                  <option value="CONFIRMED">CONFIRMED</option>
-                  <option value="DISPUTED">DISPUTED</option>
-                  <option value="RESOLVED">RESOLVED</option>
-                  <option value="REJECTED">REJECTED</option>
-                </select>
+                  6-Level Drill-Down Inspector <ArrowUpRight className="h-3.5 w-3.5" />
+                </button>
               </div>
             </div>
-
-            {/* Description & Evidence */}
-            <div className="text-xs space-y-1.5">
-              <div className="font-medium text-foreground">{r.description}</div>
-              <div className="p-2.5 bg-muted/40 rounded border border-border text-muted-foreground font-mono text-[11px]">
-                Evidence: {r.evidence}
-              </div>
-            </div>
-
-            {/* Root Cause Propagation Chain */}
-            <div className="p-2.5 bg-background rounded border border-border space-y-1.5">
-              <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                Root-Cause Propagation Chain
-              </div>
-              <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-                {r.root_cause_chain.map((step, idx) => (
-                  <React.Fragment key={step.step}>
-                    <span className="px-2 py-0.5 bg-muted rounded font-mono text-[10px] text-foreground">
-                      {step.step}. {step.description}
-                    </span>
-                    {idx < r.root_cause_chain.length - 1 && (
-                      <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center justify-between pt-1 text-xs">
-              <div className="text-[10px] text-muted-foreground font-mono">
-                Source File: {r.drill_down_path.source_file_name} &bull; Tariff Rule:{" "}
-                {r.source_records.tariff_rule_id || "GAZETTE_2025"}
-              </div>
-              <button
-                onClick={() => openDrillDown(r)}
-                className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-              >
-                6-Level Drill-Down Inspector <ArrowUpRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
       )}
 
       {/* 6-Level Drill-Down Traceability Inspector Modal */}

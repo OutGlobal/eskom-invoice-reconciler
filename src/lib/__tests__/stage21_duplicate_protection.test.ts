@@ -446,7 +446,9 @@ describe("Stage 21: Duplicate Protection & Controlled Ingestion Subsystem", () =
       const filePath = path.resolve(__dirname, "../../components/upload/SecureUploadGateway.tsx");
       const content = fs.readFileSync(filePath, "utf-8");
 
-      expect(content).toContain("Stage 21: Controlled Duplicate Protection & Correction Handling Card");
+      expect(content).toContain(
+        "Stage 21: Controlled Duplicate Protection & Correction Handling Card",
+      );
       expect(content).toContain("handleDuplicateResolution");
       expect(content).toContain("Legitimate Billing Correction Detected");
       expect(content).toContain("Accidental Duplicate Import Detected");

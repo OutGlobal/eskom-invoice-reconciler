@@ -158,7 +158,12 @@ export class SecureIngestionGateway {
         description: `Upload initiated for ${sanitizedFilename} (${fileSize} bytes)`,
         actor: { userId: uploaderId },
         record: { entityType: "source_file", recordId: documentId, recordLabel: sanitizedFilename },
-        newState: { filename: sanitizedFilename, fileSize, sha256Checksum, fileType: resolvedFileType },
+        newState: {
+          filename: sanitizedFilename,
+          fileSize,
+          sha256Checksum,
+          fileType: resolvedFileType,
+        },
       });
     } catch {}
 
@@ -550,7 +555,11 @@ export class SecureIngestionGateway {
           action: "EXTRACTION_FAILED",
           description: `Data extraction failed for ${sanitizedFilename}: ${errorMsg}`,
           actor: { userId: uploaderId },
-          record: { entityType: "source_file", recordId: documentId, recordLabel: sanitizedFilename },
+          record: {
+            entityType: "source_file",
+            recordId: documentId,
+            recordLabel: sanitizedFilename,
+          },
           newState: {
             processingStatus: "FAILED",
             errorMessage: errorMsg,
@@ -954,7 +963,11 @@ export class SecureIngestionGateway {
             action: "INTERVAL_TELEMETRY_EXTRACTED",
             description: `Extracted ${intervalPayloads.length} interval telemetry readings from ${sanitizedFilename}`,
             actor: { userId: uploaderId },
-            record: { entityType: "source_file", recordId: documentId, recordLabel: sanitizedFilename },
+            record: {
+              entityType: "source_file",
+              recordId: documentId,
+              recordLabel: sanitizedFilename,
+            },
             newState: {
               readingsCount: intervalPayloads.length,
               meterId: primaryMeter,
@@ -1085,12 +1098,16 @@ export class SecureIngestionGateway {
         peakKwh: extractRes.extractedFields?.peakKwh,
         standardKwh: extractRes.extractedFields?.standardKwh,
         offPeakKwh: extractRes.extractedFields?.offPeakKwh,
-        maxDemandKva: extractRes.extractedFields?.billedMaximumDemand || extractRes.extractedFields?.kva,
+        maxDemandKva:
+          extractRes.extractedFields?.billedMaximumDemand || extractRes.extractedFields?.kva,
         intervalCount: extractRes.intervals?.length,
       },
     };
 
-    const duplicateResult = await DuplicateProtectionService.evaluateCandidate(duplicateCandidate, context);
+    const duplicateResult = await DuplicateProtectionService.evaluateCandidate(
+      duplicateCandidate,
+      context,
+    );
     fileHeader.duplicateStatus = duplicateResult.status;
     fileHeader.isDuplicate = duplicateResult.status === "DUPLICATE";
 
@@ -1167,7 +1184,11 @@ export class SecureIngestionGateway {
         action: "PROCESSING_RETRY_INITIATED",
         description: `Processing retry initiated for ${uploadRecord.filename} from preserved vault storage`,
         actor: { userId: uploadRecord.userId || undefined },
-        record: { entityType: "source_file", recordId: uploadId, recordLabel: uploadRecord.filename },
+        record: {
+          entityType: "source_file",
+          recordId: uploadId,
+          recordLabel: uploadRecord.filename,
+        },
         newState: { processingStatus: "PROCESSING", retryOptions: options },
       });
     } catch {}
@@ -1190,9 +1211,14 @@ export class SecureIngestionGateway {
         action: result.success ? "PROCESSING_RETRY_SUCCEEDED" : "PROCESSING_RETRY_FAILED",
         description: `Processing retry ${result.success ? "succeeded" : "failed"} for ${uploadRecord.filename}`,
         actor: { userId: uploadRecord.userId || undefined },
-        record: { entityType: "source_file", recordId: uploadId, recordLabel: uploadRecord.filename },
+        record: {
+          entityType: "source_file",
+          recordId: uploadId,
+          recordLabel: uploadRecord.filename,
+        },
         newState: {
-          processingStatus: result.uploadRecord?.processingStatus || (result.success ? "PROCESSED" : "FAILED"),
+          processingStatus:
+            result.uploadRecord?.processingStatus || (result.success ? "PROCESSED" : "FAILED"),
           validationStatus: result.uploadRecord?.validationStatus,
           errorSummary: result.uploadRecord?.errorMessage,
         },

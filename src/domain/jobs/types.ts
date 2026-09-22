@@ -20,12 +20,7 @@ export type JobType =
   | "REPORT_GENERATION";
 
 export type JobStatus =
-  | "QUEUED"
-  | "RUNNING"
-  | "PAUSED_AMBIGUITY"
-  | "COMPLETED"
-  | "FAILED"
-  | "CANCELLED";
+  "QUEUED" | "RUNNING" | "PAUSED_AMBIGUITY" | "COMPLETED" | "FAILED" | "CANCELLED";
 
 export type JobStage =
   | "QUEUED"
@@ -103,6 +98,13 @@ export interface SubmitJobInput {
   jobType?: JobType;
   invoiceFile?: AutomatedPipelineFile | File;
   meterFile?: AutomatedPipelineFile | File;
+  files?: Array<{
+    filename?: string;
+    fileSizeBytes?: number;
+    mimeType?: string;
+    storagePath?: string;
+    [key: string]: any;
+  }>;
   invoiceStoragePath?: string;
   meterStoragePath?: string;
   metadata?: Record<string, any>;

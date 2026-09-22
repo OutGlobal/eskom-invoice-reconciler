@@ -234,7 +234,10 @@ export class TelemetryStorageService {
   /**
    * Fetch recent intervals from the database (with memory store fallback)
    */
-  public static async fetchIntervals(limit: number = 100, meterId?: string): Promise<TelemetryIntervalRecord[]> {
+  public static async fetchIntervals(
+    limit: number = 100,
+    meterId?: string,
+  ): Promise<TelemetryIntervalRecord[]> {
     try {
       let query = supabase
         .from("telemetry_intervals")
@@ -290,4 +293,3 @@ export class TelemetryStorageService {
     return this.fetchIntervals(500, key);
   }
 }
-

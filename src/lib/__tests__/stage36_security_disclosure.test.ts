@@ -61,7 +61,7 @@ describe("STAGE 36 — Final Security Disclosure Review", () => {
 
     expect(
       offendingFiles,
-      `Hardcoded JWT tokens found in source files: ${offendingFiles.join(", ")}`
+      `Hardcoded JWT tokens found in source files: ${offendingFiles.join(", ")}`,
     ).toEqual([]);
   });
 
@@ -97,7 +97,7 @@ describe("STAGE 36 — Final Security Disclosure Review", () => {
       for (const pattern of forbiddenPatterns) {
         expect(
           pattern.test(content),
-          `Sensitive credential pattern ${pattern} detected in ${path.relative(rootDir, file)}`
+          `Sensitive credential pattern ${pattern} detected in ${path.relative(rootDir, file)}`,
         ).toBe(false);
       }
     }
@@ -114,11 +114,11 @@ describe("STAGE 36 — Final Security Disclosure Review", () => {
       const content = fs.readFileSync(file, "utf-8");
       expect(
         /localhost/i.test(content),
-        `localhost detected in production file: ${path.relative(rootDir, file)}`
+        `localhost detected in production file: ${path.relative(rootDir, file)}`,
       ).toBe(false);
       expect(
         /127\.0\.0\.1/.test(content),
-        `127.0.0.1 detected in production file: ${path.relative(rootDir, file)}`
+        `127.0.0.1 detected in production file: ${path.relative(rootDir, file)}`,
       ).toBe(false);
     }
   });
@@ -130,11 +130,11 @@ describe("STAGE 36 — Final Security Disclosure Review", () => {
       const content = fs.readFileSync(file, "utf-8");
       expect(
         /\bdebugger\s*;?/.test(content),
-        `debugger statement found in ${path.relative(rootDir, file)}`
+        `debugger statement found in ${path.relative(rootDir, file)}`,
       ).toBe(false);
       expect(
         /console\.debug\(/.test(content),
-        `console.debug found in ${path.relative(rootDir, file)}`
+        `console.debug found in ${path.relative(rootDir, file)}`,
       ).toBe(false);
     }
   });
@@ -149,7 +149,7 @@ describe("STAGE 36 — Final Security Disclosure Review", () => {
       const content = fs.readFileSync(file, "utf-8");
       expect(
         /console\.log\(/.test(content),
-        `console.log found in UI file: ${path.relative(rootDir, file)}`
+        `console.log found in UI file: ${path.relative(rootDir, file)}`,
       ).toBe(false);
     }
   });
@@ -163,9 +163,9 @@ describe("STAGE 36 — Final Security Disclosure Review", () => {
 
   it("8. Verifies error handling sanitizes technical internals without disclosure", () => {
     const sampleTechnicalErrors = [
-      "error: relation \"public.invoices\" does not exist",
-      "violates foreign key constraint \"fk_meter_id_users\"",
-      "SQLSTATE 42P01: syntax error at or near \"SELECT\"",
+      'error: relation "public.invoices" does not exist',
+      'violates foreign key constraint "fk_meter_id_users"',
+      'SQLSTATE 42P01: syntax error at or near "SELECT"',
       "PostgREST error: connection pool exhausted at postgres://db.internal:5432/main",
       "TypeError: Cannot read properties of undefined (reading 'token')\n    at Object.fetch (http://localhost:8080/bundle.js:12:34)",
     ];

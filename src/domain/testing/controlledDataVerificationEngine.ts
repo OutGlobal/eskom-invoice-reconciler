@@ -29,16 +29,16 @@ import Decimal from "decimal.js-light";
 import { SecureIngestionGateway } from "../ingestion/secureIngestionGateway";
 import { FileStorageSecurityService } from "../security/fileStorageSecurityService";
 import { AmrIntervalIngestionEngine } from "../telemetry/amrIntervalIngestionEngine";
-import { DeterministicReconciliationEngine, DEFAULT_TOLERANCE_CONFIG } from "../reconciliation/reconciliationEngine";
+import {
+  DeterministicReconciliationEngine,
+  DEFAULT_TOLERANCE_CONFIG,
+} from "../reconciliation/reconciliationEngine";
 import { ReconciliationStorageService } from "../reconciliation/reconciliationStorageService";
 import { InvoiceStorageService } from "../invoice/invoiceStorageService";
 import { TelemetryStorageService } from "../telemetry/telemetryStorageService";
 import { DashboardService } from "../dashboard/dashboardService";
 import { exportToExcel, exportToCsv, exportToJson } from "../../lib/exportReports";
-import {
-  ESKOM_MEGAFLEX_2025_2026,
-  ESKOM_MINIFLEX_2025_2026,
-} from "../tariff/tariffFixtures";
+import { ESKOM_MEGAFLEX_2025_2026, ESKOM_MINIFLEX_2025_2026 } from "../tariff/tariffFixtures";
 
 export interface StageVerificationResult {
   stage:
@@ -316,8 +316,12 @@ startxref
     const xlsx2Intervals = resXlsx2.intervals || [];
 
     const parsingPassed =
-      Boolean(inv1Data && inv1Data.accountNumber === site1Account && inv1Data.totalKwh === 500000) &&
-      Boolean(inv2Data && inv2Data.accountNumber === site2Account && inv2Data.totalKwh === 100000) &&
+      Boolean(
+        inv1Data && inv1Data.accountNumber === site1Account && inv1Data.totalKwh === 500000,
+      ) &&
+      Boolean(
+        inv2Data && inv2Data.accountNumber === site2Account && inv2Data.totalKwh === 100000,
+      ) &&
       csv1Intervals.length > 0 &&
       xlsx2Intervals.length > 0;
 

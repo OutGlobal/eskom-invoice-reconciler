@@ -19,7 +19,10 @@ import type {
   AvailableAccountItem,
   ActiveProcessingJobItem,
 } from "./types";
-import { ContractDataLineageMap, type ContractAuditSummary } from "../lineage/contractDataLineageMap";
+import {
+  ContractDataLineageMap,
+  type ContractAuditSummary,
+} from "../lineage/contractDataLineageMap";
 import { InvoiceStorageService } from "../invoice/invoiceStorageService";
 import { ReconciliationStorageService } from "../reconciliation/reconciliationStorageService";
 import { ProcessingJobEngine } from "../jobs/processingJobEngine";
@@ -114,14 +117,18 @@ export class DashboardService {
   /**
    * Helper to fetch active in-flight processing jobs and upload ingestion records
    */
-  public static async getActiveProcessingJobs(organisationId?: string): Promise<ActiveProcessingJobItem[]> {
+  public static async getActiveProcessingJobs(
+    organisationId?: string,
+  ): Promise<ActiveProcessingJobItem[]> {
     const activeJobs: ActiveProcessingJobItem[] = [];
     try {
-      const jobs = await ProcessingJobEngine.listJobs(
-        organisationId ? { organisationId } : {},
-      );
+      const jobs = await ProcessingJobEngine.listJobs(organisationId ? { organisationId } : {});
       for (const job of jobs || []) {
-        if (job.status === "PROCESSING" || job.status === "QUEUED" || job.status === "PAUSED_AMBIGUITY") {
+        if (
+          job.status === "PROCESSING" ||
+          job.status === "QUEUED" ||
+          job.status === "PAUSED_AMBIGUITY"
+        ) {
           activeJobs.push({
             id: job.jobId,
             name:
@@ -152,7 +159,10 @@ export class DashboardService {
           activeJobs.push({
             id: u.id,
             name: u.filename,
-            stage: u.processingStatus === "PROCESSING" ? "Validating & Normalising" : "Queued in Ingestion Pipeline",
+            stage:
+              u.processingStatus === "PROCESSING"
+                ? "Validating & Normalising"
+                : "Queued in Ingestion Pipeline",
             progressPct: u.processingStatus === "PROCESSING" ? 50 : 10,
             status: u.processingStatus,
             startedAt: u.createdAt,
@@ -164,7 +174,6 @@ export class DashboardService {
     }
     return activeJobs;
   }
-
 
   /**
    * Query database aggregates via Supabase with RLS tenant isolation
@@ -274,7 +283,11 @@ export class DashboardService {
       const memRecords = InvoiceStorageService.getMemoryRecords();
       for (const inv of memRecords || []) {
         if (!inv || typeof inv !== "object") continue;
-        if (filters.organisationId && inv.organisation_id && inv.organisation_id !== filters.organisationId) {
+        if (
+          filters.organisationId &&
+          inv.organisation_id &&
+          inv.organisation_id !== filters.organisationId
+        ) {
           continue;
         }
         const invNum = inv.invoice_number || inv.invoiceNumber || inv.id;
@@ -292,7 +305,8 @@ export class DashboardService {
             off_peak_kwh: Number(inv.off_peak_kwh ?? inv.offPeakKwh) || 0,
             max_demand_kva: Number(inv.max_demand_kva ?? inv.maxDemandKva) || 0,
             invoiced_total: Number(inv.invoiced_total ?? inv.totalAmount ?? inv.totalInvoice) || 0,
-            reconciled_total: Number(inv.reconciled_total ?? inv.invoiced_total ?? inv.totalAmount) || 0,
+            reconciled_total:
+              Number(inv.reconciled_total ?? inv.invoiced_total ?? inv.totalAmount) || 0,
             variance_amount: Number(inv.variance_amount) || 0,
             status: (inv.status || inv.lifecycle_state || "validated").toLowerCase(),
             created_at: inv.created_at || new Date().toISOString(),
@@ -444,13 +458,20 @@ export class DashboardService {
       if (inv.account_number) {
         availableAccountsMap.set(inv.account_number, {
           accountNumber: inv.account_number,
-          name: inv.customer_name || inv.raw_data?.metadata?.customerName || `Account ${inv.account_number}`,
+          name:
+            inv.customer_name ||
+            inv.raw_data?.metadata?.customerName ||
+            `Account ${inv.account_number}`,
         });
       }
     }
     const availableAccounts = Array.from(availableAccountsMap.values());
 
-    const totalSitesCount = Math.max(sites?.length || 0, availableSites.length, invoices.length > 0 ? 1 : 0);
+    const totalSitesCount = Math.max(
+      sites?.length || 0,
+      availableSites.length,
+      invoices.length > 0 ? 1 : 0,
+    );
 
     const portfolioSummary: PortfolioSummary = {
       totalClients: orgs?.length ?? (uniqueAccounts.size > 0 ? 1 : 0),
@@ -808,10 +829,10 @@ export class DashboardService {
     };
 
     const energyOverview: EnergyOverviewMetrics = {
-      peakKWh: (rows && rows.length > 0 && totals?.peakKWh) ? totals.peakKWh : peakKwhSum,
-      standardKWh: (rows && rows.length > 0 && totals?.standardKWh) ? totals.standardKWh : stdKwhSum,
-      offPeakKWh: (rows && rows.length > 0 && totals?.offPeakKWh) ? totals.offPeakKWh : offKwhSum,
-      totalKWh: (rows && rows.length > 0 && totals?.totalKWh) ? totals.totalKWh : totalKwhSum,
+      peakKWh: rows && rows.length > 0 && totals?.peakKWh ? totals.peakKWh : peakKwhSum,
+      standardKWh: rows && rows.length > 0 && totals?.standardKWh ? totals.standardKWh : stdKwhSum,
+      offPeakKWh: rows && rows.length > 0 && totals?.offPeakKWh ? totals.offPeakKWh : offKwhSum,
+      totalKWh: rows && rows.length > 0 && totals?.totalKWh ? totals.totalKWh : totalKwhSum,
       maxDemandKVA: maxDemandKva > 0 ? maxDemandKva : null,
       maxDemandTimestamp: totals?.maxDemandAt ? totals.maxDemandAt.toISOString() : undefined,
       reactiveEnergyKVARh: totals?.reactiveEnergyKVARh > 0 ? totals.reactiveEnergyKVARh : null,
@@ -1078,4 +1099,3 @@ export class DashboardService {
     );
   }
 }
-

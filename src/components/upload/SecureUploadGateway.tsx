@@ -737,7 +737,8 @@ export function SecureUploadGateway() {
             Drop Invoice + Meter Data together (or click to browse)
           </p>
           <p className="text-xs text-muted-foreground mt-1 max-w-md">
-            Automatic end-to-end reconciliation: Upload your invoice (PDF) and AMR interval data (CSV/Excel) simultaneously for automated 8-stage processing with zero extra clicks.
+            Automatic end-to-end reconciliation: Upload your invoice (PDF) and AMR interval data
+            (CSV/Excel) simultaneously for automated 8-stage processing with zero extra clicks.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-[11px] text-muted-foreground">
             <span className="px-2 py-0.5 rounded border border-border/60 bg-muted/30">
@@ -796,8 +797,8 @@ export function SecureUploadGateway() {
                   automatedStage === "COMPLETE"
                     ? "bg-emerald-400"
                     : automatedStage === "STOPPED_FOR_AMBIGUITY"
-                    ? "bg-amber-400"
-                    : "bg-primary"
+                      ? "bg-amber-400"
+                      : "bg-primary"
                 }`}
                 style={{ width: `${automatedProgressPct}%` }}
               />
@@ -821,10 +822,10 @@ export function SecureUploadGateway() {
                         isCurrent
                           ? "border-primary bg-primary/10 text-primary font-bold shadow-sm"
                           : isPassed
-                          ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-400"
-                          : isPaused
-                          ? "border-amber-500/40 bg-amber-500/10 text-amber-400 font-bold animate-pulse"
-                          : "border-border/30 bg-card/20 text-muted-foreground"
+                            ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-400"
+                            : isPaused
+                              ? "border-amber-500/40 bg-amber-500/10 text-amber-400 font-bold animate-pulse"
+                              : "border-border/30 bg-card/20 text-muted-foreground"
                       }`}
                     >
                       <span className="text-[9px] opacity-70">Step {idx + 1}</span>
@@ -902,7 +903,8 @@ export function SecureUploadGateway() {
                     Reconciliation Complete: All 8 Stages Successfully Executed
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Invoice and meter telemetry matched, determinants calculated, and discrepancy analysis generated.
+                    Invoice and meter telemetry matched, determinants calculated, and discrepancy
+                    analysis generated.
                   </p>
                 </div>
               </div>
@@ -992,8 +994,9 @@ export function SecureUploadGateway() {
         )}
 
         {/* Stage 23: Ingestion Result & Failure Display (Zero Silent Discards) */}
-        {ingestionResult && !processing && (
-          ingestionResult.success ? (
+        {ingestionResult &&
+          !processing &&
+          (ingestionResult.success ? (
             <div className="mt-6 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 text-emerald-300 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
@@ -1002,7 +1005,10 @@ export function SecureUploadGateway() {
                     Ingestion Succeeded — {ingestionResult.fileHeader.filename}
                   </div>
                   <div className="text-xs opacity-90 mt-0.5">
-                    Status: {ingestionResult.uploadRecord?.processingStatus || "PROCESSED"} | Rows: {ingestionResult.uploadRecord?.rowCount || 1} | Records: {ingestionResult.uploadRecord?.recordCount || 1} | Confidence: {(ingestionResult.confidenceScore * 100).toFixed(0)}%
+                    Status: {ingestionResult.uploadRecord?.processingStatus || "PROCESSED"} | Rows:{" "}
+                    {ingestionResult.uploadRecord?.rowCount || 1} | Records:{" "}
+                    {ingestionResult.uploadRecord?.recordCount || 1} | Confidence:{" "}
+                    {(ingestionResult.confidenceScore * 100).toFixed(0)}%
                   </div>
                 </div>
               </div>
@@ -1042,9 +1048,7 @@ export function SecureUploadGateway() {
                       FAILED SAFELY
                     </span>
                   </div>
-                  <div className="text-sm font-semibold text-foreground mt-1">
-                    Reason:
-                  </div>
+                  <div className="text-sm font-semibold text-foreground mt-1">Reason:</div>
                   <p className="text-sm text-rose-200/90 font-medium">
                     {ingestionResult.uploadRecord?.errorMessage ||
                       ingestionResult.batchJob?.quarantineReason ||
@@ -1057,7 +1061,10 @@ export function SecureUploadGateway() {
               <div className="p-3.5 rounded-xl border border-border/40 bg-card/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-2 text-foreground font-medium">
                   <Lock className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>The original file remains stored in encrypted storage vault (ID: {ingestionResult.fileHeader?.documentId || ingestionResult.uploadRecord?.id}).</span>
+                  <span>
+                    The original file remains stored in encrypted storage vault (ID:{" "}
+                    {ingestionResult.fileHeader?.documentId || ingestionResult.uploadRecord?.id}).
+                  </span>
                 </div>
                 <span className="text-[11px] text-emerald-400 font-mono font-semibold">
                   Never Silently Discarded
@@ -1067,7 +1074,9 @@ export function SecureUploadGateway() {
               {/* Error Recorded in Audit Trail */}
               <div className="text-xs text-muted-foreground flex items-center gap-2 px-1">
                 <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                <span>The error is recorded in the persistent audit trail and ingestion error registry.</span>
+                <span>
+                  The error is recorded in the persistent audit trail and ingestion error registry.
+                </span>
               </div>
 
               {/* Retry & Download Actions */}
@@ -1105,161 +1114,166 @@ export function SecureUploadGateway() {
                 )}
               </div>
             </div>
-          )
-        )}
+          ))}
 
         {/* Stage 21: Controlled Duplicate Protection & Correction Handling Card */}
-        {ingestionResult?.duplicateResult && ingestionResult.duplicateResult.status !== "NEW" && !processing && (
-          <div
-            className={`mt-4 p-5 rounded-xl border space-y-4 backdrop-blur-sm ${
-              ingestionResult.duplicateResult.status === "CORRECTION"
-                ? "border-purple-500/40 bg-purple-500/5 text-purple-200"
-                : ingestionResult.duplicateResult.status === "DUPLICATE"
-                ? "border-amber-500/40 bg-amber-500/5 text-amber-200"
-                : "border-cyan-500/40 bg-cyan-500/5 text-cyan-200"
-            }`}
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/30 pb-3">
-              <div className="flex items-center gap-2.5">
-                {ingestionResult.duplicateResult.status === "CORRECTION" ? (
-                  <Sparkles className="w-5 h-5 text-purple-400 shrink-0" />
-                ) : ingestionResult.duplicateResult.status === "DUPLICATE" ? (
-                  <Copy className="w-5 h-5 text-amber-400 shrink-0" />
-                ) : (
-                  <History className="w-5 h-5 text-cyan-400 shrink-0" />
-                )}
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-foreground">
-                      {ingestionResult.duplicateResult.status === "CORRECTION"
-                        ? "Legitimate Billing Correction Detected"
-                        : ingestionResult.duplicateResult.status === "DUPLICATE"
-                        ? "Accidental Duplicate Import Detected"
-                        : "Controlled Dataset Replacement"}
-                    </h3>
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
-                        ingestionResult.duplicateResult.status === "CORRECTION"
-                          ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
+        {ingestionResult?.duplicateResult &&
+          ingestionResult.duplicateResult.status !== "NEW" &&
+          !processing && (
+            <div
+              className={`mt-4 p-5 rounded-xl border space-y-4 backdrop-blur-sm ${
+                ingestionResult.duplicateResult.status === "CORRECTION"
+                  ? "border-purple-500/40 bg-purple-500/5 text-purple-200"
+                  : ingestionResult.duplicateResult.status === "DUPLICATE"
+                    ? "border-amber-500/40 bg-amber-500/5 text-amber-200"
+                    : "border-cyan-500/40 bg-cyan-500/5 text-cyan-200"
+              }`}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/30 pb-3">
+                <div className="flex items-center gap-2.5">
+                  {ingestionResult.duplicateResult.status === "CORRECTION" ? (
+                    <Sparkles className="w-5 h-5 text-purple-400 shrink-0" />
+                  ) : ingestionResult.duplicateResult.status === "DUPLICATE" ? (
+                    <Copy className="w-5 h-5 text-amber-400 shrink-0" />
+                  ) : (
+                    <History className="w-5 h-5 text-cyan-400 shrink-0" />
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-foreground">
+                        {ingestionResult.duplicateResult.status === "CORRECTION"
+                          ? "Legitimate Billing Correction Detected"
                           : ingestionResult.duplicateResult.status === "DUPLICATE"
-                          ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                          : "bg-cyan-500/20 text-cyan-300 border-cyan-500/30"
-                      }`}
-                    >
-                      {ingestionResult.duplicateResult.status}
-                    </span>
+                            ? "Accidental Duplicate Import Detected"
+                            : "Controlled Dataset Replacement"}
+                      </h3>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
+                          ingestionResult.duplicateResult.status === "CORRECTION"
+                            ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                            : ingestionResult.duplicateResult.status === "DUPLICATE"
+                              ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                              : "bg-cyan-500/20 text-cyan-300 border-cyan-500/30"
+                        }`}
+                      >
+                        {ingestionResult.duplicateResult.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {ingestionResult.duplicateResult.summary}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {ingestionResult.duplicateResult.summary}
-                  </p>
                 </div>
+
+                {ingestionResult.duplicateResult.existingRecord && (
+                  <div className="text-right text-[11px] text-muted-foreground font-mono">
+                    <div>Matched Record:</div>
+                    <div className="font-semibold text-foreground">
+                      {ingestionResult.duplicateResult.existingRecord.invoiceNumber ||
+                        ingestionResult.duplicateResult.existingRecord.id}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {ingestionResult.duplicateResult.existingRecord && (
-                <div className="text-right text-[11px] text-muted-foreground font-mono">
-                  <div>Matched Record:</div>
-                  <div className="font-semibold text-foreground">
-                    {ingestionResult.duplicateResult.existingRecord.invoiceNumber ||
-                      ingestionResult.duplicateResult.existingRecord.id}
+              {/* Differences Table for Corrections */}
+              {ingestionResult.duplicateResult.differences.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-foreground flex items-center justify-between">
+                    <span>Detected Metric Variances &amp; Adjustments:</span>
+                    <span className="text-[10px] text-purple-300">
+                      {ingestionResult.duplicateResult.differences.length} determinant adjustment(s)
+                    </span>
+                  </div>
+                  <div className="rounded-lg border border-border/40 overflow-hidden bg-card/40">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-muted/30 text-muted-foreground text-[10px] uppercase font-semibold">
+                        <tr>
+                          <th className="py-2 px-3">Determinant Field</th>
+                          <th className="py-2 px-3 text-right">Prior Registered Value</th>
+                          <th className="py-2 px-3 text-right">Corrected Value</th>
+                          <th className="py-2 px-3 text-right">Calculated Delta</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/20 font-mono">
+                        {ingestionResult.duplicateResult.differences.map((diff, i) => (
+                          <tr key={i} className="hover:bg-muted/10">
+                            <td className="py-2 px-3 font-sans font-medium text-foreground">
+                              {diff.label}
+                            </td>
+                            <td className="py-2 px-3 text-right text-muted-foreground">
+                              {typeof diff.existingValue === "number"
+                                ? diff.existingValue.toLocaleString("en-ZA", {
+                                    maximumFractionDigits: 2,
+                                  })
+                                : String(diff.existingValue)}
+                            </td>
+                            <td className="py-2 px-3 text-right font-bold text-foreground">
+                              {typeof diff.incomingValue === "number"
+                                ? diff.incomingValue.toLocaleString("en-ZA", {
+                                    maximumFractionDigits: 2,
+                                  })
+                                : String(diff.incomingValue)}
+                            </td>
+                            <td
+                              className={`py-2 px-3 text-right font-bold ${
+                                (diff.delta || 0) < 0
+                                  ? "text-emerald-400"
+                                  : (diff.delta || 0) > 0
+                                    ? "text-amber-400"
+                                    : "text-muted-foreground"
+                              }`}
+                            >
+                              {diff.formattedDelta || (diff.delta ? String(diff.delta) : "—")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Differences Table for Corrections */}
-            {ingestionResult.duplicateResult.differences.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>Detected Metric Variances &amp; Adjustments:</span>
-                  <span className="text-[10px] text-purple-300">
-                    {ingestionResult.duplicateResult.differences.length} determinant adjustment(s)
-                  </span>
-                </div>
-                <div className="rounded-lg border border-border/40 overflow-hidden bg-card/40">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-muted/30 text-muted-foreground text-[10px] uppercase font-semibold">
-                      <tr>
-                        <th className="py-2 px-3">Determinant Field</th>
-                        <th className="py-2 px-3 text-right">Prior Registered Value</th>
-                        <th className="py-2 px-3 text-right">Corrected Value</th>
-                        <th className="py-2 px-3 text-right">Calculated Delta</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/20 font-mono">
-                      {ingestionResult.duplicateResult.differences.map((diff, i) => (
-                        <tr key={i} className="hover:bg-muted/10">
-                          <td className="py-2 px-3 font-sans font-medium text-foreground">
-                            {diff.label}
-                          </td>
-                          <td className="py-2 px-3 text-right text-muted-foreground">
-                            {typeof diff.existingValue === "number"
-                              ? diff.existingValue.toLocaleString("en-ZA", { maximumFractionDigits: 2 })
-                              : String(diff.existingValue)}
-                          </td>
-                          <td className="py-2 px-3 text-right font-bold text-foreground">
-                            {typeof diff.incomingValue === "number"
-                              ? diff.incomingValue.toLocaleString("en-ZA", { maximumFractionDigits: 2 })
-                              : String(diff.incomingValue)}
-                          </td>
-                          <td
-                            className={`py-2 px-3 text-right font-bold ${
-                              (diff.delta || 0) < 0
-                                ? "text-emerald-400"
-                                : (diff.delta || 0) > 0
-                                ? "text-amber-400"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {diff.formattedDelta || (diff.delta ? String(diff.delta) : "—")}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {/* Controlled Resolution Actions */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                <p className="text-xs text-muted-foreground italic">
+                  {ingestionResult.duplicateResult.recommendation}
+                </p>
+
+                <div className="flex items-center gap-2">
+                  {ingestionResult.duplicateResult.resolutionOptions.map((opt) => (
+                    <button
+                      key={opt.action}
+                      aria-label={
+                        opt.action === "ACCEPT_CORRECTION"
+                          ? "Accept Legitimate Correction"
+                          : opt.action === "KEEP_EXISTING_SKIP"
+                            ? "Skip Duplicate"
+                            : opt.title
+                      }
+                      onClick={() => handleDuplicateResolution(ingestionResult, opt.action)}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+                        opt.isRecommended
+                          ? ingestionResult.duplicateResult.status === "CORRECTION"
+                            ? "bg-purple-600 hover:bg-purple-500 text-white border-purple-400 shadow-md"
+                            : "bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-400 shadow-md"
+                          : "bg-card/70 hover:bg-card border-border text-foreground"
+                      }`}
+                    >
+                      {opt.title}
+                    </button>
+                  ))}
                 </div>
               </div>
-            )}
 
-            {/* Controlled Resolution Actions */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-              <p className="text-xs text-muted-foreground italic">
-                {ingestionResult.duplicateResult.recommendation}
-              </p>
-
-              <div className="flex items-center gap-2">
-                {ingestionResult.duplicateResult.resolutionOptions.map((opt) => (
-                  <button
-                    key={opt.action}
-                    aria-label={
-                      opt.action === "ACCEPT_CORRECTION"
-                        ? "Accept Legitimate Correction"
-                        : opt.action === "KEEP_EXISTING_SKIP"
-                        ? "Skip Duplicate"
-                        : opt.title
-                    }
-                    onClick={() => handleDuplicateResolution(ingestionResult, opt.action)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                      opt.isRecommended
-                        ? ingestionResult.duplicateResult.status === "CORRECTION"
-                          ? "bg-purple-600 hover:bg-purple-500 text-white border-purple-400 shadow-md"
-                          : "bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-400 shadow-md"
-                        : "bg-card/70 hover:bg-card border-border text-foreground"
-                    }`}
-                  >
-                    {opt.title}
-                  </button>
-                ))}
-              </div>
+              {duplicateResolutionMessage && (
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{duplicateResolutionMessage}</span>
+                </div>
+              )}
             </div>
-
-            {duplicateResolutionMessage && (
-              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>{duplicateResolutionMessage}</span>
-              </div>
-            )}
-          </div>
-        )}
+          )}
 
         {/* Stage 9: Interval Telemetry Processing Summary Card */}
         {ingestionResult?.intervalSummary && (
@@ -1604,35 +1618,38 @@ export function SecureUploadGateway() {
                 </div>
               </div>
 
-              {selectedUpload.errorMessage && (() => {
-                const sanitized = UserFacingErrorSanitizer.sanitize(
-                  selectedUpload.processingStatus === "FAILED" ? "FAILED_EXTRACTION" : "PROCESSING_FAILURE",
-                  selectedUpload.errorMessage,
-                  selectedUpload.errorMessage,
-                );
-                return (
-                  <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 space-y-1.5">
-                    <div className="font-semibold text-xs flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <AlertCircle className="w-3.5 h-3.5" />
-                        <span>{sanitized.title}</span>
+              {selectedUpload.errorMessage &&
+                (() => {
+                  const sanitized = UserFacingErrorSanitizer.sanitize(
+                    selectedUpload.processingStatus === "FAILED"
+                      ? "FAILED_EXTRACTION"
+                      : "PROCESSING_FAILURE",
+                    selectedUpload.errorMessage,
+                    selectedUpload.errorMessage,
+                  );
+                  return (
+                    <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 space-y-1.5">
+                      <div className="font-semibold text-xs flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>{sanitized.title}</span>
+                        </div>
+                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                          {sanitized.referenceCode}
+                        </span>
                       </div>
-                      <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                        {sanitized.referenceCode}
-                      </span>
-                    </div>
-                    <p className="text-xs font-medium text-rose-200/90 leading-relaxed">
-                      {sanitized.message}
-                    </p>
-                    {sanitized.actionableHint && (
-                      <p className="text-[11px] text-muted-foreground pt-0.5">
-                        <span className="font-semibold text-foreground">Action: </span>
-                        {sanitized.actionableHint}
+                      <p className="text-xs font-medium text-rose-200/90 leading-relaxed">
+                        {sanitized.message}
                       </p>
-                    )}
-                  </div>
-                );
-              })()}
+                      {sanitized.actionableHint && (
+                        <p className="text-[11px] text-muted-foreground pt-0.5">
+                          <span className="font-semibold text-foreground">Action: </span>
+                          {sanitized.actionableHint}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
 
               <div>
                 <span className="text-muted-foreground font-semibold">

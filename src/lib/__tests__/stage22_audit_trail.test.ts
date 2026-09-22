@@ -49,9 +49,21 @@ describe("STAGE 22: Persistent Audit Trail Subsystem", () => {
         category: "upload",
         action: "UPLOAD_INITIATED",
         description: "Upload initiated for megaflex_invoice_mar2026.pdf",
-        actor: { userId: "usr-energy-mgr", email: "manager@eskombalancer.co.za", role: "ENERGY_MANAGER" },
-        record: { entityType: "source_file", recordId: "FILE-1001", recordLabel: "megaflex_invoice_mar2026.pdf" },
-        newState: { filename: "megaflex_invoice_mar2026.pdf", sizeBytes: 245100, mimeType: "application/pdf" },
+        actor: {
+          userId: "usr-energy-mgr",
+          email: "manager@eskombalancer.co.za",
+          role: "ENERGY_MANAGER",
+        },
+        record: {
+          entityType: "source_file",
+          recordId: "FILE-1001",
+          recordLabel: "megaflex_invoice_mar2026.pdf",
+        },
+        newState: {
+          filename: "megaflex_invoice_mar2026.pdf",
+          sizeBytes: 245100,
+          mimeType: "application/pdf",
+        },
       });
 
       expect(record.category).toBe("upload");
@@ -77,7 +89,9 @@ describe("STAGE 22: Persistent Audit Trail Subsystem", () => {
       expect(record.category).toBe("processing");
       expect(record.action).toBe("PROCESSING_JOB_COMPLETED");
       expect(record.diff).toBeDefined();
-      expect(record.diff?.some((d) => d.field === "status" && d.newValue === "COMPLETED")).toBe(true);
+      expect(record.diff?.some((d) => d.field === "status" && d.newValue === "COMPLETED")).toBe(
+        true,
+      );
     });
 
     it("tracks 'data_extraction' actions with extracted determinants", async () => {
@@ -106,9 +120,19 @@ describe("STAGE 22: Persistent Audit Trail Subsystem", () => {
         organisationId: "ORG-001",
         category: "data_correction",
         action: "INVOICE_FIELD_CORRECTED",
-        description: "Field 'maxDemandKva' corrected from 92948.29 to 2450.00. Reason: Curtailment spike exclusion",
-        actor: { userId: "usr-auditor-01", email: "auditor@eskombalancer.co.za", displayName: "Lead Energy Auditor", role: "AUDITOR" },
-        record: { entityType: "invoice", recordId: "INV-REC-101", recordLabel: "Invoice INV-2026-03" },
+        description:
+          "Field 'maxDemandKva' corrected from 92948.29 to 2450.00. Reason: Curtailment spike exclusion",
+        actor: {
+          userId: "usr-auditor-01",
+          email: "auditor@eskombalancer.co.za",
+          displayName: "Lead Energy Auditor",
+          role: "AUDITOR",
+        },
+        record: {
+          entityType: "invoice",
+          recordId: "INV-REC-101",
+          recordLabel: "Invoice INV-2026-03",
+        },
         previousState: { maxDemandKva: 92948.29, confidenceScore: 0.85 },
         newState: { maxDemandKva: 2450.0, confidenceScore: 1.0 },
         metadata: { reason: "Curtailment spike exclusion", approvedBy: "CFO Energy Audit Team" },
@@ -131,7 +155,11 @@ describe("STAGE 22: Persistent Audit Trail Subsystem", () => {
         category: "reconciliation",
         action: "RECONCILIATION_RUN_SAVED",
         description: "Authoritative reconciliation run RUN-2026-001 completed with PASS",
-        record: { entityType: "reconciliation_run", recordId: "RUN-2026-001", recordLabel: "Recon Run RUN-2026-001" },
+        record: {
+          entityType: "reconciliation_run",
+          recordId: "RUN-2026-001",
+          recordLabel: "Recon Run RUN-2026-001",
+        },
         newState: {
           runId: "RUN-2026-001",
           status: "COMPLETED",
@@ -154,7 +182,11 @@ describe("STAGE 22: Persistent Audit Trail Subsystem", () => {
         action: "DISPUTE_PACK_PDF_GENERATED",
         description: "Generated official Eskom dispute pack PDF for Run RUN-2026-001",
         actor: { userId: "usr-analyst", email: "analyst@eskombalancer.co.za", role: "ANALYST" },
-        record: { entityType: "report", recordId: "REP-9921", recordLabel: "Dispute_Pack_RUN-2026-001.pdf" },
+        record: {
+          entityType: "report",
+          recordId: "REP-9921",
+          recordLabel: "Dispute_Pack_RUN-2026-001.pdf",
+        },
         newState: {
           fileName: "Dispute_Pack_RUN-2026-001.pdf",
           reportType: "DISPUTE_PACK_PDF",
@@ -174,10 +206,23 @@ describe("STAGE 22: Persistent Audit Trail Subsystem", () => {
         category: "configuration_changes",
         action: "METER_CONFIGURATION_CHANGED",
         description: "Meter MTR-98213 CT ratio updated from 400/5 to 800/5",
-        actor: { userId: "usr-technician", displayName: "Metering Specialist", role: "ENERGY_MANAGER" },
-        record: { entityType: "meter_configuration", recordId: "CFG-V2", recordLabel: "Meter MTR-98213 (v2)" },
+        actor: {
+          userId: "usr-technician",
+          displayName: "Metering Specialist",
+          role: "ENERGY_MANAGER",
+        },
+        record: {
+          entityType: "meter_configuration",
+          recordId: "CFG-V2",
+          recordLabel: "Meter MTR-98213 (v2)",
+        },
         previousState: { ct_ratio_numerator: 400, ct_ratio: 80, overall_multiplier: 1600 },
-        newState: { ct_ratio_numerator: 800, ct_ratio: 160, overall_multiplier: 3200, change_reason: "Substation CT replacement" },
+        newState: {
+          ct_ratio_numerator: 800,
+          ct_ratio: 160,
+          overall_multiplier: 3200,
+          change_reason: "Substation CT replacement",
+        },
       });
 
       expect(record.category).toBe("configuration_changes");
@@ -193,7 +238,11 @@ describe("STAGE 22: Persistent Audit Trail Subsystem", () => {
         action: "TARIFF_VERSION_ASSIGNED",
         description: "Tariff Megaflex 2026/2027 published with gazetted NERSA rates",
         actor: { userId: "usr-admin", role: "SUPER_ADMIN" },
-        record: { entityType: "tariff_structure", recordId: "MEGAFLEX_2026_2027", recordLabel: "Eskom Megaflex (2026/2027)" },
+        record: {
+          entityType: "tariff_structure",
+          recordId: "MEGAFLEX_2026_2027",
+          recordLabel: "Eskom Megaflex (2026/2027)",
+        },
         previousState: { version: "2025/2026", activeComponents: 12 },
         newState: { version: "2026/2027", activeComponents: 12, effectiveFrom: "2026-04-01" },
       });
@@ -209,8 +258,17 @@ describe("STAGE 22: Persistent Audit Trail Subsystem", () => {
         category: "user_actions",
         action: "WORKFLOW_STEP_APPROVED",
         description: "Reconciliation workflow approved for settlement by Commercial Director",
-        actor: { userId: "usr-exec-01", email: "director@client.co.za", displayName: "Commercial Director", role: "REVIEWER" },
-        record: { entityType: "reconciliation_run", recordId: "RUN-2026-001", recordLabel: "Run RUN-2026-001" },
+        actor: {
+          userId: "usr-exec-01",
+          email: "director@client.co.za",
+          displayName: "Commercial Director",
+          role: "REVIEWER",
+        },
+        record: {
+          entityType: "reconciliation_run",
+          recordId: "RUN-2026-001",
+          recordLabel: "Run RUN-2026-001",
+        },
         previousState: { state: "REVIEW" },
         newState: { state: "APPROVED", notes: "Variance within agreed contractual threshold" },
       });
@@ -222,7 +280,12 @@ describe("STAGE 22: Persistent Audit Trail Subsystem", () => {
     });
 
     it("tracks 'permission_changes' with previous and new role assignments", async () => {
-      const adminCtx = createSecurityContext("usr-admin", "admin@corp.co.za", "ORG-001", "ORGANISATION_ADMIN");
+      const adminCtx = createSecurityContext(
+        "usr-admin",
+        "admin@corp.co.za",
+        "ORG-001",
+        "ORGANISATION_ADMIN",
+      );
 
       const res = await TenantContextService.updateUserRole(
         "usr-target-002",

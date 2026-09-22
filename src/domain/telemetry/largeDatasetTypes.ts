@@ -12,12 +12,7 @@
 import type { TelemetryIntervalRecord, TelemetryQualityState } from "./types";
 import type { TouPeriod } from "@/lib/tariff";
 
-export type AggregationCadence =
-  | "hour"
-  | "day"
-  | "week"
-  | "month"
-  | "tou_period";
+export type AggregationCadence = "hour" | "day" | "week" | "month" | "tou_period";
 
 export interface TelemetryQueryFilter {
   organisationId: string;
@@ -25,7 +20,7 @@ export interface TelemetryQueryFilter {
   meterIds?: string[];
   siteId?: string;
   startDate?: string; // ISO 8601 string or YYYY-MM-DD
-  endDate?: string;   // ISO 8601 string or YYYY-MM-DD
+  endDate?: string; // ISO 8601 string or YYYY-MM-DD
   qualityStates?: TelemetryQualityState[];
   touPeriods?: TouPeriod[];
   channels?: string[];
@@ -35,9 +30,9 @@ export interface TelemetryQueryFilter {
 }
 
 export interface PaginationOptions {
-  page?: number;         // 1-indexed, default 1
-  pageSize?: number;     // default 50, max 1000
-  cursor?: string;       // Cursor for keyset pagination
+  page?: number; // 1-indexed, default 1
+  pageSize?: number; // default 50, max 1000
+  cursor?: string; // Cursor for keyset pagination
   sortField?: "timestamp_utc" | "kwh" | "kva";
   sortDirection?: "ASC" | "DESC";
 }
@@ -56,9 +51,9 @@ export interface PaginatedTelemetryResult<T = TelemetryIntervalRecord> {
 }
 
 export interface AggregatedTimeSeriesBucket {
-  bucketKey: string;           // Formatted date/time label (e.g. "2025-01-01" or "2025-01-01T14:00")
-  timestampStart: string;     // ISO UTC
-  timestampEnd: string;       // ISO UTC
+  bucketKey: string; // Formatted date/time label (e.g. "2025-01-01" or "2025-01-01T14:00")
+  timestampStart: string; // ISO UTC
+  timestampEnd: string; // ISO UTC
   totalActiveEnergyKwh: number;
   peakKwh: number;
   standardKwh: number;
@@ -75,7 +70,7 @@ export interface AggregatedTimeSeriesBucket {
 
 export interface ChartPlottablePoint {
   label: string;
-  timestamp: number;          // epoch ms for recharts XAxis
+  timestamp: number; // epoch ms for recharts XAxis
   kW: number;
   kVA: number;
   kwh: number;
@@ -109,7 +104,7 @@ export interface AggregatedChartDataResponse {
 }
 
 export interface BatchProcessingOptions {
-  batchSize?: number;         // default 2000
+  batchSize?: number; // default 2000
   onProgress?: (processed: number, total: number, pct: number) => void;
   yieldTickIntervalMs?: number; // event loop cooperative yield
 }

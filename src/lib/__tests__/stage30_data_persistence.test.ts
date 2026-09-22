@@ -154,10 +154,7 @@ describe("Stage 30 — Data Persistence Test Suite", () => {
     );
 
     // Query invoices from persistent storage
-    const invoices = await InvoiceStorageService.queryInvoices(
-      { organisationId: orgId },
-      context,
-    );
+    const invoices = await InvoiceStorageService.queryInvoices({ organisationId: orgId }, context);
     expect(invoices.length).toBeGreaterThanOrEqual(1);
     expect(invoices[0].account_number).toBe("ACC-CPT-9001");
   });
@@ -192,10 +189,7 @@ describe("Stage 30 — Data Persistence Test Suite", () => {
     expect(EphemeralBrowserMemorySimulator.isMemoryEmpty()).toBe(true);
 
     // Verify data remains in database
-    const invoices = await InvoiceStorageService.queryInvoices(
-      { organisationId: orgId },
-      context,
-    );
+    const invoices = await InvoiceStorageService.queryInvoices({ organisationId: orgId }, context);
     expect(invoices.length).toBeGreaterThanOrEqual(1);
 
     const dashboard = await DashboardService.getAggregatedDashboardData(
@@ -277,9 +271,8 @@ describe("Stage 30 — Data Persistence Test Suite", () => {
 
     // Re-open browser and query authoritative storage
     EphemeralBrowserMemorySimulator.reopenBrowser();
-    const authoritativeInvoice = await InvoiceStorageService.getInvoiceRecordById(
-      "inv-zero-memory-01",
-    );
+    const authoritativeInvoice =
+      await InvoiceStorageService.getInvoiceRecordById("inv-zero-memory-01");
 
     expect(authoritativeInvoice).not.toBeNull();
     expect(authoritativeInvoice.invoice_number).toBe("INV-ZERO-MEM-01");

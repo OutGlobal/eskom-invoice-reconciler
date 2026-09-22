@@ -68,7 +68,8 @@ describe("Stage 24 — Empty States & User Guidance", () => {
 
   it("Requirement 3: Meter Data Module Empty State provides exact mandated strings and upload action", () => {
     const title = "No meter data is available.";
-    const description = "Upload energy data to begin, or configure Point of Delivery (POD) and meter channels.";
+    const description =
+      "Upload energy data to begin, or configure Point of Delivery (POD) and meter channels.";
 
     const meterEmptyState = React.createElement(EmptyState, {
       icon: Gauge,
@@ -89,7 +90,8 @@ describe("Stage 24 — Empty States & User Guidance", () => {
 
   it("Requirement 4: Reconciliation Module Empty State provides exact mandated strings and next action", () => {
     const title = "No reconciliation has been completed.";
-    const description = "Upload energy data to begin. Ingest billing invoices and AMR interval readings to execute 14-determinant reconciliation.";
+    const description =
+      "Upload energy data to begin. Ingest billing invoices and AMR interval readings to execute 14-determinant reconciliation.";
 
     const reconEmptyState = React.createElement(EmptyState, {
       icon: Scale,
@@ -110,7 +112,8 @@ describe("Stage 24 — Empty States & User Guidance", () => {
 
   it("Requirement 5: Anomaly Dashboard Empty State provides exact mandated strings and resolution action", () => {
     const title = "No anomalies have been identified.";
-    const description = "Upload energy data to begin. All 14 billing determinants, interval loads, and statutory rates are currently reconciled.";
+    const description =
+      "Upload energy data to begin. All 14 billing determinants, interval loads, and statutory rates are currently reconciled.";
 
     const anomalyEmptyState = React.createElement(EmptyState, {
       icon: AlertCircle,
@@ -131,8 +134,13 @@ describe("Stage 24 — Empty States & User Guidance", () => {
 
   it("Requirement 6: ChartEmptyState provides consistent default guidance and call-to-action", () => {
     const defaultChart = React.createElement(ChartEmptyState, {});
-    expect(defaultChart.props.title || "No meter data is available.").toBe("No meter data is available.");
-    expect(defaultChart.props.message || "Upload energy data to begin. Ingest billing statements and interval readings to generate interactive charts.").toContain("Upload energy data to begin");
+    expect(defaultChart.props.title || "No meter data is available.").toBe(
+      "No meter data is available.",
+    );
+    expect(
+      defaultChart.props.message ||
+        "Upload energy data to begin. Ingest billing statements and interval readings to generate interactive charts.",
+    ).toContain("Upload energy data to begin");
   });
 
   it("Requirement 7: Zero-Exposure Level 3 Compliance across empty states", () => {

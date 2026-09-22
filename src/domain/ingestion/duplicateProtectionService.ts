@@ -143,7 +143,8 @@ export class DuplicateProtectionService {
       if (
         candidate.sourceFile.name &&
         existing.sourceFileName &&
-        candidate.sourceFile.name.trim().toLowerCase() === existing.sourceFileName.trim().toLowerCase()
+        candidate.sourceFile.name.trim().toLowerCase() ===
+          existing.sourceFileName.trim().toLowerCase()
       ) {
         matchCriteria.matchedSourceFileName = true;
       }
@@ -289,7 +290,10 @@ export class DuplicateProtectionService {
               recordId: checkResult.existingRecord?.id || "unknown",
               recordLabel: candidate.sourceFile.name,
             },
-            metadata: { matchedCriteria: checkResult.matchedCriteria, actionTaken: "KEEP_EXISTING_SKIP" },
+            metadata: {
+              matchedCriteria: checkResult.matchedCriteria,
+              actionTaken: "KEEP_EXISTING_SKIP",
+            },
           });
         } catch {}
 
@@ -298,7 +302,8 @@ export class DuplicateProtectionService {
           status: "DUPLICATE",
           actionTaken: "KEEP_EXISTING_SKIP",
           supersedesId: undefined,
-          message: "Duplicate skipped. Existing authoritative record preserved without duplication.",
+          message:
+            "Duplicate skipped. Existing authoritative record preserved without duplication.",
         };
       }
 
@@ -502,7 +507,9 @@ export class DuplicateProtectionService {
   /**
    * Helper: Builds resolution options depending on status
    */
-  private static buildResolutionOptions(status: DuplicateHandlingStatus): DuplicateResolutionOption[] {
+  private static buildResolutionOptions(
+    status: DuplicateHandlingStatus,
+  ): DuplicateResolutionOption[] {
     switch (status) {
       case "DUPLICATE":
         return [
@@ -605,12 +612,14 @@ export class DuplicateProtectionService {
               billingPeriod: row.billing_period_name,
               billingStart: row.billing_start,
               billingEnd: row.billing_end,
-              totalAmount: row.invoiced_total !== undefined ? Number(row.invoiced_total) : undefined,
+              totalAmount:
+                row.invoiced_total !== undefined ? Number(row.invoiced_total) : undefined,
               totalKwh: row.total_kwh !== undefined ? Number(row.total_kwh) : undefined,
               peakKwh: row.peak_kwh !== undefined ? Number(row.peak_kwh) : undefined,
               standardKwh: row.standard_kwh !== undefined ? Number(row.standard_kwh) : undefined,
               offPeakKwh: row.off_peak_kwh !== undefined ? Number(row.off_peak_kwh) : undefined,
-              maxDemandKva: row.max_demand_kva !== undefined ? Number(row.max_demand_kva) : undefined,
+              maxDemandKva:
+                row.max_demand_kva !== undefined ? Number(row.max_demand_kva) : undefined,
               sourceFileName: row.source_file_name || row.source,
               sha256Hash: row.sha256_hash,
               importedAt: row.created_at || new Date().toISOString(),

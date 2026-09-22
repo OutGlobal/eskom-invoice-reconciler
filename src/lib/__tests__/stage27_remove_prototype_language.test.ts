@@ -71,7 +71,8 @@ describe("Stage 27 — Remove Prototype Language & Grounded State Verification",
   it("Requirement 2: Empty states provide actionable guidance without prototype language", () => {
     const emptyInvoiceState = React.createElement(EmptyState, {
       title: "No invoices have been uploaded yet.",
-      description: "Upload energy data to begin. Ingest Eskom or municipal utility bills to initiate automated rate auditing.",
+      description:
+        "Upload energy data to begin. Ingest Eskom or municipal utility bills to initiate automated rate auditing.",
       badge: "Invoice Register Empty",
       primaryAction: {
         label: "Upload Invoice",
@@ -116,11 +117,14 @@ describe("Stage 27 — Remove Prototype Language & Grounded State Verification",
     // Verify empty state description and accessibility
     const emptyState = React.createElement(EmptyState, {
       title: "No reconciliation drill-down data available",
-      description: "Select or complete an invoice reconciliation audit to inspect interval-level determinants.",
+      description:
+        "Select or complete an invoice reconciliation audit to inspect interval-level determinants.",
       badge: "Audit Required",
     });
     expect(emptyState.props.title).toContain("No reconciliation drill-down data available");
-    expect(emptyState.props.description).toContain("Select or complete an invoice reconciliation audit");
+    expect(emptyState.props.description).toContain(
+      "Select or complete an invoice reconciliation audit",
+    );
   });
 
   it("Requirement 5: MeterStorageService returns empty hierarchy and configurations when database is clean", async () => {

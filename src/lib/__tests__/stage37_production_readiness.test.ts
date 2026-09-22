@@ -53,8 +53,12 @@ describe("STAGE 37 — Production Readiness Check (20 Dimensions)", () => {
     expect(typeof SecureIngestionGateway.processUpload).toBe("function");
     expect(typeof SecureIngestionGateway.computeSha256).toBe("function");
     expect(SecureIngestionGateway.resolveUploadFileType("bill.pdf", "pdf")).toBe("PDF_INVOICE");
-    expect(SecureIngestionGateway.resolveUploadFileType("telemetry.csv", "csv")).toBe("CSV_INTERVAL_DATA");
-    expect(SecureIngestionGateway.resolveUploadFileType("telemetry.xlsx", "xlsx")).toBe("EXCEL_WORKBOOK");
+    expect(SecureIngestionGateway.resolveUploadFileType("telemetry.csv", "csv")).toBe(
+      "CSV_INTERVAL_DATA",
+    );
+    expect(SecureIngestionGateway.resolveUploadFileType("telemetry.xlsx", "xlsx")).toBe(
+      "EXCEL_WORKBOOK",
+    );
   });
 
   it("2. DATA STORAGE — PASS", () => {
@@ -113,7 +117,7 @@ describe("STAGE 37 — Production Readiness Check (20 Dimensions)", () => {
 
     // Check composite index migration
     const hasIndexMigration = migrationFiles.some((f) =>
-      f.includes("stage34_final_database_review_indexes")
+      f.includes("stage34_final_database_review_indexes"),
     );
     expect(hasIndexMigration).toBe(true);
   });
@@ -127,7 +131,7 @@ describe("STAGE 37 — Production Readiness Check (20 Dimensions)", () => {
   it("10. AUTHORIZATION — PASS", () => {
     const rlsMigrationPath = path.resolve(
       rootDir,
-      "supabase/migrations/20260915010000_tenant_isolation_rls.sql"
+      "supabase/migrations/20260915010000_tenant_isolation_rls.sql",
     );
     expect(fs.existsSync(rlsMigrationPath)).toBe(true);
     const content = fs.readFileSync(rlsMigrationPath, "utf-8");
@@ -148,7 +152,7 @@ describe("STAGE 37 — Production Readiness Check (20 Dimensions)", () => {
   it("13. ERROR HANDLING — PASS", () => {
     const sanitized = UserFacingErrorSanitizer.sanitize(
       "DATABASE_ERROR",
-      new Error('relation "public.invoices" violates check constraint')
+      new Error('relation "public.invoices" violates check constraint'),
     );
     expect(sanitized.referenceCode).toMatch(/^ERR-[A-Z0-9]{6}$/);
     expect(sanitized.message).not.toContain("public.invoices");
@@ -183,7 +187,7 @@ describe("STAGE 37 — Production Readiness Check (20 Dimensions)", () => {
   it("16. RESPONSIVENESS — PASS", () => {
     const responsiveTestPath = path.resolve(
       rootDir,
-      "src/lib/__tests__/test_responsive_viewports.test.ts"
+      "src/lib/__tests__/test_responsive_viewports.test.ts",
     );
     expect(fs.existsSync(responsiveTestPath)).toBe(true);
   });
@@ -191,7 +195,7 @@ describe("STAGE 37 — Production Readiness Check (20 Dimensions)", () => {
   it("17. ACCESSIBILITY — PASS", () => {
     const a11yTestPath = path.resolve(
       rootDir,
-      "src/lib/__tests__/test_accessibility_audit.test.ts"
+      "src/lib/__tests__/test_accessibility_audit.test.ts",
     );
     expect(fs.existsSync(a11yTestPath)).toBe(true);
   });
@@ -205,10 +209,7 @@ describe("STAGE 37 — Production Readiness Check (20 Dimensions)", () => {
   it("19. BACKUP / RECOVERY — PARTIAL (Recognized Architecture & Operational Roadmap)", () => {
     // Factual evaluation: WAL logging, 7-year audit retention, SHA-256 immutable file vault
     // with offsite multi-cloud cold-storage replication scheduled as operational policy
-    const auditSanitizer = path.resolve(
-      rootDir,
-      "src/domain/audit/auditSanitizer.ts"
-    );
+    const auditSanitizer = path.resolve(rootDir, "src/domain/audit/auditSanitizer.ts");
     expect(fs.existsSync(auditSanitizer)).toBe(true);
   });
 

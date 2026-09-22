@@ -41,9 +41,7 @@ export const ChartEmptyState: React.FC<ChartEmptyStateProps> = ({
 
       <h4 className="text-sm font-semibold text-foreground tracking-tight">{title}</h4>
 
-      <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-4 leading-relaxed">
-        {message}
-      </p>
+      <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-4 leading-relaxed">{message}</p>
 
       {actionLink && actionText && (
         <Link
