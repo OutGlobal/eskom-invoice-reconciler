@@ -1084,6 +1084,36 @@ export function SecureUploadGateway() {
           </div>
         )}
 
+        {/* Automatic reconciliation outcome for the latest upload */}
+        {autoRecon && !processing && (
+          <div
+            className={`mt-6 p-4 rounded-xl border flex items-start gap-3 ${
+              autoRecon.status === "COMPLETED"
+                ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-300"
+                : autoRecon.status === "FAILED"
+                  ? "border-red-500/30 bg-red-500/5 text-red-300"
+                  : "border-amber-500/30 bg-amber-500/5 text-amber-300"
+            }`}
+          >
+            <Scale className="w-5 h-5 shrink-0 mt-0.5" />
+            <div>
+              <div className="font-semibold text-sm">
+                {autoRecon.status === "COMPLETED"
+                  ? "Reconciliation ran automatically"
+                  : "Reconciliation pending"}
+              </div>
+              <div className="text-xs opacity-80 mt-1">{autoRecon.message}</div>
+              {autoRecon.payload && (
+                <div className="text-xs opacity-80 mt-1">
+                  {autoRecon.payload.determinant_comparisons.length} determinants compared — open
+                  Reconciliation for the full breakdown.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+
         {/* Stage 23: Ingestion Result & Failure Display (Zero Silent Discards) */}
         {ingestionResult && !processing && (
           ingestionResult.success ? (
