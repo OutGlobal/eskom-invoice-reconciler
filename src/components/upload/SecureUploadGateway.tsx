@@ -87,6 +87,17 @@ export function SecureUploadGateway() {
   const [selectedUpload, setSelectedUpload] = useState<UploadRecord | null>(null);
   const [downloadingUrl, setDownloadingUrl] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [autoRecon, setAutoRecon] = useState<AutoReconciliationOutcome | null>(null);
+
+  // Runs the reconciliation engine straight after an upload, using whatever the
+  // workspace now holds (invoice + interval telemetry + uploaded tariff).
+  const runReconciliationAfterUpload = () => {
+    const state = useApp.getState();
+    const outcome = runAutomaticReconciliation(state.invoice, state.rows);
+    setAutoRecon(outcome);
+    return outcome;
+  };
+
 
   const handleDownloadSecureFile = async (upload: UploadRecord) => {
     setDownloadingUrl(true);
