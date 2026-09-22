@@ -11,6 +11,8 @@ import type {
   ToleranceConfig,
 } from "@/domain/reconciliation/types";
 import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
+import { runAutomaticReconciliation } from "@/domain/reconciliation/autoReconciliationRunner";
+
 import {
   Scale,
   ShieldCheck,
@@ -52,54 +54,10 @@ function ReconciliationPage() {
   >("statutory");
 
   const runReconciliation = () => {
-    if (!activeInvoice || meterRows.length === 0) {
-      setPayload(null);
-      return;
-    }
-    const tariffVersion = TariffStorageService.getVersionForDate(
-      activeInvoice.tariffName,
-      activeInvoice.billingPeriodStart || "",
-    );
-    if (!tariffVersion) {
-      setPayload(null);
-      return;
-    }
-    const input = {
-        invoice_id: activeInvoice.invoiceNumber || activeInvoice.invoiceNo || "",
-        invoice_number: activeInvoice.invoiceNumber || activeInvoice.invoiceNo || "",
-        account_number: activeInvoice.accountNumber || "",
-        billing_start: activeInvoice.billingPeriodStart || "",
-        billing_end: activeInvoice.billingPeriodEnd || "",
-        tariff_version: tariffVersion,
-
-        billed_peak_kwh: new Decimal(activeInvoice.peakKWh || 0),
-        billed_standard_kwh: new Decimal(activeInvoice.standardKWh || 0),
-        billed_off_peak_kwh: new Decimal(activeInvoice.offPeakKWh || 0),
-        billed_total_kwh: new Decimal(activeInvoice.totalKWh || 0),
-        billed_maximum_demand_kva: new Decimal(activeInvoice.maxDemandKVA || 0),
-        billed_ratcheted_demand_kva: new Decimal(activeInvoice.maxDemandKVA || 0),
-        billed_reactive_energy_kvarh: new Decimal(activeInvoice.reactive || 0),
-        billed_energy_charges_zar: new Decimal(
-          (activeInvoice.peakEnergyCharge || 0) +
-            (activeInvoice.standardEnergyCharge || 0) +
-            (activeInvoice.offPeakEnergyCharge || 0),
-        ),
-        billed_demand_charges_zar: new Decimal(activeInvoice.networkDemandCharge || 0),
-        billed_network_charges_zar: new Decimal(
-          (activeInvoice.transmissionNetworkCharge || 0) +
-            (activeInvoice.networkCapacityCharge || 0),
-        ),
-        billed_service_charges_zar: new Decimal(activeInvoice.serviceCharge || 0),
-        billed_ancillary_charges_zar: new Decimal(activeInvoice.ancillary || 0),
-        billed_vat_zar: new Decimal(activeInvoice.vat || 0),
-        billed_total_invoice_zar: new Decimal(
-          activeInvoice.totalInclVat || activeInvoice.invoiceTotal || 0,
-        ),
-      };
-
-    const result = DeterministicReconciliationEngine.reconcile(input, DEFAULT_TOLERANCE_CONFIG);
-    setPayload(result);
+    const outcome = runAutomaticReconciliation(activeInvoice, meterRows, DEFAULT_TOLERANCE_CONFIG);
+    setPayload(outcome.payload);
   };
+
 
   useEffect(() => {
     runReconciliation();

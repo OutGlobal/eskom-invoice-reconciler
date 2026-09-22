@@ -25,6 +25,8 @@ import {
   Copy,
   Sparkles,
   History,
+  Scale,
+
 } from "lucide-react";
 import { SecureIngestionGateway } from "@/domain/ingestion/secureIngestionGateway";
 import { UploadStorageService } from "@/domain/upload/uploadStorageService";
@@ -49,6 +51,11 @@ import type {
 import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
 import { LocalFileVault } from "@/lib/localFileVault";
 import { LocalWorkspaceStore } from "@/lib/localWorkspaceStore";
+import {
+  runAutomaticReconciliation,
+  type AutoReconciliationOutcome,
+} from "@/domain/reconciliation/autoReconciliationRunner";
+
 
 const AUTOMATED_STAGES: { id: AutomatedPipelineStage; label: string }[] = [
   { id: "UPLOAD_SUCCESSFUL", label: "Upload successful" },
@@ -82,6 +89,17 @@ export function SecureUploadGateway() {
   const [selectedUpload, setSelectedUpload] = useState<UploadRecord | null>(null);
   const [downloadingUrl, setDownloadingUrl] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [autoRecon, setAutoRecon] = useState<AutoReconciliationOutcome | null>(null);
+
+  // Runs the reconciliation engine straight after an upload, using whatever the
+  // workspace now holds (invoice + interval telemetry + uploaded tariff).
+  const runReconciliationAfterUpload = () => {
+    const state = useApp.getState();
+    const outcome = runAutomaticReconciliation(state.invoice, state.rows);
+    setAutoRecon(outcome);
+    return outcome;
+  };
+
 
   const handleDownloadSecureFile = async (upload: UploadRecord) => {
     setDownloadingUrl(true);
@@ -419,7 +437,9 @@ export function SecureUploadGateway() {
             timestamp: new Date().toISOString(),
           });
 
+          runReconciliationAfterUpload();
           await loadHistory();
+
         } else if (current.status === "FAILED") {
           unsubscribe();
           setAutomatedPipelineRunning(false);
@@ -627,8 +647,12 @@ export function SecureUploadGateway() {
           timestamp: new Date().toISOString(),
         });
 
+        // Reconcile immediately with everything now loaded
+        runReconciliationAfterUpload();
+
         // Refresh database history
         await loadHistory();
+
       }
     } catch (err: any) {
       console.error("Ingestion pipeline execution failure:", err);
@@ -1061,6 +1085,36 @@ export function SecureUploadGateway() {
             </div>
           </div>
         )}
+
+        {/* Automatic reconciliation outcome for the latest upload */}
+        {autoRecon && !processing && (
+          <div
+            className={`mt-6 p-4 rounded-xl border flex items-start gap-3 ${
+              autoRecon.status === "COMPLETED"
+                ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-300"
+                : autoRecon.status === "FAILED"
+                  ? "border-red-500/30 bg-red-500/5 text-red-300"
+                  : "border-amber-500/30 bg-amber-500/5 text-amber-300"
+            }`}
+          >
+            <Scale className="w-5 h-5 shrink-0 mt-0.5" />
+            <div>
+              <div className="font-semibold text-sm">
+                {autoRecon.status === "COMPLETED"
+                  ? "Reconciliation ran automatically"
+                  : "Reconciliation pending"}
+              </div>
+              <div className="text-xs opacity-80 mt-1">{autoRecon.message}</div>
+              {autoRecon.payload && (
+                <div className="text-xs opacity-80 mt-1">
+                  {autoRecon.payload.determinant_comparisons.length} determinants compared — open
+                  Reconciliation for the full breakdown.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
 
         {/* Stage 23: Ingestion Result & Failure Display (Zero Silent Discards) */}
         {ingestionResult && !processing && (
