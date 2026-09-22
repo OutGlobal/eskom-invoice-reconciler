@@ -127,7 +127,7 @@ export function EneraFooter() {
               </li>
               <li>
                 <a
-                  href="#reconciliation"
+                  href="#how-it-works"
                   className="text-slate-400 hover:text-cyan-300 transition-colors focus-ring-enera rounded"
                 >
                   Audit
@@ -238,7 +238,7 @@ export function EneraFooter() {
 
         {/* Bottom Bar: Copyright & Compliance */}
         <div className="pt-8 mt-10 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-400">
-          <div>&copy; {new Date().getFullYear()} ENERA Technologies. All rights reserved.</div>
+          <div>&copy; {new Date().getFullYear()} ENERA AI Technologies. All rights reserved.</div>
 
           <div className="flex items-center gap-2 text-[11px] text-slate-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden="true" />

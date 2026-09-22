@@ -5,7 +5,7 @@ import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
-    meta: [{ title: "Client Portal Login — ENERA Energy Financial Intelligence" }],
+    meta: [{ title: "Client Portal Login — ENERA AI | Energy Financial Intelligence" }],
   }),
   component: LoginPage,
 });

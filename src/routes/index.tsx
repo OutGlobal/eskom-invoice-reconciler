@@ -16,7 +16,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       {
-        title: "ENERA | Energy Financial Intelligence",
+        title: "ENERA AI | Energy Financial Intelligence",
       },
       {
         name: "description",
@@ -29,7 +29,7 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:title",
-        content: "ENERA | Energy Financial Intelligence",
+        content: "ENERA AI | Energy Financial Intelligence",
       },
       {
         property: "og:description",
@@ -46,7 +46,7 @@ export const Route = createFileRoute("/")({
       },
       {
         name: "twitter:title",
-        content: "ENERA | Energy Financial Intelligence",
+        content: "ENERA AI | Energy Financial Intelligence",
       },
       {
         name: "twitter:description",
@@ -87,7 +87,7 @@ function EneraLandingPage() {
         id="main-content"
         tabIndex={-1}
         className="outline-none"
-        aria-label="ENERA Energy Financial Intelligence"
+        aria-label="ENERA AI | Energy Financial Intelligence"
       >
         {/* 2. Hero: SEE BEYOND THE BILL. */}
         <EneraHeroSection />
