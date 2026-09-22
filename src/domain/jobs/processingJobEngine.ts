@@ -73,9 +73,12 @@ export class ProcessingJobEngine {
     const jobType: JobType = input.jobType || "FULL_PIPELINE";
     const now = new Date().toISOString();
 
-    const invoiceName = input.invoiceFile?.name || (input.invoiceFile as any)?.filename || "invoice.pdf";
-    const invoiceSize = input.invoiceFile?.size ?? (input.invoiceFile as any)?.data?.byteLength ?? 0;
-    const meterName = input.meterFile?.name || (input.meterFile as any)?.filename || "meter_intervals.csv";
+    const invoiceName =
+      input.invoiceFile?.name || (input.invoiceFile as any)?.filename || "invoice.pdf";
+    const invoiceSize =
+      input.invoiceFile?.size ?? (input.invoiceFile as any)?.data?.byteLength ?? 0;
+    const meterName =
+      input.meterFile?.name || (input.meterFile as any)?.filename || "meter_intervals.csv";
     const meterSize = input.meterFile?.size ?? (input.meterFile as any)?.data?.byteLength ?? 0;
 
     const job: ProcessingJob = {
@@ -96,11 +99,16 @@ export class ProcessingJobEngine {
             mimeType: (input.invoiceFile as any).type || "application/pdf",
             storagePath: input.invoiceStoragePath,
           }
-        : input.files?.find((f) => f.filename?.endsWith(".pdf"))
+        : input.files?.find((f: any) => f.filename?.endsWith(".pdf"))
           ? {
-              name: input.files.find((f) => f.filename?.endsWith(".pdf"))!.filename,
-              sizeBytes: input.files.find((f) => f.filename?.endsWith(".pdf"))!.fileSizeBytes || 0,
-              mimeType: input.files.find((f) => f.filename?.endsWith(".pdf"))!.mimeType || "application/pdf",
+              name:
+                input.files.find((f: any) => f.filename?.endsWith(".pdf"))!.filename ||
+                "invoice.pdf",
+              sizeBytes:
+                input.files.find((f: any) => f.filename?.endsWith(".pdf"))!.fileSizeBytes || 0,
+              mimeType:
+                input.files.find((f: any) => f.filename?.endsWith(".pdf"))!.mimeType ||
+                "application/pdf",
             }
           : undefined,
       sourceMeterFile: input.meterFile
@@ -112,7 +120,7 @@ export class ProcessingJobEngine {
           }
         : input.files && input.files.length > 0
           ? {
-              name: input.files[0].filename,
+              name: input.files[0].filename || "meter_intervals.csv",
               sizeBytes: input.files[0].fileSizeBytes || 0,
               mimeType: input.files[0].mimeType || "text/csv",
             }
@@ -137,7 +145,9 @@ export class ProcessingJobEngine {
         record: { entityType: "processing_job", recordId: jobId, recordLabel: `Job ${jobId}` },
         newState: { jobId, jobType, status: "QUEUED", stage: "QUEUED" },
       });
-    } catch {}
+    } catch {
+      // Ignore audit trail persistence error
+    }
 
     // Trigger asynchronous background execution (does not block caller)
     setTimeout(() => {
@@ -277,7 +287,9 @@ export class ProcessingJobEngine {
     }
 
     if (job.status !== "PAUSED_AMBIGUITY") {
-      throw new Error(`Job '${resolution.jobId}' is not paused on ambiguity (status: ${job.status})`);
+      throw new Error(
+        `Job '${resolution.jobId}' is not paused on ambiguity (status: ${job.status})`,
+      );
     }
 
     const cachedInput = this.pendingJobInputs.get(resolution.jobId);
@@ -361,7 +373,9 @@ export class ProcessingJobEngine {
         record: { entityType: "processing_job", recordId: jobId, recordLabel: `Job ${jobId}` },
         newState: { jobId, status: "QUEUED", stage: "QUEUED" },
       });
-    } catch {}
+    } catch {
+      // Ignore audit trail persistence error
+    }
 
     setTimeout(() => {
       this.executeJob(jobId, cachedInput).catch((err) => {
@@ -375,10 +389,7 @@ export class ProcessingJobEngine {
   /**
    * Cancels an active or queued job
    */
-  public static async cancelJob(
-    jobId: string,
-    context?: UserSecurityContext,
-  ): Promise<boolean> {
+  public static async cancelJob(jobId: string, context?: UserSecurityContext): Promise<boolean> {
     const job = this.jobs.get(jobId);
     if (!job) return false;
 
@@ -428,7 +439,14 @@ export class ProcessingJobEngine {
     // -------------------------------------------------------------
     // STAGE 1: UPLOAD_VERIFICATION
     // -------------------------------------------------------------
-    this.updateProgress(jobId, "UPLOAD_VERIFICATION", 10, 0, undefined, "Verifying file integrity and formats on server");
+    this.updateProgress(
+      jobId,
+      "UPLOAD_VERIFICATION",
+      10,
+      0,
+      undefined,
+      "Verifying file integrity and formats on server",
+    );
     await this.tick();
 
     if (this.isCancelled(jobId)) return;
@@ -439,12 +457,20 @@ export class ProcessingJobEngine {
     let extractedInvoice = this.buildFallbackInvoice("invoice.pdf");
     if (input.invoiceFile) {
       const invoiceBytes = await this.resolveFileBytes(input.invoiceFile, "invoice.pdf");
-      const invoiceName = input.invoiceFile?.name || (input.invoiceFile as any)?.filename || "invoice.pdf";
+      const invoiceName =
+        input.invoiceFile?.name || (input.invoiceFile as any)?.filename || "invoice.pdf";
 
       // -------------------------------------------------------------
       // STAGE 2: PDF_EXTRACTION & OCR
       // -------------------------------------------------------------
-      this.updateProgress(jobId, "PDF_EXTRACTION", 25, 0, undefined, "Extracting invoice layout and billing determinants on server");
+      this.updateProgress(
+        jobId,
+        "PDF_EXTRACTION",
+        25,
+        0,
+        undefined,
+        "Extracting invoice layout and billing determinants on server",
+      );
       await this.tick();
 
       if (this.isCancelled(jobId)) return;
@@ -464,34 +490,34 @@ export class ProcessingJobEngine {
           this.failJob(jobId, failReason);
           return;
         }
-        extractedInvoice = invoiceIngestResult.extractedInvoice || this.buildFallbackInvoice(invoiceName);
-        if (
-          !extractedInvoice.meterNumber ||
-          extractedInvoice.meterNumber === "MTR-90210" ||
-          extractedInvoice.meterNumber === "7856504226" ||
-          extractedInvoice.meterSerial === "7856504226"
-        ) {
-          const fallback = this.buildFallbackInvoice(invoiceName);
-          extractedInvoice.meterNumber = fallback.meterNumber;
-          extractedInvoice.meterSerial = fallback.meterNumber;
-          extractedInvoice.billingPeriodStart = fallback.billingPeriodStart;
-          extractedInvoice.billingPeriodEnd = fallback.billingPeriodEnd;
-          extractedInvoice.billingStart = fallback.billingPeriodStart;
-          extractedInvoice.billingEnd = fallback.billingPeriodEnd;
+        extractedInvoice =
+          invoiceIngestResult.extractedInvoice || this.buildFallbackInvoice(invoiceName);
+        // Only inject a fallback meter number if none was extracted — never overwrite real OCR values
+        if (!extractedInvoice.meterNumber) {
+          extractedInvoice.meterNumber = this.buildFallbackInvoice(invoiceName).meterNumber;
+          extractedInvoice.meterSerial = extractedInvoice.meterNumber;
         }
       } catch (err: any) {
         this.failJob(jobId, err?.message || "Unable to extract required invoice information.");
         return;
       }
     } else {
-      this.updateProgress(jobId, "PDF_EXTRACTION", 25, 0, undefined, "Using registered baseline determinants");
+      this.updateProgress(
+        jobId,
+        "PDF_EXTRACTION",
+        25,
+        0,
+        undefined,
+        "Using registered baseline determinants",
+      );
       await this.tick();
     }
 
     // -------------------------------------------------------------
     // STAGE 3: TELEMETRY_PARSING (Streamed / Chunked)
     // -------------------------------------------------------------
-    const meterName = input.meterFile?.name || (input.meterFile as any)?.filename || "meter_data.csv";
+    const meterName =
+      input.meterFile?.name || (input.meterFile as any)?.filename || "meter_data.csv";
     const isExcel = meterName.endsWith(".xlsx") || meterName.endsWith(".xls");
     const stageName: JobStage = "TELEMETRY_PARSING";
     const parsingMsg = isExcel
@@ -520,7 +546,8 @@ export class ProcessingJobEngine {
         this.failJob(jobId, failReason);
         return;
       }
-      rawTelemetryRecords = meterIngestResult.intervals || (meterIngestResult as any).normalizedRecords || [];
+      rawTelemetryRecords =
+        meterIngestResult.intervals || (meterIngestResult as any).normalizedRecords || [];
     }
 
     if (rawTelemetryRecords.length === 0 && input.meterFile) {
@@ -579,7 +606,7 @@ export class ProcessingJobEngine {
       jobId,
       extractedInvoice,
       rawTelemetryRecords,
-      "TELEMETRY_PARSING",
+      "NORMALISING",
       {
         overrideMeterId: resolution?.resolvedMeterId,
         overrideTariffCode: resolution?.confirmedTariffCode,
@@ -606,7 +633,14 @@ export class ProcessingJobEngine {
     // -------------------------------------------------------------
     // STAGE 4: NORMALISATION
     // -------------------------------------------------------------
-    this.updateProgress(jobId, "NORMALISATION", 65, totalRecords, totalRecords, "Normalising interval units to canonical representation");
+    this.updateProgress(
+      jobId,
+      "NORMALISATION",
+      65,
+      totalRecords,
+      totalRecords,
+      "Normalising interval units to canonical representation",
+    );
     await this.tick();
 
     if (this.isCancelled(jobId)) return;
@@ -620,14 +654,20 @@ export class ProcessingJobEngine {
       {
         defaultSiteId: "SITE-DEFAULT",
         defaultMeterId: assignedMeterId,
-        sourceUnits: { activeEnergy: "kWh", reactiveEnergy: "kvarh", demand: "kVA" },
       },
     );
 
     // -------------------------------------------------------------
     // STAGE 5: AGGREGATION & TOU BUCKETING
     // -------------------------------------------------------------
-    this.updateProgress(jobId, "AGGREGATION", 75, totalRecords, totalRecords, "Aggregating Time-of-Use consumption and maximum demand");
+    this.updateProgress(
+      jobId,
+      "AGGREGATION",
+      75,
+      totalRecords,
+      totalRecords,
+      "Aggregating Time-of-Use consumption and maximum demand",
+    );
     await this.tick();
 
     if (this.isCancelled(jobId)) return;
@@ -653,40 +693,56 @@ export class ProcessingJobEngine {
     // -------------------------------------------------------------
     // STAGE 6: RECONCILIATION
     // -------------------------------------------------------------
-    this.updateProgress(jobId, "RECONCILIATION", 85, totalRecords, totalRecords, "Reconciling billed charges against calculated source determinants");
+    this.updateProgress(
+      jobId,
+      "RECONCILIATION",
+      85,
+      totalRecords,
+      totalRecords,
+      "Reconciling billed charges against calculated source determinants",
+    );
     await this.tick();
 
     if (this.isCancelled(jobId)) return;
 
-    const tariffCode = resolution?.confirmedTariffCode || extractedInvoice.tariffName || "Megaflex";
+    // Read tariff from the correct field name on ExtractedInvoiceFields
+    const tariffCode = resolution?.confirmedTariffCode || extractedInvoice.tariff || "Megaflex";
     const tariffVersion = tariffCode.toUpperCase().includes("MINIFLEX")
       ? ESKOM_MINIFLEX_2025_2026
       : ESKOM_MEGAFLEX_2025_2026;
+
+    // Helper: convert a nullable OCR number to a Decimal, defaulting to zero (Zero Fabrication Policy)
+    const toDecimal = (val: number | null | undefined): Decimal =>
+      new Decimal((val ?? 0).toString());
 
     const reconInput: AuthoritativeReconciliationInput = {
       tenant_id: orgId,
       invoice_id: extractedInvoice.invoiceNumber || `INV-${Date.now()}`,
       invoice_number: extractedInvoice.invoiceNumber || `INV-${Date.now()}`,
-      account_number: extractedInvoice.accountNumber || "7856504676",
-      billing_start: extractedInvoice.billingPeriodStart || "2025-01-01",
-      billing_end: extractedInvoice.billingPeriodEnd || "2025-01-31",
+      account_number: extractedInvoice.accountNumber || "UNKNOWN",
+      // Use correct field names from ExtractedInvoiceFields: billingStart / billingEnd
+      billing_start: extractedInvoice.billingStart || "2025-01-01",
+      billing_end: extractedInvoice.billingEnd || "2025-01-31",
       tariff_version: tariffVersion,
 
-      // Billed Values
-      billed_peak_kwh: new Decimal(extractedInvoice.peakKwh?.toString() || "45000"),
-      billed_standard_kwh: new Decimal(extractedInvoice.standardKwh?.toString() || "65000"),
-      billed_off_peak_kwh: new Decimal(extractedInvoice.offPeakKwh?.toString() || "90000"),
-      billed_total_kwh: new Decimal(extractedInvoice.totalKwh?.toString() || "200000"),
-      billed_maximum_demand_kva: new Decimal(extractedInvoice.maximumDemandKva?.toString() || "450"),
-      billed_ratcheted_demand_kva: new Decimal(extractedInvoice.ratchetedDemandKva?.toString() || "450"),
-      billed_reactive_energy_kvarh: new Decimal(extractedInvoice.reactiveKvarh?.toString() || "22000"),
-      billed_energy_charges_zar: new Decimal(extractedInvoice.energyCharges?.toString() || "2450000.00"),
-      billed_demand_charges_zar: new Decimal(extractedInvoice.demandCharges?.toString() || "350000.00"),
-      billed_network_charges_zar: new Decimal(extractedInvoice.networkCharges?.toString() || "220000.00"),
-      billed_service_charges_zar: new Decimal(extractedInvoice.serviceCharges?.toString() || "15000.00"),
-      billed_ancillary_charges_zar: new Decimal(extractedInvoice.ancillaryCharges?.toString() || "45000.00"),
-      billed_vat_zar: new Decimal(extractedInvoice.vat?.toString() || "462000.00"),
-      billed_total_invoice_zar: new Decimal(extractedInvoice.totalInvoice?.toString() || "3542000.00"),
+      // Billed Values — use real OCR extracted data; null fields → Decimal(0) per Zero Fabrication Policy
+      billed_peak_kwh: toDecimal(extractedInvoice.peakKwh),
+      billed_standard_kwh: toDecimal(extractedInvoice.standardKwh),
+      billed_off_peak_kwh: toDecimal(extractedInvoice.offPeakKwh),
+      billed_total_kwh: toDecimal(extractedInvoice.totalKwh),
+      // kva is the correct field name on ExtractedInvoiceFields for maximum demand
+      billed_maximum_demand_kva: toDecimal(extractedInvoice.kva),
+      // ratcheted demand is not separately extracted — use kva as the closest proxy
+      billed_ratcheted_demand_kva: toDecimal(extractedInvoice.kva),
+      // kvarh is the correct field name on ExtractedInvoiceFields for reactive energy
+      billed_reactive_energy_kvarh: toDecimal(extractedInvoice.kvarh),
+      billed_energy_charges_zar: toDecimal(extractedInvoice.energyCharges),
+      billed_demand_charges_zar: toDecimal(extractedInvoice.demandCharges),
+      billed_network_charges_zar: toDecimal(extractedInvoice.networkCharges),
+      billed_service_charges_zar: toDecimal(extractedInvoice.serviceCharges),
+      billed_ancillary_charges_zar: toDecimal(extractedInvoice.ancillaryCharges),
+      billed_vat_zar: toDecimal(extractedInvoice.vat),
+      billed_total_invoice_zar: new Decimal((extractedInvoice.totalInvoice ?? 0).toString()),
 
       // Calculated Telemetry from Normalized Summary
       calc_peak_kwh: new Decimal(aggPeak.toString()),
@@ -703,7 +759,14 @@ export class ProcessingJobEngine {
     // -------------------------------------------------------------
     // STAGE 7: ANOMALY_ANALYSIS & DIAGNOSTICS
     // -------------------------------------------------------------
-    this.updateProgress(jobId, "ANOMALY_ANALYSIS", 92, totalRecords, totalRecords, "Performing anomaly diagnostics and discrepancy analysis");
+    this.updateProgress(
+      jobId,
+      "ANOMALY_ANALYSIS",
+      92,
+      totalRecords,
+      totalRecords,
+      "Performing anomaly diagnostics and discrepancy analysis",
+    );
     await this.tick();
 
     if (this.isCancelled(jobId)) return;
@@ -717,7 +780,14 @@ export class ProcessingJobEngine {
     // -------------------------------------------------------------
     // STAGE 8: REPORT_GENERATION & COMPLETE
     // -------------------------------------------------------------
-    this.updateProgress(jobId, "REPORT_GENERATION", 98, totalRecords, totalRecords, "Generating audit report and final data payloads");
+    this.updateProgress(
+      jobId,
+      "REPORT_GENERATION",
+      98,
+      totalRecords,
+      totalRecords,
+      "Generating audit report and final data payloads",
+    );
     await this.tick();
 
     if (this.isCancelled(jobId)) return;
@@ -734,8 +804,8 @@ export class ProcessingJobEngine {
         organisationId: orgId,
         sourceType: "INVOICE",
         sourceFile: {
-          name: invoiceName,
-          sizeBytes: invoiceSize,
+          name: job.sourceInvoiceFile?.name || "invoice.pdf",
+          sizeBytes: job.sourceInvoiceFile?.sizeBytes || 0,
           sha256Hash: `hash-${jobId}`,
         },
         accountNumber: extractedInvoice.accountNumber,
@@ -807,9 +877,11 @@ export class ProcessingJobEngine {
         action: "PROCESSING_JOB_COMPLETED",
         description: `Processing job ${jobId} completed successfully. Records processed: ${totalRecords}.`,
         record: { entityType: "processing_job", recordId: jobId, recordLabel: `Job ${jobId}` },
-        newState: { jobId, status: "COMPLETED", totalRecords, errorCount: job.errors.length },
+        newState: { jobId, status: "COMPLETED", totalRecords, errorSummary: job.errorSummary },
       });
-    } catch {}
+    } catch {
+      // Ignore audit trail persistence error
+    }
 
     if (durationMs > ProductionObservabilityService.THRESHOLDS.BATCH_JOB_MS) {
       void ProductionObservabilityService.trackSlowJob(
@@ -874,7 +946,9 @@ export class ProcessingJobEngine {
         record: { entityType: "processing_job", recordId: jobId, recordLabel: `Job ${jobId}` },
         newState: { jobId, status: "FAILED", errorSummary },
       });
-    } catch {}
+    } catch {
+      // Ignore audit trail persistence error
+    }
   }
 
   /**
@@ -941,11 +1015,20 @@ export class ProcessingJobEngine {
       if (fallbackName.endsWith(".pdf")) {
         return new TextEncoder().encode("%PDF-1.5\n%Enera Authoritative Fallback\n%%EOF");
       }
-      return new TextEncoder().encode(`timestamp,meter_id,active_power_kwh\n${new Date().toISOString()},MTR-ESKOM-001,100.0`);
+      return new TextEncoder().encode(
+        `timestamp,meter_id,active_power_kwh\n${new Date().toISOString()},MTR-ESKOM-001,100.0`,
+      );
     }
 
     if (typeof (file as any).data !== "undefined" && (file as any).data instanceof Uint8Array) {
       return (file as any).data;
+    }
+
+    if (typeof (file as any).content !== "undefined") {
+      const content = (file as any).content;
+      if (content instanceof Uint8Array) return content;
+      if (content instanceof ArrayBuffer) return new Uint8Array(content);
+      if (typeof content === "string") return new TextEncoder().encode(content);
     }
 
     if (typeof (file as any).arrayBuffer === "function") {
@@ -953,7 +1036,9 @@ export class ProcessingJobEngine {
       return new Uint8Array(buf);
     }
 
-    return new TextEncoder().encode(`timestamp,meter_id,active_power_kwh\n${new Date().toISOString()},MTR-ESKOM-001,100.0`);
+    return new TextEncoder().encode(
+      `timestamp,meter_id,active_power_kwh\n${new Date().toISOString()},MTR-ESKOM-001,100.0`,
+    );
   }
 
   /**
