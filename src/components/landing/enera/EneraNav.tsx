@@ -150,13 +150,19 @@ export function EneraNav() {
           <Link
             to="/"
             className="flex items-center gap-2.5 focus-ring-enera rounded py-1 shrink-0"
-            aria-label="ENERA Energy Financial Intelligence Homepage"
+            aria-label="ENERA AI Technologies Homepage"
           >
-            <div className="flex items-center justify-center w-7 h-7 rounded-md bg-[#0c1322] border border-cyan-500/40 text-cyan-400 font-mono text-xs font-bold shadow-sm">
-              E
-            </div>
+            <img
+              src="/images/enera-ai-logo.jpg"
+              alt="ENERA AI"
+              className="w-7 h-7 object-contain drop-shadow-[0_0_6px_rgba(6,182,212,0.4)]"
+              draggable={false}
+            />
             <span className="text-base font-bold tracking-[0.24em] text-white font-mono">
               E N E R A
+            </span>
+            <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-semibold hidden sm:inline">
+              AI
             </span>
           </Link>
 

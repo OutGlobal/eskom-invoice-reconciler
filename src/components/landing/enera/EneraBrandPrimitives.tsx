@@ -26,19 +26,22 @@ export function EneraBrandMark({
   showDescriptor = true,
   className = "",
 }: EneraBrandMarkProps) {
-  const sizeClasses = {
+  const imgSizeClasses = {
+    sm: "w-6 h-6",
+    md: "w-9 h-9",
+    lg: "w-12 h-12",
+  }[size];
+
+  const textSizeClasses = {
     sm: {
-      emblem: "w-6 h-6 text-xs",
       logo: "text-sm tracking-[0.2em]",
       descriptor: "text-[8px] tracking-[0.18em]",
     },
     md: {
-      emblem: "w-8 h-8 text-sm",
       logo: "text-base sm:text-lg tracking-[0.25em]",
       descriptor: "text-[9px] tracking-[0.2em]",
     },
     lg: {
-      emblem: "w-11 h-11 text-lg",
       logo: "text-2xl tracking-[0.3em]",
       descriptor: "text-[10px] tracking-[0.25em]",
     },
@@ -46,25 +49,26 @@ export function EneraBrandMark({
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      {/* Luminous Emblem */}
-      <div
-        className={`relative flex items-center justify-center rounded-lg bg-gradient-to-br from-cyan-950 via-[#0d1117] to-slate-900 border border-cyan-500/30 shadow-[0_0_15px_-3px_rgba(6,182,212,0.3)] shrink-0 ${sizeClasses.emblem}`}
-      >
-        <span className="font-mono font-bold tracking-widest text-cyan-400">E</span>
-        <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping opacity-75" />
-        <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-cyan-400" />
+      {/* ENERA AI Logo Mark */}
+      <div className={`shrink-0 ${imgSizeClasses}`}>
+        <img
+          src="/images/enera-ai-logo.jpg"
+          alt="ENERA AI Logo"
+          className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(6,182,212,0.35)]"
+          draggable={false}
+        />
       </div>
 
       <div className="flex flex-col">
         <div className="flex items-center gap-2">
-          <span className={`font-mono font-bold text-white ${sizeClasses.logo}`}>E N E R A</span>
-          <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-semibold">
-            2025/26
+          <span className={`font-mono font-bold text-white ${textSizeClasses.logo}`}>E N E R A</span>
+          <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-semibold">
+            AI
           </span>
         </div>
         {showDescriptor && (
           <span
-            className={`uppercase text-slate-400 font-medium font-mono ${sizeClasses.descriptor}`}
+            className={`uppercase text-slate-400 font-medium font-mono ${textSizeClasses.descriptor}`}
           >
             Energy Financial Intelligence
           </span>

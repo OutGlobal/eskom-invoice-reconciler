@@ -18,18 +18,24 @@ export function EneraFooter() {
             <Link
               to="/"
               className="inline-flex items-center gap-2.5 focus-ring-enera rounded"
-              aria-label="ENERA Energy Financial Intelligence homepage"
+              aria-label="ENERA AI Technologies homepage"
             >
-              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-[#0c1322] border border-cyan-500/40">
-                <span className="font-mono text-xs font-bold text-cyan-400">E</span>
-              </div>
+              <img
+                src="/images/enera-ai-logo.jpg"
+                alt="ENERA AI"
+                className="w-7 h-7 object-contain drop-shadow-[0_0_6px_rgba(6,182,212,0.35)]"
+                draggable={false}
+              />
               <span className="font-mono text-base font-bold tracking-[0.24em] text-white">
                 E N E R A
+              </span>
+              <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-semibold">
+                AI
               </span>
             </Link>
             <span className="text-slate-600 hidden sm:inline">·</span>
             <span className="text-xs font-mono text-slate-400 hidden sm:inline">
-              Energy Financial Intelligence
+              ENERA AI Technologies
             </span>
           </div>
 
