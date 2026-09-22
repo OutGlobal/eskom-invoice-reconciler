@@ -7,7 +7,7 @@
  * - Extracts opening/closing meter readings, detailed line items, and unbundled charges
  */
 
-import { extractInvoiceFromPdf, matchKnownInvoice } from "@/lib/pdfInvoice";
+import { extractInvoiceFromPdf } from "@/lib/pdfInvoice";
 import type { AdapterExtractionResult, ILayoutAdapter } from "./baseAdapter";
 import type { ExtractedInvoiceFields } from "../types";
 
@@ -48,42 +48,17 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
     if (!hasInitialFields) {
       try {
         const rawAscii = new TextDecoder().decode(bytes.slice(0, 50000));
-        const matched = matchKnownInvoice(file.name, rawAscii);
-        if (matched) {
-          pdfRes = matched;
-        } else if (file.name.toLowerCase().includes("scanned_invoice_review")) {
-          pdfRes = {
-            invoice: {
-              accountNumber: "785101497000",
-              invoiceNumber: "INV-SCANNED-001",
-              customerName: "Low Resolution Facility",
-              billingPeriod: "Current Period",
-              billingDate: new Date().toISOString().substring(0, 10),
-              tariffName: "Megaflex Non-Local Authority",
-              meterNumber: "MTR-SCAN-01",
-              premiseId: "PRM-SCAN-01",
-              invoiceTotal: 1000,
-              extraction: {
-                needsReview: true,
-              },
-            },
-            chargeLines: {},
-            lineItems: [],
-            rawText: rawAscii,
-          };
-        } else {
+        {
           const accMatch = rawAscii.match(/\b(785\d{7,9}|\d{10,12})\b/);
           if (accMatch) {
             pdfRes = {
               invoice: {
                 accountNumber: accMatch[1],
-                invoiceNumber: `INV-${accMatch[1]}`,
-                billingPeriod: "Current Period",
-                billingDate: new Date().toISOString().substring(0, 10),
-                tariffName: "Megaflex Non-Local Authority",
-                meterNumber: `MTR-${accMatch[1].slice(-6)}`,
-                premiseId: `PRM-${accMatch[1].slice(-6)}`,
-                invoiceTotal: 1000,
+                invoiceNumber: "",
+                billingPeriod: "",
+                tariffName: "",
+                meterNumber: "",
+                premiseId: "",
               },
               chargeLines: {},
               lineItems: [],
@@ -122,7 +97,7 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
         return {
           success: false,
           documentType: "INVOICE_PDF",
-          extractedFields: null,
+          extractedFields: undefined,
           rawTextPreview: "",
           confidenceScore: 0.0,
           needsHumanReview: true,
@@ -160,6 +135,7 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
 
     // Extract and map all mandated invoice fields preserving NULL for missing determinants
     const extractedFields: ExtractedInvoiceFields = {
+      customerName: inv?.customerName || "",
       accountNumber: inv?.accountNumber || "",
       pod: inv?.premiseId || inv?.meterNumber || "",
       premiseId: inv?.premiseId || "",

@@ -484,9 +484,7 @@ export class DeterministicDiagnosticsEngine {
         evidence: `Billed Maximum Demand (${demandItem.billed_value.toFixed(0)} kVA) differs from calculated peak 30-min telemetry demand (${demandItem.calculated_value.toFixed(0)} kVA).`,
         affected_records_count: 1,
         affected_billing_component: "MAXIMUM_DEMAND_KVA",
-        estimated_financial_impact_zar: demandItem.absolute_variance
-          .times(new Decimal("54.32"))
-          .toDecimalPlaces(2),
+        estimated_financial_impact_zar: new Decimal(0),
         nersa_reference: "NERSA Tariff Code §4.1 (30-Minute Integrated Demand Calculation)",
         recommended_action: "Verify whether 15-minute or 30-minute integration window was applied.",
         created_at: new Date().toISOString(),

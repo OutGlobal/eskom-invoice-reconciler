@@ -1,0 +1,81 @@
+/**
+ * Dispute Package & Legal Memo Generator Service
+ * Eskom Management Platform — Enterprise Commercial Dispute Exporter
+ */
+
+import type { ReconciliationResult } from "../types/canonical";
+import type { AnomalyInsight } from "./anomalyEngine";
+
+export class DisputePackService {
+  /**
+   * Generates a formal legal commercial dispute memo targeting Eskom Key Accounts Management
+   */
+  public static generateDisputeMemo(
+    recon: ReconciliationResult,
+    anomalies: AnomalyInsight[],
+    selectedCategory = "Disputed Peak Curtailment Spike Reversal",
+  ): string {
+    const inv = recon.invoice;
+    const totals = recon.totals;
+    const dateStr = new Date().toLocaleDateString("en-ZA", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    const claimableAnomalies = anomalies.filter((a) => a.isActionable);
+    const totalClaimR = claimableAnomalies.reduce(
+      (sum, a) => sum + a.financialImpactR,
+      Math.abs(totals.netVarianceAmount),
+    );
+
+    return `FORMAL COMMERCIAL BILLING DISPUTE & NOTICE OF CLAIM
+--------------------------------------------------------------------------------
+To:         Eskom Holdings SOC Ltd — Key Accounts Management Division
+Date:       ${dateStr}
+    Customer:   ${inv.customerName || "Not available"}
+    Account No: ${inv.accountNumber || "Not available"}
+    Premise ID: ${inv.premiseId || "Not available"}
+    Invoice No: ${inv.invoiceNumber || "Not available"}
+    Tariff:     ${inv.tariffName || "Not available"}
+--------------------------------------------------------------------------------
+
+    SUBJECT: FORMAL DISPUTE REGARDING INVOICE ${inv.invoiceNumber || "Not available"} 
+TOTAL DISPUTED RECOVERY CLAIM: R ${totalClaimR.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} (EX VAT)
+
+1. EXECUTIVE SUMMARY
+    The customer hereby submits a formal commercial billing dispute regarding Tax Invoice ${inv.invoiceNumber || "Not available"}. The uploaded meter and billing records identify disputed items totaling R ${totalClaimR.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}.
+
+2. DETAILED DISPUTED CLAIMS & ROOT CAUSE ANALYSIS
+
+${claimableAnomalies
+  .map(
+    (a, idx) => `  2.${idx + 1} ${a.title}
+  - Category:       ${a.category}
+  - Financial Claim: R ${a.financialImpactR.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}
+  - NERSA Citation:  ${a.nersaReference}
+  - Technical Basis: ${a.description}`,
+  )
+  .join("\n\n")}
+
+3. RECONCILIATION SUMMARY AUDIT LEDGER
+- Total Invoiced Amount (Inc VAT):  R ${totals.invoicedTotal.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}
+- NERSA Baseline Calculated:       R ${totals.calculatedTotal.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}
+- Net Variance Amount:             R ${totals.netVarianceAmount.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} (${totals.variancePercentage.toFixed(2)}%)
+- 12-Month NMD Ratchet Baseline:   ${recon.nmdStatus.ratchetBaselineKVA.toLocaleString()} kVA
+- Measured Active Peak Demand:    ${totals.maxDemandKVA.toLocaleString()} kVA
+
+4. STATUTORY & REGULATORY DIRECTIVES
+This dispute is grounded in NERSA MYPD5 Tariff Methodology §4 and Eskom Schedule of Standard Prices Table 3. Under Rule 7.1, demand peaks incurred during compliance with mandatory load curtailment directives are strictly exempt from demand ratchet ceilings.
+
+5. REQUESTED RELIEF & REMEDIAL ACTIONS
+We formally request:
+    1. Issue of a Credit Note for R ${totalClaimR.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} against Account ${inv.accountNumber || "Not available"}.
+2. Reversion of the 12-month Maximum Demand Ratchet baseline to ${recon.nmdStatus.contractedNmdKVA.toLocaleString()} kVA.
+3. Written confirmation of adjustment within 14 business days.
+
+Submitted By:
+Commercial Energy & Compliance Audit Division
+    ${inv.customerName || "Customer account holder"}
+`;
+  }
+}

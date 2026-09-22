@@ -3,12 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Panel, NUM } from "@/components/dashboard/parts";
 import { DeterministicCalendarEngine } from "@/domain/calendar/calendarEngine";
 import { CalendarStorageService } from "@/domain/calendar/calendarStorageService";
+import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
 import type {
   CalendarHolidayConfig,
   IntervalClassificationExplanation,
   ExtendedDayType,
 } from "@/domain/calendar/types";
-import { ESKOM_MEGAFLEX_2025_2026 } from "@/domain/tariff/tariffFixtures";
 import {
   Calendar,
   Clock,
@@ -30,7 +30,7 @@ export const Route = createFileRoute("/calendar")({
 
 export function CalendarPage() {
   const [holidays, setHolidays] = useState<CalendarHolidayConfig[]>([]);
-  const [testTimestamp, setTestTimestamp] = useState<string>("2025-06-16T08:00:00Z"); // Youth Day (Public Holiday)
+  const [testTimestamp, setTestTimestamp] = useState<string>("");
   const [explanation, setExplanation] = useState<IntervalClassificationExplanation | null>(null);
   const [newHolidayDate, setNewHolidayDate] = useState<string>("");
   const [newHolidayName, setNewHolidayName] = useState<string>("");
@@ -39,21 +39,19 @@ export function CalendarPage() {
   );
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [tariffVersions, setTariffVersions] = useState<any[]>([]);
 
   // Load holidays
   useEffect(() => {
     async function load() {
       setIsLoading(true);
-      const data = await CalendarStorageService.getHolidays();
+      const [data, uploadedTariffs] = await Promise.all([
+        CalendarStorageService.getHolidays(),
+        TariffStorageService.getAllVersions(),
+      ]);
       setHolidays(data);
+      setTariffVersions(uploadedTariffs);
 
-      // Initial explanation test
-      const exp = DeterministicCalendarEngine.explainIntervalClassification(
-        "2025-06-16T08:00:00Z",
-        ESKOM_MEGAFLEX_2025_2026,
-        data,
-      );
-      setExplanation(exp);
       setIsLoading(false);
     }
     load();
@@ -63,9 +61,14 @@ export function CalendarPage() {
   const handleEvaluateTimestamp = (ts: string) => {
     setTestTimestamp(ts);
     try {
+      const tariffVersion = tariffVersions[0];
+      if (!tariffVersion || !ts) {
+        setExplanation(null);
+        return;
+      }
       const exp = DeterministicCalendarEngine.explainIntervalClassification(
         ts,
-        ESKOM_MEGAFLEX_2025_2026,
+        tariffVersion,
         holidays,
       );
       setExplanation(exp);
@@ -244,7 +247,11 @@ export function CalendarPage() {
         title={`Configuration-Driven Holiday Register (${holidays.length} Days)`}
         subtitle="Official gazetted public holidays, special election days, and observed Monday substitutions"
       >
-        <div className="border border-border rounded-md overflow-hidden">
+        {holidays.length === 0 ? (
+          <div className="border border-dashed border-border rounded-md p-8 text-center text-xs text-muted-foreground">
+            No holiday calendar has been uploaded or configured.
+          </div>
+        ) : <div className="border border-border rounded-md overflow-hidden">
           <table className="w-full text-xs text-left">
             <thead className="bg-muted/50 text-muted-foreground">
               <tr>
@@ -285,7 +292,7 @@ export function CalendarPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </div>}
       </Panel>
 
       {/* Add Holiday Modal */}

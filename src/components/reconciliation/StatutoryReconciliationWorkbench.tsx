@@ -17,7 +17,6 @@ import {
 import { format } from "date-fns";
 import { useApp } from "@/lib/store";
 import { computeTotals } from "@/lib/reconciliation";
-import { TARIFF } from "@/lib/tariff";
 import { NUM } from "@/components/dashboard/parts";
 
 interface StatutoryReconciliationWorkbenchProps {
@@ -29,8 +28,9 @@ export function StatutoryReconciliationWorkbench({
 }: StatutoryReconciliationWorkbenchProps) {
   const activeInvoice = useApp((s) => s.invoice);
   const rows = useApp((s) => s.rows);
+  const tariff = useApp((s) => s.tariff);
 
-  const nmd = nmdOverride || activeInvoice?.nmd || 85740;
+  const nmd = nmdOverride || activeInvoice?.nmd || 0;
 
   // Compute telemetry totals
   const totals = useMemo(() => {
@@ -47,25 +47,24 @@ export function StatutoryReconciliationWorkbench({
 
   const simMaxDemandKVA = telemetryAvailable
     ? totals.maxDemandKVA
-    : activeInvoice?.simMaxDemand || activeInvoice?.maxDemandKVA || 86432.56;
+    : activeInvoice?.simMaxDemand || activeInvoice?.maxDemandKVA || 0;
   const simMaxDemandAt = totals.maxDemandAt;
 
-  // Rates from TARIFF
-  const txRate = TARIFF.transmissionNetwork; // R 10.25 / kVA / month
-  const distRate = TARIFF.networkCapacity; // R 35.98 / kVA / month
-  const genRate = TARIFF.generationCapacity; // R 8.09 / kVA / month
-  const demandRate = TARIFF.networkDemand; // R 24.17 / kVA / month
+  const txRate = tariff.transmissionNetwork;
+  const distRate = tariff.networkCapacity;
+  const genRate = tariff.generationCapacity;
+  const demandRate = tariff.networkDemand;
 
-  // Energy rates (low season default for Impala Feb-May)
-  const peakRate = TARIFF.energy.low.peak / 100; // R 2.7678 / kWh
-  const stdRate = TARIFF.energy.low.standard / 100; // R 1.5562 / kWh
-  const offPeakRate = TARIFF.energy.low.offPeak / 100; // R 1.1115 / kWh
+  // Energy rates loaded from the active uploaded tariff.
+  const peakRate = tariff.energy.low.peak / 100;
+  const stdRate = tariff.energy.low.standard / 100;
+  const offPeakRate = tariff.energy.low.offPeak / 100;
 
   // Subsidies rates (c/kWh -> R/kWh)
-  const ancillaryRate = TARIFF.ancillary / 100; // R 0.0039 / kWh
-  const legacyRate = TARIFF.legacy / 100; // R 0.2220 / kWh
-  const affordRate = TARIFF.affordability / 100; // R 0.0469 / kWh
-  const electRate = TARIFF.electrification / 100; // R 0.0494 / kWh
+  const ancillaryRate = tariff.ancillary / 100;
+  const legacyRate = tariff.legacy / 100;
+  const affordRate = tariff.affordability / 100;
+  const electRate = tariff.electrification / 100;
 
   // -------------------------------------------------------------------------
   // 2.a: Capacity Charges (Notified Maximum Demand Basis)
@@ -136,7 +135,7 @@ export function StatutoryReconciliationWorkbench({
     activeInvoice?.simMaxDemand ||
     activeInvoice?.maxDemandKVA ||
     activeInvoice?.utilisedCapacity ||
-    85740;
+    0;
   const invNetworkDemand = activeInvoice?.networkDemandCharge || 0;
   const diffNetworkDemand = calcNetworkDemand - invNetworkDemand;
 
@@ -144,20 +143,13 @@ export function StatutoryReconciliationWorkbench({
   const demandMatches = Math.abs(demandKvaDiff) < 0.5;
 
   // Fixed & Service charges
-  const daysInMonth = 30;
-  const calcAdmin =
-    activeInvoice?.administrationCharge && activeInvoice.administrationCharge > 0
-      ? activeInvoice.administrationCharge
-      : daysInMonth * TARIFF.administrationDaily;
+  const calcAdmin = activeInvoice?.administrationCharge || 0;
   const invAdmin = activeInvoice?.administrationCharge || 0;
 
-  const calcService =
-    activeInvoice?.serviceCharge && activeInvoice.serviceCharge > 0
-      ? activeInvoice.serviceCharge
-      : daysInMonth * TARIFF.serviceDaily;
+  const calcService = activeInvoice?.serviceCharge || 0;
   const invService = activeInvoice?.serviceCharge || 0;
 
-  const calcConnection = activeInvoice?.connectionCharge || TARIFF.connectionMonthly;
+  const calcConnection = activeInvoice?.connectionCharge || 0;
   const invConnection = activeInvoice?.connectionCharge || 0;
 
   // Grand Settlement Totals
@@ -602,7 +594,7 @@ export function StatutoryReconciliationWorkbench({
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(peakKWh)} kWh</td>
                 <td className="p-3 font-mono text-right">
-                  {TARIFF.energy.low.peak} c/kWh{" "}
+                  {tariff.energy.low.peak} c/kWh{" "}
                   <span className="text-[10px] text-muted-foreground">
                     (R {peakRate.toFixed(4)})
                   </span>
@@ -625,7 +617,7 @@ export function StatutoryReconciliationWorkbench({
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(standardKWh)} kWh</td>
                 <td className="p-3 font-mono text-right">
-                  {TARIFF.energy.low.standard} c/kWh{" "}
+                  {tariff.energy.low.standard} c/kWh{" "}
                   <span className="text-[10px] text-muted-foreground">
                     (R {stdRate.toFixed(4)})
                   </span>
@@ -648,7 +640,7 @@ export function StatutoryReconciliationWorkbench({
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(offPeakKWh)} kWh</td>
                 <td className="p-3 font-mono text-right">
-                  {TARIFF.energy.low.offPeak} c/kWh{" "}
+                  {tariff.energy.low.offPeak} c/kWh{" "}
                   <span className="text-[10px] text-muted-foreground">
                     (R {offPeakRate.toFixed(4)})
                   </span>
@@ -728,7 +720,7 @@ export function StatutoryReconciliationWorkbench({
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(totalKWh)} kWh</td>
                 <td className="p-3 font-mono text-right">
-                  {TARIFF.ancillary} c/kWh{" "}
+                  {tariff.ancillary} c/kWh{" "}
                   <span className="text-[10px] text-muted-foreground">
                     (R {ancillaryRate.toFixed(4)})
                   </span>
@@ -751,7 +743,7 @@ export function StatutoryReconciliationWorkbench({
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(totalKWh)} kWh</td>
                 <td className="p-3 font-mono text-right">
-                  {TARIFF.legacy} c/kWh{" "}
+                  {tariff.legacy} c/kWh{" "}
                   <span className="text-[10px] text-muted-foreground">
                     (R {legacyRate.toFixed(4)})
                   </span>
@@ -772,7 +764,7 @@ export function StatutoryReconciliationWorkbench({
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(totalKWh)} kWh</td>
                 <td className="p-3 font-mono text-right">
-                  {TARIFF.affordability} c/kWh{" "}
+                  {tariff.affordability} c/kWh{" "}
                   <span className="text-[10px] text-muted-foreground">
                     (R {affordRate.toFixed(4)})
                   </span>
@@ -798,7 +790,7 @@ export function StatutoryReconciliationWorkbench({
                 </td>
                 <td className="p-3 font-mono text-right">{NUM(totalKWh)} kWh</td>
                 <td className="p-3 font-mono text-right">
-                  {TARIFF.electrification} c/kWh{" "}
+                  {tariff.electrification} c/kWh{" "}
                   <span className="text-[10px] text-muted-foreground">
                     (R {electRate.toFixed(4)})
                   </span>
@@ -815,10 +807,10 @@ export function StatutoryReconciliationWorkbench({
                 <td className="p-3 font-mono text-right">{NUM(totalKWh)} kWh</td>
                 <td className="p-3 font-mono text-right">
                   {(
-                    TARIFF.ancillary +
-                    TARIFF.legacy +
-                    TARIFF.affordability +
-                    TARIFF.electrification
+                    tariff.ancillary +
+                    tariff.legacy +
+                    tariff.affordability +
+                    tariff.electrification
                   ).toFixed(2)}{" "}
                   c/kWh
                 </td>

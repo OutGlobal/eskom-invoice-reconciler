@@ -6,7 +6,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import type { CalendarHolidayConfig, SeasonBoundaryConfig } from "./types";
-import { DEFAULT_SA_HOLIDAYS } from "./calendarEngine";
 
 export class CalendarStorageService {
   /**
@@ -20,12 +19,7 @@ export class CalendarStorageService {
         .eq("is_active", true)
         .order("holiday_date", { ascending: true });
 
-      if (error || !dbHolidays || dbHolidays.length === 0) {
-        console.warn(
-          "[CalendarStorageService] Supabase holiday table empty or unavailable, using gazetted default holidays.",
-        );
-        return DEFAULT_SA_HOLIDAYS;
-      }
+      if (error || !dbHolidays || dbHolidays.length === 0) return [];
 
       return dbHolidays.map((row: any) => ({
         id: row.id,
@@ -38,7 +32,7 @@ export class CalendarStorageService {
       }));
     } catch (e) {
       console.warn("[CalendarStorageService] Exception loading holidays from Supabase:", e);
-      return DEFAULT_SA_HOLIDAYS;
+      return [];
     }
   }
 

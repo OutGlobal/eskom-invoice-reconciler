@@ -32,7 +32,7 @@ export class TelemetryNormalizationEngine {
     content: string,
     options?: ParserOptions,
   ): NormalizationResult {
-    const meterId = options?.meterId || "7856504226";
+    const meterId = options?.meterId || "";
     const sourceFileId = options?.sourceFileId || `src-file-${Date.now()}`;
 
     // Step 1: Select parser adapter

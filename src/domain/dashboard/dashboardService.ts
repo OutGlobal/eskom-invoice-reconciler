@@ -339,9 +339,9 @@ export class DashboardService {
       );
       for (const r of memRuns || []) {
         mergedRuns.push({
-          id: r.run_id || r.id,
+          id: r.run_id,
           status: (r.status || "completed").toLowerCase(),
-          run_at: r.run_at || r.created_at || new Date().toISOString(),
+          run_at: r.created_at,
           invoice_record_id: r.invoice_id,
         });
       }
@@ -865,7 +865,7 @@ export class DashboardService {
       storeData,
       overbilling.toNumber(),
       maxDemandKva,
-      customer?.nmd || 85740,
+      customer?.nmd || 0,
     );
 
     return {
@@ -903,8 +903,7 @@ export class DashboardService {
         title: "Notified Maximum Demand Exceeded",
         message: `Measured demand of ${measuredDemand.toLocaleString()} kVA exceeds contracted NMD threshold (${nmdThreshold.toLocaleString()} kVA).`,
         severity: "critical",
-        affectedEntity: storeData.customer?.meter || "Meter 7856504226",
-        financialImpactZar: (measuredDemand - nmdThreshold) * 54.32,
+        affectedEntity: storeData.customer?.meter || "Uploaded meter",
         detectedAt: now,
         actionUrl: "/demand",
       });
@@ -918,7 +917,7 @@ export class DashboardService {
         title: "Billed vs Calculated Rate Discrepancy",
         message: `Extracted Eskom invoice total exceeds NERSA gazetted calculation by R ${overbillingAmt.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}.`,
         severity: "critical",
-        affectedEntity: storeData.invoice?.invoiceNo || "Invoice 785762166034",
+        affectedEntity: storeData.invoice?.invoiceNo || "Uploaded invoice",
         financialImpactZar: overbillingAmt,
         detectedAt: now,
         actionUrl: "/reconciliation",
@@ -963,8 +962,7 @@ export class DashboardService {
         title: "Excess Reactive Energy Surcharge Risk",
         message: `Reactive energy usage of ${Math.round(storeData.totals.reactiveEnergyKVARh).toLocaleString()} kVARh exceeds 30% active energy threshold.`,
         severity: "major",
-        affectedEntity: storeData.customer?.meter || "Meter 7856504226",
-        financialImpactZar: storeData.totals.reactiveEnergyKVARh * 0.12,
+        affectedEntity: storeData.customer?.meter || "Uploaded meter",
         detectedAt: now,
         actionUrl: "/energy",
       });

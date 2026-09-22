@@ -6,34 +6,16 @@
  */
 
 import React, { useState, useEffect, useMemo } from "react";
-import {
-  ShieldCheck,
-  ShieldAlert,
-  FileText,
-  Layers,
-  ChevronRight,
-  Search,
-  Info,
-  CheckCircle2,
-  Lock,
-  ArrowRight,
-  FileCode,
-  Gauge,
-  Activity,
-  Calendar,
-  Scale,
-  AlertTriangle,
-} from "lucide-react";
+import { Database, Upload } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import type {
   CompleteEvidenceChain,
-  EvidenceChainNode,
   AuthorizationContext,
 } from "@/domain/evidence/types";
 import { EvidenceStorageService } from "@/domain/evidence/evidenceStorageService";
-import { EvidenceChainEngine } from "@/domain/evidence/evidenceChainEngine";
 
 export const AuditViewer: React.FC = () => {
-  const [selectedVarianceId, setSelectedVarianceId] = useState<string>("VAR-PEAK-001");
+  const [selectedVarianceId] = useState<string>("ACTIVE_VARIANCE");
   const [chain, setChain] = useState<CompleteEvidenceChain | null>(null);
   const [selectedNodeIndex, setSelectedNodeIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -41,10 +23,10 @@ export const AuditViewer: React.FC = () => {
   // Authorization context
   const authContext: AuthorizationContext = useMemo(
     () => ({
-      user_id: "USER_AUDITOR_01",
-      tenant_id: "DEFAULT_TENANT",
+      user_id: "CURRENT_USER",
+      tenant_id: "CURRENT_TENANT",
       role: "AUDITOR",
-      permitted_site_ids: ["SITE_01"],
+      permitted_site_ids: [],
     }),
     [],
   );
@@ -59,10 +41,27 @@ export const AuditViewer: React.FC = () => {
     load();
   }, [selectedVarianceId, authContext]);
 
-  if (isLoading || !chain) {
+  if (isLoading) {
     return (
       <div className="p-8 text-center text-sm text-muted-foreground">
-        Loading 12-Node Evidence Chain Engine...
+        Loading uploaded evidence records...
+      </div>
+    );
+  }
+
+  if (!chain || chain.nodes.length === 0) {
+    return (
+      <div className="min-h-[360px] rounded-lg border border-dashed border-border bg-card/40 p-8 flex flex-col items-center justify-center text-center">
+        <div className="h-12 w-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mb-3">
+          <Database className="h-6 w-6" />
+        </div>
+        <h2 className="text-sm font-semibold">No evidence ledger is available yet.</h2>
+        <p className="mt-1 max-w-md text-xs text-muted-foreground">
+          Upload an invoice, meter readings, and the applicable tariff to create a traceable reconciliation ledger.
+        </p>
+        <Link to="/upload" className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground">
+          <Upload className="h-3.5 w-3.5" /> Upload source records
+        </Link>
       </div>
     );
   }
@@ -76,64 +75,25 @@ export const AuditViewer: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-semibold tracking-tight">
-              Navigable Evidence Explorer &amp; Auditability Subsystem
+              Evidence Ledger
             </h1>
             <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full">
-              12-NODE LINEAGE &bull; STABLE OBJECT IDs
+              VERIFIED RECORD TRAIL
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Complete 12-step audit trail connecting source PDF documents, extracted line items,
-            telemetry intervals, multipliers, NERSA tariff rules, and calculations.
+            Uploaded source records, extracted billing values, meter readings, applied tariff rules,
+            calculations, and reconciliation results.
           </p>
         </div>
 
-        {/* Tenant Authorization Security Badge */}
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border rounded text-xs">
-          <Lock className="h-3.5 w-3.5 text-emerald-500" />
-          <span className="text-muted-foreground">Tenant:</span>
-          <span className="font-mono font-medium text-foreground">{authContext.tenant_id}</span>
-          <span className="text-[10px] bg-emerald-500/10 text-emerald-500 font-mono px-1.5 rounded">
-            AUTHORIZED
-          </span>
-        </div>
-      </div>
-
-      {/* Variance Selector Bar */}
-      <div className="flex items-center gap-3 bg-card p-3 rounded-lg border border-border">
-        <label className="text-xs font-semibold uppercase text-muted-foreground whitespace-nowrap">
-          Select Material Variance:
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {[
-            { id: "VAR-PEAK-001", label: "Peak Energy Charge (R 666,920.00)" },
-            { id: "VAR-DEMAND-001", label: "Maximum Demand Charge (R 29,004.00)" },
-            { id: "VAR-NETWORK-001", label: "Network Capacity Charge (R 43,176.00)" },
-            { id: "VAR-VAT-001", label: "Value Added Tax 15% (R 215,933.59)" },
-          ].map((v) => (
-            <button
-              key={v.id}
-              onClick={() => {
-                setSelectedVarianceId(v.id);
-                setSelectedNodeIndex(0);
-              }}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                selectedVarianceId === v.id
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
-              }`}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* 12-Node Navigable Stepper Graph */}
       <div className="rounded-lg border border-border bg-card p-4 space-y-3">
         <div className="flex items-center justify-between border-b border-border pb-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Navigable 12-Node Lineage Chain (Chain ID: {chain.chain_id})
+            Reconciliation evidence timeline
           </span>
           <span className="text-[10px] font-mono text-muted-foreground">
             Click any node to inspect evidence
@@ -153,7 +113,7 @@ export const AuditViewer: React.FC = () => {
             >
               <div className="flex items-center justify-between">
                 <span className="text-[9px] font-mono font-bold text-muted-foreground">
-                  Step {node.sequence_index}/12
+                  Step {node.sequence_index}/{chain.nodes.length}
                 </span>
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               </div>
@@ -176,10 +136,6 @@ export const AuditViewer: React.FC = () => {
               Node {activeNode.sequence_index}: {activeNode.node_type}
             </span>
             <h3 className="font-semibold text-sm">{activeNode.title}</h3>
-          </div>
-          <div className="text-xs font-mono text-muted-foreground">
-            Stable Object ID:{" "}
-            <span className="text-foreground font-semibold">{activeNode.stable_object_id}</span>
           </div>
         </div>
 
@@ -210,7 +166,7 @@ export const AuditViewer: React.FC = () => {
             activeNode.node_type !== "TELEMETRY_INTERVAL" &&
             activeNode.node_type !== "TARIFF_RULE" &&
             activeNode.node_type !== "MULTIPLIER" && (
-              <GenericNodeDisplay data={activeNode.node_data} />
+              <BusinessNodeDisplay data={activeNode.node_data as unknown as Record<string, unknown>} />
             )}
         </div>
       </div>
@@ -401,12 +357,68 @@ function MultiplierNodeDisplay({ data }: { data: any }) {
   );
 }
 
-function GenericNodeDisplay({ data }: { data: any }) {
+const FIELD_LABELS: Record<string, string> = {
+  file_name: "Source document",
+  mime_type: "Document type",
+  upload_timestamp: "Uploaded",
+  customer_name: "Customer",
+  account_number: "Account number",
+  invoice_number: "Invoice number",
+  billing_period: "Billing period",
+  billing_start: "Period start",
+  billing_end: "Period end",
+  tariff_name: "Tariff",
+  meter_number: "Meter number",
+  determinant_name: "Billing determinant",
+  quantity: "Quantity",
+  unit: "Unit",
+  billed_value: "Billed value",
+  calculated_value: "Calculated value",
+  variance_amount: "Variance",
+  variance_percentage: "Variance percentage",
+  classification: "Result",
+  confidence: "Extraction confidence",
+  status: "Validation status",
+  rule: "Applied rule",
+  date: "Effective date",
+};
+
+function formatBusinessValue(key: string, value: unknown): string {
+  if (value === null || value === undefined || value === "") return "Not available";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "number") {
+    if (key.includes("confidence") || key.includes("percentage")) {
+      const percentage = key.includes("confidence") && value <= 1 ? value * 100 : value;
+      return `${percentage.toLocaleString("en-ZA", { maximumFractionDigits: 2 })}%`;
+    }
+    return value.toLocaleString("en-ZA", { maximumFractionDigits: 2 });
+  }
+  if (Array.isArray(value)) return value.map(String).join(", ");
+  if (typeof value === "object") return "Available in the verified audit record";
+  return String(value).replaceAll("_", " ");
+}
+
+function BusinessNodeDisplay({ data }: { data: Record<string, unknown> }) {
+  const visibleEntries = Object.entries(data || {}).filter(
+    ([key]) => !/(hash|checksum|object_id|tenant_id|internal|raw|payload|schema)/i.test(key),
+  );
+
   return (
-    <div className="p-3 bg-muted/30 rounded border border-border font-mono text-xs space-y-1">
-      <pre className="whitespace-pre-wrap overflow-x-auto text-[11px] text-foreground">
-        {JSON.stringify(data, null, 2)}
-      </pre>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {visibleEntries.length === 0 ? (
+        <div className="col-span-full rounded border border-border bg-muted/30 p-4 text-xs text-muted-foreground">
+          This verified ledger step has no additional business fields to display.
+        </div>
+      ) : visibleEntries.map(([key, value]) => (
+        <div key={key} className="rounded border border-border bg-background p-3">
+          <div className="text-[10px] uppercase text-muted-foreground">
+            {FIELD_LABELS[key] || key.replaceAll("_", " ")}
+          </div>
+          <div className="mt-1 break-words text-sm font-medium text-foreground">
+            {formatBusinessValue(key, value)}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

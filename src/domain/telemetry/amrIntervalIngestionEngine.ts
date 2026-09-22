@@ -73,7 +73,7 @@ export class AmrIntervalIngestionEngine {
     organisationId?: string;
   }): Promise<IngestionEngineResult> {
     return this.processIntervalStream(params.filename, params.fileBuffer, {
-      meterIdOverride: params.meterIdOverride,
+      meterId: params.meterIdOverride,
       sourceFileId: params.sourceFileId,
     });
   }
@@ -1286,7 +1286,7 @@ export class AmrIntervalIngestionEngine {
     const numMatch = filename.match(/(\d{6,12})/);
     if (numMatch) return numMatch[1];
 
-    return "7856504226"; // Default standard Eskom meter identifier
+    return "";
   }
 
   /**

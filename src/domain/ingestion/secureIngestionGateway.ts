@@ -15,6 +15,7 @@ import { AmrXlsxAdapter } from "./adapters/amrXlsxAdapter";
 import { TelemetryXmlAdapter } from "./adapters/telemetryXmlAdapter";
 import { RawMeterLogAdapter } from "./adapters/rawMeterLogAdapter";
 import { TariffDocumentAdapter } from "./adapters/tariffDocumentAdapter";
+import { TariffStorageService } from "../tariff/tariffStorageService";
 import { UploadStorageService } from "../upload/uploadStorageService";
 import { InvoiceStorageService } from "../invoice/invoiceStorageService";
 import { TelemetryStorageService } from "../telemetry/telemetryStorageService";
@@ -40,8 +41,7 @@ import type {
   IngestionGatewayResult,
   IngestionLifecycleState,
 } from "./types";
-import { ProductionObservabilityService } from "../observability/productionObservabilityService";
-import { UserFacingErrorSanitizer } from "../observability/userFacingErrorSanitizer";
+import { LocalWorkspaceStore } from "@/lib/localWorkspaceStore";
 
 export class SecureIngestionGateway {
   private static processedHashes: Map<string, IngestionGatewayResult> = new Map();
@@ -108,8 +108,8 @@ export class SecureIngestionGateway {
   public static async processUpload(
     file: File | Uint8Array,
     filename: string,
-    organisationId = "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
-    uploaderId = "user-system-admin",
+    organisationId = "",
+    uploaderId = "",
     onProgress?: (state: IngestionLifecycleState, pct: number, msg: string) => void,
     context?: UserSecurityContext,
     existingDocumentId?: string,
@@ -142,6 +142,7 @@ export class SecureIngestionGateway {
 
     const addLog = (stage: string, level: "info" | "warn" | "error", message: string) => {
       logs.push({ stage, level, message, timestamp: new Date().toISOString() });
+      console.log(`[SecureIngestionGateway - ${stage}] ${message}`);
     };
 
     // Calculate binary bytes & checksum
@@ -158,24 +159,13 @@ export class SecureIngestionGateway {
         description: `Upload initiated for ${sanitizedFilename} (${fileSize} bytes)`,
         actor: { userId: uploaderId },
         record: { entityType: "source_file", recordId: documentId, recordLabel: sanitizedFilename },
-        newState: {
-          filename: sanitizedFilename,
-          fileSize,
-          sha256Checksum,
-          fileType: resolvedFileType,
-        },
+        newState: { filename: sanitizedFilename, fileSize, sha256Checksum, fileType: resolvedFileType },
       });
     } catch {}
 
     // If filename has path traversal or malicious characters, reject immediately
     if (!fnCheck.valid) {
       addLog("SECURITY", "error", `Filename security rejected: ${fnCheck.errors.join("; ")}`);
-      void ProductionObservabilityService.trackInvalidFile({
-        filename: sanitizedFilename,
-        reason: fnCheck.errors.join("; "),
-        organisationId,
-        userId: uploaderId,
-      });
       const errRecord: IngestionErrorRecord = {
         id: `ERR-FN-${Date.now()}`,
         jobId,
@@ -308,13 +298,6 @@ export class SecureIngestionGateway {
         "error",
         secResult.rejectionReason || "File security inspection rejected file payload",
       );
-      void ProductionObservabilityService.trackInvalidFile({
-        filename: sanitizedFilename,
-        reason: secResult.rejectionReason || "File security validation failed",
-        detectedMimeType: secResult.detectedMimeType,
-        organisationId,
-        userId: uploaderId,
-      });
       const errRecord: IngestionErrorRecord = {
         id: `ERR-SEC-${Date.now()}`,
         jobId,
@@ -539,14 +522,6 @@ export class SecureIngestionGateway {
 
       await QuarantineManager.quarantineJob(batchJob, errors);
 
-      void ProductionObservabilityService.trackFailedExtraction({
-        filename: sanitizedFilename,
-        error: errorMsg,
-        organisationId,
-        userId: uploaderId,
-        uploadId: documentId,
-      });
-
       try {
         const { AuditTrailService } = await import("../audit/auditTrailService");
         await AuditTrailService.recordAction({
@@ -555,11 +530,7 @@ export class SecureIngestionGateway {
           action: "EXTRACTION_FAILED",
           description: `Data extraction failed for ${sanitizedFilename}: ${errorMsg}`,
           actor: { userId: uploaderId },
-          record: {
-            entityType: "source_file",
-            recordId: documentId,
-            recordLabel: sanitizedFilename,
-          },
+          record: { entityType: "source_file", recordId: documentId, recordLabel: sanitizedFilename },
           newState: {
             processingStatus: "FAILED",
             errorMessage: errorMsg,
@@ -584,6 +555,47 @@ export class SecureIngestionGateway {
       };
     }
 
+    if (extractRes.documentType === "TARIFF_DOCUMENT") {
+      if (!extractRes.tariffDefinition) throw new Error("The uploaded tariff document did not contain a complete tariff definition.");
+      await TariffStorageService.saveTariffVersion(extractRes.tariffDefinition, {
+        userId: uploaderId,
+        changeSummary: `Uploaded tariff document ${sanitizedFilename}`,
+      });
+      addLog("NORMALIZED", "info", "Registered uploaded tariff version for reconciliation");
+    }
+
+    const extractedAccountNumber = extractRes.extractedFields?.accountNumber?.trim() || "";
+    const extractedMeterNumber = extractRes.extractedFields?.meterNumber?.trim() || "";
+    let linkedCustomer = extractedAccountNumber
+      ? {
+          accountNumber: extractedAccountNumber,
+          customerName:
+            extractRes.extractedFields?.customerName?.trim() || extractedAccountNumber,
+          meterNumber: extractedMeterNumber,
+          address: "",
+          nmd: Number(extractRes.extractedFields?.notifiedMaximumDemand || 0),
+          updatedAt: new Date().toISOString(),
+        }
+      : extractedMeterNumber
+        ? await LocalWorkspaceStore.findCustomerByMeter(extractedMeterNumber)
+        : null;
+
+    if (linkedCustomer) {
+      await LocalWorkspaceStore.saveCustomer(linkedCustomer);
+      uploadRecord = await UploadStorageService.updateUploadStatus(
+        documentId,
+        {
+          metadata: {
+            accountNumber: linkedCustomer.accountNumber,
+            customerName: linkedCustomer.customerName,
+            meterNumber: extractedMeterNumber || linkedCustomer.meterNumber,
+            billingPeriod: extractRes.extractedFields?.billingPeriod || "",
+          },
+        },
+        context,
+      );
+    }
+
     // Reflect normalized invoice/telemetry into database
     onProgress?.("NORMALIZED", 80, "Persisting normalized records to database repository...");
     addLog("NORMALIZED", "info", "Storing raw text & normalized records in authoritative database");
@@ -592,7 +604,7 @@ export class SecureIngestionGateway {
       // 1. Store raw document payload
       await supabase.from("raw_documents").insert({
         upload_id: documentId,
-        invoice_number: extractRes.extractedFields?.accountNumber || `INV-${Date.now()}`,
+        invoice_number: extractRes.extractedFields?.accountNumber || null,
         raw_text: extractRes.rawTextPreview,
         confidence_score: extractRes.confidenceScore,
         parser_type: mimeResult.isScannedPdf ? "tesseract_ocr" : adapter.constructor.name,
@@ -645,7 +657,7 @@ export class SecureIngestionGateway {
         const bStart = fields.billingStart || new Date().toISOString().substring(0, 10);
         const bEnd = fields.billingEnd || new Date().toISOString().substring(0, 10);
         const clientName =
-          (fields as any).clientName || (fields as any).customerName || "Enterprise Client";
+          (fields as any).clientName || (fields as any).customerName || fields.accountNumber;
 
         // Step 9: Link invoice to account / site (Master Data Auto-Link)
         let customerId: string | null = null;
@@ -812,7 +824,7 @@ export class SecureIngestionGateway {
 
         // Step 8: Store unbundled invoice line items where present
         if (fields.lineItems && fields.lineItems.length > 0) {
-          const lineItemPayloads = fields.lineItems.map((li) => ({
+          const lineItemPayloads = fields.lineItems.map((li: NonNullable<typeof fields.lineItems>[number]) => ({
             invoice_record_id: persistedInvoiceId,
             organisation_id: organisationId,
             line_item_number: li.lineItemNumber,
@@ -904,8 +916,8 @@ export class SecureIngestionGateway {
 
       // 5. Persist extracted telemetry intervals to telemetry_intervals
       if (extractRes.intervals && extractRes.intervals.length > 0) {
-        const intervalPayloads = extractRes.intervals.slice(0, 5000).map((intv) => ({
-          meter_id: intv.meter_id || "7856504226",
+        const intervalPayloads = extractRes.intervals.slice(0, 5000).map((intv: any) => ({
+          meter_id: intv.meter_id || "",
           organisation_id: organisationId,
           upload_id: documentId,
           source_file_id: documentId,
@@ -963,11 +975,7 @@ export class SecureIngestionGateway {
             action: "INTERVAL_TELEMETRY_EXTRACTED",
             description: `Extracted ${intervalPayloads.length} interval telemetry readings from ${sanitizedFilename}`,
             actor: { userId: uploaderId },
-            record: {
-              entityType: "source_file",
-              recordId: documentId,
-              recordLabel: sanitizedFilename,
-            },
+            record: { entityType: "source_file", recordId: documentId, recordLabel: sanitizedFilename },
             newState: {
               readingsCount: intervalPayloads.length,
               meterId: primaryMeter,
@@ -999,7 +1007,7 @@ export class SecureIngestionGateway {
     const finalErrorStatus: UploadErrorStatus = extractRes.errors.length > 0 ? "WARNING" : "NONE";
     const finalErrorMessage =
       extractRes.errors.length > 0
-        ? extractRes.errors.map((e) => e.errorMessage).join("; ")
+        ? extractRes.errors.map((e: IngestionErrorRecord) => e.errorMessage).join("; ")
         : extractRes.ambiguityReasons.length > 0
           ? extractRes.ambiguityReasons.join("; ")
           : null;
@@ -1019,6 +1027,11 @@ export class SecureIngestionGateway {
           confidenceScore: extractRes.confidenceScore,
           parserAdapter: adapter.constructor.name,
           documentType: extractRes.documentType,
+          accountNumber: linkedCustomer?.accountNumber || "",
+          customerName: linkedCustomer?.customerName || "",
+          meterNumber: extractedMeterNumber,
+          billingPeriod: extractRes.extractedFields?.billingPeriod || "",
+          associationStatus: linkedCustomer ? "LINKED" : "UNASSIGNED",
         },
       },
       context,
@@ -1098,16 +1111,12 @@ export class SecureIngestionGateway {
         peakKwh: extractRes.extractedFields?.peakKwh,
         standardKwh: extractRes.extractedFields?.standardKwh,
         offPeakKwh: extractRes.extractedFields?.offPeakKwh,
-        maxDemandKva:
-          extractRes.extractedFields?.billedMaximumDemand || extractRes.extractedFields?.kva,
+        maxDemandKva: extractRes.extractedFields?.billedMaximumDemand || extractRes.extractedFields?.kva,
         intervalCount: extractRes.intervals?.length,
       },
     };
 
-    const duplicateResult = await DuplicateProtectionService.evaluateCandidate(
-      duplicateCandidate,
-      context,
-    );
+    const duplicateResult = await DuplicateProtectionService.evaluateCandidate(duplicateCandidate, context);
     fileHeader.duplicateStatus = duplicateResult.status;
     fileHeader.isDuplicate = duplicateResult.status === "DUPLICATE";
 
@@ -1184,11 +1193,7 @@ export class SecureIngestionGateway {
         action: "PROCESSING_RETRY_INITIATED",
         description: `Processing retry initiated for ${uploadRecord.filename} from preserved vault storage`,
         actor: { userId: uploadRecord.userId || undefined },
-        record: {
-          entityType: "source_file",
-          recordId: uploadId,
-          recordLabel: uploadRecord.filename,
-        },
+        record: { entityType: "source_file", recordId: uploadId, recordLabel: uploadRecord.filename },
         newState: { processingStatus: "PROCESSING", retryOptions: options },
       });
     } catch {}
@@ -1211,14 +1216,9 @@ export class SecureIngestionGateway {
         action: result.success ? "PROCESSING_RETRY_SUCCEEDED" : "PROCESSING_RETRY_FAILED",
         description: `Processing retry ${result.success ? "succeeded" : "failed"} for ${uploadRecord.filename}`,
         actor: { userId: uploadRecord.userId || undefined },
-        record: {
-          entityType: "source_file",
-          recordId: uploadId,
-          recordLabel: uploadRecord.filename,
-        },
+        record: { entityType: "source_file", recordId: uploadId, recordLabel: uploadRecord.filename },
         newState: {
-          processingStatus:
-            result.uploadRecord?.processingStatus || (result.success ? "PROCESSED" : "FAILED"),
+          processingStatus: result.uploadRecord?.processingStatus || (result.success ? "PROCESSED" : "FAILED"),
           validationStatus: result.uploadRecord?.validationStatus,
           errorSummary: result.uploadRecord?.errorMessage,
         },

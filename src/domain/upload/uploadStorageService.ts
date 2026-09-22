@@ -7,6 +7,7 @@
 import { supabase } from "@/lib/supabase";
 import type { UserSecurityContext } from "../security/types";
 import { TenantIsolationViolationError } from "../security/tenantContextService";
+import { LocalWorkspaceStore } from "@/lib/localWorkspaceStore";
 import type {
   UploadRecord,
   CreateUploadInput,
@@ -102,6 +103,7 @@ export class UploadStorageService {
 
     // Keep memory store updated
     this.memoryStore.set(id, record);
+    await LocalWorkspaceStore.saveUpload(record).catch(() => undefined);
 
     try {
       const payload = {
@@ -132,6 +134,7 @@ export class UploadStorageService {
       if (!error && data) {
         const persisted = this.mapRowToRecord(data);
         this.memoryStore.set(id, persisted);
+        await LocalWorkspaceStore.saveUpload(persisted).catch(() => undefined);
         return persisted;
       }
     } catch (err) {
@@ -181,6 +184,7 @@ export class UploadStorageService {
     };
 
     this.memoryStore.set(uploadId, updatedRecord);
+    await LocalWorkspaceStore.saveUpload(updatedRecord).catch(() => undefined);
 
     try {
       const dbPayload: Record<string, any> = {
@@ -206,6 +210,7 @@ export class UploadStorageService {
       if (!error && data) {
         const persisted = this.mapRowToRecord(data);
         this.memoryStore.set(uploadId, persisted);
+        await LocalWorkspaceStore.saveUpload(persisted).catch(() => undefined);
         return persisted;
       }
     } catch (err) {
@@ -261,6 +266,9 @@ export class UploadStorageService {
       orgId = context.organisationId;
     }
 
+    const localRecords = await LocalWorkspaceStore.listUploads();
+    localRecords.forEach((record) => this.memoryStore.set(record.id, record));
+
     try {
       let query = supabase.from("uploads").select("*").order("created_at", { ascending: false });
 
@@ -284,7 +292,9 @@ export class UploadStorageService {
       if (!error && Array.isArray(data)) {
         const records = data.map((r: any) => this.mapRowToRecord(r));
         records.forEach((rec: any) => this.memoryStore.set(rec.id, rec));
-        return records;
+        // Records may also exist only in the local session store (when the
+        // remote write was rejected), so continue to the merge below instead of
+        // returning the remote page in isolation.
       }
     } catch (err) {
       if (err instanceof TenantIsolationViolationError) throw err;

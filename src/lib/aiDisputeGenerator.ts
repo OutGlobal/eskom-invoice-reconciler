@@ -17,14 +17,14 @@ export function generateEskomDisputeLetter(req: DisputeLetterRequest): string {
     year: "numeric",
   });
 
-  const customerName = inv?.customerName || "Impala Platinum Limited (Rustenburg Mine)";
-  const accountNumber = inv?.accountNumber || "7856504676";
-  const taxInvoiceNo = inv?.taxInvoiceNo || inv?.invoiceNo || "785762166034";
-  const premiseId = inv?.premiseId || "7856504226 (Millennium 33kV Substation)";
-  const billingPeriod = inv?.billingPeriod || "17/02/2026 – 18/03/2026";
+  const customerName = inv?.customerName || "Not available";
+  const accountNumber = inv?.accountNumber || "Not available";
+  const taxInvoiceNo = inv?.taxInvoiceNo || inv?.invoiceNo || "Not available";
+  const premiseId = inv?.premiseId || "Not available";
+  const billingPeriod = inv?.billingPeriod || "Not available";
   const invoicedTotal = inv?.invoiceTotal
     ? `R ${inv.invoiceTotal.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`
-    : "R 98,380,358.13";
+    : "Not available";
 
   return `ESKOM HOLDINGS SOC LIMITED
 COMMERCIAL BILLING & KEY ACCOUNTS DIVISION

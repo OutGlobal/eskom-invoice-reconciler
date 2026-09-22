@@ -12,7 +12,7 @@ import { AmbiguityDetector } from "./ambiguityDetector";
 import { DeterministicReconciliationEngine } from "../reconciliation/reconciliationEngine";
 import { DeterministicDiagnosticsEngine } from "../discrepancy/deterministicDiagnosticsEngine";
 import { EnergyDataNormalizationEngine } from "../telemetry/energyDataNormalizationEngine";
-import { ESKOM_MEGAFLEX_2025_2026 } from "../tariff/tariffFixtures";
+import { TariffStorageService } from "../tariff/tariffStorageService";
 import type {
   AutomatedPipelineInput,
   AutomatedPipelineResult,
@@ -111,15 +111,13 @@ export class AutomaticProcessingPipeline {
       // =========================================================================
       notify("EXTRACTING", 55, "Extracting invoice determinants and meter interval readings");
 
-      const fallback = this.buildFallbackInvoice(input.invoiceFile.name);
       const rawExtracted: any = invoiceResult.extractedInvoice || {};
       const extractedInvoice = {
-        ...fallback,
         ...rawExtracted,
-        meterNumber: rawExtracted.meterNumber || rawExtracted.meterSerial || fallback.meterNumber,
-        billingStart: rawExtracted.billingStart || fallback.billingStart,
-        billingEnd: rawExtracted.billingEnd || fallback.billingEnd,
-        tariff: rawExtracted.tariff || fallback.tariff,
+        meterNumber: rawExtracted.meterNumber || rawExtracted.meterSerial || "",
+        billingStart: rawExtracted.billingStart || "",
+        billingEnd: rawExtracted.billingEnd || "",
+        tariff: rawExtracted.tariff || "",
       };
       const rawIntervals = meterResult.intervals || [];
 
@@ -161,7 +159,7 @@ export class AutomaticProcessingPipeline {
         canonicalIntervals.length > 0
           ? canonicalIntervals.reduce((sum: number, r: any) => sum + (r.power_factor || 1), 0) /
             canonicalIntervals.length
-          : 0.95;
+          : 0;
 
       const normalizedSummary = {
         canonicalIntervals,
@@ -212,6 +210,12 @@ export class AutomaticProcessingPipeline {
       notify("RECONCILING", 85, "Reconciling billed determinants against interval source data");
 
       // Build authoritative reconciliation inputs from extracted + normalized data
+      const tariffVersion = TariffStorageService.getVersionForDate(
+        input.overrideTariffCode || extractedInvoice.tariff || "",
+        extractedInvoice.billingStart,
+      );
+      if (!tariffVersion) throw new Error("Upload an applicable tariff document before reconciliation.");
+
       const reconInput: AuthoritativeReconciliationInput = {
         tenant_id: tenantId,
         invoice_id: extractedInvoice.accountNumber
@@ -220,45 +224,45 @@ export class AutomaticProcessingPipeline {
         invoice_number: extractedInvoice.accountNumber
           ? `INV-${extractedInvoice.accountNumber}`
           : `INV-${runId}`,
-        account_number: extractedInvoice.accountNumber || `ACC-${runId}`,
-        billing_start: extractedInvoice.billingStart || "2025-01-01",
-        billing_end: extractedInvoice.billingEnd || "2025-01-31",
-        tariff_version: ESKOM_MEGAFLEX_2025_2026,
+        account_number: extractedInvoice.accountNumber || "",
+        billing_start: extractedInvoice.billingStart,
+        billing_end: extractedInvoice.billingEnd,
+        tariff_version: tariffVersion,
 
         // Billed Values
-        billed_peak_kwh: new Decimal(extractedInvoice.peakKwh?.toString() || "125000.00"),
-        billed_standard_kwh: new Decimal(extractedInvoice.standardKwh?.toString() || "340000.00"),
-        billed_off_peak_kwh: new Decimal(extractedInvoice.offPeakKwh?.toString() || "510000.00"),
-        billed_total_kwh: new Decimal(extractedInvoice.totalKwh?.toString() || "975000.00"),
+        billed_peak_kwh: new Decimal(extractedInvoice.peakKwh?.toString() || "0"),
+        billed_standard_kwh: new Decimal(extractedInvoice.standardKwh?.toString() || "0"),
+        billed_off_peak_kwh: new Decimal(extractedInvoice.offPeakKwh?.toString() || "0"),
+        billed_total_kwh: new Decimal(extractedInvoice.totalKwh?.toString() || "0"),
         billed_maximum_demand_kva: new Decimal(
-          extractedInvoice.billedMaximumDemand?.toString() || "1850.00",
+          extractedInvoice.billedMaximumDemand?.toString() || "0",
         ),
         billed_ratcheted_demand_kva: new Decimal(
-          extractedInvoice.billedMaximumDemand?.toString() || "1850.00",
+          extractedInvoice.billedMaximumDemand?.toString() || "0",
         ),
         billed_reactive_energy_kvarh: new Decimal(
           (extractedInvoice as any).reactiveKvarh?.toString() ||
             (extractedInvoice as any).kvarh?.toString() ||
-            "120000.00",
+            "0",
         ),
         billed_energy_charges_zar: new Decimal(
-          extractedInvoice.energyCharges?.toString() || "2450000.00",
+          extractedInvoice.energyCharges?.toString() || "0",
         ),
         billed_demand_charges_zar: new Decimal(
-          extractedInvoice.demandCharges?.toString() || "350000.00",
+          extractedInvoice.demandCharges?.toString() || "0",
         ),
         billed_network_charges_zar: new Decimal(
-          extractedInvoice.networkCharges?.toString() || "220000.00",
+          extractedInvoice.networkCharges?.toString() || "0",
         ),
         billed_service_charges_zar: new Decimal(
-          extractedInvoice.serviceCharges?.toString() || "15000.00",
+          extractedInvoice.serviceCharges?.toString() || "0",
         ),
         billed_ancillary_charges_zar: new Decimal(
-          extractedInvoice.ancillaryCharges?.toString() || "45000.00",
+          extractedInvoice.ancillaryCharges?.toString() || "0",
         ),
-        billed_vat_zar: new Decimal(extractedInvoice.vat?.toString() || "462000.00"),
+        billed_vat_zar: new Decimal(extractedInvoice.vat?.toString() || "0"),
         billed_total_invoice_zar: new Decimal(
-          extractedInvoice.totalInvoice?.toString() || "3542000.00",
+          extractedInvoice.totalInvoice?.toString() || "0",
         ),
 
         // Calculated Telemetry from Normalized Summary
@@ -362,29 +366,4 @@ export class AutomaticProcessingPipeline {
     return new File([blob], name, { type: mime });
   }
 
-  /**
-   * Fallback invoice extractor for demo / isolated test environments
-   */
-  private static buildFallbackInvoice(filename: string) {
-    return {
-      accountNumber: "9182374650",
-      meterNumber: "MTR-90210",
-      tariff: "Megaflex High Voltage",
-      billingPeriod: "January 2025",
-      billingStart: "2025-01-01",
-      billingEnd: "2025-01-31",
-      peakKwh: 125000,
-      standardKwh: 340000,
-      offPeakKwh: 510000,
-      totalKwh: 975000,
-      billedMaximumDemand: 1850,
-      energyCharges: 2450000,
-      demandCharges: 350000,
-      networkCharges: 220000,
-      serviceCharges: 15000,
-      ancillaryCharges: 45000,
-      vat: 462000,
-      totalInvoice: 3542000,
-    };
-  }
 }

@@ -32,8 +32,6 @@ import { DeterminantEngine } from "../determinants/determinantEngine";
 import { ToleranceEngine } from "./toleranceEngine";
 import { RootCauseInferenceEngine } from "./rootCauseInferenceEngine";
 import type { ExtractedInvoiceDocument } from "../invoice/types";
-import { REGRESSION_FIXTURES } from "./regressionFixtures";
-import { ESKOM_MEGAFLEX_2025_2026, ESKOM_MINIFLEX_2025_2026 } from "../tariff/tariffFixtures";
 import { InvoiceStorageService } from "../invoice/invoiceStorageService";
 import { TelemetryStorageService } from "../telemetry/telemetryStorageService";
 import { ReconciliationStorageService } from "./reconciliationStorageService";
@@ -100,61 +98,30 @@ export class DeterministicReconciliationEngine {
     const runId = `RECON-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
     const createdAt = new Date().toISOString();
 
-    const tenantId = input.tenant_id || "DEFAULT_TENANT";
-    const telemetryBatchId = input.telemetry_batch_id || "BATCH_DEFAULT";
-    const calendarVersionId = input.calendar_version_id || "2025.1";
+    const tenantId = input.tenant_id || "";
+    const telemetryBatchId = input.telemetry_batch_id || "";
+    const calendarVersionId = input.calendar_version_id || "";
 
-    const tariffDef: TariffVersionDefinition =
-      input.tariff_version &&
-      typeof input.tariff_version === "object" &&
-      input.tariff_version.header
-        ? input.tariff_version
-        : ESKOM_MEGAFLEX_2025_2026;
+    if (
+      !input.tariff_version ||
+      typeof input.tariff_version !== "object" ||
+      !input.tariff_version.header
+    ) {
+      throw new Error("Upload an applicable tariff document before reconciliation.");
+    }
+    const tariffDef: TariffVersionDefinition = input.tariff_version;
     const tariffVerId = `${tariffDef.header.tariff_code}_${tariffDef.header.version}`;
 
-    // 1. Resolve calculated telemetry values (fallback to regression fixture baseline or billed)
-    const matchingFixture = REGRESSION_FIXTURES.find(
-      (f) => f.invoice_inputs.invoice_number === input.invoice_id,
-    );
-    const baseline = matchingFixture?.invoice_inputs;
-
-    const peakKwh =
-      input.calc_peak_kwh ??
-      (baseline && !input.billed_peak_kwh.equals(baseline.peak_kwh)
-        ? baseline.peak_kwh
-        : input.billed_peak_kwh);
-    const stdKwh =
-      input.calc_standard_kwh ??
-      (baseline && !input.billed_standard_kwh.equals(baseline.standard_kwh)
-        ? baseline.standard_kwh
-        : input.billed_standard_kwh);
-    const offKwh =
-      input.calc_off_peak_kwh ??
-      (baseline && !input.billed_off_peak_kwh.equals(baseline.off_peak_kwh)
-        ? baseline.off_peak_kwh
-        : input.billed_off_peak_kwh);
-    const totalKwh =
-      input.calc_total_kwh ??
-      (baseline && !input.billed_total_kwh.equals(baseline.total_kwh)
-        ? baseline.total_kwh
-        : input.billed_total_kwh);
-    const maxKva =
-      input.calc_maximum_demand_kva ??
-      (baseline && !input.billed_maximum_demand_kva.equals(baseline.maximum_demand_kva)
-        ? baseline.maximum_demand_kva
-        : input.billed_maximum_demand_kva);
+    // 1. Resolve calculated telemetry values from uploaded determinants only.
+    const peakKwh = input.calc_peak_kwh ?? input.billed_peak_kwh;
+    const stdKwh = input.calc_standard_kwh ?? input.billed_standard_kwh;
+    const offKwh = input.calc_off_peak_kwh ?? input.billed_off_peak_kwh;
+    const totalKwh = input.calc_total_kwh ?? input.billed_total_kwh;
+    const maxKva = input.calc_maximum_demand_kva ?? input.billed_maximum_demand_kva;
     const maxDemandKva = maxKva;
-    const ratchetDemandKva =
-      input.calc_ratcheted_demand_kva ??
-      (baseline && !input.billed_ratcheted_demand_kva.equals(baseline.ratcheted_demand_kva)
-        ? baseline.ratcheted_demand_kva
-        : input.billed_ratcheted_demand_kva);
-    const reactiveKvarh =
-      input.calc_reactive_energy_kvarh ??
-      (baseline && !input.billed_reactive_energy_kvarh.equals(baseline.reactive_energy_kvarh)
-        ? baseline.reactive_energy_kvarh
-        : input.billed_reactive_energy_kvarh);
-    const powerFactor = input.calc_power_factor ?? new Decimal("0.96");
+    const ratchetDemandKva = input.calc_ratcheted_demand_kva ?? input.billed_ratcheted_demand_kva;
+    const reactiveKvarh = input.calc_reactive_energy_kvarh ?? input.billed_reactive_energy_kvarh;
+    const powerFactor = input.calc_power_factor ?? new Decimal(0);
 
     // 2. Execute deterministic tariff engine over telemetry determinants
     const billingDemandKva = ratchetDemandKva.gt(maxDemandKva) ? ratchetDemandKva : maxDemandKva;
@@ -547,13 +514,14 @@ export class DeterministicReconciliationEngine {
     };
 
     // 2. Resolve Tariff Version using temporal validity selector
-    const tariffDef: TariffVersionDefinition =
+    const tariffDef =
       dataset.tariff_definition && dataset.tariff_definition.header
         ? dataset.tariff_definition
         : TariffVersionSelector.selectVersionForDate(
-            inv.tariff_code || inv.tariff_name || "MEGAFLEX",
+            inv.tariff_code || inv.tariff_name || "",
             bStart.toISOString().substring(0, 10),
           );
+    if (!tariffDef) throw new Error("Upload an applicable tariff document before reconciliation.");
 
     // 3. Filter and Dynamically Aggregate Real Stored Source Telemetry Intervals
     const allIntervals = dataset.intervals || [];

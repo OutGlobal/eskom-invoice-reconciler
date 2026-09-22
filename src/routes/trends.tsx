@@ -46,8 +46,8 @@ import { InvoiceSelector } from "@/components/InvoiceSelector";
 import { useApp } from "@/lib/store";
 import { exportCustomCsv } from "@/lib/exportReports";
 import { fetchSupabaseRecoveries, fetchSupabaseInvoices } from "@/lib/supabase";
-import { TARIFF } from "@/lib/tariff";
 import { ChartEmptyState } from "@/components/charts/ChartEmptyState";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export const Route = createFileRoute("/trends")({
   head: () => ({ meta: [{ title: "Trends & Overcharge Recoveries — Eskom Bill Balancer" }] }),
@@ -183,29 +183,12 @@ export function TrendsPage() {
       list.push(
         ...dbInvoices.map((inv) => ({
           period: inv.billing_period || inv.invoice_number,
-          peakEnergy:
-            inv.peak_energy_charge ??
-            (inv.peak_kwh ? inv.peak_kwh * (TARIFF.energy.low.peak / 100) : 0),
-          standardEnergy:
-            inv.standard_energy_charge ??
-            (inv.standard_kwh ? inv.standard_kwh * (TARIFF.energy.low.standard / 100) : 0),
-          offPeakEnergy:
-            inv.off_peak_energy_charge ??
-            (inv.off_peak_kwh ? inv.off_peak_kwh * (TARIFF.energy.low.offPeak / 100) : 0),
+          peakEnergy: inv.peak_energy_charge ?? 0,
+          standardEnergy: inv.standard_energy_charge ?? 0,
+          offPeakEnergy: inv.off_peak_energy_charge ?? 0,
           networkCapacity: inv.network_capacity_charge ?? 0,
-          demandCharge:
-            inv.network_demand_charge ??
-            (inv.max_demand_kva ? inv.max_demand_kva * TARIFF.networkDemand : 0),
-          subsidiesAndLegacy:
-            inv.subsidies_and_legacy ??
-            (inv.total_kwh
-              ? inv.total_kwh *
-                ((TARIFF.affordability +
-                  TARIFF.electrification +
-                  TARIFF.ancillary +
-                  TARIFF.legacy) /
-                  100)
-              : 0),
+          demandCharge: inv.network_demand_charge ?? 0,
+          subsidiesAndLegacy: inv.subsidies_and_legacy ?? 0,
           totalInvoice: inv.invoiced_total || 0,
           recoveryAmount: inv.variance_amount || 0,
         })),
@@ -295,6 +278,10 @@ export function TrendsPage() {
     toast.success("Eskom Overcharge Dispute & Recovery Claim Package Exported!");
   };
 
+  if (rows.length === 0 && batchInvoices.length === 0 && dbInvoices.length === 0) {
+    return <EmptyState title="No trend data available" description="Upload invoices and meter data to build period trends." primaryAction={{ label: "Upload data", href: "/upload" }} />;
+  }
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -324,9 +311,7 @@ export function TrendsPage() {
       </div>
 
       {/* NMD compliance + verified interval figures */}
-      {rows.length === 0 ? (
-        <IntervalSkeleton />
-      ) : (
+      {rows.length === 0 ? null : (
         <>
           <NmdAlertCard peakKVA={dq.maxDemandKVA} nmd={nmd} peakAt={dq.maxDemandAt} />
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -476,7 +461,7 @@ export function TrendsPage() {
               <li>
                 <strong className="text-foreground">AMR Meter Telemetry:</strong>{" "}
                 {rows.length > 0
-                  ? `${NUM(rows.length, 0)} interval readings collected for meter ${customer.meter || "7856504226"} at ${customer.name || "Customer Facility"}.`
+                  ? `${NUM(rows.length, 0)} interval readings collected${customer.meter ? ` for meter ${customer.meter}` : ""}${customer.name ? ` at ${customer.name}` : ""}.`
                   : "No interval readings ingested in active session."}
               </li>
               <li>

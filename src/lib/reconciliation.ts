@@ -1,5 +1,6 @@
-import { TARIFF, type TouPeriod, getSeason } from "./tariff";
+import { type TouPeriod, getSeason } from "./tariff";
 import type { Measurement } from "./parseMeter";
+import type { TariffData } from "./store";
 
 export interface NmdExceedanceEvent {
   ts: Date;
@@ -24,7 +25,7 @@ export interface Totals {
   nmdExceedances: NmdExceedanceEvent[];
 }
 
-export function computeTotals(rows: Measurement[], nmd = 85740): Totals {
+export function computeTotals(rows: Measurement[], nmd = 0): Totals {
   const t: Totals = {
     peakKWh: 0,
     standardKWh: 0,
@@ -38,7 +39,6 @@ export function computeTotals(rows: Measurement[], nmd = 85740): Totals {
     maxDemandAt: null,
     nmdExceedances: [],
   };
-  const RATE_PER_KVA_MONTH = 54.32; // Capacity ceiling rate: Network R35.98 + TX R10.25 + Gen R8.09
 
   // Deduplicate rows by timestamp to prevent duplicate accumulation
   const seenTimestamps = new Set<number>();
@@ -78,7 +78,7 @@ export function computeTotals(rows: Measurement[], nmd = 85740): Totals {
         kVA: kVA_inst,
         nmd,
         exceedanceKVA,
-        penaltyR: exceedanceKVA * RATE_PER_KVA_MONTH,
+        penaltyR: 0,
         tou: r.tou,
       });
     }
@@ -100,51 +100,39 @@ export interface Charge {
   group: "fixed" | "energy" | "additional" | "demand" | "tax";
 }
 
-export function computeCharges(totals: Totals, nmd: number, rows: Measurement[]): Charge[] {
+export function computeCharges(
+  totals: Totals,
+  nmd: number,
+  rows: Measurement[],
+  tariff: TariffData,
+): Charge[] {
   const seasonMix = seasonBreakdown(rows);
-  const oldRows = rows.filter((r) => r.ts < new Date("2026-04-01T00:00:00"));
-  const newRows = rows.filter((r) => r.ts >= new Date("2026-04-01T00:00:00"));
-  const oldKWh = oldRows.reduce((sum, r) => sum + r.kW * 0.5, 0);
-  const newKWh = newRows.reduce((sum, r) => sum + r.kW * 0.5, 0);
-  const totalIntervals = Math.max(1, oldRows.length + newRows.length);
-  const oldShare = oldRows.length / totalIntervals;
-  const newShare = newRows.length / totalIntervals;
-  const weightedMonthly = (oldRate: number, newRate: number) =>
-    oldRate * oldShare + newRate * newShare;
-  const next = TARIFF.next;
+  const totalIntervals = rows.length;
   const energyRate = (p: TouPeriod) =>
     seasonMix.high.totalKWh + seasonMix.low.totalKWh === 0
       ? 0
-      : (seasonMix.highOld[p] * TARIFF.energy.high[p] +
-          seasonMix.lowOld[p] * TARIFF.energy.low[p] +
-          seasonMix.highNew[p] * next.energy.high[p] +
-          seasonMix.lowNew[p] * next.energy.low[p]) /
+      : (seasonMix.high[p] * tariff.energy.high[p] +
+          seasonMix.low[p] * tariff.energy.low[p]) /
         Math.max(1e-9, seasonMix.high[p] + seasonMix.low[p]) /
         100;
 
   const peakAmt =
-    (seasonMix.highOld.peak * TARIFF.energy.high.peak +
-      seasonMix.lowOld.peak * TARIFF.energy.low.peak +
-      seasonMix.highNew.peak * next.energy.high.peak +
-      seasonMix.lowNew.peak * next.energy.low.peak) /
+    (seasonMix.high.peak * tariff.energy.high.peak +
+      seasonMix.low.peak * tariff.energy.low.peak) /
     100;
   const stdAmt =
-    (seasonMix.highOld.standard * TARIFF.energy.high.standard +
-      seasonMix.lowOld.standard * TARIFF.energy.low.standard +
-      seasonMix.highNew.standard * next.energy.high.standard +
-      seasonMix.lowNew.standard * next.energy.low.standard) /
+    (seasonMix.high.standard * tariff.energy.high.standard +
+      seasonMix.low.standard * tariff.energy.low.standard) /
     100;
   const offAmt =
-    (seasonMix.highOld.offPeak * TARIFF.energy.high.offPeak +
-      seasonMix.lowOld.offPeak * TARIFF.energy.low.offPeak +
-      seasonMix.highNew.offPeak * next.energy.high.offPeak +
-      seasonMix.lowNew.offPeak * next.energy.low.offPeak) /
+    (seasonMix.high.offPeak * tariff.energy.high.offPeak +
+      seasonMix.low.offPeak * tariff.energy.low.offPeak) /
     100;
 
-  const txRate = weightedMonthly(TARIFF.transmissionNetwork, next.transmissionNetwork);
-  const distRate = weightedMonthly(TARIFF.networkCapacity, next.networkCapacity);
-  const genRate = weightedMonthly(TARIFF.generationCapacity, next.generationCapacity);
-  const demandRate = weightedMonthly(TARIFF.networkDemand, next.networkDemand);
+  const txRate = tariff.transmissionNetwork;
+  const distRate = tariff.networkCapacity;
+  const genRate = tariff.generationCapacity;
+  const demandRate = tariff.networkDemand;
   const txNetwork = nmd * txRate;
   const networkCapacity = nmd * distRate;
   const genCapacity = nmd * genRate;
@@ -152,20 +140,19 @@ export function computeCharges(totals: Totals, nmd: number, rows: Measurement[])
   const billedDemandKVA = Math.max(totals.maxDemandKVA, nmd);
   const networkDemand = billedDemandKVA * demandRate;
 
-  const legacyRate = weightedMonthly(TARIFF.legacy, next.legacy);
+  const legacyRate = tariff.legacy;
   const legacyAmt = totals.totalKWh * (legacyRate / 100);
-  const ancillaryRate = weightedMonthly(TARIFF.ancillary, next.ancillary);
+  const ancillaryRate = tariff.ancillary;
   const ancillaryAmt = totals.totalKWh * (ancillaryRate / 100);
-  const electRate = weightedMonthly(TARIFF.electrification, next.electrification);
+  const electRate = tariff.electrification;
   const electAmt = totals.totalKWh * (electRate / 100);
-  const affordRate = weightedMonthly(TARIFF.affordability, next.affordability);
+  const affordRate = tariff.affordability;
   const affordAmt = totals.totalKWh * (affordRate / 100);
 
   const billingDays = Math.max(1, Math.round(totalIntervals / 48));
-  const administration =
-    billingDays * weightedMonthly(TARIFF.administrationDaily, next.administrationDaily);
-  const service = billingDays * weightedMonthly(TARIFF.serviceDaily, next.serviceDaily);
-  const connection = TARIFF.connectionMonthly;
+  const administration = 0;
+  const service = 0;
+  const connection = 0;
 
   const subTotalBeforeVat =
     peakAmt +
@@ -446,29 +433,18 @@ export function buildStandardReconciliationTable(
 interface SeasonBreak {
   high: { peak: number; standard: number; offPeak: number; totalKWh: number };
   low: { peak: number; standard: number; offPeak: number; totalKWh: number };
-  highOld: { peak: number; standard: number; offPeak: number };
-  lowOld: { peak: number; standard: number; offPeak: number };
-  highNew: { peak: number; standard: number; offPeak: number };
-  lowNew: { peak: number; standard: number; offPeak: number };
 }
 
 function seasonBreakdown(rows: Measurement[]): SeasonBreak {
   const s: SeasonBreak = {
     high: { peak: 0, standard: 0, offPeak: 0, totalKWh: 0 },
     low: { peak: 0, standard: 0, offPeak: 0, totalKWh: 0 },
-    highOld: { peak: 0, standard: 0, offPeak: 0 },
-    lowOld: { peak: 0, standard: 0, offPeak: 0 },
-    highNew: { peak: 0, standard: 0, offPeak: 0 },
-    lowNew: { peak: 0, standard: 0, offPeak: 0 },
   };
   for (const r of rows) {
     const kWh = r.kW * 0.5;
     const bucket = getSeason(r.ts) === "high" ? s.high : s.low;
     bucket[r.tou] += kWh;
     bucket.totalKWh += kWh;
-    const era = r.ts < new Date("2026-04-01T00:00:00") ? "Old" : "New";
-    const season = getSeason(r.ts) === "high" ? "high" : "low";
-    s[`${season}${era}` as "highOld" | "lowOld" | "highNew" | "lowNew"][r.tou] += kWh;
   }
   return s;
 }

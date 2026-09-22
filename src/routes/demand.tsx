@@ -13,7 +13,7 @@ import {
   NUM,
   ZAR,
 } from "@/components/dashboard/parts";
-import { TOU_COLOR, TOU_LABEL, TARIFF } from "@/lib/tariff";
+import { TOU_COLOR, TOU_LABEL } from "@/lib/tariff";
 import { useApp } from "@/lib/store";
 import { InvoiceSelector } from "@/components/InvoiceSelector";
 import {
@@ -25,7 +25,9 @@ import {
   Save,
   Layers,
   ArrowRight,
+  UploadCloud,
 } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export const Route = createFileRoute("/demand")({
   head: () => ({ meta: [{ title: "Demand Analysis & NMD Audit — Eskom Bill Balancer" }] }),
@@ -89,7 +91,7 @@ export function DemandPage() {
   const activePeakDate = totals.maxDemandAt || new Date();
 
   const activeDemandChargeR =
-    invoice?.networkDemandCharge || activeBilledPeakKVA * TARIFF.networkDemand;
+    invoice?.networkDemandCharge || 0;
 
   const activeExceedanceKVA = Math.max(0, activeBilledPeakKVA - nmd);
   const isExceeded = nmd > 0 && activeExceedanceKVA > 0.01;
@@ -111,7 +113,7 @@ export function DemandPage() {
     const billedPeak = inv.maxDemandKVA || inv.simMaxDemand || totals.maxDemandKVA || 0;
     const subIncomerPeak = totals.maxDemandKVA || billedPeak * 1.011558;
     const exceedance = nmd > 0 ? Math.max(0, billedPeak - nmd) : 0;
-    const demandCharge = inv.networkDemandCharge || billedPeak * TARIFF.networkDemand;
+    const demandCharge = inv.networkDemandCharge || 0;
     const isExceed = exceedance > 0.01;
 
     return {
@@ -126,13 +128,17 @@ export function DemandPage() {
         : "Interval Peak",
       lineLossRatio: 1.011558,
       exceedanceKVA: exceedance,
-      ratchetExposureMonthly: exceedance * 54.32,
+      ratchetExposureMonthly: 0,
       networkDemandChargeExVat: demandCharge,
       status: isExceed ? "exceeded" : "compliant",
       statusText: isExceed ? `🔴 Exceeded (+${NUM(exceedance)} kVA)` : "🟢 Compliant",
       actionLoad: () => useApp.getState().setInvoice(inv),
     };
   });
+
+  if (rows.length === 0) {
+    return <EmptyState title="No meter data uploaded" description="Upload interval meter data to view demand analysis." icon={UploadCloud} primaryAction={{ label: "Upload meter data", href: "/upload" }} />;
+  }
 
   return (
     <div className="space-y-6">
@@ -192,14 +198,13 @@ export function DemandPage() {
                 NMD Exceedance Alert: Peak Demand Exceeded by +{NUM(activeExceedanceKVA)} kVA
               </span>
               <span className="rounded bg-amber-400/20 px-2 py-0.5 text-[10px] font-mono text-amber-300">
-                Ratchet Exposure: {ZAR(activeExceedanceKVA * 54.32)}/mo
+                Ratchet exposure requires an uploaded tariff rate
               </span>
             </div>
             <p>
               The measured peak demand of <strong>{NUM(activeBilledPeakKVA)} kVA</strong> on{" "}
               <strong>{activePeakTimestampText}</strong> exceeded the contracted Agreed NMD
-              threshold ({NUM(nmd, 0)} kVA). Under NERSA Rule 7.1, demand peaks set the rolling
-              12-month capacity ceiling (R54.32/kVA/month).
+              threshold ({NUM(nmd, 0)} kVA).
             </p>
           </div>
         </div>

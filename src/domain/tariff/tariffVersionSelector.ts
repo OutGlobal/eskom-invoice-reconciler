@@ -6,11 +6,6 @@
 
 import type { TariffVersionDefinition, TariffResolutionOptions } from "./types";
 import { TariffStorageService } from "./tariffStorageService";
-import {
-  ESKOM_MEGAFLEX_2025_2026,
-  ESKOM_MEGAFLEX_2024_2025,
-  ESKOM_MEGAFLEX_2023_2024,
-} from "./tariffFixtures";
 
 export interface BillingSubPeriod {
   sub_period_start: string; // YYYY-MM-DD
@@ -58,7 +53,9 @@ export class TariffVersionSelector {
         ? options.billingStart.toISOString().substring(0, 10)
         : String(options.billingStart).substring(0, 10);
 
-    return this.selectVersionForDate(tariffQuery, dateStr);
+    const selected = this.selectVersionForDate(tariffQuery, dateStr);
+    if (!selected) throw new Error("Upload an applicable tariff document before reconciliation.");
+    return selected;
   }
 
   /**
@@ -67,7 +64,7 @@ export class TariffVersionSelector {
   public static selectVersionForDate(
     tariffCodeOrFamily: string,
     dateStr: string,
-  ): TariffVersionDefinition {
+  ): TariffVersionDefinition | null {
     const targetDate = new Date(dateStr);
     const targetIso = targetDate.toISOString().substring(0, 10);
 
@@ -91,22 +88,7 @@ export class TariffVersionSelector {
     const storedMatch = TariffStorageService.getVersionForDate(tariffCodeOrFamily, dateStr);
     if (storedMatch) return storedMatch;
 
-    // 3. Fallback matching by year if date falls in a known historical window
-    const targetYear = targetDate.getFullYear();
-    const targetMonth = targetDate.getMonth() + 1; // 1-12
-    // Eskom fiscal year begins April 1:
-    // If targetMonth >= 4, fiscal year is targetYear
-    // If targetMonth < 4, fiscal year is targetYear - 1
-    const fiscalStartYear = targetMonth >= 4 ? targetYear : targetYear - 1;
-
-    if (fiscalStartYear === 2023) {
-      return ESKOM_MEGAFLEX_2023_2024;
-    }
-    if (fiscalStartYear === 2024) {
-      return ESKOM_MEGAFLEX_2024_2025;
-    }
-
-    return ESKOM_MEGAFLEX_2025_2026;
+    return null;
   }
 
   /**
@@ -126,6 +108,9 @@ export class TariffVersionSelector {
     while (currentStart <= end) {
       const currentStartStr = currentStart.toISOString().substring(0, 10);
       const activeVersion = this.selectVersionForDate(tariffCodeOrFamily, currentStartStr);
+      if (!activeVersion) {
+        throw new Error("No uploaded tariff covers this billing period.");
+      }
 
       // Find expiry date of active version or billingEnd
       const versionExpiry = activeVersion.header.expiry_date

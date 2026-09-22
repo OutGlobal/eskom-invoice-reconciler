@@ -52,7 +52,7 @@ export class EstimationFrameworkEngine {
           (a, b) => new Date(a.timestamp_utc).getTime() - new Date(b.timestamp_utc).getTime(),
         )[0];
 
-      if (prev && next) {
+      if (prev && next && prev.engineering_value !== undefined && next.engineering_value !== undefined) {
         const tPrev = new Date(prev.timestamp_utc).getTime();
         const tNext = new Date(next.timestamp_utc).getTime();
         const vPrev = new Decimal(prev.engineering_value);
@@ -63,15 +63,13 @@ export class EstimationFrameworkEngine {
         confidence = 0.95;
         sourceTimestamps = [prev.timestamp_utc, next.timestamp_utc];
         defaultReason = `Linear interpolation between ${prev.timestamp_utc} (${prev.engineering_value} kWh) and ${next.timestamp_utc} (${next.engineering_value} kWh)`;
-      } else if (prev) {
+      } else if (prev?.engineering_value !== undefined) {
         estimatedVal = prev.engineering_value;
         confidence = 0.8;
         sourceTimestamps = [prev.timestamp_utc];
         defaultReason = `Forward-fill fallback from ${prev.timestamp_utc}`;
       } else {
-        estimatedVal = 50.0; // Minimal baseline
-        confidence = 0.6;
-        defaultReason = "Baseline fallback (insufficient surrounding intervals)";
+        throw new Error("Linear interpolation requires at least one measured surrounding interval");
       }
     } else if (method === "SAME_DAY_PRIOR_WEEK") {
       const targetPrior7DaysMs = targetMs - 7 * 86400 * 1000;
@@ -79,29 +77,28 @@ export class EstimationFrameworkEngine {
         (i) => Math.abs(new Date(i.timestamp_utc).getTime() - targetPrior7DaysMs) < 1800 * 1000,
       );
 
-      if (priorMatch) {
+      if (priorMatch?.engineering_value !== undefined) {
         estimatedVal = priorMatch.engineering_value;
         confidence = 0.9;
         sourceTimestamps = [priorMatch.timestamp_utc];
         defaultReason = `Same-day prior week telemetry reference from ${priorMatch.timestamp_utc}`;
       } else {
-        estimatedVal = 45.0;
-        confidence = 0.7;
-        defaultReason = "Prior week interval missing, default profile applied";
+        throw new Error("Prior-week estimation requires a measured matching interval");
       }
     } else {
       // HISTORICAL_MEDIAN
-      const validVals = surroundingIntervals.map((i) => i.engineering_value).sort((a, b) => a - b);
+      const validVals = surroundingIntervals
+        .map((i) => i.engineering_value)
+        .filter((value): value is number => value !== undefined && Number.isFinite(value))
+        .sort((a, b) => a - b);
       if (validVals.length > 0) {
         const mid = Math.floor(validVals.length / 2);
-        estimatedVal = validVals[mid];
+        estimatedVal = validVals[mid] ?? 0;
         confidence = 0.85;
         sourceTimestamps = surroundingIntervals.slice(0, 5).map((i) => i.timestamp_utc);
         defaultReason = `30-day historical median across ${validVals.length} valid telemetry samples`;
       } else {
-        estimatedVal = 50.0;
-        confidence = 0.6;
-        defaultReason = "Historical median baseline fallback";
+        throw new Error("Historical median estimation requires measured interval values");
       }
     }
 

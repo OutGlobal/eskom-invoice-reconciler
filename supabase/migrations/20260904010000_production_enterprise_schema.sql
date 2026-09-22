@@ -698,19 +698,3 @@ BEGIN
         EXECUTE format('CREATE POLICY "Public Manage %I" ON public.%I FOR ALL USING (true) WITH CHECK (true)', t, t);
     END LOOP;
 END $$;
-
--- ==========================================
--- 12. SEED DEFAULT TAXONOMIES & TARIFF DATA
--- ==========================================
-
-INSERT INTO public.organisations (id, code, name)
-VALUES ('7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c'::uuid, 'IMPALA_PLAT', 'Impala Platinum Rustenburg')
-ON CONFLICT (code) DO NOTHING;
-
-INSERT INTO public.discrepancy_reason_codes (code, name, category, description)
-VALUES 
-('TX_RATE_UNNOTIFIED', 'Unnotified Transmission Rate Escalation', 'TARIFF_ESCALATION', 'Transmission capacity rate escalated without NERSA 30-day gazette notice.'),
-('CURTAILMENT_RATCHET_OVERCHARGE', 'Demand Ratchet During Load Curtailment', 'DEMAND_RATCHET', 'Maximum demand spike during compulsory load reduction order.'),
-('MID_MONTH_PRO_RATA_ERROR', 'Mid-Month Day Weighting Calculation Error', 'DAY_WEIGHTING', 'Incorrect sub-period day fraction applied to split month billing.'),
-('WHEELING_SUBSIDY_UNNETTED', 'Subsidies Applied To Gross Energy Pre-Wheeling', 'WHEELING_OFFSET', 'Electrification/Rural subsidy calculated on gross intake without netting clean wheeling energy.')
-ON CONFLICT (code) DO NOTHING;

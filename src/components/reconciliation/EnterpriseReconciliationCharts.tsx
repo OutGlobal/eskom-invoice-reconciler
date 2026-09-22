@@ -103,12 +103,8 @@ export const EnterpriseReconciliationCharts: React.FC<ChartProps> = ({
         stdVar += (d.standardKwh / totKwh) * d.varianceZar;
         offVar += (d.offPeakKwh / totKwh) * d.varianceZar;
       }
-      if (d.peakKva > d.nmdKva) {
-        demandVar += (d.peakKva - d.nmdKva) * 54.32;
-      }
-      if (d.actualKvarh > d.allowedKvarh) {
-        reactiveVar += (d.actualKvarh - d.allowedKvarh) * 0.28;
-      }
+      if (d.peakKva > d.nmdKva) demandVar += 0;
+      if (d.actualKvarh > d.allowedKvarh) reactiveVar += 0;
     }
 
     const items = [

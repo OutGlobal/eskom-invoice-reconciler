@@ -20,12 +20,12 @@ import {
 import { InvoiceReviewWorkspace } from "@/components/invoice/InvoiceReviewWorkspace";
 import { SecureUploadGateway } from "@/components/upload/SecureUploadGateway";
 import { InvoiceSelector } from "@/components/InvoiceSelector";
-import { LayeredExtractor } from "@/domain/invoice/layeredExtractor";
 import {
   InvoiceStorageService,
   type InvoiceSearchFilter,
 } from "@/domain/invoice/invoiceStorageService";
 import { InvoiceLifecycleService } from "@/domain/invoice/invoiceLifecycleService";
+import { LayeredExtractor } from "@/domain/invoice/layeredExtractor";
 import type {
   ExtractedInvoiceDocument,
   InvoiceLifecycleState,
@@ -40,49 +40,6 @@ export const Route = createFileRoute("/invoices")({
   }),
   component: InvoicesPage,
 });
-
-// Sample Megaflex PDF text payload for demo & verification
-const SAMPLE_MEGAFLEX_TEXT = `
-TAX INVOICE / STATEMENT
-ESKOM HOLDINGS SOC LTD
-VAT REG NO: 4740101508
-ACCOUNT NUMBER: ACC-78901234
-INVOICE NUMBER: INV-2026-03-9988
-INVOICE DATE: 2026-03-05
-BILLING PERIOD: 2026-02-01 to 2026-02-28
-
-CUSTOMER DETAILS:
-CUSTOMER NAME: ACME INDUSTRIAL SA (PTY) LTD
-PREMISE ID: PRM-4499
-METER NUMBER: MTR-9988-SA
-
-TARIFF DETAILS:
-TARIFF NAME: Eskom Megaflex
-TARIFF CODE: MEGAFLEX-TX
-NOTIFIED MAXIMUM DEMAND: 5000 kVA
-UTILISED CAPACITY: 4200 kVA
-MAXIMUM DEMAND: 4850 kVA
-POWER FACTOR: 0.96
-
-ENERGY DETERMINANTS:
-ACTIVE ENERGY: 1250000 kWh
-PEAK KWH: 250000 kWh
-STANDARD KWH: 600000 kWh
-OFF PEAK KWH: 400000 kWh
-TOTAL KWH: 1250000 kWh
-REACTIVE ENERGY: 180000 kVARh
-
-FINANCIAL CHARGES (EXCL VAT):
-DEMAND CHARGES: R 450000.00
-NETWORK CHARGES: R 180000.00
-CAPACITY CHARGES: R 120000.00
-SERVICE CHARGES: R 15000.00
-RELIABILITY SERVICES: R 8500.00
-LEVIES: R 24500.00
-SUBTOTAL: R 800000.00
-VAT 15%: R 120000.00
-TOTAL INVOICE AMOUNT: R 920000.00
-`;
 
 function InvoicesPage() {
   const [activeDoc, setActiveDoc] = useState<ExtractedInvoiceDocument | null>(null);
@@ -110,32 +67,6 @@ function InvoicesPage() {
   useEffect(() => {
     fetchInvoicesList();
   }, []);
-
-  const loadSampleInvoice = async () => {
-    setIsProcessing(true);
-    try {
-      const hash = await InvoiceStorageService.computeSha256(SAMPLE_MEGAFLEX_TEXT);
-      const extracted = await LayeredExtractor.extractDocument({
-        filename: "Eskom_Megaflex_Feb2026.pdf",
-        pageTexts: [SAMPLE_MEGAFLEX_TEXT],
-        sha256Hash: hash,
-        isScanned: false,
-      });
-
-      extracted.id = "inv-sample-megaflex";
-      extracted.lifecycle_state = InvoiceLifecycleService.determineInitialState(
-        extracted,
-        extracted.validation_summary,
-      );
-
-      setActiveDoc(extracted);
-      setViewMode("workspace");
-    } catch (err: any) {
-      toast.error("Failed to load invoice extraction workspace");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   const fetchInvoicesList = async () => {
     setIsLoadingInvoices(true);

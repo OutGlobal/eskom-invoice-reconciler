@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Calendar, FileText, CheckCircle2, Upload, Beaker } from "lucide-react";
+import { Calendar, FileText, CheckCircle2, Upload } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useApp } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
@@ -137,15 +137,6 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
     toast.success(`Active invoice switched to ${invNum}`);
   };
 
-  const handleLoadSandboxBenchmark = (month: "FEB" | "MARCH" | "APRIL" | "MAY") => {
-    const store = useApp.getState();
-    if (month === "FEB") store.loadFeb2026SampleInvoice();
-    if (month === "MARCH") store.loadMarch2026SampleInvoice();
-    if (month === "APRIL") store.loadApril2026SampleInvoice();
-    if (month === "MAY") store.loadMay2026SampleInvoice();
-    toast.success(`Loaded Benchmark Sandbox (${month} 2026)`);
-  };
-
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 bg-card/60 border border-border/80 rounded-xl p-3 shadow-sm">
       <div className="flex flex-wrap items-center gap-2">
@@ -207,27 +198,7 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
         )}
       </div>
 
-      {/* Benchmark Sandbox Selector (Strictly Segregated Developer/Evaluator Utility) */}
       <div className="flex items-center gap-2">
-        <select
-          onChange={(e) => {
-            if (e.target.value) {
-              handleLoadSandboxBenchmark(e.target.value as any);
-              e.target.value = "";
-            }
-          }}
-          defaultValue=""
-          className="text-[11px] bg-background border border-border/70 rounded-md px-2.5 py-1 text-muted-foreground hover:text-foreground cursor-pointer focus:outline-none"
-        >
-          <option value="" disabled>
-            🧪 Benchmark Sandbox Mode...
-          </option>
-          <option value="FEB">Feb 2026 Benchmark (Impala R97m)</option>
-          <option value="MARCH">Mar 2026 Benchmark (Curtailment R98m)</option>
-          <option value="APRIL">Apr 2026 Benchmark (Pro-Rata R91m)</option>
-          <option value="MAY">May 2026 Benchmark (Wheeling R97m)</option>
-        </select>
-
         {activeInvoice && (
           <div className="hidden lg:flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 border border-border/60 rounded-md px-2.5 py-1 font-mono text-[11px]">
             <FileText className="h-3.5 w-3.5 text-primary" />

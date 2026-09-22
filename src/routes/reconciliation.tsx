@@ -5,16 +5,14 @@ import {
   DeterministicReconciliationEngine,
   DEFAULT_TOLERANCE_CONFIG,
 } from "@/domain/reconciliation/reconciliationEngine";
-import {
-  REGRESSION_FIXTURES,
-  MEGAFLEX_JULY_2025_FIXTURE,
-} from "@/domain/reconciliation/regressionFixtures";
 import type {
   AuthoritativeReconciliationPayload,
   DeterminantComparisonItem,
   ToleranceConfig,
 } from "@/domain/reconciliation/types";
-import { ESKOM_MEGAFLEX_2025_2026 } from "@/domain/tariff/tariffFixtures";
+import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
+import { runAutomaticReconciliation } from "@/domain/reconciliation/autoReconciliationRunner";
+
 import {
   Scale,
   ShieldCheck,
@@ -24,8 +22,6 @@ import {
   FileText,
   RefreshCw,
   Sliders,
-  Play,
-  Layers,
   Search,
   Upload,
 } from "lucide-react";
@@ -45,7 +41,7 @@ export const Route = createFileRoute("/reconciliation")({
 
 function ReconciliationPage() {
   const activeInvoice = useApp((s) => s.invoice);
-  const [selectedFixtureCode, setSelectedFixtureCode] = useState<string>("ACTIVE_INVOICE");
+  const meterRows = useApp((s) => s.rows);
   const [payload, setPayload] = useState<AuthoritativeReconciliationPayload | null>(null);
   const [selectedDeterminant, setSelectedDeterminant] = useState<DeterminantComparisonItem | null>(
     null,
@@ -57,95 +53,15 @@ function ReconciliationPage() {
     "statutory" | "matrix" | "anomalies" | "evidence"
   >("statutory");
 
-  // Run reconciliation against active invoice or selected fixture
-  const runReconciliation = (fixtureCode: string) => {
-    let input;
-    if (fixtureCode === "ACTIVE_INVOICE") {
-      if (!activeInvoice) {
-        setPayload(null);
-        return;
-      }
-      input = {
-        tenant_id: "TENANT_SOUTH_AFRICA",
-        invoice_id: activeInvoice.invoiceNumber || activeInvoice.invoiceNo || "ACTIVE_INV",
-        invoice_number: activeInvoice.invoiceNumber || activeInvoice.invoiceNo || "ACTIVE_INV",
-        account_number: activeInvoice.accountNumber || "ACC-CURRENT",
-        telemetry_batch_id: "BATCH_ACTIVE",
-        billing_start: activeInvoice.billingPeriodStart || "2026-02-17",
-        billing_end: activeInvoice.billingPeriodEnd || "2026-03-18",
-        tariff_version: ESKOM_MEGAFLEX_2025_2026,
-        calendar_version_id: "2025.1",
-
-        billed_peak_kwh: new Decimal(activeInvoice.peakKWh || 0),
-        billed_standard_kwh: new Decimal(activeInvoice.standardKWh || 0),
-        billed_off_peak_kwh: new Decimal(activeInvoice.offPeakKWh || 0),
-        billed_total_kwh: new Decimal(activeInvoice.totalKWh || 0),
-        billed_maximum_demand_kva: new Decimal(activeInvoice.maxDemandKVA || 0),
-        billed_ratcheted_demand_kva: new Decimal(activeInvoice.maxDemandKVA || 0),
-        billed_reactive_energy_kvarh: new Decimal(activeInvoice.reactive || 0),
-        billed_energy_charges_zar: new Decimal(
-          (activeInvoice.peakEnergyCharge || 0) +
-            (activeInvoice.standardEnergyCharge || 0) +
-            (activeInvoice.offPeakEnergyCharge || 0),
-        ),
-        billed_demand_charges_zar: new Decimal(activeInvoice.networkDemandCharge || 0),
-        billed_network_charges_zar: new Decimal(
-          (activeInvoice.transmissionNetworkCharge || 0) +
-            (activeInvoice.networkCapacityCharge || 0),
-        ),
-        billed_service_charges_zar: new Decimal(activeInvoice.serviceCharge || 0),
-        billed_ancillary_charges_zar: new Decimal(activeInvoice.ancillary || 0),
-        billed_vat_zar: new Decimal(activeInvoice.vat || 0),
-        billed_total_invoice_zar: new Decimal(
-          activeInvoice.totalInclVat || activeInvoice.invoiceTotal || 0,
-        ),
-      };
-    } else {
-      const fixture = REGRESSION_FIXTURES.find((f) => f.fixture_code === fixtureCode);
-      if (!fixture) {
-        setPayload(null);
-        return;
-      }
-      const inv = fixture.invoice_inputs;
-      input = {
-        tenant_id: "TENANT_SOUTH_AFRICA",
-        invoice_id: inv.invoice_number,
-        invoice_number: inv.invoice_number,
-        account_number: inv.account_number,
-        telemetry_batch_id: "BATCH_2025_07_001",
-        billing_start: fixture.billing_start,
-        billing_end: fixture.billing_end,
-        tariff_version: fixture.tariff_version,
-        calendar_version_id: "2025.1",
-
-        billed_peak_kwh: inv.peak_kwh,
-        billed_standard_kwh: inv.standard_kwh,
-        billed_off_peak_kwh: inv.off_peak_kwh,
-        billed_total_kwh: inv.total_kwh,
-        billed_maximum_demand_kva: inv.maximum_demand_kva,
-        billed_ratcheted_demand_kva: inv.ratcheted_demand_kva,
-        billed_reactive_energy_kvarh: inv.reactive_energy_kvarh,
-        billed_energy_charges_zar: inv.energy_charges_zar,
-        billed_demand_charges_zar: inv.demand_charges_zar,
-        billed_network_charges_zar: inv.network_charges_zar,
-        billed_service_charges_zar: inv.service_charges_zar,
-        billed_ancillary_charges_zar: inv.ancillary_charges_zar,
-        billed_vat_zar: inv.vat_zar,
-        billed_total_invoice_zar: inv.total_invoice_zar,
-      };
-    }
-
-    const result = DeterministicReconciliationEngine.reconcile(input, DEFAULT_TOLERANCE_CONFIG);
-    setPayload(result);
+  const runReconciliation = () => {
+    const outcome = runAutomaticReconciliation(activeInvoice, meterRows, DEFAULT_TOLERANCE_CONFIG);
+    setPayload(outcome.payload);
   };
+
 
   useEffect(() => {
-    runReconciliation(selectedFixtureCode);
-  }, [selectedFixtureCode, activeInvoice]);
-
-  const handleFixtureChange = (code: string) => {
-    setSelectedFixtureCode(code);
-  };
+    runReconciliation();
+  }, [activeInvoice, meterRows]);
 
   const openExplainer = (item: DeterminantComparisonItem) => {
     setSelectedDeterminant(item);
@@ -178,17 +94,12 @@ function ReconciliationPage() {
         <EmptyState
           icon={Scale}
           title="No reconciliation has been completed."
-          description="Upload energy data to begin. Ingest billing invoices and AMR interval readings to execute 14-determinant reconciliation."
+           description="Upload an invoice, interval meter data, and the applicable tariff document to begin reconciliation."
           badge="Awaiting Settlement Analysis"
           primaryAction={{
             label: "Upload Energy Data",
             href: "/upload",
             icon: Upload,
-          }}
-          secondaryAction={{
-            label: "Load July 2025 Benchmark Sandbox",
-            onClick: () => handleFixtureChange(MEGAFLEX_JULY_2025_FIXTURE.fixture_code),
-            icon: RefreshCw,
           }}
         />
       </div>
@@ -197,7 +108,7 @@ function ReconciliationPage() {
 
   return (
     <div className="space-y-6">
-      {/* Impala Platinum 4-Month Billing Period Selector */}
+          {/* Uploaded billing period selector */}
       <InvoiceSelector />
 
       {/* Header */}
@@ -218,23 +129,11 @@ function ReconciliationPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <select
-            value={selectedFixtureCode}
-            onChange={(e) => handleFixtureChange(e.target.value)}
-            className="bg-background border border-border rounded px-3 py-1.5 text-xs font-medium"
-          >
-            <option value="ACTIVE_INVOICE">
-              Active Invoice (
-              {activeInvoice?.invoiceNumber || activeInvoice?.invoiceNo || "Current Period"})
-            </option>
-            {REGRESSION_FIXTURES.map((f) => (
-              <option key={f.fixture_code} value={f.fixture_code}>
-                {f.fixture_name}
-              </option>
-            ))}
-          </select>
+          <div className="rounded border border-border bg-background px-3 py-1.5 text-xs font-medium">
+            Active Invoice ({activeInvoice?.invoiceNumber || activeInvoice?.invoiceNo || "Current Period"})
+          </div>
           <button
-            onClick={() => runReconciliation(selectedFixtureCode)}
+            onClick={runReconciliation}
             className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
           >
             <RefreshCw className="h-3.5 w-3.5" /> Re-Run
@@ -298,7 +197,7 @@ function ReconciliationPage() {
           }`}
         >
           <ShieldCheck className="h-4 w-4 text-emerald-500" />
-          <span>12-Node Evidence Ledger & Cryptographic Trace</span>
+              <span>Evidence Ledger</span>
           <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-emerald-500/10 text-emerald-600 font-mono">
             Audited
           </span>

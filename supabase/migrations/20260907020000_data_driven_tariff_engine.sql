@@ -39,16 +39,6 @@ CREATE TABLE IF NOT EXISTS public.tariff_audit_logs (
 
 COMMENT ON TABLE public.tariff_audit_logs IS 'Append-only audit trail for tariff version changes and gazette lineage';
 
--- 4. Seed initial Tariff Families
-INSERT INTO public.tariff_families (family_code, family_name, utility, description)
-VALUES
-    ('MEGAFLEX', 'Eskom Megaflex', 'Eskom', 'High & Medium Voltage Urban Transmission & Distribution TOU Tariff'),
-    ('MINIFLEX', 'Eskom Miniflex', 'Eskom', 'Medium & Low Voltage Urban TOU Tariff'),
-    ('NIGHTSAVE', 'Eskom Nightsave Urban', 'Eskom', 'High & Medium Voltage Off-Peak Night-Heavy Demand Tariff'),
-    ('BUSINESSRATE', 'Eskom Businessrate', 'Eskom', 'Commercial & Small Business Non-TOU / TOU Tariff'),
-    ('MUNICIPAL_COJ', 'City of Johannesburg Bulk', 'City of Johannesburg', 'Municipal Bulk Industrial TOU Tariff')
-ON CONFLICT (family_code) DO NOTHING;
-
 -- 5. Performance Indices
 CREATE INDEX IF NOT EXISTS idx_tariff_versions_dates ON public.tariff_versions (effective_from, effective_to);
 CREATE INDEX IF NOT EXISTS idx_tariff_versions_code ON public.tariff_versions (tariff_code);
