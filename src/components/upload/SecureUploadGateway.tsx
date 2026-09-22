@@ -25,6 +25,8 @@ import {
   Copy,
   Sparkles,
   History,
+  Scale,
+
 } from "lucide-react";
 import { SecureIngestionGateway } from "@/domain/ingestion/secureIngestionGateway";
 import { UploadStorageService } from "@/domain/upload/uploadStorageService";
