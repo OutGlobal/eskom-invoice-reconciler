@@ -139,7 +139,7 @@ export class ProductionObservabilityService {
       try {
         void AuditTrailService.recordAction({
           organisationId: params.organisationId || "SYSTEM",
-          category: "security",
+          category: "processing",
           action: `OBSERVABILITY_${params.category}`,
           description: `Operational event: ${params.operationName} (${userFacing.referenceCode})`,
           actor: { userId: params.userId },

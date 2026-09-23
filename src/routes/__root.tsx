@@ -50,7 +50,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
-  const sanitized = UserFacingErrorSanitizer.sanitize("SYSTEM_ERROR", error);
+  const sanitized = UserFacingErrorSanitizer.sanitize("UNEXPECTED_STATE", error);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">

@@ -50,7 +50,6 @@ export function CommandCentreDashboard() {
   const batchInvoices = useApp((s) => s.batchInvoices);
   const validationIssues = useApp((s) => s.validation);
   const uploads = useApp((s) => s.uploads);
-  const loadMarch2026SampleInvoice = useApp((s) => s.loadMarch2026SampleInvoice);
 
   // Local filter state (Authoritative Database source by default)
   const [filters, setFilters] = useState<DashboardFilterState>({
@@ -508,15 +507,12 @@ export function CommandCentreDashboard() {
               <Upload className="h-4 w-4" /> Upload Energy Data
             </button>
             <button
-              onClick={() => {
-                loadMarch2026SampleInvoice();
-                loadData();
-              }}
+              onClick={() => loadData()}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold rounded-md border border-border transition"
             >
-              <Sparkles className="h-4 w-4 text-primary" /> Explore with Sample Reconciliation
-              Dataset
+              <Sparkles className="h-4 w-4 text-primary" /> Refresh Uploaded Data
             </button>
+
           </div>
         </div>
       ) : (
