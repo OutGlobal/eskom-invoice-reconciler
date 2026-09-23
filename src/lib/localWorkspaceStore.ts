@@ -19,10 +19,11 @@ interface SavedDataset {
 }
 
 const DB_NAME = "enera_workspace";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const UPLOADS = "uploads";
 const CUSTOMERS = "customers";
 const DATASETS = "datasets";
+const TARIFFS = "tariffs";
 
 function available() {
   return typeof indexedDB !== "undefined";
@@ -36,11 +37,13 @@ function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(UPLOADS)) db.createObjectStore(UPLOADS, { keyPath: "id" });
       if (!db.objectStoreNames.contains(CUSTOMERS)) db.createObjectStore(CUSTOMERS, { keyPath: "accountNumber" });
       if (!db.objectStoreNames.contains(DATASETS)) db.createObjectStore(DATASETS, { keyPath: "key" });
+      if (!db.objectStoreNames.contains(TARIFFS)) db.createObjectStore(TARIFFS, { keyPath: "key" });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
 }
+
 
 async function request<T>(storeName: string, mode: IDBTransactionMode, operation: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
   const db = await openDb();
@@ -107,6 +110,26 @@ export class LocalWorkspaceStore {
       };
     } catch {
       return null;
+    }
+  }
+
+  /** Persists an uploaded tariff schedule so it survives a page reload. */
+  static async saveTariff(key: string, payload: unknown): Promise<void> {
+    if (!available() || !key) return;
+    try {
+      await request(TARIFFS, "readwrite", (store) => store.put({ key, payload }));
+    } catch {
+      // Non-blocking: reconciliation still uses the in-memory registry this session
+    }
+  }
+
+  static async listTariffs(): Promise<unknown[]> {
+    if (!available()) return [];
+    try {
+      const records = await request<{ key: string; payload: unknown }[]>(TARIFFS, "readonly", (store) => store.getAll());
+      return records.map((record) => record.payload);
+    } catch {
+      return [];
     }
   }
 }
