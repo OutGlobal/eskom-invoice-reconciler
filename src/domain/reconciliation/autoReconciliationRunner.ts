@@ -55,10 +55,10 @@ export function runAutomaticReconciliation(
     };
   }
 
-  let tariffVersion = TariffStorageService.getVersionForDate(
-    invoice.tariffName || "",
-    invoice.billingPeriodStart || "",
-  );
+  let tariffVersion =
+    (invoice.tariffName
+      ? TariffStorageService.getVersionForDate(invoice.tariffName, invoice.billingPeriodStart || "")
+      : null) || TariffStorageService.getAnyVersionForDate(invoice.billingPeriodStart || "");
 
   // If no custom uploaded tariff is active, resolve against gazetted NERSA production fixtures
   if (!tariffVersion) {

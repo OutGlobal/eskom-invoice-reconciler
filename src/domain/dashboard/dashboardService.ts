@@ -125,10 +125,11 @@ export class DashboardService {
       const jobs = await ProcessingJobEngine.listJobs(organisationId ? { organisationId } : {});
       for (const job of jobs || []) {
         if (
-          job.status === "PROCESSING" ||
+          job.status === "RUNNING" ||
           job.status === "QUEUED" ||
           job.status === "PAUSED_AMBIGUITY"
         ) {
+
           activeJobs.push({
             id: job.jobId,
             name:
@@ -153,7 +154,7 @@ export class DashboardService {
       );
       for (const u of uploads || []) {
         if (
-          (u.processingStatus === "PROCESSING" || u.processingStatus === "PENDING") &&
+          (u.processingStatus === "PROCESSING" || u.processingStatus === "VALIDATING") &&
           !activeJobs.some((j) => j.id === u.id)
         ) {
           activeJobs.push({

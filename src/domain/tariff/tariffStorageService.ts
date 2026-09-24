@@ -202,6 +202,77 @@ export class TariffStorageService {
   }
 
   /**
+   * Returns any registered tariff version whose validity window covers the date.
+   * Used when an invoice names its tariff differently from the uploaded schedule.
+   */
+  public static getAnyVersionForDate(targetDate: string | Date): TariffVersionDefinition | null {
+    const dateObj = typeof targetDate === "string" ? new Date(targetDate) : targetDate;
+    if (!dateObj || Number.isNaN(dateObj.getTime())) return null;
+    const targetIso = dateObj.toISOString().substring(0, 10);
+    for (const v of this.store.values()) {
+      const eff = v.header.effective_date;
+      const exp = v.header.expiry_date || "2099-12-31";
+      if (targetIso >= eff && targetIso <= exp) return v;
+    }
+    return null;
+  }
+
+  /** Serialises a tariff version to a plain JSON-safe structure. */
+  private static serialise(version: TariffVersionDefinition): any {
+    return {
+      header: version.header,
+      tou_schedule: version.tou_schedule,
+      public_holidays: version.public_holidays,
+      components: version.components.map((c) => ({ ...c, rate_value: c.rate_value.toNumber() })),
+      reactive_penalty_rate: version.reactive_penalty_rate.toNumber(),
+      pf_threshold: version.pf_threshold.toNumber(),
+      nmd_ratchet_multiplier: version.nmd_ratchet_multiplier.toNumber(),
+      minimum_nmd_kva: version.minimum_nmd_kva.toNumber(),
+    };
+  }
+
+  private static deserialise(raw: any): TariffVersionDefinition {
+    return {
+      header: raw.header,
+      tou_schedule: Array.isArray(raw.tou_schedule) ? raw.tou_schedule : [],
+      public_holidays: Array.isArray(raw.public_holidays) ? raw.public_holidays : [],
+      components: (raw.components || []).map((c: any) => ({
+        ...c,
+        rate_value: new Decimal(c.rate_value ?? 0),
+      })) as TariffComponentRule[],
+      reactive_penalty_rate: new Decimal(raw.reactive_penalty_rate ?? 0),
+      pf_threshold: new Decimal(raw.pf_threshold ?? 0),
+      nmd_ratchet_multiplier: new Decimal(raw.nmd_ratchet_multiplier ?? 0),
+      minimum_nmd_kva: new Decimal(raw.minimum_nmd_kva ?? 0),
+    };
+  }
+
+  /**
+   * Restores uploaded tariff schedules saved in this workspace so reconciliation
+   * keeps working after a page reload.
+   */
+  public static async hydrateFromLocal(): Promise<number> {
+    try {
+      const { LocalWorkspaceStore } = await import("@/lib/localWorkspaceStore");
+      const saved = await LocalWorkspaceStore.listTariffs();
+      let restored = 0;
+      for (const raw of saved) {
+        if (!raw || typeof raw !== "object" || !(raw as any).header?.tariff_code) continue;
+        const version = this.deserialise(raw);
+        const key = this.getVersionKey(version.header.tariff_code, version.header.version);
+        if (!this.store.has(key)) {
+          this.store.set(key, version);
+          restored += 1;
+        }
+      }
+      return restored;
+    } catch {
+      return 0;
+    }
+  }
+
+
+  /**
    * Get all registered versions belonging to a tariff family
    */
   public static getVersionsByFamily(family: TariffFamilyType): TariffVersionDefinition[] {
@@ -240,6 +311,14 @@ export class TariffStorageService {
 
     // Persist in memory store
     this.store.set(key, version);
+
+    // Durable workspace copy so the tariff survives a reload
+    try {
+      const { LocalWorkspaceStore } = await import("@/lib/localWorkspaceStore");
+      await LocalWorkspaceStore.saveTariff(key, this.serialise(version));
+    } catch {
+      // non-blocking
+    }
 
     // Persist to Supabase in background
     try {
