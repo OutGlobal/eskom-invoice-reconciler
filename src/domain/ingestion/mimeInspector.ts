@@ -88,7 +88,9 @@ export class MimeInspector {
    * Check if PDF lacks text stream markers (scanned document)
    */
   public static detectIfScannedPdf(bytes: Uint8Array): boolean {
-    const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, 500));
-    return text.includes("/Image") && !text.includes("/Font");
+    const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, 4096));
+    const hasImage = text.includes("/Image") || text.includes("/XObject");
+    const hasFont = text.includes("/Font");
+    return hasImage && !hasFont;
   }
 }

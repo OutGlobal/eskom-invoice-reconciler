@@ -8,7 +8,7 @@
  *  4. Strict Tenant Isolation (cross-tenant signed URL requests are denied)
  */
 
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import type { UserSecurityContext } from "./types";
 import { TenantIsolationViolationError } from "./tenantContextService";
 import { UploadStorageService } from "../upload/uploadStorageService";
@@ -117,19 +117,21 @@ export class FileStorageSecurityService {
       uploadedAt: new Date().toISOString(),
     });
 
-    try {
-      const { error } = await supabase.storage.from(this.BUCKET_NAME).upload(storagePath, bytes, {
-        contentType: mimeType,
-        upsert: true,
-      });
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.storage.from(this.BUCKET_NAME).upload(storagePath, bytes, {
+          contentType: mimeType,
+          upsert: true,
+        });
 
-      if (error) {
-        console.warn(
-          `[FileStorageSecurityService] Supabase storage upload warning: ${error.message}`,
-        );
+        if (error) {
+          console.warn(
+            `[FileStorageSecurityService] Supabase storage upload warning: ${error.message}`,
+          );
+        }
+      } catch {
+        // Supabase offline: persistent store maintains copy
       }
-    } catch {
-      // Supabase offline: persistent store maintains copy
     }
 
     return { success: true, storagePath };
@@ -151,15 +153,17 @@ export class FileStorageSecurityService {
       }
     }
 
-    try {
-      const { data, error } = await supabase.storage.from(this.BUCKET_NAME).download(storagePath);
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase.storage.from(this.BUCKET_NAME).download(storagePath);
 
-      if (!error && data) {
-        const buffer = await data.arrayBuffer();
-        return { success: true, data: new Uint8Array(buffer), mimeType: data.type };
+        if (!error && data) {
+          const buffer = await data.arrayBuffer();
+          return { success: true, data: new Uint8Array(buffer), mimeType: data.type };
+        }
+      } catch {
+        // Fall through to persistent store
       }
-    } catch {
-      // Fall through to persistent store
     }
 
     const stored = this.persistentObjectStore.get(storagePath);
@@ -186,7 +190,7 @@ export class FileStorageSecurityService {
   ): Promise<SourceFileRecord | null> {
     let record = this.sourceFileMetadataStore.get(sourceFileId) || null;
 
-    if (!record) {
+    if (!record && isSupabaseConfigured) {
       try {
         const { data, error } = await supabase
           .from("source_files")

@@ -69,6 +69,7 @@ export interface ProcessingJob {
       startPeriod: string;
       endPeriod: string;
     };
+    telemetryIntervals?: any[];
     reportDownloadUrl?: string;
     processingDurationMs?: number;
     duplicateStatus?: import("../ingestion/duplicateTypes").DuplicateHandlingStatus;

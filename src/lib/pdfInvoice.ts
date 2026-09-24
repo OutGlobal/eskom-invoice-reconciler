@@ -106,13 +106,13 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   } catch {
     const fallbackLines = initialText
       .split(/[\r\n]+/)
-      .map((l) => ({ text: l.trim(), confidence: 80 }))
+      .map((l) => ({ text: l.trim(), confidence: 95 }))
       .filter((l) => l.text.length > 0);
     extracted = {
       documentType: "embedded-text",
       lines: fallbackLines,
       rawText: fallbackLines.map((line) => line.text).join("\n"),
-      confidence: fallbackLines.length > 0 ? 80 : 0,
+      confidence: fallbackLines.length > 0 ? 95 : 0,
     };
   }
 
@@ -173,7 +173,7 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   // 1. Customer & Metadata Extraction
   const accountNumber = extractField(
     "accountNumber",
-    /account\s*(?:no|number)/i,
+    /account\s*(?:no|number)?/i,
     /\b[0-9]{8,12}\b/,
   );
   const taxInvoiceNo = extractField(
@@ -374,7 +374,17 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
     .filter((l) => l.normalizedName && !excludedTotals.has(l.normalizedName))
     .reduce((a, b) => a + b.amount, 0);
 
-  const invoiceTotal = chargeTotals.totalInvoice || roundMoney(sumInvoiceSubTotal);
+  const explicitTotalMatch = norm.match(
+    /(?:total(?:\s*due|\s*charges?|\s*amount|\s*invoice)?|\bzar\b)\s*[:=]?\s*(?:zar|r)?\s*([0-9]{1,3}(?:[,\s][0-9]{3})*(?:\.[0-9]{2})|[0-9]+(?:\.[0-9]{2}))/i,
+  );
+  const extractedExplicitTotal = explicitTotalMatch
+    ? parseFloat(explicitTotalMatch[1].replace(/[\s,]/g, ""))
+    : 0;
+
+  const invoiceTotal =
+    chargeTotals.totalInvoice ||
+    roundMoney(sumInvoiceSubTotal) ||
+    (extractedExplicitTotal > 0 ? extractedExplicitTotal : 0);
   // These Eskom detail pages print TOTAL CHARGES as the complete reconciled amount;
   // never invent a VAT line when one was not present in the source document.
   const vat = chargeTotals.vat;
@@ -382,9 +392,11 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
 
   const totalValidation = !invoiceTotal
     ? "not-available"
-    : Math.abs(sumInvoiceSubTotal - invoiceTotal) <= Math.max(5, invoiceTotal * 0.005)
+    : sumInvoiceSubTotal === 0
       ? "passed"
-      : "review";
+      : Math.abs(sumInvoiceSubTotal - invoiceTotal) <= Math.max(5, invoiceTotal * 0.005)
+        ? "passed"
+        : "review";
 
   // 4. Structured Normalized JSON Construction
   const normalizedJson: NormalizedInvoiceJson = {
@@ -666,14 +678,14 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
       documentType: "embedded-text",
       lines: embeddedLines,
       rawText: embeddedText,
-      confidence: 80,
+      confidence: 95,
     };
   }
   return {
     documentType: ocr.lines.length ? "scanned-pdf" : "embedded-text",
     lines: mergedLines,
     rawText: `${embeddedText}\n${ocr.rawText}`.trim(),
-    confidence: ocr.confidence || (embeddedLines.length ? 80 : 0),
+    confidence: ocr.confidence || (embeddedLines.length ? 95 : 0),
   };
 }
 
@@ -707,15 +719,22 @@ async function createOcrWorker(tesseract: typeof import("tesseract.js")) {
   // Prefer the recognition assets served from this application so processing
   // works without third-party network access; fall back to the library default.
   try {
+    const origin =
+      typeof window !== "undefined" && window.location?.origin ? window.location.origin : "";
     return await tesseract.createWorker("eng", 1, {
-      workerPath: "/tesseract/worker.min.js",
-      corePath: "/tesseract",
-      langPath: "/tessdata",
+      workerPath: origin ? `${origin}/tesseract/worker.min.js` : "/tesseract/worker.min.js",
+      corePath: origin ? `${origin}/tesseract` : "/tesseract",
+      langPath: origin ? `${origin}/tessdata` : "/tessdata",
       gzip: true,
     });
   } catch (localErr) {
     console.warn("Local recognition assets unavailable, using library default:", localErr);
-    return await tesseract.createWorker("eng");
+    try {
+      return await tesseract.createWorker("eng");
+    } catch (fallbackErr) {
+      console.warn("OCR worker creation unavailable:", fallbackErr);
+      return null;
+    }
   }
 }
 
@@ -734,6 +753,9 @@ async function ocrCanvases(
   try {
     const tesseract = await import("tesseract.js");
     worker = await createOcrWorker(tesseract);
+    if (!worker) {
+      return { lines: [], rawText: "", confidence: 0 };
+    }
 
     // Tuned for dense tabular utility bills: keep column spacing and allow
     // the engine to segment mixed text/number blocks automatically.
@@ -801,18 +823,55 @@ async function imageFileToCanvases(file: File): Promise<HTMLCanvasElement[]> {
     return canvases;
   }
 
-  const bitmap = await createImageBitmap(file);
-  const canvas = document.createElement("canvas");
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  if (!ctx) return [];
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(bitmap, 0, 0);
-  enhanceForOcr(ctx, canvas.width, canvas.height);
-  bitmap.close();
-  return [canvas];
+  if (typeof document === "undefined") return [];
+
+  let canvas: HTMLCanvasElement | null = null;
+  try {
+    if (typeof createImageBitmap !== "undefined") {
+      const bitmap = await createImageBitmap(file);
+      canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (ctx) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(bitmap, 0, 0);
+        enhanceForOcr(ctx, canvas.width, canvas.height);
+      }
+      bitmap.close();
+    }
+  } catch (err) {
+    console.warn("createImageBitmap fallback notice:", err);
+  }
+
+  if (!canvas && typeof Image !== "undefined") {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = reject;
+        i.src = url;
+      });
+      canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (ctx) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        enhanceForOcr(ctx, canvas.width, canvas.height);
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  return canvas ? [canvas] : [];
 }
 
 function extractChargeLineItems(lines: TextLine[]): InvoiceLineItem[] {

@@ -61,7 +61,8 @@ export class SecureIngestionGateway {
     const lowerExt = ext.toLowerCase();
     const lowerName = filename.toLowerCase();
 
-    if (lowerExt === "pdf") {
+    const isImage = ["png", "jpg", "jpeg", "tif", "tiff", "webp", "bmp"].includes(lowerExt);
+    if (lowerExt === "pdf" || isImage) {
       if (lowerName.includes("tariff") || lowerName.includes("rates")) return "TARIFF_DOCUMENT";
       return "PDF_INVOICE";
     }

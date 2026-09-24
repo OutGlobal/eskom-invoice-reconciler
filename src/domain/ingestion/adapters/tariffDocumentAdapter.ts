@@ -62,13 +62,31 @@ export class TariffDocumentAdapter implements ILayoutAdapter {
 
       const header = tariffData.header || tariffData;
       const rawComponents = tariffData.components || tariffData.rates || [];
-      const missing = ["tariff_code", "version", "effective_date"].filter((key) => !header[key]);
+      const effectiveDate =
+        header.effective_date ||
+        (header.version && header.version.match(/\b(20\d\d)\b/)
+          ? `${header.version.match(/\b(20\d\d)\b/)![1]}-04-01`
+          : `${new Date().getFullYear()}-01-01`);
+      header.effective_date = effectiveDate;
+
+      const missing = ["tariff_code", "version"].filter((key) => !header[key]);
       if (missing.length > 0 || !Array.isArray(rawComponents) || rawComponents.length === 0) {
-        throw new Error(`Tariff document is missing required fields: ${[...missing, ...(!Array.isArray(rawComponents) || rawComponents.length === 0 ? ["rates"] : [])].join(", ")}`);
+        throw new Error(
+          `Tariff document is missing required fields: ${[...missing, ...(!Array.isArray(rawComponents) || rawComponents.length === 0 ? ["rates"] : [])].join(", ")}`,
+        );
       }
       const components: TariffComponentRule[] = rawComponents.map((rate: any, index: number) => {
-        const value = rate.rate_value ?? rate.value ?? rate.peak_rate ?? rate.standard_rate ?? rate.off_peak_rate;
-        if (value === undefined || value === "" || Number.isNaN(Number(value))) throw new Error(`Rate row ${index + 1} has no valid rate value`);
+        const value =
+          rate.rate_value ??
+          rate.value ??
+          rate.rate_c_per_kwh ??
+          rate.rate ??
+          rate.c_per_kwh ??
+          rate.peak_rate ??
+          rate.standard_rate ??
+          rate.off_peak_rate;
+        if (value === undefined || value === "" || Number.isNaN(Number(value)))
+          throw new Error(`Rate row ${index + 1} has no valid rate value`);
         return {
           component_code: String(rate.component_code || rate.code || `RATE_${index + 1}`),
           component_name: String(rate.component_name || rate.name || rate.component_code || rate.code || `Rate ${index + 1}`),

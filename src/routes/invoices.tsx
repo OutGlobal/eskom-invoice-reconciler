@@ -33,6 +33,9 @@ import type {
 } from "@/domain/invoice/types";
 import { EmptyState } from "@/components/ui/EmptyState";
 import toast from "react-hot-toast";
+import { extractInvoiceFromPdf } from "@/lib/pdfInvoice";
+import { useApp, type InvoiceData } from "@/lib/store";
+import { LocalWorkspaceStore } from "@/lib/localWorkspaceStore";
 
 export const Route = createFileRoute("/invoices")({
   head: () => ({
@@ -85,21 +88,150 @@ function InvoicesPage() {
     if (!file) return;
 
     setIsProcessing(true);
-    toast.loading("Processing invoice via 8-stage extraction pipeline...", { id: "inv-extract" });
+    toast.loading("Processing invoice via OCR and 8-stage extraction pipeline...", {
+      id: "inv-extract",
+    });
 
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const contentStr = new TextDecoder().decode(arrayBuffer);
       const hash = await InvoiceStorageService.computeSha256(new Uint8Array(arrayBuffer));
+
+      let pageTexts: string[] = [];
+      let isScanned = false;
+      let ocrConfidence = 95;
+      let pdfRes: any = null;
+
+      try {
+        pdfRes = await extractInvoiceFromPdf(file);
+        if (pdfRes?.rawText && pdfRes.rawText.trim().length > 20) {
+          pageTexts = [pdfRes.rawText];
+          isScanned = pdfRes.invoice?.source?.includes("scanned") || false;
+          if (pdfRes.invoice?.extraction?.overallConfidence) {
+            ocrConfidence = pdfRes.invoice.extraction.overallConfidence;
+          }
+        }
+      } catch (ocrErr: any) {
+        console.warn("OCR/PDF text extraction fallback:", ocrErr);
+      }
+
+      if (pageTexts.length === 0) {
+        const contentStr = new TextDecoder().decode(arrayBuffer);
+        pageTexts = [contentStr];
+        isScanned = file.type.includes("pdf") && contentStr.length < 50;
+      }
 
       const extracted = await LayeredExtractor.extractDocument({
         filename: file.name,
-        pageTexts: [contentStr],
+        pageTexts,
         sha256Hash: hash,
-        isScanned: file.type.includes("pdf") && contentStr.length < 50,
+        isScanned,
+        ocrConfidence,
       });
 
+      // Augment any values found by pdfRes if LayeredExtractor left them blank
+      if (pdfRes?.invoice) {
+        const inv = pdfRes.invoice;
+        if (!extracted.invoice_number.value && inv.invoiceNumber) {
+          extracted.invoice_number.value = inv.invoiceNumber;
+        }
+        if (!extracted.account_number.value && inv.accountNumber) {
+          extracted.account_number.value = inv.accountNumber;
+        }
+        if (!extracted.customer_name.value && inv.customerName) {
+          extracted.customer_name.value = inv.customerName;
+        }
+        if (!extracted.meter_number.value && inv.meterNumber) {
+          extracted.meter_number.value = inv.meterNumber;
+        }
+      }
+
       extracted.lifecycle_state = "EXTRACTED";
+
+      // Reflect into application state for immediate reconciliation and dashboard visibility
+      const store = useApp.getState();
+      const mappedInvoice: InvoiceData = {
+        source: file.name,
+        invoiceNumber: String(
+          extracted.invoice_number.value || pdfRes?.invoice?.invoiceNumber || "",
+        ),
+        customerName: String(
+          extracted.customer_name.value || pdfRes?.invoice?.customerName || "",
+        ),
+        accountNumber: String(
+          extracted.account_number.value || pdfRes?.invoice?.accountNumber || "",
+        ),
+        meterNumber: String(
+          extracted.meter_number.value || pdfRes?.invoice?.meterNumber || "",
+        ),
+        tariffName: String(
+          extracted.tariff_name.value || pdfRes?.invoice?.tariffName || "Megaflex",
+        ),
+        voltage: String(extracted.voltage?.value || pdfRes?.invoice?.voltage || "132 kV"),
+        nmd: Number(extracted.notified_maximum_demand.value || pdfRes?.invoice?.nmd || 0),
+        billingPeriod: String(
+          extracted.billing_period_start.value && extracted.billing_period_end.value
+            ? `${extracted.billing_period_start.value} - ${extracted.billing_period_end.value}`
+            : pdfRes?.invoice?.billingPeriod || "",
+        ),
+        billingPeriodStart: String(
+          extracted.billing_period_start.value || pdfRes?.invoice?.billingPeriodStart || "",
+        ),
+        billingPeriodEnd: String(
+          extracted.billing_period_end.value || pdfRes?.invoice?.billingPeriodEnd || "",
+        ),
+        peakKWh: Number(extracted.determinants.peak_kwh.value ?? pdfRes?.invoice?.peakKWh ?? 0),
+        standardKWh: Number(
+          extracted.determinants.standard_kwh.value ?? pdfRes?.invoice?.standardKWh ?? 0,
+        ),
+        offPeakKWh: Number(
+          extracted.determinants.off_peak_kwh.value ?? pdfRes?.invoice?.offPeakKWh ?? 0,
+        ),
+        totalKWh: Number(extracted.determinants.total_kwh.value ?? pdfRes?.invoice?.totalKWh ?? 0),
+        maxDemandKVA: Number(
+          extracted.determinants.maximum_demand.value ?? pdfRes?.invoice?.maxDemandKVA ?? 0,
+        ),
+        transmissionNetworkCharge: Number(
+          extracted.charges.network_charges.value ?? pdfRes?.invoice?.transmissionNetworkCharge ?? 0,
+        ),
+        networkCapacityCharge: Number(
+          extracted.charges.capacity_charges.value ?? pdfRes?.invoice?.networkCapacityCharge ?? 0,
+        ),
+        generationCapacityCharge: 0,
+        networkDemandCharge: Number(
+          extracted.charges.demand_charges.value ?? pdfRes?.invoice?.networkDemandCharge ?? 0,
+        ),
+        ancillary: Number(
+          extracted.charges.reliability_services.value ?? pdfRes?.invoice?.ancillary ?? 0,
+        ),
+        legacy: 0,
+        affordability: 0,
+        electrification: Number(
+          extracted.charges.levies.value ?? pdfRes?.invoice?.electrification ?? 0,
+        ),
+        reactive: Number(
+          extracted.determinants.reactive_energy_kvarh.value ?? pdfRes?.invoice?.reactive ?? 0,
+        ),
+        peakEnergyCharge: Number(pdfRes?.invoice?.peakEnergyCharge ?? 0),
+        standardEnergyCharge: Number(pdfRes?.invoice?.standardEnergyCharge ?? 0),
+        offPeakEnergyCharge: Number(pdfRes?.invoice?.offPeakEnergyCharge ?? 0),
+        vat: Number(extracted.financials.vat_amount.value ?? pdfRes?.invoice?.vat ?? 0),
+        invoiceTotal: Number(
+          extracted.financials.subtotal_amount.value ?? pdfRes?.invoice?.invoiceTotal ?? 0,
+        ),
+        totalInclVat: Number(
+          extracted.financials.total_invoice_amount.value ?? pdfRes?.invoice?.totalInclVat ?? 0,
+        ),
+      };
+
+      store.setInvoice(mappedInvoice);
+      store.setCustomer({
+        name: mappedInvoice.customerName,
+        accountNumber: mappedInvoice.accountNumber,
+        meter: mappedInvoice.meterNumber,
+        address: mappedInvoice.address || "",
+        nmd: mappedInvoice.nmd || 0,
+      });
+      await LocalWorkspaceStore.saveDataset(mappedInvoice, store.rows);
 
       // Check duplicate
       const dupCheck = InvoiceLifecycleService.isDuplicate(

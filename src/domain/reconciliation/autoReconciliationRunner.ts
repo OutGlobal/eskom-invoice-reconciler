@@ -16,6 +16,11 @@ import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
 import type { InvoiceData } from "@/lib/store";
 import type { Measurement } from "@/lib/parseMeter";
 
+import {
+  ALL_PRODUCTION_TARIFF_FIXTURES,
+  ESKOM_MEGAFLEX_2025_2026,
+} from "@/domain/tariff/tariffFixtures";
+
 export type AutoReconciliationStatus =
   | "COMPLETED"
   | "AWAITING_INVOICE"
@@ -50,10 +55,62 @@ export function runAutomaticReconciliation(
     };
   }
 
-  const tariffVersion = TariffStorageService.getVersionForDate(
+  let tariffVersion = TariffStorageService.getVersionForDate(
     invoice.tariffName || "",
     invoice.billingPeriodStart || "",
   );
+
+  // If no custom uploaded tariff is active, resolve against gazetted NERSA production fixtures
+  if (!tariffVersion) {
+    const query = (invoice.tariffName || "").toLowerCase().trim();
+    const dateObj = invoice.billingPeriodStart ? new Date(invoice.billingPeriodStart) : new Date();
+    const targetIso = !Number.isNaN(dateObj.getTime())
+      ? dateObj.toISOString().substring(0, 10)
+      : new Date().toISOString().substring(0, 10);
+
+    if (query) {
+      tariffVersion =
+        ALL_PRODUCTION_TARIFF_FIXTURES.find((v) => {
+          const code = v.header.tariff_code.toLowerCase();
+          const name = v.header.tariff_name.toLowerCase();
+          const family = v.header.tariff_family.toLowerCase();
+          const matches =
+            code.includes(query) ||
+            name.includes(query) ||
+            family.includes(query) ||
+            query.includes(family);
+          if (!matches) return false;
+          const eff = v.header.effective_date;
+          const exp = v.header.expiry_date || "2099-12-31";
+          return targetIso >= eff && targetIso <= exp;
+        }) || null;
+
+      if (!tariffVersion) {
+        tariffVersion =
+          ALL_PRODUCTION_TARIFF_FIXTURES.find((v) => {
+            const code = v.header.tariff_code.toLowerCase();
+            const name = v.header.tariff_name.toLowerCase();
+            const family = v.header.tariff_family.toLowerCase();
+            return (
+              code.includes(query) ||
+              name.includes(query) ||
+              family.includes(query) ||
+              query.includes(family)
+            );
+          }) || null;
+      }
+    }
+
+    if (!tariffVersion) {
+      tariffVersion =
+        ALL_PRODUCTION_TARIFF_FIXTURES.find((v) => {
+          if (v.header.tariff_family !== "megaflex") return false;
+          const eff = v.header.effective_date;
+          const exp = v.header.expiry_date || "2099-12-31";
+          return targetIso >= eff && targetIso <= exp;
+        }) || ESKOM_MEGAFLEX_2025_2026;
+    }
+  }
 
   if (!tariffVersion) {
     return {

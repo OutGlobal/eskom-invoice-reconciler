@@ -19,7 +19,7 @@
  *  - REPLACEMENT: Controlled replacement superseding and archiving prior records
  */
 
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import type { UserSecurityContext } from "../security/types";
 import { TenantIsolationViolationError } from "../security/tenantContextService";
 import { AuditLedgerService } from "../audit/auditLedgerService";
@@ -586,13 +586,14 @@ export class DuplicateProtectionService {
     results.push(...memRecords);
 
     // 2. Query Supabase invoice_records
-    try {
-      let query = supabase.from("invoice_records").select("*");
-      if (orgId) {
-        query = query.eq("organisation_id", orgId);
-      }
+    if (isSupabaseConfigured) {
+      try {
+        let query = supabase.from("invoice_records").select("*");
+        if (orgId) {
+          query = query.eq("organisation_id", orgId);
+        }
 
-      const { data, error } = await query.limit(50);
+        const { data, error } = await query.limit(50);
       if (!error && Array.isArray(data)) {
         for (const row of data) {
           // Avoid duplicate entries if already in results
@@ -620,8 +621,9 @@ export class DuplicateProtectionService {
           }
         }
       }
-    } catch {
-      // Graceful fallback to memory records
+      } catch {
+        // Graceful fallback to memory records
+      }
     }
 
     return results;

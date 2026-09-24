@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
-export { supabase };
+export { supabase, isSupabaseConfigured };
 export default supabase;

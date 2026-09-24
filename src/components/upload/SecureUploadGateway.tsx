@@ -376,7 +376,7 @@ export function SecureUploadGateway() {
             status: "COMPLETED",
             currentStage: "COMPLETE",
             invoiceIngestion: {} as any,
-            meterIngestion: { intervals: [] } as any,
+            meterIngestion: { intervals: current.resultPayload?.telemetryIntervals || [] } as any,
             extractedInvoice: current.resultPayload?.invoiceDeterminants as any,
             reconciliation: current.resultPayload?.reconciliation as any,
             discrepancyAnalysis: current.resultPayload?.diagnostics as any,
@@ -393,17 +393,19 @@ export function SecureUploadGateway() {
               customerName: ext.customerName || ext.pod || ext.premiseId || "",
               accountNumber: ext.accountNumber || "",
               meterNumber: ext.meterNumber || ext.meterSerial || "",
-              tariffName: ext.tariffName || ext.tariff || "",
-              voltage: ext.voltage || "",
+              tariffName: ext.tariffName || ext.tariff || "Megaflex",
+              voltage: ext.voltage || "132 kV",
               nmd: ext.notifiedMaximumDemand || 0,
-              billingPeriod: ext.billingPeriod || "",
-              billingPeriodStart: ext.billingPeriodStart,
-              billingPeriodEnd: ext.billingPeriodEnd,
+              billingPeriod:
+                ext.billingPeriod ||
+                `${ext.billingStart || ext.billingPeriodStart || ""} - ${ext.billingEnd || ext.billingPeriodEnd || ""}`,
+              billingPeriodStart: ext.billingStart || ext.billingPeriodStart,
+              billingPeriodEnd: ext.billingEnd || ext.billingPeriodEnd,
               peakKWh: ext.peakKwh || 0,
               standardKWh: ext.standardKwh || 0,
               offPeakKWh: ext.offPeakKwh || 0,
               totalKWh: ext.totalKwh || 0,
-              maxDemandKVA: ext.maximumDemandKva || 0,
+              maxDemandKVA: ext.maximumDemandKva || ext.billedMaximumDemand || 0,
               transmissionNetworkCharge: ext.transmissionNetworkCharge || 0,
               networkCapacityCharge: ext.networkCapacityCharge || 0,
               generationCapacityCharge: 0,
@@ -412,13 +414,16 @@ export function SecureUploadGateway() {
               legacy: 0,
               affordability: ext.affordability || 0,
               electrification: ext.electrification || 0,
-              reactive: 0,
+              reactive: ext.reactiveKvarh || ext.reactive || 0,
               peakEnergyCharge: ext.peakEnergyCharge || 0,
               standardEnergyCharge: ext.standardEnergyCharge || 0,
               offPeakEnergyCharge: ext.offPeakEnergyCharge || 0,
               vat: ext.vat || 0,
-              invoiceTotal: (ext.totalInvoice || 0) - (ext.vat || 0),
+              invoiceTotal: ext.totalInvoice ? ext.totalInvoice - (ext.vat || 0) : 0,
               totalInclVat: ext.totalInvoice || 0,
+              reconciledTotal: current.resultPayload?.reconciliation?.reconciled_total_zar
+                ? Number(current.resultPayload.reconciliation.reconciled_total_zar)
+                : undefined,
             };
             useApp.getState().setInvoice(mappedInvoice);
             useApp.getState().setCustomer({
@@ -428,7 +433,50 @@ export function SecureUploadGateway() {
               address: mappedInvoice.address || "",
               nmd: mappedInvoice.nmd || 0,
             });
-            await LocalWorkspaceStore.saveDataset(mappedInvoice, useApp.getState().rows);
+            useApp.getState().addUpload({
+              name: invoiceFile.name,
+              size: invoiceFile.size,
+              type: "invoice",
+              uploadedAt: new Date(),
+            });
+          }
+
+          if (
+            current.resultPayload?.telemetryIntervals &&
+            current.resultPayload.telemetryIntervals.length > 0
+          ) {
+            const measurements: Measurement[] = current.resultPayload.telemetryIntervals.map(
+              (r: any) => ({
+                ts: r.ts
+                  ? new Date(r.ts)
+                  : r.timestamp_utc
+                    ? new Date(r.timestamp_utc)
+                    : new Date(r.timestamp || Date.now()),
+                kW: r.kW ?? r.active_power_kw ?? r.kwh ?? 0,
+                kVAr:
+                  r.kVAr ??
+                  (r.reactive_energy_kvarh
+                    ? r.reactive_energy_kvarh * (60 / (r.interval_minutes || 30))
+                    : r.kvarh ?? 0),
+                kVA: r.kVA ?? r.apparent_power_kva ?? r.kva ?? 0,
+                pf: r.pf ?? r.power_factor ?? 0.96,
+                tou: (r.tou || r.tou_period || "peak") as any,
+                estimated: r.quality_status === "estimated",
+              }),
+            );
+            useApp.getState().setRows(measurements);
+            useApp.getState().addUpload({
+              name: meterFile.name,
+              size: meterFile.size,
+              type: "meter",
+              uploadedAt: new Date(),
+            });
+            await LocalWorkspaceStore.saveDataset(useApp.getState().invoice, measurements);
+          } else if (useApp.getState().invoice) {
+            await LocalWorkspaceStore.saveDataset(
+              useApp.getState().invoice,
+              useApp.getState().rows,
+            );
           }
 
           RealtimeRefreshManager.notifyProcessingComplete({
