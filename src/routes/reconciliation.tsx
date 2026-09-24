@@ -61,6 +61,11 @@ function ReconciliationPage() {
 
   useEffect(() => {
     runReconciliation();
+    import("@/domain/tariff/tariffStorageService").then(({ TariffStorageService }) =>
+      TariffStorageService.hydrateFromLocal().then((n) => {
+        if (n > 0) runReconciliation();
+      }),
+    );
   }, [activeInvoice, meterRows]);
 
   const openExplainer = (item: DeterminantComparisonItem) => {
