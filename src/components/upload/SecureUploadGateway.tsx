@@ -423,10 +423,12 @@ export function SecureUploadGateway() {
               offPeakEnergyCharge: ext.offPeakEnergyCharge || 0,
               vat: ext.vat || 0,
               invoiceTotal: ext.totalInvoice ? ext.totalInvoice - (ext.vat || 0) : 0,
-              totalInclVat: ext.totalInvoice || 0,
-              reconciledTotal: current.resultPayload?.reconciliation?.reconciled_total_zar
-                ? Number(current.resultPayload.reconciliation.reconciled_total_zar)
-                : undefined,
+              reconciledTotal:
+                (current.resultPayload?.reconciliation as any)?.reconciled_total_zar != null
+                  ? Number((current.resultPayload?.reconciliation as any).reconciled_total_zar)
+                  : (current.resultPayload?.reconciliation as any)?.expected_total_zar != null
+                  ? Number((current.resultPayload?.reconciliation as any).expected_total_zar)
+                  : undefined,
             };
             useApp.getState().setInvoice(mappedInvoice);
             useApp.getState().setCustomer({

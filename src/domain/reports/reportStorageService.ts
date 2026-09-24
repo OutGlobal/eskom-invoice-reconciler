@@ -108,3 +108,39 @@ export async function getGeneratedReportsByRunId(runId: string): Promise<Dispute
     return memoryReportsStore.filter((r) => r.runId === runId);
   }
 }
+
+export async function fetchGeneratedReports(runId?: string): Promise<DisputeReportMetadata[]> {
+  if (runId) {
+    return getGeneratedReportsByRunId(runId);
+  }
+  try {
+    const { data, error } = await supabase
+      .from("generated_reports")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error || !data) {
+      return memoryReportsStore;
+    }
+
+    return data.map((r: any) => ({
+      reportId: r.id,
+      runId: r.parameters?.run_id || "",
+      version: r.parameters?.version || "v1.0",
+      organisationId: r.organisation_id || "",
+      customerId: r.parameters?.customer_id || "",
+      invoiceId: r.parameters?.invoice_id || "",
+      reportType:
+        r.report_type === "RECONCILIATION_DETAIL" ? "DISPUTE_PACK_EXCEL" : "DISPUTE_PACK_PDF",
+      fileName: r.title,
+      fileSizeBytes: r.parameters?.file_size_bytes || 0,
+      sha256Hash: r.parameters?.sha256_hash || "",
+      storageUrl: r.storage_path,
+      createdAt: r.created_at,
+      createdBy: r.parameters?.created_by || "",
+    }));
+  } catch {
+    return memoryReportsStore;
+  }
+}
+

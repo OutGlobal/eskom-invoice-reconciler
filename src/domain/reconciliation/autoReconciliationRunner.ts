@@ -7,10 +7,8 @@
  * reconciliation result exists without any manual action.
  */
 import Decimal from "decimal.js-light";
-import {
-  DeterministicReconciliationEngine,
-  DEFAULT_TOLERANCE_CONFIG,
-} from "./reconciliationEngine";
+import { DeterministicReconciliationEngine } from "./reconciliationEngine";
+import { DEFAULT_TOLERANCE_CONFIG } from "./types";
 import type { AuthoritativeReconciliationPayload, ToleranceConfig } from "./types";
 import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
 import type { InvoiceData } from "@/lib/store";

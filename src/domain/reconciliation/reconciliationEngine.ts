@@ -6,6 +6,7 @@
 
 import Decimal from "decimal.js-light";
 import type { TariffVersionDefinition } from "../tariff/types";
+import { DEFAULT_TOLERANCE_CONFIG } from "./types";
 import type {
   AuthoritativeReconciliationPayload,
   DeterminantComparisonItem,
@@ -26,7 +27,6 @@ import type {
   ReconciliationResultClassification,
   ReconcileStoredDataParams,
   StoredReconciliationDataset,
-  DEFAULT_TOLERANCE_CONFIG,
 } from "./types";
 export { DEFAULT_TOLERANCE_CONFIG };
 import { DeterministicTariffEngine, DeterministicEngine } from "../tariff/deterministicEngine";

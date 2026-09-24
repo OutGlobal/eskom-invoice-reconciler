@@ -3,6 +3,7 @@
  * Unified access to canonical domain types, telemetry records, and reconciliation schemas
  */
 
+export type { VoltageCategory } from "@/domain/types/canonical";
 export type * from "@/domain/types/canonical";
 export type * from "@/domain/reconciliation/types";
 export type * from "@/domain/tariff/types";

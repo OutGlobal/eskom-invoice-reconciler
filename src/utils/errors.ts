@@ -4,6 +4,7 @@
  */
 
 import { UserFacingErrorSanitizer } from "@/domain/observability/userFacingErrorSanitizer";
+import type { ObservabilityCategory } from "@/domain/observability/types";
 
 export { UserFacingErrorSanitizer };
 
@@ -11,32 +12,20 @@ export { UserFacingErrorSanitizer };
  * Extracts a friendly, sanitized error message from any caught error or unknown value.
  * Never leaks database column names, SQLSTATE codes, or internal stack traces.
  */
-export function getSanitizedErrorMessage(error: unknown, defaultFallback: string = "An unexpected error occurred"): string {
+export function getSanitizedErrorMessage(
+  error: unknown,
+  defaultFallback: string = "An unexpected error occurred",
+  category: ObservabilityCategory = "PROCESSING_FAILURE",
+): string {
   if (!error) return defaultFallback;
 
-  if (typeof error === "string") {
-    if (UserFacingErrorSanitizer.containsTechnicalDetails(error)) {
-      return UserFacingErrorSanitizer.sanitizeMessage(error).userMessage;
-    }
-    return error;
+  const rawMsg = UserFacingErrorSanitizer.extractRawMessage(error);
+  if (UserFacingErrorSanitizer.containsTechnicalDetails(rawMsg)) {
+    const sanitized = UserFacingErrorSanitizer.sanitize(category, error);
+    return sanitized.message;
   }
 
-  if (error instanceof Error) {
-    if (UserFacingErrorSanitizer.containsTechnicalDetails(error.message)) {
-      return UserFacingErrorSanitizer.sanitize(error).userMessage;
-    }
-    return error.message;
-  }
-
-  if (typeof error === "object" && error !== null && "message" in error) {
-    const msg = String((error as any).message);
-    if (UserFacingErrorSanitizer.containsTechnicalDetails(msg)) {
-      return UserFacingErrorSanitizer.sanitizeMessage(msg).userMessage;
-    }
-    return msg;
-  }
-
-  return defaultFallback;
+  return rawMsg || defaultFallback;
 }
 
 /**
