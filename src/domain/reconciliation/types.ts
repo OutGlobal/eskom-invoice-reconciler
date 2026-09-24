@@ -26,6 +26,14 @@ export interface ToleranceConfig {
   kvarh_tolerance: Decimal; // e.g. 50 kVARh
 }
 
+export const DEFAULT_TOLERANCE_CONFIG: ToleranceConfig = {
+  percentage_tolerance: new Decimal("0.50"), // 0.5%
+  absolute_zar_tolerance: new Decimal("50.00"), // R 50.00
+  kwh_tolerance: new Decimal("100.00"),
+  kva_tolerance: new Decimal("5.00"),
+  kvarh_tolerance: new Decimal("50.00"),
+};
+
 export interface CalculationExplanation {
   input_value: string;
   formula_used: string;

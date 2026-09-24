@@ -26,7 +26,9 @@ import type {
   ReconciliationResultClassification,
   ReconcileStoredDataParams,
   StoredReconciliationDataset,
+  DEFAULT_TOLERANCE_CONFIG,
 } from "./types";
+export { DEFAULT_TOLERANCE_CONFIG };
 import { DeterministicTariffEngine, DeterministicEngine } from "../tariff/deterministicEngine";
 import { DeterminantEngine } from "../determinants/determinantEngine";
 import { ToleranceEngine } from "./toleranceEngine";
@@ -38,13 +40,6 @@ import { ReconciliationStorageService } from "./reconciliationStorageService";
 import { TouScheduleEngine } from "../tariff/touScheduleEngine";
 import { TariffVersionSelector } from "../tariff/tariffVersionSelector";
 
-export const DEFAULT_TOLERANCE_CONFIG: ToleranceConfig = {
-  percentage_tolerance: new Decimal("0.50"), // 0.5%
-  absolute_zar_tolerance: new Decimal("50.00"), // R 50.00
-  kwh_tolerance: new Decimal("100.00"),
-  kva_tolerance: new Decimal("5.00"),
-  kvarh_tolerance: new Decimal("50.00"),
-};
 
 export interface AuthoritativeReconciliationInput {
   tenant_id?: string;

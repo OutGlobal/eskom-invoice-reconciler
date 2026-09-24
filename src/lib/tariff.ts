@@ -1,5 +1,5 @@
-export type TouPeriod = "peak" | "standard" | "offPeak";
-export type Season = "high" | "low";
+import type { TouPeriod, Season } from "../domain/types/canonical";
+export type { TouPeriod, Season };
 
 /** Helper to convert any Date object to South Africa Standard Time (UTC+2) components */
 export function getSastComponents(d: Date): {
