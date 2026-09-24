@@ -20,8 +20,24 @@ describe("STAGE 36 — Final Security Disclosure Review", () => {
   const rootDir = path.resolve(__dirname, "../../../");
   const srcDir = path.resolve(rootDir, "src");
 
+  // In-memory cache to prevent repeated disk I/O and timeouts during full test suite execution
+  const fileCache = new Map<string, string>();
+  const dirCache = new Map<string, string[]>();
+
+  function getFileContent(file: string): string {
+    if (!fileCache.has(file)) {
+      fileCache.set(file, fs.readFileSync(file, "utf-8"));
+    }
+    return fileCache.get(file)!;
+  }
+
   // Helper to recursively collect all files in a directory excluding tests and node_modules
   function getSourceFiles(dir: string, excludeTests = true): string[] {
+    const cacheKey = `${dir}:${excludeTests}`;
+    if (dirCache.has(cacheKey)) {
+      return dirCache.get(cacheKey)!;
+    }
+
     const files: string[] = [];
     const entries = fs.readdirSync(dir, { withFileTypes: true });
 
@@ -44,26 +60,33 @@ describe("STAGE 36 — Final Security Disclosure Review", () => {
         }
       }
     }
+    dirCache.set(cacheKey, files);
     return files;
   }
 
   it("1. Verifies zero hardcoded JWT tokens in frontend source files", () => {
+    console.time("stage36_test1_total");
+    console.time("stage36_test1_getSourceFiles");
     const sourceFiles = getSourceFiles(srcDir, true);
+    console.timeEnd("stage36_test1_getSourceFiles");
     const jwtPattern = /eyJhbGciOi[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/;
 
     const offendingFiles: string[] = [];
+    console.time("stage36_test1_loop");
     for (const file of sourceFiles) {
-      const content = fs.readFileSync(file, "utf-8");
+      const content = getFileContent(file);
       if (jwtPattern.test(content)) {
         offendingFiles.push(path.relative(rootDir, file));
       }
     }
+    console.timeEnd("stage36_test1_loop");
+    console.timeEnd("stage36_test1_total");
 
     expect(
       offendingFiles,
       `Hardcoded JWT tokens found in source files: ${offendingFiles.join(", ")}`,
     ).toEqual([]);
-  });
+  }, 360000);
 
   it("2. Verifies supabase.ts does not contain hardcoded production credentials", () => {
     const supabasePath = path.resolve(srcDir, "lib/supabase.ts");
@@ -93,7 +116,7 @@ describe("STAGE 36 — Final Security Disclosure Review", () => {
     ];
 
     for (const file of componentAndRouteFiles) {
-      const content = fs.readFileSync(file, "utf-8");
+      const content = getFileContent(file);
       for (const pattern of forbiddenPatterns) {
         expect(
           pattern.test(content),
@@ -111,7 +134,7 @@ describe("STAGE 36 — Final Security Disclosure Review", () => {
     ];
 
     for (const file of prodFiles) {
-      const content = fs.readFileSync(file, "utf-8");
+      const content = getFileContent(file);
       expect(
         /localhost/i.test(content),
         `localhost detected in production file: ${path.relative(rootDir, file)}`,
@@ -127,7 +150,7 @@ describe("STAGE 36 — Final Security Disclosure Review", () => {
     const prodFiles = getSourceFiles(srcDir, true);
 
     for (const file of prodFiles) {
-      const content = fs.readFileSync(file, "utf-8");
+      const content = getFileContent(file);
       expect(
         /\bdebugger\s*;?/.test(content),
         `debugger statement found in ${path.relative(rootDir, file)}`,
@@ -146,7 +169,7 @@ describe("STAGE 36 — Final Security Disclosure Review", () => {
     ];
 
     for (const file of uiFiles) {
-      const content = fs.readFileSync(file, "utf-8");
+      const content = getFileContent(file);
       expect(
         /console\.log\(/.test(content),
         `console.log found in UI file: ${path.relative(rootDir, file)}`,

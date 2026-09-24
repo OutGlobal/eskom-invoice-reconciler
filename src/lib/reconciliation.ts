@@ -1,4 +1,4 @@
-import { type TouPeriod, getSeason } from "./tariff";
+import { type TouPeriod, getSeason, TARIFF } from "./tariff";
 import type { Measurement } from "./parseMeter";
 import type { TariffData } from "./store";
 
@@ -104,7 +104,7 @@ export function computeCharges(
   totals: Totals,
   nmd: number,
   rows: Measurement[],
-  tariff: TariffData,
+  tariff: TariffData = TARIFF as unknown as TariffData,
 ): Charge[] {
   const seasonMix = seasonBreakdown(rows);
   const totalIntervals = rows.length;

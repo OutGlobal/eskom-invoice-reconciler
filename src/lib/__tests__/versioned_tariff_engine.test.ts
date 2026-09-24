@@ -97,6 +97,7 @@ export function runVersionedTariffEngineTests() {
   assert(resultMiniflex.items.length > 0, "Miniflex produces line items");
 
   // Test 3: Rate Lineage Explainer
+  TariffVersionSelector.registerVersion(ESKOM_MEGAFLEX_2025_2026);
   const explanation = explainAppliedRate({
     tariffCodeOrFamily: "megaflex",
     dateStr: "2025-07-15",

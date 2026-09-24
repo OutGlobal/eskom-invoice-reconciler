@@ -80,3 +80,26 @@ export const TOU_COLOR: Record<TouPeriod, string> = {
   standard: "#f59e0b",
   offPeak: "#10b981",
 };
+
+/**
+ * Canonical 2025/2026 Eskom Megaflex tariff rates for client-side calculations and tests
+ */
+export const TARIFF = {
+  name: "Megaflex 2025/2026",
+  voltage: "<500V",
+  zone: "<300km",
+  powerFactor: 0.96,
+  networkCapacity: 16.48,
+  networkDemand: 45.20,
+  generationCapacity: 12.10,
+  transmissionNetwork: 14.88,
+  legacy: 4.88,
+  ancillary: 0.65,
+  electrification: 1.25,
+  affordability: 8.52,
+  energy: {
+    high: { peak: 666.92, standard: 312.44, offPeak: 175.22 },
+    low: { peak: 245.12, standard: 154.33, offPeak: 111.15 },
+  },
+};
+
