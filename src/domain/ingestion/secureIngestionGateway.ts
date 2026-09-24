@@ -15,6 +15,7 @@ import { AmrXlsxAdapter } from "./adapters/amrXlsxAdapter";
 import { TelemetryXmlAdapter } from "./adapters/telemetryXmlAdapter";
 import { RawMeterLogAdapter } from "./adapters/rawMeterLogAdapter";
 import { TariffDocumentAdapter } from "./adapters/tariffDocumentAdapter";
+import { TariffPdfAdapter } from "./adapters/tariffPdfAdapter";
 import { TariffStorageService } from "../tariff/tariffStorageService";
 import { UploadStorageService } from "../upload/uploadStorageService";
 import { InvoiceStorageService } from "../invoice/invoiceStorageService";
@@ -450,10 +451,13 @@ export class SecureIngestionGateway {
       context,
     );
 
-    const adapter =
-      this.adapters.find((a) =>
-        a.canHandle(mimeResult.fileExtension, mimeResult.detectedMimeType),
-      ) || this.adapters[0];
+    const isTariffPdf =
+      resolvedFileType === "TARIFF_DOCUMENT" && mimeResult.fileExtension.toLowerCase() === "pdf";
+    const adapter: ILayoutAdapter = isTariffPdf
+      ? new TariffPdfAdapter()
+      : this.adapters.find((a) =>
+          a.canHandle(mimeResult.fileExtension, mimeResult.detectedMimeType),
+        ) || this.adapters[0];
     const fileObj =
       file instanceof File
         ? file

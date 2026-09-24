@@ -166,6 +166,9 @@ export function SecureUploadGateway() {
 
   useEffect(() => {
     loadHistory();
+    import("@/domain/tariff/tariffStorageService").then(({ TariffStorageService }) =>
+      TariffStorageService.hydrateFromLocal(),
+    );
     LocalWorkspaceStore.loadDataset().then((dataset) => {
       if (!dataset) return;
       const store = useApp.getState();
