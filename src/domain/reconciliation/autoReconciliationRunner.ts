@@ -50,10 +50,10 @@ export function runAutomaticReconciliation(
     };
   }
 
-  const tariffVersion = TariffStorageService.getVersionForDate(
-    invoice.tariffName || "",
-    invoice.billingPeriodStart || "",
-  );
+  const tariffVersion =
+    (invoice.tariffName
+      ? TariffStorageService.getVersionForDate(invoice.tariffName, invoice.billingPeriodStart || "")
+      : null) || TariffStorageService.getAnyVersionForDate(invoice.billingPeriodStart || "");
 
   if (!tariffVersion) {
     return {

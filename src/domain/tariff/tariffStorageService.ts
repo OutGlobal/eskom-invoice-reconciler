@@ -312,6 +312,14 @@ export class TariffStorageService {
     // Persist in memory store
     this.store.set(key, version);
 
+    // Durable workspace copy so the tariff survives a reload
+    try {
+      const { LocalWorkspaceStore } = await import("@/lib/localWorkspaceStore");
+      await LocalWorkspaceStore.saveTariff(key, this.serialise(version));
+    } catch {
+      // non-blocking
+    }
+
     // Persist to Supabase in background
     try {
       const serialisedComponents = version.components.map((c) => ({
