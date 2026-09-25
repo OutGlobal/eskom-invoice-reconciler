@@ -61,6 +61,7 @@ export default defineConfig({
       "src/lib/__tests__/stage38_final_rule_production_ready.test.ts",
       "src/lib/__tests__/internal_data_lineage_map.test.ts",
       "src/lib/__tests__/stage39_source_of_truth_architecture.test.ts",
+      "src/lib/__tests__/document_intelligence_foundation.test.ts",
     ],
     testTimeout: 60000,
     fileParallelism: false,
