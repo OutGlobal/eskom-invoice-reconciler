@@ -196,7 +196,9 @@ export class TenantContextService {
         previousState: { role: previousRole, permissions: previousPermissions },
         newState: { role: newRole, permissions: newPermissions },
       });
-    } catch {}
+    } catch {
+      // Audit log error fallback
+    }
 
     return { success: true, previousRole, newRole };
   }

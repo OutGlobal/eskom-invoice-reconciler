@@ -232,7 +232,9 @@ export class ReconciliationStorageService {
             invoiceId,
           },
         });
-      } catch {}
+      } catch {
+        // Audit log error fallback
+      }
 
       return { success: true, message: "Reconciliation run saved successfully." };
     } catch (e: any) {

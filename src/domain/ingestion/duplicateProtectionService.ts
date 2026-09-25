@@ -291,7 +291,9 @@ export class DuplicateProtectionService {
             },
             metadata: { matchedCriteria: checkResult.matchCriteria, actionTaken: "KEEP_EXISTING_SKIP" },
           });
-        } catch {}
+        } catch {
+          // Audit logging error fallback
+        }
 
         return {
           success: true,
@@ -337,7 +339,9 @@ export class DuplicateProtectionService {
             newState: candidate.metrics || null,
             metadata: { differences: checkResult.differences, supersedesId: priorId },
           });
-        } catch {}
+        } catch {
+          // Audit logging error fallback
+        }
 
         return {
           success: true,

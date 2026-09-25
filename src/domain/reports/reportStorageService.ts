@@ -63,7 +63,9 @@ export async function saveGeneratedReportMetadata(
           sha256Hash: meta.sha256Hash,
         },
       });
-    } catch {}
+    } catch {
+      // Audit log error fallback
+    }
 
     return { success: true, id: data?.id || meta.reportId, warning: error?.message };
   } catch (err: any) {

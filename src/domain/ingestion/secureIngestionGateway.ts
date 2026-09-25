@@ -163,7 +163,9 @@ export class SecureIngestionGateway {
         record: { entityType: "source_file", recordId: documentId, recordLabel: sanitizedFilename },
         newState: { filename: sanitizedFilename, fileSize, sha256Checksum, fileType: resolvedFileType },
       });
-    } catch {}
+    } catch {
+      // Audit log error fallback
+    }
 
     // If filename has path traversal or malicious characters, reject immediately
     if (!fnCheck.valid) {
@@ -543,7 +545,9 @@ export class SecureIngestionGateway {
             storageLocation,
           },
         });
-      } catch {}
+      } catch {
+        // Audit log error fallback
+      }
 
       const { signedUrl } = await SignedUrlService.getSignedDownloadUrl(storageLocation);
 
@@ -571,7 +575,7 @@ export class SecureIngestionGateway {
 
     const extractedAccountNumber = extractRes.extractedFields?.accountNumber?.trim() || "";
     const extractedMeterNumber = extractRes.extractedFields?.meterNumber?.trim() || "";
-    let linkedCustomer = extractedAccountNumber
+    const linkedCustomer = extractedAccountNumber
       ? {
           accountNumber: extractedAccountNumber,
           customerName:
@@ -907,7 +911,9 @@ export class SecureIngestionGateway {
               offPeakKwh: fields.offPeakKwh ?? null,
             },
           });
-        } catch {}
+        } catch {
+          // Audit log error fallback
+        }
 
         // Step 10: Mark processing job result
         await supabase
@@ -987,7 +993,9 @@ export class SecureIngestionGateway {
               gapsCount: extractRes.intervalSummary?.gaps?.length || 0,
             },
           });
-        } catch {}
+        } catch {
+          // Audit log error fallback
+        }
       }
     } catch (dbErr) {
       addLog("DB", "warn", "Supabase offline mode active. Using local memory reflection.");
@@ -1073,7 +1081,9 @@ export class SecureIngestionGateway {
           recordCount,
         },
       });
-    } catch {}
+    } catch {
+      // Audit log error fallback
+    }
 
     const batchJob: IngestionBatchJob = {
       batchId,
@@ -1201,7 +1211,9 @@ export class SecureIngestionGateway {
         record: { entityType: "source_file", recordId: uploadId, recordLabel: uploadRecord.filename },
         newState: { processingStatus: "PROCESSING", retryOptions: options },
       });
-    } catch {}
+    } catch {
+      // Audit log error fallback
+    }
 
     const result = await this.processUpload(
       downloadRes.data,
@@ -1228,7 +1240,9 @@ export class SecureIngestionGateway {
           errorSummary: result.uploadRecord?.errorMessage,
         },
       });
-    } catch {}
+    } catch {
+      // Audit log error fallback
+    }
 
     return result;
   }

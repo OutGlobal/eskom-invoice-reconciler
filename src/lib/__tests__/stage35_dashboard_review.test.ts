@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { DashboardService } from "../../domain/dashboard/dashboardService";
 import { ProcessingJobEngine } from "../../domain/jobs/processingJobEngine";
 import { UserFacingErrorSanitizer } from "../../domain/observability/userFacingErrorSanitizer";
-import { SAMPLE_MARCH_2026_INVOICE, SAMPLE_FEB_2026_INVOICE } from "../sampleInvoice";
+import { SAMPLE_MARCH_2026_INVOICE, SAMPLE_FEB_2026_INVOICE } from "./fixtures/sampleInvoice";
 import { computeTotals, computeCharges } from "../reconciliation";
 
 describe("Stage 35 — Final Dashboard Review", () => {

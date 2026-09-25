@@ -226,7 +226,9 @@ export class MeterStorageService {
             change_reason: newConfigRecord.change_reason,
           },
         });
-      } catch {}
+      } catch {
+        // Audit log error fallback
+      }
 
       return {
         success: true,

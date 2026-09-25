@@ -26,11 +26,11 @@ const mockChannelOn = vi.fn();
 const mockChannelSubscribe = vi.fn();
 
 const mockChannelObj = {
-  on: vi.fn(function (this: any, event: string, filter: any, callback: Function) {
+  on: vi.fn(function (this: any, event: string, filter: any, callback: (...args: any[]) => any) {
     mockChannelOn(event, filter, callback);
     return this;
   }),
-  subscribe: vi.fn(function (this: any, callback: Function) {
+  subscribe: vi.fn(function (this: any, callback: (...args: any[]) => any) {
     mockChannelSubscribe(callback);
     callback("SUBSCRIBED");
     return this;
@@ -226,8 +226,8 @@ describe("Stage 20: Realtime Refresh Manager & Auto-Update Architecture", () => 
     });
 
     it("triggers callbacks when a postgres change event occurs on subscribed tables", () => {
-      let postgresChangeCallback: Function | null = null;
-      mockChannelOn.mockImplementation((event: string, filter: any, cb: Function) => {
+      let postgresChangeCallback: ((...args: any[]) => any) | null = null;
+      mockChannelOn.mockImplementation((event: string, filter: any, cb: (...args: any[]) => any) => {
         if (filter?.table === "invoice_records") {
           postgresChangeCallback = cb;
         }

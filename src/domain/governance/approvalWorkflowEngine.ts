@@ -143,7 +143,9 @@ export class ApprovalWorkflowEngine {
           newState: { state: targetState, notes },
         });
       });
-    } catch {}
+    } catch {
+      // Background audit logging error resilience
+    }
 
     return updatedRun;
   }
