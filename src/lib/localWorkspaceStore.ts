@@ -253,4 +253,15 @@ export class LocalWorkspaceStore {
       return [];
     }
   }
+
+  /**
+   * Generic key-value local storage support
+   */
+  static async set(key: string, val: any): Promise<void> {
+    getMemoryStore("key_value").set(key, val);
+  }
+
+  static async get<T>(key: string): Promise<T | null> {
+    return (getMemoryStore("key_value").get(key) as T) ?? null;
+  }
 }

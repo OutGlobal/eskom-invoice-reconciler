@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { MimeInspector } from "./mimeInspector";
 import { SignedUrlService } from "./signedUrlService";
 import { QuarantineManager } from "./quarantineManager";
+import { ScannedInvoiceOcrAdapter } from "../ocr/scannedInvoiceOcrAdapter";
 import { PdfInvoiceAdapter } from "./adapters/pdfInvoiceAdapter";
 import { AmrCsvAdapter } from "./adapters/amrCsvAdapter";
 import { AmrXlsxAdapter } from "./adapters/amrXlsxAdapter";
@@ -47,6 +48,7 @@ import { LocalWorkspaceStore } from "@/lib/localWorkspaceStore";
 export class SecureIngestionGateway {
   private static processedHashes: Map<string, IngestionGatewayResult> = new Map();
   private static adapters: ILayoutAdapter[] = [
+    new ScannedInvoiceOcrAdapter(),
     new PdfInvoiceAdapter(),
     new AmrCsvAdapter(),
     new AmrXlsxAdapter(),
