@@ -118,7 +118,10 @@ export class HybridDocumentProcessor {
     const checksum = options.checksum || (await this.computeSha256(bytes));
     const targetDpi = options.targetDpi || 300;
     const maxPages = options.maxPages || 50;
-    const chunkSize = Math.max(1, options.chunkSize || OcrLargeDocumentChunkEngine.DEFAULT_CHUNK_SIZE);
+    const chunkSize = Math.max(
+      1,
+      options.chunkSize || OcrLargeDocumentChunkEngine.DEFAULT_CHUNK_SIZE,
+    );
 
     const isPdf = filename.toLowerCase().endsWith(".pdf") || mimeType.includes("pdf");
     const pageResults: OcrPageResult[] = [];
@@ -206,7 +209,12 @@ export class HybridDocumentProcessor {
 
       // Plan page chunks for large document handling (Requirement 24)
       chunks = OcrLargeDocumentChunkEngine.planChunks(pagesToProcess, { chunkSize });
-      documentProgress = OcrLargeDocumentChunkEngine.createProgress(documentId, ocrRunId, pagesToProcess, chunks);
+      documentProgress = OcrLargeDocumentChunkEngine.createProgress(
+        documentId,
+        ocrRunId,
+        pagesToProcess,
+        chunks,
+      );
       options.onProgress?.(documentProgress);
 
       // 3. Process pages chunk-by-chunk with safe retries (Requirements 23 & 24)
@@ -318,7 +326,11 @@ export class HybridDocumentProcessor {
         );
 
         if (retryResult.success && retryResult.result) {
-          OcrLargeDocumentChunkEngine.completeChunk(documentProgress, chunk.chunkIndex, retryResult.result);
+          OcrLargeDocumentChunkEngine.completeChunk(
+            documentProgress,
+            chunk.chunkIndex,
+            retryResult.result,
+          );
           chunkPageResults.push(...retryResult.result);
           pageResults.push(...retryResult.result);
         } else {
@@ -354,7 +366,12 @@ export class HybridDocumentProcessor {
 
       const totalPages = rasterizedPages.length;
       chunks = OcrLargeDocumentChunkEngine.planChunks(totalPages, { chunkSize });
-      documentProgress = OcrLargeDocumentChunkEngine.createProgress(documentId, ocrRunId, totalPages, chunks);
+      documentProgress = OcrLargeDocumentChunkEngine.createProgress(
+        documentId,
+        ocrRunId,
+        totalPages,
+        chunks,
+      );
       options.onProgress?.(documentProgress);
 
       for (const chunk of chunks) {
@@ -421,7 +438,11 @@ export class HybridDocumentProcessor {
         );
 
         if (retryResult.success && retryResult.result) {
-          OcrLargeDocumentChunkEngine.completeChunk(documentProgress, chunk.chunkIndex, retryResult.result);
+          OcrLargeDocumentChunkEngine.completeChunk(
+            documentProgress,
+            chunk.chunkIndex,
+            retryResult.result,
+          );
           pageResults.push(...retryResult.result);
         } else {
           OcrLargeDocumentChunkEngine.failChunk(
@@ -447,7 +468,10 @@ export class HybridDocumentProcessor {
     const allCandidateDates = pageResults.flatMap((p) => p.candidateDates || []);
 
     // 5d. Semantic Document Structure & Section Analysis across all pages (Requirement 20)
-    const documentStructure = DocumentStructureEngine.analyzeDocumentStructure(pageResults, documentId);
+    const documentStructure = DocumentStructureEngine.analyzeDocumentStructure(
+      pageResults,
+      documentId,
+    );
     const allSections = documentStructure.sections;
 
     // 6. Classify document category
@@ -997,4 +1021,3 @@ export class HybridDocumentProcessor {
     return `sha256-fallback-${Math.abs(hash).toString(16)}`;
   }
 }
-

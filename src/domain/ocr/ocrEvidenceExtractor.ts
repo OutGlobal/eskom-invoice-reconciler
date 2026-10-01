@@ -156,7 +156,12 @@ export class OcrEvidenceExtractor {
     // 5. Billing Period Start & End
     let billingStart: string | null = null;
     let billingEnd: string | null = null;
-    let periodProv: OcrFieldProvenance = this.createEmptyProvenance(documentId, 1, "billingPeriod", ocrRunId);
+    let periodProv: OcrFieldProvenance = this.createEmptyProvenance(
+      documentId,
+      1,
+      "billingPeriod",
+      ocrRunId,
+    );
 
     for (const page of pages) {
       const match = page.fullText.match(
@@ -1055,7 +1060,8 @@ export class OcrEvidenceExtractor {
     if (lower.includes("meter")) return "METER_NUMBER";
     if (lower.includes("invoice")) return "INVOICE_NUMBER";
     if (lower.includes("date")) return "DATE";
-    if (lower.includes("kwh") || lower.includes("consumption") || lower.includes("activeenergy")) return "KWH";
+    if (lower.includes("kwh") || lower.includes("consumption") || lower.includes("activeenergy"))
+      return "KWH";
     if (lower.includes("kva") && !lower.includes("kvah") && !lower.includes("kvarh")) return "KVA";
     if (lower.includes("kvah")) return "KVAH";
     if (lower.includes("kvarh") || lower.includes("reactive")) return "KVARH";

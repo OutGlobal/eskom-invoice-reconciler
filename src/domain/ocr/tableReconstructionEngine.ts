@@ -46,11 +46,7 @@ import { NumericProtectionEngine } from "./numericProtectionEngine";
 export interface TableReconstructionOptions {
   tableId?: string;
   tableType?:
-    | "BILLING_SCHEDULE"
-    | "METER_READINGS"
-    | "TARIFF_RATES"
-    | "FINANCIAL_SUMMARY"
-    | "GENERIC";
+    "BILLING_SCHEDULE" | "METER_READINGS" | "TARIFF_RATES" | "FINANCIAL_SUMMARY" | "GENERIC";
   knownHeaders?: string[];
   coordinateSystem?: CoordinateSystem;
 }
@@ -67,7 +63,8 @@ export class TableReconstructionEngine {
   ): OcrTableStructure {
     const tableId = options.tableId || `table-p${pageNumber}-${Date.now()}`;
     const tableType = options.tableType || this.inferTableType(lines);
-    const coordinateSystem = options.coordinateSystem || lines[0]?.coordinateSystem || "NORMALIZED_0_1";
+    const coordinateSystem =
+      options.coordinateSystem || lines[0]?.coordinateSystem || "NORMALIZED_0_1";
 
     if (!lines || lines.length === 0) {
       return this.createEmptyTable(tableId, pageNumber, tableType, coordinateSystem);
@@ -78,7 +75,10 @@ export class TableReconstructionEngine {
       /\b(continued|cont'?d|vervolg|tabel vervolg|charges continued)\b/i.test(l.text),
     );
     const continuationMarkerText = lines
-      .map((l) => l.text.match(/\b(continued|cont'?d|vervolg|tabel vervolg|charges continued)\b/i)?.[0])
+      .map(
+        (l) =>
+          l.text.match(/\b(continued|cont'?d|vervolg|tabel vervolg|charges continued)\b/i)?.[0],
+      )
       .find(Boolean);
 
     // 1. Identify header line and column boundaries
@@ -287,7 +287,9 @@ export class TableReconstructionEngine {
     // 5. Partition Rows
     const headerRows = tableRows.filter((r) => r.isHeaderRow);
     const totalRows = tableRows.filter((r) => r.isTotalRow);
-    const dataRows = tableRows.filter((r) => !r.isHeaderRow && !r.isTotalRow && r.rowType !== "SUBHEADER");
+    const dataRows = tableRows.filter(
+      (r) => !r.isHeaderRow && !r.isTotalRow && r.rowType !== "SUBHEADER",
+    );
 
     // 6. Detect Totals and Arithmetic Verification
     const detectedTotals = this.detectAndVerifyTotals(tableRows, colCount);
@@ -358,17 +360,22 @@ export class TableReconstructionEngine {
    * Evaluates whether table2 on page N+1 is a logical continuation of table1 on page N.
    * Requirement 19: Recognizes continuation markers, matching columns, and unclosed totals.
    */
-  public static isContinuation(
-    table1: OcrTableStructure,
-    table2: OcrTableStructure,
-  ): boolean {
+  public static isContinuation(table1: OcrTableStructure, table2: OcrTableStructure): boolean {
     // Must be on subsequent pages
     if (table2.pageNumber <= table1.pageNumber) {
       return false;
     }
 
-    const t1HeaderStr = (table1.headers.join(" ") + " " + (table1.tableRows?.[0]?.rawText || "")).toUpperCase();
-    const t2HeaderStr = (table2.headers.join(" ") + " " + (table2.tableRows?.[0]?.rawText || "")).toUpperCase();
+    const t1HeaderStr = (
+      table1.headers.join(" ") +
+      " " +
+      (table1.tableRows?.[0]?.rawText || "")
+    ).toUpperCase();
+    const t2HeaderStr = (
+      table2.headers.join(" ") +
+      " " +
+      (table2.tableRows?.[0]?.rawText || "")
+    ).toUpperCase();
     const t2FirstRowText = (table2.tableRows?.[0]?.rawText || "").toUpperCase();
 
     // Check for explicit continuation markers (Requirement 19: "continued", "cont'd", "vervolg")
@@ -384,24 +391,31 @@ export class TableReconstructionEngine {
     const headersMatch =
       table1.headers.length > 0 &&
       table2.headers.length > 0 &&
-      table1.headers.every((h, idx) =>
-        h.toUpperCase() === (table2.headers[idx] || "").toUpperCase(),
+      table1.headers.every(
+        (h, idx) => h.toUpperCase() === (table2.headers[idx] || "").toUpperCase(),
       );
 
     // Check if table 2 header indicates continuation of table 1 theme
     // e.g. Table 1: "Energy Charges", Table 2: "continued" or "Energy Charges (continued)"
     const titleOrThemeMatch =
-      (t1HeaderStr.includes("ENERGY") && (t2HeaderStr.includes("ENERGY") || hasExplicitContinuationMarker)) ||
-      (t1HeaderStr.includes("DEMAND") && (t2HeaderStr.includes("DEMAND") || hasExplicitContinuationMarker)) ||
-      (t1HeaderStr.includes("NETWORK") && (t2HeaderStr.includes("NETWORK") || hasExplicitContinuationMarker)) ||
-      (t1HeaderStr.includes("METER") && (t2HeaderStr.includes("METER") || hasExplicitContinuationMarker));
+      (t1HeaderStr.includes("ENERGY") &&
+        (t2HeaderStr.includes("ENERGY") || hasExplicitContinuationMarker)) ||
+      (t1HeaderStr.includes("DEMAND") &&
+        (t2HeaderStr.includes("DEMAND") || hasExplicitContinuationMarker)) ||
+      (t1HeaderStr.includes("NETWORK") &&
+        (t2HeaderStr.includes("NETWORK") || hasExplicitContinuationMarker)) ||
+      (t1HeaderStr.includes("METER") &&
+        (t2HeaderStr.includes("METER") || hasExplicitContinuationMarker));
 
     // Check if table 1 has no total row while table 2 has a total row or continues data
     const table1HasNoTotal = !table1.totalRows || table1.totalRows.length === 0;
     const table2HasTotal = table2.totalRows && table2.totalRows.length > 0;
 
     // 1. Strongest cue: Explicit continuation marker
-    if (hasExplicitContinuationMarker && (colCountMatch || titleOrThemeMatch || table2.columnCount === 1)) {
+    if (
+      hasExplicitContinuationMarker &&
+      (colCountMatch || titleOrThemeMatch || table2.columnCount === 1)
+    ) {
       return true;
     }
 
@@ -411,7 +425,11 @@ export class TableReconstructionEngine {
     }
 
     // 3. Unfinished table on page N continues on page N+1 with matching column count
-    if (colCountMatch && table1HasNoTotal && (table2HasTotal || table1.tableType === table2.tableType)) {
+    if (
+      colCountMatch &&
+      table1HasNoTotal &&
+      (table2HasTotal || table1.tableType === table2.tableType)
+    ) {
       return true;
     }
 
@@ -521,7 +539,9 @@ export class TableReconstructionEngine {
 
     const headerRows = combinedRows.filter((r) => r.isHeaderRow);
     const totalRows = combinedRows.filter((r) => r.isTotalRow);
-    const dataRows = combinedRows.filter((r) => !r.isHeaderRow && !r.isTotalRow && r.rowType !== "SUBHEADER");
+    const dataRows = combinedRows.filter(
+      (r) => !r.isHeaderRow && !r.isTotalRow && r.rowType !== "SUBHEADER",
+    );
 
     // Unified columns
     const tableColumns = this.constructColumns(table1.headers, combinedRows, table1.columnCount);
@@ -556,7 +576,7 @@ export class TableReconstructionEngine {
       height: table1.height,
       coordinateSystem: table1.coordinateSystem,
       confidence: Math.round((table1.confidence + table2.confidence) / 2),
-      confidenceNormalized: Number((((table1.confidence + table2.confidence) / 2) / 100).toFixed(4)),
+      confidenceNormalized: Number(((table1.confidence + table2.confidence) / 2 / 100).toFixed(4)),
       confidenceTier: table1.confidenceTier,
 
       tableRows: combinedRows,
@@ -647,7 +667,9 @@ export class TableReconstructionEngine {
   ): OcrTableTotalSummary[] {
     const totalSummaries: OcrTableTotalSummary[] = [];
     const totalRows = rows.filter((r) => r.isTotalRow);
-    const dataRows = rows.filter((r) => !r.isHeaderRow && !r.isTotalRow && r.rowType !== "SUBHEADER");
+    const dataRows = rows.filter(
+      (r) => !r.isHeaderRow && !r.isTotalRow && r.rowType !== "SUBHEADER",
+    );
 
     for (const totRow of totalRows) {
       for (let cIdx = 0; cIdx < colCount; cIdx++) {
@@ -714,7 +736,8 @@ export class TableReconstructionEngine {
         headerText,
         inferredDataType,
         cells: colCells,
-        alignment: inferredDataType === "NUMERIC" || inferredDataType === "CURRENCY" ? "RIGHT" : "LEFT",
+        alignment:
+          inferredDataType === "NUMERIC" || inferredDataType === "CURRENCY" ? "RIGHT" : "LEFT",
         widthApprox: 1.0 / colCount,
       });
     }
@@ -722,12 +745,14 @@ export class TableReconstructionEngine {
     return columns;
   }
 
-  private static inferColumnType(
-    header: string,
-    cells: OcrTableCell[],
-  ): OcrColumnDataType {
+  private static inferColumnType(header: string, cells: OcrTableCell[]): OcrColumnDataType {
     const upperH = header.toUpperCase();
-    if (upperH.includes("AMOUNT") || upperH.includes("TOTAL") || upperH.includes("CHARGE") || upperH.includes("COST")) {
+    if (
+      upperH.includes("AMOUNT") ||
+      upperH.includes("TOTAL") ||
+      upperH.includes("CHARGE") ||
+      upperH.includes("COST")
+    ) {
       return "CURRENCY";
     }
     if (upperH.includes("RATE") || upperH.includes("TARIFF") || upperH.includes("PRICE")) {
@@ -736,7 +761,12 @@ export class TableReconstructionEngine {
     if (upperH.includes("DATE") || upperH.includes("PERIOD")) {
       return "DATE";
     }
-    if (upperH.includes("KWH") || upperH.includes("KVA") || upperH.includes("ENERGY") || upperH.includes("UNITS")) {
+    if (
+      upperH.includes("KWH") ||
+      upperH.includes("KVA") ||
+      upperH.includes("ENERGY") ||
+      upperH.includes("UNITS")
+    ) {
       return "NUMERIC";
     }
 
@@ -764,10 +794,7 @@ export class TableReconstructionEngine {
   // Internal Helpers
   // ---------------------------------------------------------------------------
 
-  private static extractHeaderTokens(
-    headerLine: OcrLineBlock,
-    knownHeaders?: string[],
-  ): string[] {
+  private static extractHeaderTokens(headerLine: OcrLineBlock, knownHeaders?: string[]): string[] {
     if (knownHeaders && knownHeaders.length > 0) {
       return knownHeaders;
     }
@@ -858,7 +885,7 @@ export class TableReconstructionEngine {
       let minDistance = Infinity;
 
       for (let c = nextAvailableCol; c <= maxColForThisToken; c++) {
-        const hPos = headerPositions[c] ?? (c * (headerText.length / colCount));
+        const hPos = headerPositions[c] ?? c * (headerText.length / colCount);
         const dist = Math.abs(tp.start - hPos);
         if (dist < minDistance) {
           minDistance = dist;
@@ -946,7 +973,12 @@ export class TableReconstructionEngine {
     const cellW = lineW / colCount;
     const cellX = lineX + cIdx * cellW;
 
-    return [Number(cellX.toFixed(4)), Number(lineY.toFixed(4)), Number(cellW.toFixed(4)), Number(lineH.toFixed(4))];
+    return [
+      Number(cellX.toFixed(4)),
+      Number(lineY.toFixed(4)),
+      Number(cellW.toFixed(4)),
+      Number(lineH.toFixed(4)),
+    ];
   }
 
   private static computeBoundingBox(lines: OcrLineBlock[]): OcrBoundingBox {
@@ -974,7 +1006,10 @@ export class TableReconstructionEngine {
   private static inferTableType(
     lines: OcrLineBlock[],
   ): "BILLING_SCHEDULE" | "METER_READINGS" | "TARIFF_RATES" | "FINANCIAL_SUMMARY" | "GENERIC" {
-    const fullText = lines.map((l) => l.text).join(" ").toUpperCase();
+    const fullText = lines
+      .map((l) => l.text)
+      .join(" ")
+      .toUpperCase();
     if (fullText.includes("METER") && (fullText.includes("DIAL") || fullText.includes("READING"))) {
       return "METER_READINGS";
     }

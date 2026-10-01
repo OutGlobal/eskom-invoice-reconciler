@@ -58,7 +58,12 @@ export class DocumentStructureEngine {
         "PHYSICAL ADDRESS",
       ],
       secondaryKeywords: ["SUPPLY ADDRESS", "PREMISES", "BUYER", "RECIPIENT"],
-      afrikaansKeywords: ["KLIENT INLIGTING", "VERBRUIKER INLIGTING", "AFLEWERINGSADRES", "POSADRES"],
+      afrikaansKeywords: [
+        "KLIENT INLIGTING",
+        "VERBRUIKER INLIGTING",
+        "AFLEWERINGSADRES",
+        "POSADRES",
+      ],
     },
     {
       type: "ACCOUNT_INFORMATION",
@@ -95,7 +100,12 @@ export class DocumentStructureEngine {
         "NOTIFIED MAXIMUM DEMAND",
         "TARIFF CODE",
       ],
-      afrikaansKeywords: ["METER INLIGTING", "METERLESING BESONDERHEDE", "METERLESING", "TOEVOERPUNT"],
+      afrikaansKeywords: [
+        "METER INLIGTING",
+        "METERLESING BESONDERHEDE",
+        "METERLESING",
+        "TOEVOERPUNT",
+      ],
     },
     {
       type: "BILLING_PERIOD",
@@ -126,7 +136,12 @@ export class DocumentStructureEngine {
         "REACTIVE LEVY",
         "THRESHOLD KVARH",
       ],
-      afrikaansKeywords: ["REAKTIEWE ENERGIE", "REAKTIEWE HEFFING", "KRAGFAKTOR", "HERSIENE ENERGIE"],
+      afrikaansKeywords: [
+        "REAKTIEWE ENERGIE",
+        "REAKTIEWE HEFFING",
+        "KRAGFAKTOR",
+        "HERSIENE ENERGIE",
+      ],
     },
     {
       type: "ENERGY_CHARGES",
@@ -175,7 +190,12 @@ export class DocumentStructureEngine {
         "R/KVA",
         "EXCESS NMD CHARGE",
       ],
-      afrikaansKeywords: ["AANVRAAG HEFFING", "MAKSIMUM AANVRAAG", "AANVRAAG LEVENS", "AANVRAAG KVA"],
+      afrikaansKeywords: [
+        "AANVRAAG HEFFING",
+        "MAKSIMUM AANVRAAG",
+        "AANVRAAG LEVENS",
+        "AANVRAAG KVA",
+      ],
     },
     {
       type: "NETWORK_CHARGES",
@@ -194,7 +214,12 @@ export class DocumentStructureEngine {
         "URBAN LOW VOLTAGE SUBSIDY",
         "RURAL SUBSIDY",
       ],
-      afrikaansKeywords: ["NETWERK HEFFING", "NETWERK TOEGANG", "DIENS HEFFING", "ADMINISTRASIE HEFFING"],
+      afrikaansKeywords: [
+        "NETWERK HEFFING",
+        "NETWERK TOEGANG",
+        "DIENS HEFFING",
+        "ADMINISTRASIE HEFFING",
+      ],
     },
     {
       type: "TAX",
@@ -208,7 +233,12 @@ export class DocumentStructureEngine {
         "INPUT TAX",
       ],
       secondaryKeywords: ["ZERO-RATED SUPPLIES", "VAT REGISTRATION", "TAX SUMMARY", "VAT RATE 15%"],
-      afrikaansKeywords: ["BELASTING", "BELASTING OP TOEGEVOEGDE WAARDE", "BTW @ 15%", "BTW BEDRAG"],
+      afrikaansKeywords: [
+        "BELASTING",
+        "BELASTING OP TOEGEVOEGDE WAARDE",
+        "BTW @ 15%",
+        "BTW BEDRAG",
+      ],
     },
     {
       type: "TOTAL",
@@ -310,7 +340,10 @@ export class DocumentStructureEngine {
    * Does not hard-code assumptions, but classifies based on discovered tokens.
    */
   public static detectFormatVariant(pages: OcrPageResult[]): UtilityDocumentFormatVariant {
-    const combinedText = pages.map((p) => p.fullText).join("\n").toUpperCase();
+    const combinedText = pages
+      .map((p) => p.fullText)
+      .join("\n")
+      .toUpperCase();
 
     if (
       combinedText.includes("ESKOM") ||
@@ -441,7 +474,8 @@ export class DocumentStructureEngine {
       });
 
       const sectionId = `sec-p${page.pageNumber}-${current.type.toLowerCase().replace(/_/g, "-")}-${bIdx + 1}`;
-      const confNorm = current.confidence >= 85 ? "HIGH" : current.confidence >= 70 ? "MEDIUM" : "LOW";
+      const confNorm =
+        current.confidence >= 85 ? "HIGH" : current.confidence >= 70 ? "MEDIUM" : "LOW";
 
       sections.push({
         sectionId,
@@ -539,15 +573,31 @@ export class DocumentStructureEngine {
       let secType: DocumentSectionType = "GENERIC_SECTION";
       const tableHeadersUpper = table.headers.join(" ").toUpperCase();
 
-      if (tableHeadersUpper.includes("PEAK") || tableHeadersUpper.includes("ENERGY") || tableHeadersUpper.includes("KWH")) {
+      if (
+        tableHeadersUpper.includes("PEAK") ||
+        tableHeadersUpper.includes("ENERGY") ||
+        tableHeadersUpper.includes("KWH")
+      ) {
         secType = "ENERGY_CHARGES";
-      } else if (tableHeadersUpper.includes("DEMAND") || tableHeadersUpper.includes("KVA") || tableHeadersUpper.includes("NMD")) {
+      } else if (
+        tableHeadersUpper.includes("DEMAND") ||
+        tableHeadersUpper.includes("KVA") ||
+        tableHeadersUpper.includes("NMD")
+      ) {
         secType = "DEMAND_CHARGES";
-      } else if (tableHeadersUpper.includes("NETWORK") || tableHeadersUpper.includes("ACCESS") || tableHeadersUpper.includes("DISTRIBUTION")) {
+      } else if (
+        tableHeadersUpper.includes("NETWORK") ||
+        tableHeadersUpper.includes("ACCESS") ||
+        tableHeadersUpper.includes("DISTRIBUTION")
+      ) {
         secType = "NETWORK_CHARGES";
       } else if (tableHeadersUpper.includes("REACTIVE") || tableHeadersUpper.includes("KVARH")) {
         secType = "REACTIVE_ENERGY";
-      } else if (table.tableType === "METER_READINGS" || tableHeadersUpper.includes("METER") || tableHeadersUpper.includes("DIAL")) {
+      } else if (
+        table.tableType === "METER_READINGS" ||
+        tableHeadersUpper.includes("METER") ||
+        tableHeadersUpper.includes("DIAL")
+      ) {
         secType = "METER_INFORMATION";
       }
 
@@ -570,7 +620,10 @@ export class DocumentStructureEngine {
         lines: [],
         tables: [table],
         keyValuePairs: [],
-        rawText: table.headers.join(" ") + "\n" + (table.rows ? table.rows.map((r) => r.join(" ")).join("\n") : ""),
+        rawText:
+          table.headers.join(" ") +
+          "\n" +
+          (table.rows ? table.rows.map((r) => r.join(" ")).join("\n") : ""),
         detectedFormatVariant: formatVariant,
       });
     });

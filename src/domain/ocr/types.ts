@@ -208,13 +208,7 @@ export interface OcrTableCell {
 
 export type OcrTableRowType = "HEADER" | "DATA" | "TOTAL" | "SUBHEADER" | "EMPTY";
 export type OcrColumnDataType =
-  | "TEXT"
-  | "NUMERIC"
-  | "CURRENCY"
-  | "DATE"
-  | "PERCENTAGE"
-  | "UNIT"
-  | "MIXED";
+  "TEXT" | "NUMERIC" | "CURRENCY" | "DATE" | "PERCENTAGE" | "UNIT" | "MIXED";
 
 export interface OcrTableRow {
   rowId: string;
@@ -1082,21 +1076,10 @@ export type NumericFieldCategory =
 
 export type DecimalSeparatorType = "DOT" | "COMMA" | "NONE" | "AMBIGUOUS";
 
-export type ThousandsSeparatorType =
-  | "SPACE"
-  | "COMMA"
-  | "DOT"
-  | "APOSTROPHE"
-  | "NONE"
-  | "MIXED";
+export type ThousandsSeparatorType = "SPACE" | "COMMA" | "DOT" | "APOSTROPHE" | "NONE" | "MIXED";
 
 export type NegativeNumberFormat =
-  | "LEADING_MINUS"
-  | "TRAILING_MINUS"
-  | "PARENTHESES"
-  | "CREDIT_SUFFIX"
-  | "DEBIT_SUFFIX"
-  | "NONE";
+  "LEADING_MINUS" | "TRAILING_MINUS" | "PARENTHESES" | "CREDIT_SUFFIX" | "DEBIT_SUFFIX" | "NONE";
 
 export interface ScaleShiftDetection {
   detected: boolean;
@@ -1255,4 +1238,3 @@ export interface DocumentStructureAnalysis {
   totalSection?: OcrDocumentSection;
   readingOrderSections: OcrDocumentSection[];
 }
-

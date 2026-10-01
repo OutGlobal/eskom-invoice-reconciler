@@ -42,15 +42,10 @@ export class OcrLargeDocumentChunkEngine {
    * Partitions total document pages into ordered, bounded page chunks.
    * e.g. 25 pages with chunkSize 10 -> [1..10], [11..20], [21..25]
    */
-  public static planChunks(
-    totalPages: number,
-    options: ChunkPlanningOptions = {},
-  ): OcrPageChunk[] {
+  public static planChunks(totalPages: number, options: ChunkPlanningOptions = {}): OcrPageChunk[] {
     const chunkSize = Math.max(1, options.chunkSize || this.DEFAULT_CHUNK_SIZE);
     const startPage = Math.max(1, options.startPage || 1);
-    const effectiveTotal = options.maxPages
-      ? Math.min(totalPages, options.maxPages)
-      : totalPages;
+    const effectiveTotal = options.maxPages ? Math.min(totalPages, options.maxPages) : totalPages;
 
     const chunks: OcrPageChunk[] = [];
     let currentStart = startPage;
@@ -109,7 +104,10 @@ export class OcrLargeDocumentChunkEngine {
       percentage: 0,
       chunks,
       activeChunkIndex: null,
-      currentChunkLabel: chunks.length > 0 ? `Pages ${chunks[0].startPage}–${chunks[0].endPage} PENDING` : "No pages",
+      currentChunkLabel:
+        chunks.length > 0
+          ? `Pages ${chunks[0].startPage}–${chunks[0].endPage} PENDING`
+          : "No pages",
       formattedStatus,
       isComplete: false,
       hasFailures: false,
@@ -119,10 +117,7 @@ export class OcrLargeDocumentChunkEngine {
   /**
    * Transitions a chunk to PROCESSING and updates the document progress.
    */
-  public static startChunk(
-    progress: OcrDocumentProgress,
-    chunkIndex: number,
-  ): OcrDocumentProgress {
+  public static startChunk(progress: OcrDocumentProgress, chunkIndex: number): OcrDocumentProgress {
     const chunk = progress.chunks[chunkIndex];
     if (!chunk) return progress;
 
@@ -251,9 +246,7 @@ export class OcrLargeDocumentChunkEngine {
   public static formatProgressSummary(chunks: OcrPageChunk[]): string {
     if (!chunks || chunks.length === 0) return "No chunks defined";
 
-    return chunks
-      .map((c) => `Pages ${c.startPage}–${c.endPage} ${c.status}`)
-      .join("\n");
+    return chunks.map((c) => `Pages ${c.startPage}–${c.endPage} ${c.status}`).join("\n");
   }
 
   /**

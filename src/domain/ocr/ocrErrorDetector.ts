@@ -94,7 +94,12 @@ export class OcrErrorDetector {
     if (expectedType === "ACCOUNT" || fieldKey.toLowerCase().includes("account")) {
       const accError = this.detectAccountNumberCorruption(ocrValue, pageNumber, boundingBox);
       if (accError) potentialErrors.push(accError);
-    } else if (expectedType === "CURRENCY" || fieldKey.toLowerCase().includes("amount") || fieldKey.toLowerCase().includes("total") || fieldKey.toLowerCase().includes("vat")) {
+    } else if (
+      expectedType === "CURRENCY" ||
+      fieldKey.toLowerCase().includes("amount") ||
+      fieldKey.toLowerCase().includes("total") ||
+      fieldKey.toLowerCase().includes("vat")
+    ) {
       const currErrors = this.detectCurrencyErrors(ocrValue, pageNumber, boundingBox);
       potentialErrors.push(...currErrors);
     } else if (expectedType === "DATE" || fieldKey.toLowerCase().includes("date")) {
@@ -111,7 +116,12 @@ export class OcrErrorDetector {
 
     // Check missing decimal point
     if (expectedType === "CURRENCY") {
-      const decimalError = this.detectMissingDecimalPoint(fieldKey, ocrValue, pageNumber, boundingBox);
+      const decimalError = this.detectMissingDecimalPoint(
+        fieldKey,
+        ocrValue,
+        pageNumber,
+        boundingBox,
+      );
       if (decimalError) potentialErrors.push(decimalError);
     }
 
@@ -139,11 +149,15 @@ export class OcrErrorDetector {
     for (const err of potentialErrors) {
       totalPenalty += err.confidencePenalty;
     }
-    const confidenceScore = Math.max(0, Math.min(100, Number((baseConfidence - totalPenalty).toFixed(2))));
+    const confidenceScore = Math.max(
+      0,
+      Math.min(100, Number((baseConfidence - totalPenalty).toFixed(2))),
+    );
     const confidenceTier: OcrConfidenceTier = this.scoreToTier(confidenceScore);
 
     // Do not pretend a low-confidence OCR result is reliable
-    const isReliable = confidenceTier === "HIGH" && validationPassed && potentialErrors.length === 0;
+    const isReliable =
+      confidenceTier === "HIGH" && validationPassed && potentialErrors.length === 0;
 
     // 5. REVIEW IF NECESSARY
     const reviewReasons: string[] = [];
@@ -224,14 +238,18 @@ export class OcrErrorDetector {
         pageNumber: meta.pageNumber,
         boundingBox: meta.boundingBox,
         coordinates: meta.coordinates,
-        potentialError: "Letter 'O' / 'o' detected in numeric sequence (potential optical confusion for digit '0').",
+        potentialError:
+          "Letter 'O' / 'o' detected in numeric sequence (potential optical confusion for digit '0').",
         validationResult: "Numeric formatting failed: string contains alphabetic 'O' character.",
         suggestedCandidate: trimmed.replace(/[Oo]/g, "0"),
         confidencePenalty: 25,
         severity: "HIGH",
         reviewRequired: true,
       });
-    } else if (!isNumericExpected && (/\b[A-Za-z]+0[A-Za-z]*\b/.test(trimmed) || /\b0[A-Za-z]{3,}\b/.test(trimmed))) {
+    } else if (
+      !isNumericExpected &&
+      (/\b[A-Za-z]+0[A-Za-z]*\b/.test(trimmed) || /\b0[A-Za-z]{3,}\b/.test(trimmed))
+    ) {
       errors.push({
         errorId: `err-sub-0o-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         errorType: "SUBSTITUTION_O_0",
@@ -241,7 +259,8 @@ export class OcrErrorDetector {
         pageNumber: meta.pageNumber,
         boundingBox: meta.boundingBox,
         coordinates: meta.coordinates,
-        potentialError: "Digit '0' detected inside alphabetic word (potential optical confusion for letter 'O').",
+        potentialError:
+          "Digit '0' detected inside alphabetic word (potential optical confusion for letter 'O').",
         validationResult: "Word spelling anomaly: word contains numeric '0'.",
         suggestedCandidate: trimmed.replace(/0/g, "O"),
         confidencePenalty: 20,
@@ -261,14 +280,18 @@ export class OcrErrorDetector {
         pageNumber: meta.pageNumber,
         boundingBox: meta.boundingBox,
         coordinates: meta.coordinates,
-        potentialError: "Uppercase 'I' detected in numeric sequence (potential optical confusion for digit '1').",
+        potentialError:
+          "Uppercase 'I' detected in numeric sequence (potential optical confusion for digit '1').",
         validationResult: "Numeric formatting failed: sequence contains letter 'I'.",
         suggestedCandidate: trimmed.replace(/I/g, "1"),
         confidencePenalty: 25,
         severity: "HIGH",
         reviewRequired: true,
       });
-    } else if (!isNumericExpected && (/\b[A-Za-z]+1[A-Za-z]*\b/.test(trimmed) || /\b1[A-Za-z]{3,}\b/.test(trimmed))) {
+    } else if (
+      !isNumericExpected &&
+      (/\b[A-Za-z]+1[A-Za-z]*\b/.test(trimmed) || /\b1[A-Za-z]{3,}\b/.test(trimmed))
+    ) {
       errors.push({
         errorId: `err-sub-1i-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         errorType: "SUBSTITUTION_I_1",
@@ -278,7 +301,8 @@ export class OcrErrorDetector {
         pageNumber: meta.pageNumber,
         boundingBox: meta.boundingBox,
         coordinates: meta.coordinates,
-        potentialError: "Digit '1' detected inside alphabetic word (potential optical confusion for letter 'I').",
+        potentialError:
+          "Digit '1' detected inside alphabetic word (potential optical confusion for letter 'I').",
         validationResult: "Word spelling anomaly: word contains numeric '1'.",
         suggestedCandidate: trimmed.replace(/1/g, "I"),
         confidencePenalty: 20,
@@ -298,7 +322,8 @@ export class OcrErrorDetector {
         pageNumber: meta.pageNumber,
         boundingBox: meta.boundingBox,
         coordinates: meta.coordinates,
-        potentialError: "Lowercase 'l' or pipe '|' detected in numeric sequence (potential optical confusion for digit '1').",
+        potentialError:
+          "Lowercase 'l' or pipe '|' detected in numeric sequence (potential optical confusion for digit '1').",
         validationResult: "Numeric formatting failed: sequence contains letter 'l' or '|'.",
         suggestedCandidate: trimmed.replace(/[l|]/g, "1"),
         confidencePenalty: 25,
@@ -318,7 +343,8 @@ export class OcrErrorDetector {
         pageNumber: meta.pageNumber,
         boundingBox: meta.boundingBox,
         coordinates: meta.coordinates,
-        potentialError: "Letter 'S' / 's' detected in numeric sequence (potential optical confusion for digit '5').",
+        potentialError:
+          "Letter 'S' / 's' detected in numeric sequence (potential optical confusion for digit '5').",
         validationResult: "Numeric formatting failed: sequence contains letter 'S'.",
         suggestedCandidate: trimmed.replace(/[Ss]/g, "5"),
         confidencePenalty: 20,
@@ -335,7 +361,8 @@ export class OcrErrorDetector {
         pageNumber: meta.pageNumber,
         boundingBox: meta.boundingBox,
         coordinates: meta.coordinates,
-        potentialError: "Digit '5' detected in alphabetic word (potential optical confusion for letter 'S').",
+        potentialError:
+          "Digit '5' detected in alphabetic word (potential optical confusion for letter 'S').",
         validationResult: "Word spelling anomaly: word contains numeric '5'.",
         suggestedCandidate: trimmed.replace(/5/g, "S"),
         confidencePenalty: 20,
@@ -355,14 +382,18 @@ export class OcrErrorDetector {
         pageNumber: meta.pageNumber,
         boundingBox: meta.boundingBox,
         coordinates: meta.coordinates,
-        potentialError: "Letter 'B' detected in numeric sequence (potential optical confusion for digit '8').",
+        potentialError:
+          "Letter 'B' detected in numeric sequence (potential optical confusion for digit '8').",
         validationResult: "Numeric formatting failed: sequence contains letter 'B'.",
         suggestedCandidate: trimmed.replace(/B/g, "8"),
         confidencePenalty: 20,
         severity: "HIGH",
         reviewRequired: true,
       });
-    } else if (!isNumericExpected && (/\b[A-Za-z]+8[A-Za-z]*\b/.test(trimmed) || /\b8[A-Za-z]{3,}\b/.test(trimmed))) {
+    } else if (
+      !isNumericExpected &&
+      (/\b[A-Za-z]+8[A-Za-z]*\b/.test(trimmed) || /\b8[A-Za-z]{3,}\b/.test(trimmed))
+    ) {
       errors.push({
         errorId: `err-sub-8b-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         errorType: "SUBSTITUTION_B_8",
@@ -372,7 +403,8 @@ export class OcrErrorDetector {
         pageNumber: meta.pageNumber,
         boundingBox: meta.boundingBox,
         coordinates: meta.coordinates,
-        potentialError: "Digit '8' detected in alphabetic word (potential optical confusion for letter 'B').",
+        potentialError:
+          "Digit '8' detected in alphabetic word (potential optical confusion for letter 'B').",
         validationResult: "Word spelling anomaly: word contains numeric '8'.",
         suggestedCandidate: trimmed.replace(/8/g, "B"),
         confidencePenalty: 20,
@@ -392,14 +424,18 @@ export class OcrErrorDetector {
         pageNumber: meta.pageNumber,
         boundingBox: meta.boundingBox,
         coordinates: meta.coordinates,
-        potentialError: "Letter 'G' detected in numeric sequence (potential optical confusion for digit '6').",
+        potentialError:
+          "Letter 'G' detected in numeric sequence (potential optical confusion for digit '6').",
         validationResult: "Numeric formatting failed: sequence contains letter 'G'.",
         suggestedCandidate: trimmed.replace(/G/g, "6"),
         confidencePenalty: 20,
         severity: "HIGH",
         reviewRequired: true,
       });
-    } else if (!isNumericExpected && (/\b[A-Za-z]+6[A-Za-z]*\b/.test(trimmed) || /\b6[A-Za-z]{3,}\b/.test(trimmed))) {
+    } else if (
+      !isNumericExpected &&
+      (/\b[A-Za-z]+6[A-Za-z]*\b/.test(trimmed) || /\b6[A-Za-z]{3,}\b/.test(trimmed))
+    ) {
       errors.push({
         errorId: `err-sub-6g-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         errorType: "SUBSTITUTION_G_6",
@@ -409,7 +445,8 @@ export class OcrErrorDetector {
         pageNumber: meta.pageNumber,
         boundingBox: meta.boundingBox,
         coordinates: meta.coordinates,
-        potentialError: "Digit '6' detected in alphabetic word (potential optical confusion for letter 'G').",
+        potentialError:
+          "Digit '6' detected in alphabetic word (potential optical confusion for letter 'G').",
         validationResult: "Word spelling anomaly: word contains numeric '6'.",
         suggestedCandidate: trimmed.replace(/6/g, "G"),
         confidencePenalty: 20,
@@ -429,14 +466,20 @@ export class OcrErrorDetector {
         pageNumber: meta.pageNumber,
         boundingBox: meta.boundingBox,
         coordinates: meta.coordinates,
-        potentialError: "Letter 'Z' detected in numeric sequence (potential optical confusion for digit '2').",
+        potentialError:
+          "Letter 'Z' detected in numeric sequence (potential optical confusion for digit '2').",
         validationResult: "Numeric formatting failed: sequence contains letter 'Z'.",
         suggestedCandidate: trimmed.replace(/Z/g, "2"),
         confidencePenalty: 20,
         severity: "HIGH",
         reviewRequired: true,
       });
-    } else if (!isNumericExpected && (/\b2AR\b/.test(trimmed) || /\b[A-Za-z]+2[A-Za-z]*\b/.test(trimmed) || /\b2[A-Za-z]{3,}\b/.test(trimmed))) {
+    } else if (
+      !isNumericExpected &&
+      (/\b2AR\b/.test(trimmed) ||
+        /\b[A-Za-z]+2[A-Za-z]*\b/.test(trimmed) ||
+        /\b2[A-Za-z]{3,}\b/.test(trimmed))
+    ) {
       errors.push({
         errorId: `err-sub-2z-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         errorType: "SUBSTITUTION_Z_2",
@@ -446,7 +489,8 @@ export class OcrErrorDetector {
         pageNumber: meta.pageNumber,
         boundingBox: meta.boundingBox,
         coordinates: meta.coordinates,
-        potentialError: "Digit '2' detected in word or currency marker '2AR' (potential optical confusion for letter 'Z').",
+        potentialError:
+          "Digit '2' detected in word or currency marker '2AR' (potential optical confusion for letter 'Z').",
         validationResult: "Word spelling anomaly: word contains numeric '2'.",
         suggestedCandidate: trimmed.replace(/2/g, "Z"),
         confidencePenalty: 20,
@@ -477,7 +521,8 @@ export class OcrErrorDetector {
         originalOcrValue: trimmed,
         pageNumber,
         boundingBox,
-        potentialError: "Consecutive or mixed decimal separators detected (e.g. '..' or ',.' or ',,').",
+        potentialError:
+          "Consecutive or mixed decimal separators detected (e.g. '..' or ',.' or ',,').",
         validationResult: "Invalid numeric syntax: multiple consecutive separators.",
         suggestedCandidate: trimmed.replace(/[.,]{2,}/g, "."),
         confidencePenalty: 30,
@@ -629,7 +674,10 @@ export class OcrErrorDetector {
           boundingBox,
           potentialError: `Date string '${trimmed}' contains alphabetic characters (e.g. 'O' vs '0' or 'S' vs '5').`,
           validationResult: "Date formatting failed: alphanumeric substitution in date field.",
-          suggestedCandidate: trimmed.replace(/[Oo]/g, "0").replace(/[Ss]/g, "5").replace(/[Il]/g, "1"),
+          suggestedCandidate: trimmed
+            .replace(/[Oo]/g, "0")
+            .replace(/[Ss]/g, "5")
+            .replace(/[Il]/g, "1"),
           confidencePenalty: 30,
           severity: "CRITICAL",
           reviewRequired: true,
@@ -691,7 +739,8 @@ export class OcrErrorDetector {
         pageNumber,
         boundingBox,
         potentialError: `Account number '${trimmed}' contains alphabetic characters (e.g. 'O', 'I', 'l', 'S', 'B').`,
-        validationResult: "Account format validation failed: Standard Eskom accounts require 10 numeric digits.",
+        validationResult:
+          "Account format validation failed: Standard Eskom accounts require 10 numeric digits.",
         suggestedCandidate: candidate,
         confidencePenalty: 35,
         severity: "CRITICAL",
@@ -779,7 +828,11 @@ export class OcrErrorDetector {
         }
 
         // Scan for comma vs decimal ambiguity in line
-        const commaErrors = this.detectCommaDecimalAmbiguity(line.text, page.pageNumber, line.boundingBox);
+        const commaErrors = this.detectCommaDecimalAmbiguity(
+          line.text,
+          page.pageNumber,
+          line.boundingBox,
+        );
         allErrors.push(...commaErrors);
 
         // Scan for currency corruption in line
@@ -821,7 +874,13 @@ export class OcrErrorDetector {
           });
 
           for (const err of pipeRes.potentialErrors) {
-            if (!allErrors.some((e) => e.errorId === err.errorId || (e.originalOcrValue === err.originalOcrValue && e.errorType === err.errorType))) {
+            if (
+              !allErrors.some(
+                (e) =>
+                  e.errorId === err.errorId ||
+                  (e.originalOcrValue === err.originalOcrValue && e.errorType === err.errorType),
+              )
+            ) {
               allErrors.push(err);
             }
           }

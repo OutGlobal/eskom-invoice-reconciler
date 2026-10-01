@@ -76,7 +76,7 @@ export class OcrProcessingRunEngine {
     const ocrRunId =
       options.ocrRunId ||
       `ocr-run-${options.documentId}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-    
+
     // Idempotency check: if run already exists in store, return existing
     const existing = this.runStore.get(ocrRunId);
     if (existing) {
@@ -89,8 +89,7 @@ export class OcrProcessingRunEngine {
     const provider = options.provider || config.provider || "TESSERACT_LOCAL";
     const providerVersion = options.providerVersion || this.DEFAULT_PROVIDER_VERSION;
     const language = options.language || config.language || "eng";
-    const preprocessingVersion =
-      options.preprocessingVersion || this.CURRENT_PREPROCESSING_VERSION;
+    const preprocessingVersion = options.preprocessingVersion || this.CURRENT_PREPROCESSING_VERSION;
     const outputVersion = options.outputVersion || this.CURRENT_OUTPUT_VERSION;
 
     const run: OcrProcessingRun = {
@@ -160,8 +159,7 @@ export class OcrProcessingRunEngine {
     const provider = options.provider || config.provider || "TESSERACT_LOCAL";
     const providerVersion = options.providerVersion || this.DEFAULT_PROVIDER_VERSION;
     const language = options.language || config.language || "eng";
-    const preprocessingVersion =
-      options.preprocessingVersion || this.CURRENT_PREPROCESSING_VERSION;
+    const preprocessingVersion = options.preprocessingVersion || this.CURRENT_PREPROCESSING_VERSION;
     const outputVersion = options.outputVersion || this.CURRENT_OUTPUT_VERSION;
 
     return {
@@ -215,7 +213,8 @@ export class OcrProcessingRunEngine {
     if (updates?.lineCount !== undefined) pageRun.lineCount = updates.lineCount;
     if (updates?.tableCount !== undefined) pageRun.tableCount = updates.tableCount;
     if (updates?.confidence !== undefined) pageRun.averageConfidence = updates.confidence;
-    if (updates?.averageConfidence !== undefined) pageRun.averageConfidence = updates.averageConfidence;
+    if (updates?.averageConfidence !== undefined)
+      pageRun.averageConfidence = updates.averageConfidence;
     if (updates?.confidenceTier !== undefined) pageRun.confidenceTier = updates.confidenceTier;
 
     return pageRun;
@@ -276,7 +275,9 @@ export class OcrProcessingRunEngine {
           ? { code: "OCR_ERROR", message: error.message, stack: error.stack }
           : typeof error === "object" && error !== null
             ? error
-            : error ? { code: "OCR_ERROR", message: String(error) } : null;
+            : error
+              ? { code: "OCR_ERROR", message: String(error) }
+              : null;
     }
 
     this.runStore.set(run.ocrRunId, run);
@@ -343,15 +344,18 @@ export class OcrProcessingRunEngine {
     if (updates?.totalPages !== undefined) run.totalPages = updates.totalPages;
     if (updates?.evidenceCount !== undefined) run.evidenceCount = updates.evidenceCount;
     if (updates?.overallConfidence !== undefined) run.overallConfidence = updates.overallConfidence;
-    if (updates?.overallConfidenceTier !== undefined) run.overallConfidenceTier = updates.overallConfidenceTier;
+    if (updates?.overallConfidenceTier !== undefined)
+      run.overallConfidenceTier = updates.overallConfidenceTier;
     if (updates?.characterCount !== undefined) run.characterCount = updates.characterCount;
     if (updates?.totalWords !== undefined) run.totalWords = updates.totalWords;
     if (updates?.totalLines !== undefined) run.totalLines = updates.totalLines;
     if (updates?.totalTables !== undefined) run.totalTables = updates.totalTables;
     if (updates?.chunks) run.chunks = updates.chunks;
     if (updates?.chunkCount !== undefined) run.chunkCount = updates.chunkCount;
-    if (updates?.completedChunkCount !== undefined) run.completedChunkCount = updates.completedChunkCount;
-    if (updates?.progressPercentage !== undefined) run.progressPercentage = updates.progressPercentage;
+    if (updates?.completedChunkCount !== undefined)
+      run.completedChunkCount = updates.completedChunkCount;
+    if (updates?.progressPercentage !== undefined)
+      run.progressPercentage = updates.progressPercentage;
     if (updates?.metadata) {
       run.metadata = { ...run.metadata, ...updates.metadata };
     }

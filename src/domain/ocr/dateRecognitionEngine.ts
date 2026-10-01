@@ -201,8 +201,7 @@ export class DateRecognitionEngine {
     }
 
     // Pattern 3: Day Mon Year e.g. "01 Sep 2026", "1 Sep 2026", "01 September 2026"
-    const dayMonYearRegex =
-      /\b(0?[1-9]|[12]\d|3[01])\s+([A-Za-z]{3,10})\s+(\d{4})\b/g;
+    const dayMonYearRegex = /\b(0?[1-9]|[12]\d|3[01])\s+([A-Za-z]{3,10})\s+(\d{4})\b/g;
     while ((match = dayMonYearRegex.exec(text)) !== null) {
       const originalRaw = match[0];
       const day = parseInt(match[1], 10);
@@ -231,8 +230,7 @@ export class DateRecognitionEngine {
     }
 
     // Pattern 4: Month Day, Year e.g. "September 1, 2026" or "Sep 1, 2026" or "September 01, 2026"
-    const monDayYearRegex =
-      /\b([A-Za-z]{3,10})\s+(0?[1-9]|[12]\d|3[01]),?\s+(\d{4})\b/g;
+    const monDayYearRegex = /\b([A-Za-z]{3,10})\s+(0?[1-9]|[12]\d|3[01]),?\s+(\d{4})\b/g;
     while ((match = monDayYearRegex.exec(text)) !== null) {
       const originalRaw = match[0];
       const monthStr = match[1].toUpperCase();

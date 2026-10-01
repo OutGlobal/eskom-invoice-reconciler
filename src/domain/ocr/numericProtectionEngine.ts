@@ -111,7 +111,18 @@ export const VALID_UTILITY_UNITS: Record<string, string[]> = {
   POWER_DEMAND: ["kva", "mva", "kw", "mw"],
   APPARENT_ENERGY: ["kvah", "mvah"],
   REACTIVE_ENERGY: ["kvarh", "mvarh"],
-  RATES: ["c/kwh", "cents/kwh", "r/kva", "r/kw", "r/day", "r/month", "$/kwh", "€/kwh", "c/kva", "r/kwh"],
+  RATES: [
+    "c/kwh",
+    "cents/kwh",
+    "r/kva",
+    "r/kw",
+    "r/day",
+    "r/month",
+    "$/kwh",
+    "€/kwh",
+    "c/kva",
+    "r/kwh",
+  ],
   POWER_FACTOR: ["pf", "cos phi", "cos φ", "lag", "lead"],
   PERCENT: ["%", "percent"],
 };
@@ -205,7 +216,7 @@ export class NumericProtectionEngine {
     // 3. Extract Percentage Formatting
     const percResult = this.extractPercentage(workingStr);
     workingStr = percResult.cleanStr;
-    const isPercentage = percResult.isPercentage || category === "VAT" && trimmed.includes("%");
+    const isPercentage = percResult.isPercentage || (category === "VAT" && trimmed.includes("%"));
     const percentageValue = percResult.percentageValue;
 
     // 4. Extract Unit Specification
@@ -280,7 +291,10 @@ export class NumericProtectionEngine {
     }
 
     // Percentage validation (e.g. VAT rate 15% standard in SA, 14% historical, 0% zero-rated)
-    if ((category === "VAT" || isPercentage) && (percentageValue !== undefined || parsedNumber !== null)) {
+    if (
+      (category === "VAT" || isPercentage) &&
+      (percentageValue !== undefined || parsedNumber !== null)
+    ) {
       const checkVal = percentageValue ?? parsedNumber;
       if (checkVal !== null && (checkVal < 0 || checkVal > 100)) {
         validationErrors.push({
@@ -291,7 +305,8 @@ export class NumericProtectionEngine {
           pageNumber,
           potentialError: `Percentage value ${checkVal}% is outside logical bounds [0, 100%].`,
           validationResult: "Percentage integrity check failed.",
-          suggestedCandidate: checkVal > 100 && checkVal % 100 === 0 ? `${checkVal / 100}%` : undefined,
+          suggestedCandidate:
+            checkVal > 100 && checkVal % 100 === 0 ? `${checkVal / 100}%` : undefined,
           confidencePenalty: 25,
           severity: "HIGH",
           reviewRequired: true,
@@ -304,13 +319,19 @@ export class NumericProtectionEngine {
     for (const err of validationErrors) {
       totalPenalty += err.confidencePenalty;
     }
-    const confidenceScore = Math.max(0, Math.min(100, Number((baseConfidence - totalPenalty).toFixed(2))));
+    const confidenceScore = Math.max(
+      0,
+      Math.min(100, Number((baseConfidence - totalPenalty).toFixed(2))),
+    );
     const confidenceTier: OcrConfidenceTier =
       confidenceScore >= 85 ? "HIGH" : confidenceScore >= 70 ? "MEDIUM" : "LOW";
 
-    const hasCriticalError = validationErrors.some((e) => e.severity === "CRITICAL" || e.severity === "HIGH");
+    const hasCriticalError = validationErrors.some(
+      (e) => e.severity === "CRITICAL" || e.severity === "HIGH",
+    );
     const isValid = parsedNumber !== null && !hasCriticalError && !scaleShift.detected;
-    const reviewRequired = !isValid || confidenceTier !== "HIGH" || scaleShift.detected || validationErrors.length > 0;
+    const reviewRequired =
+      !isValid || confidenceTier !== "HIGH" || scaleShift.detected || validationErrors.length > 0;
 
     if (scaleShift.detected) {
       reviewReasons.push(`Scale shift protection: ${scaleShift.reason}`);
@@ -455,8 +476,18 @@ export class NumericProtectionEngine {
         const monthStr = textMatch[2].toUpperCase();
         const year = parseInt(textMatch[3], 10);
         const monthMap: Record<string, number> = {
-          JAN: 1, FEB: 2, MAR: 3, APR: 4, MAY: 5, JUN: 6,
-          JUL: 7, AUG: 8, SEP: 9, OCT: 10, NOV: 11, DEC: 12,
+          JAN: 1,
+          FEB: 2,
+          MAR: 3,
+          APR: 4,
+          MAY: 5,
+          JUN: 6,
+          JUL: 7,
+          AUG: 8,
+          SEP: 9,
+          OCT: 10,
+          NOV: 11,
+          DEC: 12,
         };
         const month = monthMap[monthStr];
         formatDetected = "DD MMM YYYY";
@@ -545,7 +576,8 @@ export class NumericProtectionEngine {
     }
 
     // 2. Financial Amount / Rate / Total Dropped Decimal Protection
-    const isFinancial = category === "AMOUNT" || category === "TOTAL" || category === "VAT" || category === "RATE";
+    const isFinancial =
+      category === "AMOUNT" || category === "TOTAL" || category === "VAT" || category === "RATE";
     if (isFinancial && parsedNumber !== null) {
       // Check if raw value has NO decimal separator at all, but looks like it has cents
       const hasExplicitDecimal = detectedSeparator === "DOT" || detectedSeparator === "COMMA";
@@ -730,7 +762,12 @@ export class NumericProtectionEngine {
       const dotMatch = trimmed.match(/\.(\d+)$/);
       if (dotMatch) {
         const decimals = dotMatch[1];
-        if (decimals.length === 2 || decimals.length === 1 || decimals.length === 3 || decimals.length === 4) {
+        if (
+          decimals.length === 2 ||
+          decimals.length === 1 ||
+          decimals.length === 3 ||
+          decimals.length === 4
+        ) {
           decimalSeparator = "DOT";
           return { decimalSeparator, thousandsSeparator, cleanedNumericString: trimmed, errors };
         }
@@ -739,7 +776,12 @@ export class NumericProtectionEngine {
       if (profile.name === "INTERNATIONAL_CONTINENTAL" && /\.([0-9]{3})$/.test(trimmed)) {
         thousandsSeparator = "DOT";
         decimalSeparator = "NONE";
-        return { decimalSeparator, thousandsSeparator, cleanedNumericString: trimmed.replace(/\./g, ""), errors };
+        return {
+          decimalSeparator,
+          thousandsSeparator,
+          cleanedNumericString: trimmed.replace(/\./g, ""),
+          errors,
+        };
       }
 
       decimalSeparator = "DOT";
@@ -897,7 +939,11 @@ export class NumericProtectionEngine {
       clean.match(/^R([0-9].*)$/i) ||
       clean.match(/^(.*?)\s*\b(?:(ZAR|R))\b$/i);
     if (zarMatch) {
-      currencySymbol = zarMatch[1] ? zarMatch[1].toUpperCase() : zarMatch[2] ? zarMatch[2].toUpperCase() : "R";
+      currencySymbol = zarMatch[1]
+        ? zarMatch[1].toUpperCase()
+        : zarMatch[2]
+          ? zarMatch[2].toUpperCase()
+          : "R";
       currencyIsoCode = "ZAR";
       clean = (zarMatch[2] || zarMatch[1] || "").trim();
     }
@@ -911,7 +957,8 @@ export class NumericProtectionEngine {
     }
 
     // Check Dollar: "$ 123.45" or "$123.45" or "USD 123.45"
-    const usdMatch = clean.match(/^(?:\$|USD\b)\s*(.*)$/i) || clean.match(/^(.*?)\s*(?:\$|\bUSD\b)$/i);
+    const usdMatch =
+      clean.match(/^(?:\$|USD\b)\s*(.*)$/i) || clean.match(/^(.*?)\s*(?:\$|\bUSD\b)$/i);
     if (!currencySymbol && usdMatch) {
       currencySymbol = "$";
       currencyIsoCode = "USD";
@@ -919,7 +966,8 @@ export class NumericProtectionEngine {
     }
 
     // Check Euro: "€ 123.45" or "123.45 €" or "EUR 123.45"
-    const eurMatch = clean.match(/^(?:€|EUR\b)\s*(.*)$/i) || clean.match(/^(.*?)\s*(?:€|\bEUR\b)$/i);
+    const eurMatch =
+      clean.match(/^(?:€|EUR\b)\s*(.*)$/i) || clean.match(/^(.*?)\s*(?:€|\bEUR\b)$/i);
     if (!currencySymbol && eurMatch) {
       currencySymbol = "€";
       currencyIsoCode = "EUR";
@@ -927,7 +975,8 @@ export class NumericProtectionEngine {
     }
 
     // Check Pound: "£ 123.45" or "GBP 123.45"
-    const gbpMatch = clean.match(/^(?:£|GBP\b)\s*(.*)$/i) || clean.match(/^(.*?)\s*(?:£|\bGBP\b)$/i);
+    const gbpMatch =
+      clean.match(/^(?:£|GBP\b)\s*(.*)$/i) || clean.match(/^(.*?)\s*(?:£|\bGBP\b)$/i);
     if (!currencySymbol && gbpMatch) {
       currencySymbol = "£";
       currencyIsoCode = "GBP";
@@ -1115,7 +1164,12 @@ export class NumericProtectionEngine {
       isPercentage: false,
       decimalSeparator: "NONE",
       thousandsSeparator: "NONE",
-      scaleShift: { detected: false, originalOcrValue: originalRaw, reason: "N/A for identifiers", severity: "LOW" },
+      scaleShift: {
+        detected: false,
+        originalOcrValue: originalRaw,
+        reason: "N/A for identifiers",
+        severity: "LOW",
+      },
       validationErrors,
       isValid: validationErrors.length === 0,
       confidenceScore,
@@ -1174,7 +1228,12 @@ export class NumericProtectionEngine {
       isPercentage: false,
       decimalSeparator: "NONE",
       thousandsSeparator: "NONE",
-      scaleShift: { detected: false, originalOcrValue: originalRaw, reason: "N/A for identifiers", severity: "LOW" },
+      scaleShift: {
+        detected: false,
+        originalOcrValue: originalRaw,
+        reason: "N/A for identifiers",
+        severity: "LOW",
+      },
       validationErrors,
       isValid: validationErrors.length === 0,
       confidenceScore,
@@ -1206,7 +1265,12 @@ export class NumericProtectionEngine {
       isPercentage: false,
       decimalSeparator: "NONE",
       thousandsSeparator: "NONE",
-      scaleShift: { detected: false, originalOcrValue: originalRaw, reason: "N/A for identifiers", severity: "LOW" },
+      scaleShift: {
+        detected: false,
+        originalOcrValue: originalRaw,
+        reason: "N/A for identifiers",
+        severity: "LOW",
+      },
       validationErrors: [],
       isValid: trimmed.length > 0,
       confidenceScore: baseConfidence,
@@ -1237,7 +1301,12 @@ export class NumericProtectionEngine {
       isPercentage: false,
       decimalSeparator: "NONE",
       thousandsSeparator: "NONE",
-      scaleShift: { detected: false, originalOcrValue: originalRaw, reason: "N/A for tariff names", severity: "LOW" },
+      scaleShift: {
+        detected: false,
+        originalOcrValue: originalRaw,
+        reason: "N/A for tariff names",
+        severity: "LOW",
+      },
       validationErrors: [],
       isValid: trimmed.length > 0,
       confidenceScore: baseConfidence,
@@ -1286,7 +1355,20 @@ export class NumericProtectionEngine {
     if (day < 1 || day > 31) return false;
 
     // Check month days
-    const daysInMonth = [31, this.isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    const daysInMonth = [
+      31,
+      this.isLeapYear(year) ? 29 : 28,
+      31,
+      30,
+      31,
+      30,
+      31,
+      31,
+      30,
+      31,
+      30,
+      31,
+    ];
     return day <= daysInMonth[month - 1];
   }
 

@@ -246,7 +246,8 @@ export class TesseractWorkerPool {
                 Number((wHeight / height).toFixed(4)),
               ];
               const conf = typeof w.confidence === "number" ? w.confidence : 85;
-              const normConf = Number((conf > 1 ? conf / 100 : conf).toFixed(4));              const token: OcrWordToken = {
+              const normConf = Number((conf > 1 ? conf / 100 : conf).toFixed(4));
+              const token: OcrWordToken = {
                 wordId: `word-p${pageNumber}-l${lIdx}-w${wIdx}`,
                 text: w.text || "",
                 sanitizedText: (w.text || "").trim(),

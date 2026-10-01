@@ -143,7 +143,11 @@ export class OcrRetryEngine {
   ): OcrProcessingRun {
     const errorObj =
       error instanceof Error
-        ? { code: (error as any).code || "OCR_RETRYABLE_ERROR", message: error.message, stack: error.stack }
+        ? {
+            code: (error as any).code || "OCR_RETRYABLE_ERROR",
+            message: error.message,
+            stack: error.stack,
+          }
         : typeof error === "object" && error !== null
           ? error
           : { code: "OCR_RETRYABLE_ERROR", message: String(error) };
@@ -191,7 +195,11 @@ export class OcrRetryEngine {
   ): OcrPageChunk {
     const errorObj =
       error instanceof Error
-        ? { code: (error as any).code || "CHUNK_RETRYABLE_ERROR", message: error.message, stack: error.stack }
+        ? {
+            code: (error as any).code || "CHUNK_RETRYABLE_ERROR",
+            message: error.message,
+            stack: error.stack,
+          }
         : typeof error === "object" && error !== null
           ? error
           : { code: "CHUNK_RETRYABLE_ERROR", message: String(error) };
@@ -232,7 +240,13 @@ export class OcrRetryEngine {
   public static async executeWithRetry<T>(
     taskFn: (attempt: number, retryStatus?: OcrProcessingRunStatus) => Promise<T>,
     options: RetryExecutionOptions = {},
-  ): Promise<{ result?: T; success: boolean; finalStatus: OcrProcessingRunStatus; attempts: number; error?: any }> {
+  ): Promise<{
+    result?: T;
+    success: boolean;
+    finalStatus: OcrProcessingRunStatus;
+    attempts: number;
+    error?: any;
+  }> {
     const policy: OcrRetryPolicy = {
       ...this.DEFAULT_RETRY_POLICY,
       ...(options.policy || {}),
@@ -291,7 +305,11 @@ export class OcrRetryEngine {
         }
 
         if (options.onRetry) {
-          options.onRetry(nextAttemptIndex, err instanceof Error ? err : new Error(String(err)), currentStatus);
+          options.onRetry(
+            nextAttemptIndex,
+            err instanceof Error ? err : new Error(String(err)),
+            currentStatus,
+          );
         }
 
         if (isLastAttempt) {

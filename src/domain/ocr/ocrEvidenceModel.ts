@@ -84,16 +84,15 @@ export class OcrEvidenceModel {
       width,
       height,
       coordinateSystem,
-      confidence: params.confidence > 1 ? Number((params.confidence / 100).toFixed(4)) : params.confidence,
+      confidence:
+        params.confidence > 1 ? Number((params.confidence / 100).toFixed(4)) : params.confidence,
     };
 
     const confidenceTier: OcrConfidenceTier =
       params.confidenceTier ||
       (params.confidence >= 85 ? "HIGH" : params.confidence >= 70 ? "MEDIUM" : "LOW");
 
-    const fieldKey =
-      params.fieldKey ||
-      OcrEvidenceModel.toCamelCase(params.field);
+    const fieldKey = params.fieldKey || OcrEvidenceModel.toCamelCase(params.field);
 
     return {
       field: params.field,
@@ -125,7 +124,8 @@ export class OcrEvidenceModel {
       confidenceTier,
       processingRun: params.processingRun,
       ocrRunId: params.processingRun,
-      extractionMethod: params.extractionMethod || (params.ocr ? "OCR_TESSERACT" : "DIGITAL_STREAM_HYBRID"),
+      extractionMethod:
+        params.extractionMethod || (params.ocr ? "OCR_TESSERACT" : "DIGITAL_STREAM_HYBRID"),
       extractedAt: new Date().toISOString(),
     };
   }
@@ -153,7 +153,8 @@ export class OcrEvidenceModel {
             : false;
 
     const bbox: OcrBoundingBox = prov.boundingBox || [0, 0, 0, 0];
-    const sourceText = prov.sourceText || prov.contextSnippet || field.rawValue || String(field.value ?? "");
+    const sourceText =
+      prov.sourceText || prov.contextSnippet || field.rawValue || String(field.value ?? "");
 
     return this.createFieldEvidence<T>({
       field: field.fieldLabel || field.fieldKey,
@@ -206,9 +207,22 @@ export class OcrEvidenceModel {
           prop.forEach((item: any, idx: number) => {
             if (item && item.provenance) {
               const itemKey = `${key}[${idx}]`;
-              const itemLabel = item.lineDescription || item.description || item.chargeCategory || `${key} Item ${idx + 1}`;
-              const val = item.amount !== undefined ? item.amount : item.balance !== undefined ? item.balance : item.rateCentsPerKwh;
-              const sourceText = item.provenance.sourceText || item.provenance.contextSnippet || item.lineDescription || String(val ?? "");
+              const itemLabel =
+                item.lineDescription ||
+                item.description ||
+                item.chargeCategory ||
+                `${key} Item ${idx + 1}`;
+              const val =
+                item.amount !== undefined
+                  ? item.amount
+                  : item.balance !== undefined
+                    ? item.balance
+                    : item.rateCentsPerKwh;
+              const sourceText =
+                item.provenance.sourceText ||
+                item.provenance.contextSnippet ||
+                item.lineDescription ||
+                String(val ?? "");
               evidenceMap[itemKey] = this.createFieldEvidence({
                 field: itemLabel,
                 fieldKey: itemKey,
@@ -228,7 +242,8 @@ export class OcrEvidenceModel {
                 detailedBoundingBox: item.provenance.detailedBoundingBox,
                 confidence: item.provenance.confidenceScore || 90,
                 confidenceTier: item.provenance.confidenceTier,
-                processingRun: item.provenance.processingRun || item.provenance.ocrRunId || processingRunId,
+                processingRun:
+                  item.provenance.processingRun || item.provenance.ocrRunId || processingRunId,
                 extractionMethod: item.provenance.extractionMethod,
               });
             }
@@ -237,14 +252,13 @@ export class OcrEvidenceModel {
         continue;
       }
 
-      if (
-        prop &&
-        typeof prop === "object" &&
-        "provenance" in prop &&
-        "fieldKey" in prop
-      ) {
+      if (prop && typeof prop === "object" && "provenance" in prop && "fieldKey" in prop) {
         const detField = prop as OcrDeterminantField<any>;
-        if (detField.value !== null && detField.value !== undefined && detField.provenance.hasExactBoundingBox) {
+        if (
+          detField.value !== null &&
+          detField.value !== undefined &&
+          detField.provenance.hasExactBoundingBox
+        ) {
           evidenceMap[detField.fieldKey] = this.fromDeterminantField(
             detField,
             documentId,
@@ -292,7 +306,11 @@ export class OcrEvidenceModel {
     ) {
       errors.push("Bounding box must be a 4-element array [x, y, width, height]");
     }
-    if (typeof evidence.confidence !== "number" || evidence.confidence < 0 || evidence.confidence > 100) {
+    if (
+      typeof evidence.confidence !== "number" ||
+      evidence.confidence < 0 ||
+      evidence.confidence > 100
+    ) {
       errors.push(`Confidence score out of bounds (0-100): ${evidence.confidence}`);
     }
     if (!evidence.processingRun || evidence.processingRun.trim() === "") {
@@ -314,7 +332,12 @@ export class OcrEvidenceModel {
     evidence: OcrFieldEvidence<T>,
   ): ProvenancedField<T> {
     const region: BoundingBox = evidence.boundingBox
-      ? [evidence.boundingBox[0], evidence.boundingBox[1], evidence.boundingBox[2], evidence.boundingBox[3]]
+      ? [
+          evidence.boundingBox[0],
+          evidence.boundingBox[1],
+          evidence.boundingBox[2],
+          evidence.boundingBox[3],
+        ]
       : [0, 0, 0, 0];
 
     const confScore =
@@ -334,7 +357,9 @@ export class OcrEvidenceModel {
       contextSnippet: evidence.sourceText,
       extractionMethod: evidence.ocr ? "TESSERACT_OCR" : "PDF_TEXT_STREAM",
       confidenceScore: Math.min(1.0, Math.max(0.0, confScore)),
-      confidenceLevel: evidence.confidenceTier || (evidence.confidence >= 85 ? "HIGH" : evidence.confidence >= 70 ? "MEDIUM" : "LOW"),
+      confidenceLevel:
+        evidence.confidenceTier ||
+        (evidence.confidence >= 85 ? "HIGH" : evidence.confidence >= 70 ? "MEDIUM" : "LOW"),
       coordinateSystem: evidence.coordinateSystem,
       detailedBoundingBox: evidence.detailedBoundingBox
         ? {
@@ -384,7 +409,8 @@ export class OcrEvidenceModel {
       document: prov?.documentId || field.document || "unknown-document",
       page: prov?.pageNumber || field.page || 1,
       ocr: isOcr,
-      sourceText: prov?.contextSnippet || prov?.regionText || field.rawValue || String(field.value ?? ""),
+      sourceText:
+        prov?.contextSnippet || prov?.regionText || field.rawValue || String(field.value ?? ""),
       boundingBox: bbox,
       confidence: rawConfidence,
       confidenceTier: (field.confidence as OcrConfidenceTier) || "HIGH",
@@ -458,7 +484,9 @@ export class OcrEvidenceModel {
       sourceText: evidence.sourceText,
       boundingBox: bb,
       confidence: evidence.confidence,
-      confidenceTier: evidence.confidenceTier || (evidence.confidence >= 85 ? "HIGH" : evidence.confidence >= 70 ? "MEDIUM" : "LOW"),
+      confidenceTier:
+        evidence.confidenceTier ||
+        (evidence.confidence >= 85 ? "HIGH" : evidence.confidence >= 70 ? "MEDIUM" : "LOW"),
       processingRun: evidence.processingRun,
       explanation,
       evidenceChain,

@@ -1598,17 +1598,25 @@ export async function runProductionOcrTestSuite() {
 
     // Do not pretend a low-confidence OCR result is reliable
     assert(OcrConfidenceScorer.isReliable("HIGH") === true, "HIGH tier is reliable");
-    assert(OcrConfidenceScorer.isReliable("MEDIUM") === false, "MEDIUM tier is not unconditionally reliable");
+    assert(
+      OcrConfidenceScorer.isReliable("MEDIUM") === false,
+      "MEDIUM tier is not unconditionally reliable",
+    );
     assert(OcrConfidenceScorer.isReliable("LOW") === false, "LOW tier is strictly NOT reliable");
     assert(OcrConfidenceScorer.isReliable(90) === true, "Score 90% is reliable");
-    assert(OcrConfidenceScorer.isReliable(75) === false, "Score 75% is not unconditionally reliable");
+    assert(
+      OcrConfidenceScorer.isReliable(75) === false,
+      "Score 75% is not unconditionally reliable",
+    );
     assert(OcrConfidenceScorer.isReliable(55) === false, "Score 55% is strictly NOT reliable");
   }
 
   // Test 15.2: Word, Line, Block, and Page Level Confidence Propagation
   {
     testCount++;
-    console.log(`[Test ${testCount}] Confidence tier propagation across word, line, block, and page levels`);
+    console.log(
+      `[Test ${testCount}] Confidence tier propagation across word, line, block, and page levels`,
+    );
     const lineHigh = buildLine(1, 1, "Megaflex Electricity Invoice", 0.1, 95);
     const lineMed = buildLine(1, 2, "Standard Off-Peak Charges", 0.2, 75);
     const lineLow = buildLine(1, 3, "Degraded Noise Token 9882", 0.3, 50);
@@ -1687,7 +1695,8 @@ export async function runProductionOcrTestSuite() {
 
     const rawPage: OcrPageResult = {
       pageNumber: 1,
-      fullText: "Megaflex Electricity Invoice\nStandard Off-Peak Charges\nDegraded Noise Token 9882",
+      fullText:
+        "Megaflex Electricity Invoice\nStandard Off-Peak Charges\nDegraded Noise Token 9882",
       geometry: { width: 1000, height: 1000, dpi: 300, aspectRatio: 1.0, rotation: 0 },
       words: [...lineHigh.words, ...lineMed.words, ...lineLow.words],
       lines: [lineHigh, lineMed, lineLow],
@@ -1709,31 +1718,48 @@ export async function runProductionOcrTestSuite() {
     const wMed = enrichedPage.words.find((w) => w.confidence === 75);
     const wLow = enrichedPage.words.find((w) => w.confidence === 50);
     assert(wHigh?.confidenceTier === "HIGH", "Word level confidence has HIGH tier");
-    assert(wHigh?.detailedBoundingBox?.confidenceTier === "HIGH", "Word detailedBoundingBox has HIGH tier");
+    assert(
+      wHigh?.detailedBoundingBox?.confidenceTier === "HIGH",
+      "Word detailedBoundingBox has HIGH tier",
+    );
     assert(wMed?.confidenceTier === "MEDIUM", "Word level confidence has MEDIUM tier");
     assert(wLow?.confidenceTier === "LOW", "Word level confidence has LOW tier");
 
     // 2. Line level check
     assert(enrichedPage.lines[0].confidenceTier === "HIGH", "Line 0 has HIGH confidence tier");
-    assert(enrichedPage.lines[0].detailedBoundingBox?.confidenceTier === "HIGH", "Line 0 detailedBoundingBox has HIGH tier");
+    assert(
+      enrichedPage.lines[0].detailedBoundingBox?.confidenceTier === "HIGH",
+      "Line 0 detailedBoundingBox has HIGH tier",
+    );
     assert(enrichedPage.lines[1].confidenceTier === "MEDIUM", "Line 1 has MEDIUM confidence tier");
     assert(enrichedPage.lines[2].confidenceTier === "LOW", "Line 2 has LOW confidence tier");
 
     // 3. Block level check
     assert(enrichedPage.blocks[0].confidenceTier === "HIGH", "Block 0 has HIGH confidence tier");
-    assert(enrichedPage.blocks[0].detailedBoundingBox?.confidenceTier === "HIGH", "Block 0 detailedBoundingBox has HIGH tier");
-    assert(enrichedPage.blocks[1].confidenceTier === "MEDIUM", "Block 1 has MEDIUM confidence tier");
+    assert(
+      enrichedPage.blocks[0].detailedBoundingBox?.confidenceTier === "HIGH",
+      "Block 0 detailedBoundingBox has HIGH tier",
+    );
+    assert(
+      enrichedPage.blocks[1].confidenceTier === "MEDIUM",
+      "Block 1 has MEDIUM confidence tier",
+    );
     assert(enrichedPage.blocks[2].confidenceTier === "LOW", "Block 2 has LOW confidence tier");
 
     // 4. Page level check
     assert(enrichedPage.confidenceTier === "MEDIUM", "Page level average (73.33%) has MEDIUM tier");
-    assert(enrichedPage.isReliable === false, "MEDIUM average page is not unconditionally reliable");
+    assert(
+      enrichedPage.isReliable === false,
+      "MEDIUM average page is not unconditionally reliable",
+    );
   }
 
   // Test 15.3: Document Level Confidence & Low-Confidence Gating
   {
     testCount++;
-    console.log(`[Test ${testCount}] Document-level confidence evaluation and degraded reliability gating`);
+    console.log(
+      `[Test ${testCount}] Document-level confidence evaluation and degraded reliability gating`,
+    );
     // Case A: High confidence document
     const highLine1 = buildLine(1, 1, "Account Number: 0789123456", 0.1, 98);
     const highLine2 = buildLine(1, 2, "Total Amount Due: R 125000.00", 0.2, 96);
@@ -1754,11 +1780,20 @@ export async function runProductionOcrTestSuite() {
       processingDurationMs: 30,
     };
 
-    const determinantsHigh = OcrEvidenceExtractor.extractInvoiceDeterminants([pageHigh], "DOC-CONF-HIGH");
+    const determinantsHigh = OcrEvidenceExtractor.extractInvoiceDeterminants(
+      [pageHigh],
+      "DOC-CONF-HIGH",
+    );
     const evalHigh = OcrConfidenceScorer.evaluateDocumentConfidence([pageHigh], determinantsHigh);
     assert(evalHigh.tier === "HIGH", "High-confidence invoice receives HIGH tier");
-    assert(evalHigh.isReliable === true, "High-confidence invoice with valid determinants is reliable");
-    assert(evalHigh.reviewRequired === false, "High-confidence invoice does not force human review");
+    assert(
+      evalHigh.isReliable === true,
+      "High-confidence invoice with valid determinants is reliable",
+    );
+    assert(
+      evalHigh.reviewRequired === false,
+      "High-confidence invoice does not force human review",
+    );
 
     // Case B: Degraded low-confidence document
     const lowLine1 = buildLine(1, 1, "Acc??? 078???456", 0.1, 52);
@@ -1780,13 +1815,18 @@ export async function runProductionOcrTestSuite() {
       processingDurationMs: 30,
     };
 
-    const determinantsLow = OcrEvidenceExtractor.extractInvoiceDeterminants([pageLow], "DOC-CONF-LOW");
+    const determinantsLow = OcrEvidenceExtractor.extractInvoiceDeterminants(
+      [pageLow],
+      "DOC-CONF-LOW",
+    );
     const evalLow = OcrConfidenceScorer.evaluateDocumentConfidence([pageLow], determinantsLow);
     assert(evalLow.tier === "LOW", "Degraded invoice receives LOW tier");
     assert(evalLow.isReliable === false, "LOW tier result is strictly NOT reliable");
     assert(evalLow.reviewRequired === true, "LOW tier result strictly requires human review");
     assert(
-      evalLow.reviewReasons.some((r) => r.toLowerCase().includes("unreliable") || r.toLowerCase().includes("low")),
+      evalLow.reviewReasons.some(
+        (r) => r.toLowerCase().includes("unreliable") || r.toLowerCase().includes("low"),
+      ),
       "Review reasons explicitly state that low-confidence OCR is unreliable",
     );
   }
@@ -1803,28 +1843,51 @@ export async function runProductionOcrTestSuite() {
     testCount++;
     console.log(`[Test ${testCount}] Substitution detection: O ↔ 0, I ↔ 1, l ↔ 1`);
     // O in numeric
-    const errO = OcrErrorDetector.detectSubstitutionsInValue("078O198274", "NUMERIC", { pageNumber: 1 });
-    assert(errO.length > 0 && errO[0].errorType === "SUBSTITUTION_O_0", "Detects letter 'O' in numeric sequence");
+    const errO = OcrErrorDetector.detectSubstitutionsInValue("078O198274", "NUMERIC", {
+      pageNumber: 1,
+    });
+    assert(
+      errO.length > 0 && errO[0].errorType === "SUBSTITUTION_O_0",
+      "Detects letter 'O' in numeric sequence",
+    );
     assert(errO[0].suggestedCandidate === "0780198274", "Suggests '0' substitution candidate");
 
     // 0 in word
     const err0 = OcrErrorDetector.detectSubstitutionsInValue("ESK0M", "GENERAL", { pageNumber: 1 });
-    assert(err0.length > 0 && err0[0].errorType === "SUBSTITUTION_O_0", "Detects digit '0' inside word");
+    assert(
+      err0.length > 0 && err0[0].errorType === "SUBSTITUTION_O_0",
+      "Detects digit '0' inside word",
+    );
     assert(err0[0].suggestedCandidate === "ESKOM", "Suggests 'O' substitution candidate");
 
     // I in numeric
-    const errI = OcrErrorDetector.detectSubstitutionsInValue("I23456", "NUMERIC", { pageNumber: 1 });
-    assert(errI.length > 0 && errI[0].errorType === "SUBSTITUTION_I_1", "Detects letter 'I' in numeric sequence");
+    const errI = OcrErrorDetector.detectSubstitutionsInValue("I23456", "NUMERIC", {
+      pageNumber: 1,
+    });
+    assert(
+      errI.length > 0 && errI[0].errorType === "SUBSTITUTION_I_1",
+      "Detects letter 'I' in numeric sequence",
+    );
     assert(errI[0].suggestedCandidate === "123456", "Suggests '1' candidate for 'I'");
 
     // 1 in word
-    const err1 = OcrErrorDetector.detectSubstitutionsInValue("1NVOICE", "GENERAL", { pageNumber: 1 });
-    assert(err1.length > 0 && err1[0].errorType === "SUBSTITUTION_I_1", "Detects digit '1' in word");
+    const err1 = OcrErrorDetector.detectSubstitutionsInValue("1NVOICE", "GENERAL", {
+      pageNumber: 1,
+    });
+    assert(
+      err1.length > 0 && err1[0].errorType === "SUBSTITUTION_I_1",
+      "Detects digit '1' in word",
+    );
     assert(err1[0].suggestedCandidate === "INVOICE", "Suggests 'I' candidate for '1'");
 
     // l in numeric
-    const errL = OcrErrorDetector.detectSubstitutionsInValue("l500.00", "NUMERIC", { pageNumber: 1 });
-    assert(errL.length > 0 && errL[0].errorType === "SUBSTITUTION_L_1", "Detects lowercase 'l' in numeric sequence");
+    const errL = OcrErrorDetector.detectSubstitutionsInValue("l500.00", "NUMERIC", {
+      pageNumber: 1,
+    });
+    assert(
+      errL.length > 0 && errL[0].errorType === "SUBSTITUTION_L_1",
+      "Detects lowercase 'l' in numeric sequence",
+    );
     assert(errL[0].suggestedCandidate === "1500.00", "Suggests '1' candidate for 'l'");
   }
 
@@ -1833,43 +1896,77 @@ export async function runProductionOcrTestSuite() {
     testCount++;
     console.log(`[Test ${testCount}] Substitution detection: S ↔ 5, B ↔ 8, G ↔ 6, Z ↔ 2`);
     // S in numeric
-    const errS = OcrErrorDetector.detectSubstitutionsInValue("S500.00", "NUMERIC", { pageNumber: 1 });
-    assert(errS.length > 0 && errS[0].errorType === "SUBSTITUTION_S_5", "Detects letter 'S' in numeric sequence");
+    const errS = OcrErrorDetector.detectSubstitutionsInValue("S500.00", "NUMERIC", {
+      pageNumber: 1,
+    });
+    assert(
+      errS.length > 0 && errS[0].errorType === "SUBSTITUTION_S_5",
+      "Detects letter 'S' in numeric sequence",
+    );
     assert(errS[0].suggestedCandidate === "5500.00", "Suggests '5' candidate for 'S'");
 
     // 5 in word
-    const err5 = OcrErrorDetector.detectSubstitutionsInValue("5UBTOTAL", "GENERAL", { pageNumber: 1 });
-    assert(err5.length > 0 && err5[0].errorType === "SUBSTITUTION_S_5", "Detects digit '5' in word");
+    const err5 = OcrErrorDetector.detectSubstitutionsInValue("5UBTOTAL", "GENERAL", {
+      pageNumber: 1,
+    });
+    assert(
+      err5.length > 0 && err5[0].errorType === "SUBSTITUTION_S_5",
+      "Detects digit '5' in word",
+    );
     assert(err5[0].suggestedCandidate === "SUBTOTAL", "Suggests 'S' candidate for '5'");
 
     // B in numeric
     const errB = OcrErrorDetector.detectSubstitutionsInValue("B5000", "NUMERIC", { pageNumber: 1 });
-    assert(errB.length > 0 && errB[0].errorType === "SUBSTITUTION_B_8", "Detects letter 'B' in numeric sequence");
+    assert(
+      errB.length > 0 && errB[0].errorType === "SUBSTITUTION_B_8",
+      "Detects letter 'B' in numeric sequence",
+    );
     assert(errB[0].suggestedCandidate === "85000", "Suggests '8' candidate for 'B'");
 
     // 8 in word
-    const err8 = OcrErrorDetector.detectSubstitutionsInValue("8ILLING", "GENERAL", { pageNumber: 1 });
-    assert(err8.length > 0 && err8[0].errorType === "SUBSTITUTION_B_8", "Detects digit '8' in word");
+    const err8 = OcrErrorDetector.detectSubstitutionsInValue("8ILLING", "GENERAL", {
+      pageNumber: 1,
+    });
+    assert(
+      err8.length > 0 && err8[0].errorType === "SUBSTITUTION_B_8",
+      "Detects digit '8' in word",
+    );
     assert(err8[0].suggestedCandidate === "BILLING", "Suggests 'B' candidate for '8'");
 
     // G in numeric
     const errG = OcrErrorDetector.detectSubstitutionsInValue("G480", "NUMERIC", { pageNumber: 1 });
-    assert(errG.length > 0 && errG[0].errorType === "SUBSTITUTION_G_6", "Detects letter 'G' in numeric sequence");
+    assert(
+      errG.length > 0 && errG[0].errorType === "SUBSTITUTION_G_6",
+      "Detects letter 'G' in numeric sequence",
+    );
     assert(errG[0].suggestedCandidate === "6480", "Suggests '6' candidate for 'G'");
 
     // 6 in word
-    const err6 = OcrErrorDetector.detectSubstitutionsInValue("CHAR6E", "GENERAL", { pageNumber: 1 });
-    assert(err6.length > 0 && err6[0].errorType === "SUBSTITUTION_G_6", "Detects digit '6' in word");
+    const err6 = OcrErrorDetector.detectSubstitutionsInValue("CHAR6E", "GENERAL", {
+      pageNumber: 1,
+    });
+    assert(
+      err6.length > 0 && err6[0].errorType === "SUBSTITUTION_G_6",
+      "Detects digit '6' in word",
+    );
     assert(err6[0].suggestedCandidate === "CHARGE", "Suggests 'G' candidate for '6'");
 
     // Z in numeric
-    const errZ = OcrErrorDetector.detectSubstitutionsInValue("Z50.00", "NUMERIC", { pageNumber: 1 });
-    assert(errZ.length > 0 && errZ[0].errorType === "SUBSTITUTION_Z_2", "Detects letter 'Z' in numeric sequence");
+    const errZ = OcrErrorDetector.detectSubstitutionsInValue("Z50.00", "NUMERIC", {
+      pageNumber: 1,
+    });
+    assert(
+      errZ.length > 0 && errZ[0].errorType === "SUBSTITUTION_Z_2",
+      "Detects letter 'Z' in numeric sequence",
+    );
     assert(errZ[0].suggestedCandidate === "250.00", "Suggests '2' candidate for 'Z'");
 
     // 2 in currency marker
     const err2 = OcrErrorDetector.detectSubstitutionsInValue("2AR", "GENERAL", { pageNumber: 1 });
-    assert(err2.length > 0 && err2[0].errorType === "SUBSTITUTION_Z_2", "Detects digit '2' in '2AR'");
+    assert(
+      err2.length > 0 && err2[0].errorType === "SUBSTITUTION_Z_2",
+      "Detects digit '2' in '2AR'",
+    );
     assert(err2[0].suggestedCandidate === "ZAR", "Suggests 'ZAR' candidate for '2AR'");
   }
 
@@ -1879,17 +1976,33 @@ export async function runProductionOcrTestSuite() {
     console.log(`[Test ${testCount}] Comma/decimal ambiguity and missing decimal point detection`);
     // Consecutive separators
     const errCommaDup = OcrErrorDetector.detectCommaDecimalAmbiguity("12,,50", 1);
-    assert(errCommaDup.length > 0 && errCommaDup[0].errorType === "COMMA_DECIMAL_AMBIGUITY", "Detects consecutive separators");
+    assert(
+      errCommaDup.length > 0 && errCommaDup[0].errorType === "COMMA_DECIMAL_AMBIGUITY",
+      "Detects consecutive separators",
+    );
     assert(errCommaDup[0].suggestedCandidate === "12.50", "Suggests clean decimal candidate");
 
     // Trailing separator
     const errTrailing = OcrErrorDetector.detectCommaDecimalAmbiguity("12500,", 1);
-    assert(errTrailing.length > 0 && errTrailing[0].errorType === "COMMA_DECIMAL_AMBIGUITY", "Detects trailing comma without cents");
+    assert(
+      errTrailing.length > 0 && errTrailing[0].errorType === "COMMA_DECIMAL_AMBIGUITY",
+      "Detects trailing comma without cents",
+    );
 
     // Missing decimal point in large integer financial field
-    const errDecMissing = OcrErrorDetector.detectMissingDecimalPoint("totalAmountDue", "1250000", 1);
-    assert(errDecMissing !== null && errDecMissing.errorType === "DECIMAL_POINT_MISSING", "Detects missing decimal in totalAmountDue");
-    assert(errDecMissing?.suggestedCandidate === "12500.00", "Suggests 12500.00 for missing decimal point");
+    const errDecMissing = OcrErrorDetector.detectMissingDecimalPoint(
+      "totalAmountDue",
+      "1250000",
+      1,
+    );
+    assert(
+      errDecMissing !== null && errDecMissing.errorType === "DECIMAL_POINT_MISSING",
+      "Detects missing decimal in totalAmountDue",
+    );
+    assert(
+      errDecMissing?.suggestedCandidate === "12500.00",
+      "Suggests 12500.00 for missing decimal point",
+    );
   }
 
   // Test 16.4: Currency Symbol & Date Corruption
@@ -1898,20 +2011,32 @@ export async function runProductionOcrTestSuite() {
     console.log(`[Test ${testCount}] Currency symbol corruption and date corruption detection`);
     // Currency symbol corruption: 'B' or '2AR' or 'K'
     const currErrB = OcrErrorDetector.detectCurrencyErrors("B 12500.00", 1);
-    assert(currErrB.length > 0 && currErrB[0].errorType === "CURRENCY_SYMBOL_CORRUPTION", "Detects 'B 12500.00' as corrupted Rand symbol");
+    assert(
+      currErrB.length > 0 && currErrB[0].errorType === "CURRENCY_SYMBOL_CORRUPTION",
+      "Detects 'B 12500.00' as corrupted Rand symbol",
+    );
     assert(currErrB[0].suggestedCandidate === "R 12500.00", "Suggests 'R 12500.00'");
 
     const currErr2AR = OcrErrorDetector.detectCurrencyErrors("2AR 4500.00", 1);
-    assert(currErr2AR.length > 0 && currErr2AR[0].errorType === "CURRENCY_SYMBOL_CORRUPTION", "Detects '2AR 4500.00'");
+    assert(
+      currErr2AR.length > 0 && currErr2AR[0].errorType === "CURRENCY_SYMBOL_CORRUPTION",
+      "Detects '2AR 4500.00'",
+    );
 
     // Date corruption: alpha substitution in date (e.g. 2O26-05-12)
     const dateErrAlpha = OcrErrorDetector.detectDateCorruption("2O26-05-12", 1);
-    assert(dateErrAlpha !== null && dateErrAlpha.errorType === "DATE_CORRUPTION", "Detects letter 'O' in date");
+    assert(
+      dateErrAlpha !== null && dateErrAlpha.errorType === "DATE_CORRUPTION",
+      "Detects letter 'O' in date",
+    );
     assert(dateErrAlpha?.suggestedCandidate === "2026-05-12", "Suggests 2026-05-12");
 
     // Date corruption: out of bounds month (e.g. 2026-15-40)
     const dateErrBounds = OcrErrorDetector.detectDateCorruption("2026-15-40", 1);
-    assert(dateErrBounds !== null && dateErrBounds.errorType === "DATE_CORRUPTION", "Detects out of calendar bounds date");
+    assert(
+      dateErrBounds !== null && dateErrBounds.errorType === "DATE_CORRUPTION",
+      "Detects out of calendar bounds date",
+    );
   }
 
   // Test 16.5: Account Number & Meter Number Corruption
@@ -1920,23 +2045,37 @@ export async function runProductionOcrTestSuite() {
     console.log(`[Test ${testCount}] Account number and meter number corruption detection`);
     // Account number with alpha characters
     const accErr = OcrErrorDetector.detectAccountNumberCorruption("078O198274", 1);
-    assert(accErr !== null && accErr.errorType === "ACCOUNT_NUMBER_CORRUPTION", "Detects alpha character in 10-digit account");
+    assert(
+      accErr !== null && accErr.errorType === "ACCOUNT_NUMBER_CORRUPTION",
+      "Detects alpha character in 10-digit account",
+    );
     assert(accErr?.suggestedCandidate === "0780198274", "Suggests numeric candidate '0780198274'");
 
     // Account number wrong length
     const accErrLen = OcrErrorDetector.detectAccountNumberCorruption("078912", 1);
-    assert(accErrLen !== null && accErrLen.errorType === "ACCOUNT_NUMBER_CORRUPTION", "Detects invalid account length (6 digits instead of 10)");
+    assert(
+      accErrLen !== null && accErrLen.errorType === "ACCOUNT_NUMBER_CORRUPTION",
+      "Detects invalid account length (6 digits instead of 10)",
+    );
 
     // Meter number with noise punctuation
     const meterErr = OcrErrorDetector.detectMeterNumberCorruption("MTR#8841-B", 1);
-    assert(meterErr !== null && meterErr.errorType === "METER_NUMBER_CORRUPTION", "Detects illegal noise symbols in meter serial");
-    assert(meterErr?.suggestedCandidate === "MTR8841-B", "Suggests stripped alphanumeric candidate");
+    assert(
+      meterErr !== null && meterErr.errorType === "METER_NUMBER_CORRUPTION",
+      "Detects illegal noise symbols in meter serial",
+    );
+    assert(
+      meterErr?.suggestedCandidate === "MTR8841-B",
+      "Suggests stripped alphanumeric candidate",
+    );
   }
 
   // Test 16.6: Authoritative 5-Step Pipeline Execution
   {
     testCount++;
-    console.log(`[Test ${testCount}] Authoritative 5-step pipeline execution: OCR VALUE -> POTENTIAL ERROR -> VALIDATION -> CONFIDENCE -> REVIEW IF NECESSARY`);
+    console.log(
+      `[Test ${testCount}] Authoritative 5-step pipeline execution: OCR VALUE -> POTENTIAL ERROR -> VALIDATION -> CONFIDENCE -> REVIEW IF NECESSARY`,
+    );
     const rawInput = "B 125O0.00"; // Corrupted Rand symbol ('B') and 'O' in numeric amount
     const pipeRes = OcrErrorDetector.validatePipeline({
       ocrValue: rawInput,
@@ -1951,15 +2090,24 @@ export async function runProductionOcrTestSuite() {
     assert(pipeRes.ocrValue === rawInput, "Step 1: OCR VALUE is preserved immutably");
 
     // Step 2: POTENTIAL ERROR
-    assert(pipeRes.potentialErrors.length >= 2, "Step 2: POTENTIAL ERROR detects anomalies (currency corruption & substitution)");
+    assert(
+      pipeRes.potentialErrors.length >= 2,
+      "Step 2: POTENTIAL ERROR detects anomalies (currency corruption & substitution)",
+    );
 
     // Step 3: VALIDATION
-    assert(pipeRes.validationPassed === false, "Step 3: VALIDATION flags critical format/syntax failures");
+    assert(
+      pipeRes.validationPassed === false,
+      "Step 3: VALIDATION flags critical format/syntax failures",
+    );
 
     // Step 4: CONFIDENCE
     assert(pipeRes.confidenceScore < 70, "Step 4: CONFIDENCE score penalized below 70%");
     assert(pipeRes.confidenceTier === "LOW", "Step 4: CONFIDENCE tier downgraded to LOW");
-    assert(pipeRes.isReliable === false, "Step 4: Do not pretend a low-confidence OCR result is reliable");
+    assert(
+      pipeRes.isReliable === false,
+      "Step 4: Do not pretend a low-confidence OCR result is reliable",
+    );
 
     // Step 5: REVIEW IF NECESSARY
     assert(pipeRes.reviewRequired === true, "Step 5: REVIEW IF NECESSARY requires human review");
@@ -1969,7 +2117,9 @@ export async function runProductionOcrTestSuite() {
   // Test 16.7: Critical Non-Rewriting Assertion (Never Silently Rewrite Financial Values)
   {
     testCount++;
-    console.log(`[Test ${testCount}] CRITICAL NON-REWRITING ASSERTION: Never silently rewrite financial values`);
+    console.log(
+      `[Test ${testCount}] CRITICAL NON-REWRITING ASSERTION: Never silently rewrite financial values`,
+    );
     const rawFinancialValue = "R 12,500,00"; // Corrupted second comma instead of decimal
     const pipelineResult = OcrErrorDetector.validatePipeline({
       ocrValue: rawFinancialValue,
@@ -2018,7 +2168,10 @@ export async function runProductionOcrTestSuite() {
     const accField = NumericProtectionEngine.parseAndProtectNumeric("0780198274", "ACCOUNT_NUMBER");
     assert(accField.originalRaw === "0780198274", "1. Account Number original string preserved");
     assert(accField.normalizedText === "0780198274", "1. Account Number normalized as string");
-    assert(accField.numericValue === null, "1. Account Number is NOT converted to floating point number");
+    assert(
+      accField.numericValue === null,
+      "1. Account Number is NOT converted to floating point number",
+    );
     assert(accField.isValid === true, "1. Valid 10-digit account number passes validation");
 
     // 2. Meter Number: Preserved as string with alphanumeric serial
@@ -2028,8 +2181,14 @@ export async function runProductionOcrTestSuite() {
     assert(mtrField.numericValue === null, "2. Meter Number is preserved as identifier");
 
     // 3. Invoice Number: Preserved as string
-    const invField = NumericProtectionEngine.parseAndProtectNumeric("INV-2026-00452", "INVOICE_NUMBER");
-    assert(invField.originalRaw === "INV-2026-00452", "3. Invoice Number original string preserved");
+    const invField = NumericProtectionEngine.parseAndProtectNumeric(
+      "INV-2026-00452",
+      "INVOICE_NUMBER",
+    );
+    assert(
+      invField.originalRaw === "INV-2026-00452",
+      "3. Invoice Number original string preserved",
+    );
     assert(invField.isValid === true, "3. Invoice Number is valid");
 
     // 4. Date: Preserved and calendar validated
@@ -2105,17 +2264,25 @@ export async function runProductionOcrTestSuite() {
   // Test 17.2: Scale Shift & Dropped Decimal: "R 12 345.67" must NOT become "R 1234567" without detection
   {
     testCount++;
-    console.log(`[Test ${testCount}] Scale shift dropped decimal: 'R 12 345.67' becoming 'R 1234567' detected`);
+    console.log(
+      `[Test ${testCount}] Scale shift dropped decimal: 'R 12 345.67' becoming 'R 1234567' detected`,
+    );
     const corruptedOcrTotal = "R 1234567"; // Dropped decimal: integer 1234567 instead of 12345.67
     const result = NumericProtectionEngine.parseAndProtectNumeric(corruptedOcrTotal, "TOTAL");
 
     // Assert scale shift was detected
     assert(result.scaleShift.detected === true, "Scale shift detected on dropped decimal total");
     assert(result.scaleShift.shiftFactor === 100, "Detects 100x scale shift factor");
-    assert(result.validationErrors.some((e) => e.errorType === "SCALE_SHIFT_DROPPED_DECIMAL"), "Generates SCALE_SHIFT_DROPPED_DECIMAL error");
+    assert(
+      result.validationErrors.some((e) => e.errorType === "SCALE_SHIFT_DROPPED_DECIMAL"),
+      "Generates SCALE_SHIFT_DROPPED_DECIMAL error",
+    );
 
     // Assert candidate suggestion is provided for human review
-    assert(result.suggestedCandidate === "R 12345.67", "Proposes 'R 12345.67' candidate for human review");
+    assert(
+      result.suggestedCandidate === "R 12345.67",
+      "Proposes 'R 12345.67' candidate for human review",
+    );
 
     // Assert review is required and confidence is penalized
     assert(result.reviewRequired === true, "Review required is strictly true for scale shift");
@@ -2123,30 +2290,46 @@ export async function runProductionOcrTestSuite() {
     assert(result.isValid === false, "Validity flag is false due to unreviewed scale shift");
 
     // MANDATORY: Never silently rewrite original raw value!
-    assert(result.originalRaw === corruptedOcrTotal, "CRITICAL: originalRaw remains strictly 'R 1234567'");
-    assert(result.originalRaw !== "R 12345.67", "CRITICAL: Did NOT silently rewrite financial total");
+    assert(
+      result.originalRaw === corruptedOcrTotal,
+      "CRITICAL: originalRaw remains strictly 'R 1234567'",
+    );
+    assert(
+      result.originalRaw !== "R 12345.67",
+      "CRITICAL: Did NOT silently rewrite financial total",
+    );
   }
 
   // Test 17.3: Scale Shift & Dropped Decimal: "12.50" must NOT silently become "1250"
   {
     testCount++;
-    console.log(`[Test ${testCount}] Scale shift dropped decimal: '12.50' becoming '1250' detected`);
+    console.log(
+      `[Test ${testCount}] Scale shift dropped decimal: '12.50' becoming '1250' detected`,
+    );
     const corruptedRate = "1250"; // Dropped decimal: integer 1250 instead of 12.50
     const result = NumericProtectionEngine.parseAndProtectNumeric(corruptedRate, "RATE");
 
-    assert(result.scaleShift.detected === true, "Detects scale shift on rate field without decimal point");
+    assert(
+      result.scaleShift.detected === true,
+      "Detects scale shift on rate field without decimal point",
+    );
     assert(result.scaleShift.shiftFactor === 100, "Calculates 100x scale shift factor");
     assert(result.suggestedCandidate === "12.50", "Suggests candidate '12.50' for reviewer");
     assert(result.reviewRequired === true, "Forces human review requirement");
 
     // Strict non-rewriting guarantee
-    assert(result.originalRaw === "1250", "CRITICAL: originalRaw preserved as '1250' without mutation");
+    assert(
+      result.originalRaw === "1250",
+      "CRITICAL: originalRaw preserved as '1250' without mutation",
+    );
   }
 
   // Test 17.4: Power Factor Physical Bounding & Scale Shift Protection (0.00 to 1.00)
   {
     testCount++;
-    console.log(`[Test ${testCount}] Power factor physical bounding (0.00 to 1.00) and scale shift protection`);
+    console.log(
+      `[Test ${testCount}] Power factor physical bounding (0.00 to 1.00) and scale shift protection`,
+    );
 
     // Valid Power Factor with lag direction
     const validPf = NumericProtectionEngine.parseAndProtectNumeric("0.85 lag", "POWER_FACTOR");
@@ -2157,10 +2340,19 @@ export async function runProductionOcrTestSuite() {
 
     // Dropped Decimal Power Factor: "85" (100x scale shift for 0.85)
     const droppedDecPf = NumericProtectionEngine.parseAndProtectNumeric("85", "POWER_FACTOR");
-    assert(droppedDecPf.scaleShift.detected === true, "Detects scale shift for PF value 85 (> 1.00)");
-    assert(droppedDecPf.scaleShift.shiftFactor === 100, "Identifies 100x factor for dropped decimal");
+    assert(
+      droppedDecPf.scaleShift.detected === true,
+      "Detects scale shift for PF value 85 (> 1.00)",
+    );
+    assert(
+      droppedDecPf.scaleShift.shiftFactor === 100,
+      "Identifies 100x factor for dropped decimal",
+    );
     assert(droppedDecPf.suggestedCandidate === "0.85", "Proposes '0.85' candidate for reviewer");
-    assert(droppedDecPf.validationErrors.some((e) => e.errorType === "POWER_FACTOR_OUT_OF_BOUNDS"), "Raises POWER_FACTOR_OUT_OF_BOUNDS error");
+    assert(
+      droppedDecPf.validationErrors.some((e) => e.errorType === "POWER_FACTOR_OUT_OF_BOUNDS"),
+      "Raises POWER_FACTOR_OUT_OF_BOUNDS error",
+    );
     assert(droppedDecPf.reviewRequired === true, "Review required for out of bounds power factor");
     assert(droppedDecPf.originalRaw === "85", "Original raw preserved as '85'");
 
@@ -2173,7 +2365,7 @@ export async function runProductionOcrTestSuite() {
   {
     testCount++;
     console.log(`[Test ${testCount}] Baseline comparison scale shift detection (10x / 100x jump)`);
-    const baseline = 5000.00; // Expected monthly baseline
+    const baseline = 5000.0; // Expected monthly baseline
     const anomalyObserved = "R 50 000.00"; // 10x jump due to duplicated digit or stray zero
     const result = NumericProtectionEngine.parseAndProtectNumeric(anomalyObserved, "AMOUNT", {
       baselineComparisonValue: baseline,
@@ -2218,7 +2410,9 @@ export async function runProductionOcrTestSuite() {
   // Test 18.2: Thousands Separator Variations (Space, Comma, Dot, Apostrophe, None)
   {
     testCount++;
-    console.log(`[Test ${testCount}] Thousands separator variations (Space, Comma, Dot, Apostrophe, None)`);
+    console.log(
+      `[Test ${testCount}] Thousands separator variations (Space, Comma, Dot, Apostrophe, None)`,
+    );
 
     // Space (SABS South African metric standard)
     const spaceSep = NumericProtectionEngine.parseAndProtectNumeric("12 345.67", "AMOUNT");
@@ -2243,7 +2437,10 @@ export async function runProductionOcrTestSuite() {
     const swissSep = NumericProtectionEngine.parseAndProtectNumeric("12'345.67", "AMOUNT", {
       localeProfile: INTERNATIONAL_SWISS_LOCALE_PROFILE,
     });
-    assert(swissSep.thousandsSeparator === "APOSTROPHE", "Identifies APOSTROPHE thousands separator");
+    assert(
+      swissSep.thousandsSeparator === "APOSTROPHE",
+      "Identifies APOSTROPHE thousands separator",
+    );
     assert(swissSep.decimalSeparator === "DOT", "Identifies DOT decimal separator");
     assert(swissSep.numericValue === 12345.67, "Parses number with apostrophe thousands separator");
 
@@ -2291,7 +2488,9 @@ export async function runProductionOcrTestSuite() {
   // Test 18.4: Negative Numbers & Credit Notation
   {
     testCount++;
-    console.log(`[Test ${testCount}] Negative numbers and credit notation (leading minus, trailing minus, parentheses, CR)`);
+    console.log(
+      `[Test ${testCount}] Negative numbers and credit notation (leading minus, trailing minus, parentheses, CR)`,
+    );
 
     // Leading Minus: "-R 450.00"
     const leadMinus = NumericProtectionEngine.parseAndProtectNumeric("-R 450.00", "AMOUNT");
@@ -2350,7 +2549,10 @@ export async function runProductionOcrTestSuite() {
 
     // Corrupted Out-of-bounds Percentage: "1500%" (100x scale shift for 15%)
     const corruptPerc = NumericProtectionEngine.parseAndProtectNumeric("1500%", "VAT");
-    assert(corruptPerc.validationErrors.some((e) => e.errorType === "PERCENTAGE_OUT_OF_BOUNDS"), "Raises PERCENTAGE_OUT_OF_BOUNDS error for 1500%");
+    assert(
+      corruptPerc.validationErrors.some((e) => e.errorType === "PERCENTAGE_OUT_OF_BOUNDS"),
+      "Raises PERCENTAGE_OUT_OF_BOUNDS error for 1500%",
+    );
     assert(corruptPerc.suggestedCandidate === "15%", "Suggests '15%' candidate for '1500%'");
     assert(corruptPerc.reviewRequired === true, "Review required for corrupted percentage");
   }
@@ -2379,14 +2581,19 @@ export async function runProductionOcrTestSuite() {
 
     // Corrupted / Unrecognized unit: "12 450 XYZW"
     const corruptUnit = NumericProtectionEngine.parseAndProtectNumeric("12 450 XYZW", "KWH");
-    assert(corruptUnit.validationErrors.some((e) => e.errorType === "INVALID_UNIT_SPECIFICATION"), "Flags INVALID_UNIT_SPECIFICATION for unknown unit");
+    assert(
+      corruptUnit.validationErrors.some((e) => e.errorType === "INVALID_UNIT_SPECIFICATION"),
+      "Flags INVALID_UNIT_SPECIFICATION for unknown unit",
+    );
     assert(corruptUnit.reviewRequired === true, "Requires review for invalid unit token");
   }
 
   // Test 18.7: Date Validation (South African and International Formats)
   {
     testCount++;
-    console.log(`[Test ${testCount}] Date validation across South African and International patterns`);
+    console.log(
+      `[Test ${testCount}] Date validation across South African and International patterns`,
+    );
 
     // Pattern 1: ISO YYYY-MM-DD
     const d1 = NumericProtectionEngine.parseAndValidateDate("2026-03-31");
@@ -2418,14 +2625,19 @@ export async function runProductionOcrTestSuite() {
     // Invalid Calendar Date: February 30th ("2026-02-30")
     const dInvalid = NumericProtectionEngine.parseAndValidateDate("2026-02-30");
     assert(dInvalid.isValidDate === false, "Flags February 30th as invalid calendar date");
-    assert(dInvalid.validationErrors.some((e) => e.errorType === "DATE_CORRUPTION"), "Raises DATE_CORRUPTION for non-existent calendar date");
+    assert(
+      dInvalid.validationErrors.some((e) => e.errorType === "DATE_CORRUPTION"),
+      "Raises DATE_CORRUPTION for non-existent calendar date",
+    );
     assert(dInvalid.reviewRequired === true, "Requires review for invalid calendar date");
   }
 
   // Test 18.8: International Flexibility (Zero Hard-Coded Assumptive Blockades)
   {
     testCount++;
-    console.log(`[Test ${testCount}] International flexibility: Zero hard-coded assumptive blockades`);
+    console.log(
+      `[Test ${testCount}] International flexibility: Zero hard-coded assumptive blockades`,
+    );
 
     // US Utility Document: $ 14,520.50 with MDY date and USD currency
     const usDocTotal = NumericProtectionEngine.parseAndProtectNumeric("$ 14,520.50", "TOTAL", {
@@ -2435,7 +2647,10 @@ export async function runProductionOcrTestSuite() {
     assert(usDocTotal.currencySymbol === "$", "US dollar symbol identified");
     assert(usDocTotal.thousandsSeparator === "COMMA", "Comma thousands separator handled cleanly");
     assert(usDocTotal.decimalSeparator === "DOT", "Dot decimal separator handled cleanly");
-    assert(usDocTotal.isValid === true, "Valid US document passes without South African bias failure");
+    assert(
+      usDocTotal.isValid === true,
+      "Valid US document passes without South African bias failure",
+    );
 
     // European Utility Document: € 14.520,50 with DMY date and EUR currency
     const euDocTotal = NumericProtectionEngine.parseAndProtectNumeric("€ 14.520,50", "TOTAL", {
@@ -2452,7 +2667,10 @@ export async function runProductionOcrTestSuite() {
       localeProfile: INTERNATIONAL_SWISS_LOCALE_PROFILE,
     });
     assert(swissDocTotal.numericValue === 14520.5, "Swiss invoice total parses cleanly (14520.50)");
-    assert(swissDocTotal.thousandsSeparator === "APOSTROPHE", "Apostrophe thousands separator handled cleanly");
+    assert(
+      swissDocTotal.thousandsSeparator === "APOSTROPHE",
+      "Apostrophe thousands separator handled cleanly",
+    );
     assert(swissDocTotal.isValid === true, "Valid Swiss document passes without bias failure");
   }
 
@@ -2466,7 +2684,9 @@ export async function runProductionOcrTestSuite() {
   // Test 19.1: Identification of all user candidate date formats
   {
     testCount++;
-    console.log(`[Test ${testCount}] Candidate date pattern identification across required formats`);
+    console.log(
+      `[Test ${testCount}] Candidate date pattern identification across required formats`,
+    );
 
     // Format 1: 01/09/2026 (DD/MM/YYYY)
     const text1 = "Invoice Tax Date: 01/09/2026 for electricity supply";
@@ -2500,15 +2720,23 @@ export async function runProductionOcrTestSuite() {
     const res4 = DateRecognitionEngine.recognizeCandidateDatesInText(text4);
     const d4 = res4.find((c) => c.originalRaw.startsWith("September 1"));
     assert(d4 !== undefined, "Extracts exact candidate 'September 1, 2026'");
-    assert(d4!.originalRaw.includes("September 1"), "Preserves original OCR text 'September 1, 2026'");
-    assert(d4!.normalizedIsoDate === "2026-09-01", "Normalizes September 1, 2026 to ISO '2026-09-01'");
+    assert(
+      d4!.originalRaw.includes("September 1"),
+      "Preserves original OCR text 'September 1, 2026'",
+    );
+    assert(
+      d4!.normalizedIsoDate === "2026-09-01",
+      "Normalizes September 1, 2026 to ISO '2026-09-01'",
+    );
     assert(d4!.detectedFormat === "MMMM D, YYYY", "Identifies MMMM D, YYYY format");
   }
 
   // Test 19.2: Strict evidence preservation principle (Never destroy original text)
   {
     testCount++;
-    console.log(`[Test ${testCount}] Strict evidence preservation: originalRaw vs normalizedIsoDate separation`);
+    console.log(
+      `[Test ${testCount}] Strict evidence preservation: originalRaw vs normalizedIsoDate separation`,
+    );
 
     const rawLine = "Payment Cut-off: 01/09/2026 (Strict Due Date)";
     const candidates = DateRecognitionEngine.recognizeCandidateDatesInText(rawLine);
@@ -2516,27 +2744,46 @@ export async function runProductionOcrTestSuite() {
     const candidate = candidates[0];
 
     // Verify originalRaw is intact
-    assert(candidate.originalRaw === "01/09/2026", "Original OCR text is strictly preserved immutably");
-    assert(candidate.normalizedIsoDate === "2026-09-01", "Normalized date exists in separate field");
-    assert(candidate.originalRaw !== candidate.normalizedIsoDate, "Original text and normalized date remain separate");
-    assert(candidate.contextSnippet === rawLine, "Preserves surrounding context line snippet for provenance");
+    assert(
+      candidate.originalRaw === "01/09/2026",
+      "Original OCR text is strictly preserved immutably",
+    );
+    assert(
+      candidate.normalizedIsoDate === "2026-09-01",
+      "Normalized date exists in separate field",
+    );
+    assert(
+      candidate.originalRaw !== candidate.normalizedIsoDate,
+      "Original text and normalized date remain separate",
+    );
+    assert(
+      candidate.contextSnippet === rawLine,
+      "Preserves surrounding context line snippet for provenance",
+    );
   }
 
   // Test 19.3: Calendar validity, leap year and boundary protection
   {
     testCount++;
-    console.log(`[Test ${testCount}] Calendar validity: leap years, month boundaries & non-existent dates`);
+    console.log(
+      `[Test ${testCount}] Calendar validity: leap years, month boundaries & non-existent dates`,
+    );
 
     // Leap Year: 2024-02-29 is valid
-    const leapDate = DateRecognitionEngine.recognizeCandidateDatesInText("Period End: 2024-02-29")[0];
+    const leapDate =
+      DateRecognitionEngine.recognizeCandidateDatesInText("Period End: 2024-02-29")[0];
     assert(leapDate.isCalendarValid === true, "2024-02-29 is recognized as valid leap year date");
     assert(leapDate.normalizedIsoDate === "2024-02-29", "Normalizes valid leap day to ISO");
 
     // Non-Leap Year: 2026-02-29 is invalid
-    const nonLeapDate = DateRecognitionEngine.recognizeCandidateDatesInText("Period End: 2026-02-29")[0];
+    const nonLeapDate =
+      DateRecognitionEngine.recognizeCandidateDatesInText("Period End: 2026-02-29")[0];
     assert(nonLeapDate.isCalendarValid === false, "2026-02-29 is flagged as invalid calendar date");
     assert(nonLeapDate.normalizedIsoDate === null, "Invalid date has null normalizedIsoDate");
-    assert(nonLeapDate.originalRaw === "2026-02-29", "CRITICAL: Original raw evidence '2026-02-29' is preserved!");
+    assert(
+      nonLeapDate.originalRaw === "2026-02-29",
+      "CRITICAL: Original raw evidence '2026-02-29' is preserved!",
+    );
 
     // Non-existent February 30th: 30/02/2026
     const feb30 = DateRecognitionEngine.recognizeCandidateDatesInText("Date: 30/02/2026")[0];
@@ -2546,7 +2793,10 @@ export async function runProductionOcrTestSuite() {
 
     // Non-existent April 31st: 31/04/2026
     const apr31 = DateRecognitionEngine.recognizeCandidateDatesInText("Date: 31/04/2026")[0];
-    assert(apr31.isCalendarValid === false, "31/04/2026 is flagged as invalid calendar date (April has 30 days)");
+    assert(
+      apr31.isCalendarValid === false,
+      "31/04/2026 is flagged as invalid calendar date (April has 30 days)",
+    );
     assert(apr31.normalizedIsoDate === null, "Normalized ISO date is null for April 31st");
     assert(apr31.originalRaw === "31/04/2026", "Preserves raw evidence '31/04/2026'");
   }
@@ -2608,11 +2858,17 @@ export async function runProductionOcrTestSuite() {
 
     const sepDate = afrDates.find((d) => d.originalRaw.includes("September"));
     assert(sepDate !== undefined, "Extracts '1 September 2026'");
-    assert(sepDate!.normalizedIsoDate === "2026-09-01", "Normalizes '1 September 2026' -> '2026-09-01'");
+    assert(
+      sepDate!.normalizedIsoDate === "2026-09-01",
+      "Normalizes '1 September 2026' -> '2026-09-01'",
+    );
 
     const maartDate = afrDates.find((d) => d.originalRaw.includes("Maart"));
     assert(maartDate !== undefined, "Extracts Afrikaans '14 Maart 2026'");
-    assert(maartDate!.normalizedIsoDate === "2026-03-14", "Normalizes '14 Maart 2026' -> '2026-03-14'");
+    assert(
+      maartDate!.normalizedIsoDate === "2026-03-14",
+      "Normalizes '14 Maart 2026' -> '2026-03-14'",
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -2624,11 +2880,11 @@ export async function runProductionOcrTestSuite() {
 
   // Helper lines builder for user example table
   const tableLinesUserExample: OcrLineBlock[] = [
-    buildLine(1, 0, "TIME      ENERGY      RATE       AMOUNT", 0.20, 95.0),
+    buildLine(1, 0, "TIME      ENERGY      RATE       AMOUNT", 0.2, 95.0),
     buildLine(1, 1, "Peak      12,500      2.45       30,625", 0.25, 96.0),
-    buildLine(1, 2, "Standard  18,200      1.75       31,850", 0.30, 95.5),
+    buildLine(1, 2, "Standard  18,200      1.75       31,850", 0.3, 95.5),
     buildLine(1, 3, "OffPeak   25,000      0.90       22,500", 0.35, 97.0),
-    buildLine(1, 4, "Total     55,700                 84,975", 0.40, 98.0),
+    buildLine(1, 4, "Total     55,700                 84,975", 0.4, 98.0),
   ];
 
   // Test 20.1: Prompt Example Table: TABLE → ROW → COLUMN → CELL Hierarchy
@@ -2676,7 +2932,10 @@ export async function runProductionOcrTestSuite() {
 
     // Check spatial bounding box on cells
     assert(peakRow.cells[0].boundingBox !== undefined, "Cell preserves bounding box");
-    assert(peakRow.cells[0].detailedBoundingBox !== undefined, "Cell preserves detailedBoundingBox");
+    assert(
+      peakRow.cells[0].detailedBoundingBox !== undefined,
+      "Cell preserves detailedBoundingBox",
+    );
   }
 
   // Test 20.2: Column Type Inference & Alignment
@@ -2713,16 +2972,28 @@ export async function runProductionOcrTestSuite() {
     const energyTotal = table.detectedTotals.find((t) => t.columnIndex === 1);
     assert(energyTotal !== undefined, "Found ENERGY column total summary");
     assert(energyTotal!.amount === 55700, "Stated ENERGY total is 55700");
-    assert(energyTotal!.calculatedColumnSum === 55700, "Calculated sum of data rows is exactly 55700");
-    assert(energyTotal!.arithmeticMatches === true, "Arithmetic consistency verified for ENERGY sum");
+    assert(
+      energyTotal!.calculatedColumnSum === 55700,
+      "Calculated sum of data rows is exactly 55700",
+    );
+    assert(
+      energyTotal!.arithmeticMatches === true,
+      "Arithmetic consistency verified for ENERGY sum",
+    );
     assert(energyTotal!.discrepancy === 0, "Discrepancy is 0");
 
     // Check AMOUNT column sum: 30625 + 31850 + 22500 = 84975
     const amountTotal = table.detectedTotals.find((t) => t.columnIndex === 3);
     assert(amountTotal !== undefined, "Found AMOUNT column total summary");
     assert(amountTotal!.amount === 84975, "Stated AMOUNT total is 84975");
-    assert(amountTotal!.calculatedColumnSum === 84975, "Calculated sum of data rows is exactly 84975");
-    assert(amountTotal!.arithmeticMatches === true, "Arithmetic consistency verified for AMOUNT sum");
+    assert(
+      amountTotal!.calculatedColumnSum === 84975,
+      "Calculated sum of data rows is exactly 84975",
+    );
+    assert(
+      amountTotal!.arithmeticMatches === true,
+      "Arithmetic consistency verified for AMOUNT sum",
+    );
     assert(amountTotal!.discrepancy === 0, "Discrepancy is 0");
   }
 
@@ -2732,7 +3003,7 @@ export async function runProductionOcrTestSuite() {
     console.log(`[Test ${testCount}] Merged cell detection (colSpan category subheaders)`);
 
     const tableWithSubheader: OcrLineBlock[] = [
-      buildLine(1, 0, "TIME      ENERGY      RATE       AMOUNT", 0.20),
+      buildLine(1, 0, "TIME      ENERGY      RATE       AMOUNT", 0.2),
       buildLine(1, 1, "--- HIGH DEMAND SEASON TOU CHARGES ---", 0.24), // Spanning subheader
       buildLine(1, 2, "Peak      12,500      2.45       30,625", 0.28),
       buildLine(1, 3, "Standard  18,200      1.75       31,850", 0.32),
@@ -2755,11 +3026,11 @@ export async function runProductionOcrTestSuite() {
     console.log(`[Test ${testCount}] Repeated headers detection in section breaks`);
 
     const tableWithRepeatedHeader: OcrLineBlock[] = [
-      buildLine(1, 0, "TIME      ENERGY      RATE       AMOUNT", 0.20),
+      buildLine(1, 0, "TIME      ENERGY      RATE       AMOUNT", 0.2),
       buildLine(1, 1, "Peak      12,500      2.45       30,625", 0.25),
-      buildLine(1, 2, "TIME      ENERGY      RATE       AMOUNT", 0.30), // Repeated header!
+      buildLine(1, 2, "TIME      ENERGY      RATE       AMOUNT", 0.3), // Repeated header!
       buildLine(1, 3, "Standard  18,200      1.75       31,850", 0.35),
-      buildLine(1, 4, "OffPeak   25,000      0.90       22,500", 0.40),
+      buildLine(1, 4, "OffPeak   25,000      0.90       22,500", 0.4),
     ];
 
     const table = TableReconstructionEngine.reconstructTable(tableWithRepeatedHeader, 1);
@@ -2775,9 +3046,9 @@ export async function runProductionOcrTestSuite() {
 
     // Page 1 Table (Header + 2 rows, NO total)
     const page1Lines: OcrLineBlock[] = [
-      buildLine(1, 0, "TIME      ENERGY      RATE       AMOUNT", 0.60),
+      buildLine(1, 0, "TIME      ENERGY      RATE       AMOUNT", 0.6),
       buildLine(1, 1, "Peak      12,500      2.45       30,625", 0.65),
-      buildLine(1, 2, "Standard  18,200      1.75       31,850", 0.70),
+      buildLine(1, 2, "Standard  18,200      1.75       31,850", 0.7),
     ];
     const tablePage1 = TableReconstructionEngine.reconstructTable(page1Lines, 1, {
       tableId: "table-p1-billing",
@@ -2785,9 +3056,9 @@ export async function runProductionOcrTestSuite() {
 
     // Page 2 Table (Repeated Header + 1 row + Total)
     const page2Lines: OcrLineBlock[] = [
-      buildLine(2, 0, "TIME      ENERGY      RATE       AMOUNT", 0.10),
+      buildLine(2, 0, "TIME      ENERGY      RATE       AMOUNT", 0.1),
       buildLine(2, 1, "OffPeak   25,000      0.90       22,500", 0.15),
-      buildLine(2, 2, "Total     55,700                 84,975", 0.20),
+      buildLine(2, 2, "Total     55,700                 84,975", 0.2),
     ];
     const tablePage2 = TableReconstructionEngine.reconstructTable(page2Lines, 2, {
       tableId: "table-p2-billing",
@@ -2805,7 +3076,10 @@ export async function runProductionOcrTestSuite() {
     assert(tablePage1.continuesToTableId === "table-p2-billing", "Table 1 points to Table 2");
     assert(tablePage1.continuedOnPage === 2, "Table 1 records continuedOnPage = 2");
     assert(tablePage2.isContinuation === true, "Table 2 flagged isContinuation = true");
-    assert(tablePage2.continuedFromTableId === "table-p1-billing", "Table 2 points back to Table 1");
+    assert(
+      tablePage2.continuedFromTableId === "table-p1-billing",
+      "Table 2 points back to Table 1",
+    );
     assert(tablePage2.continuedFromPage === 1, "Table 2 records continuedFromPage = 1");
 
     // Stitched table properties
@@ -2813,7 +3087,10 @@ export async function runProductionOcrTestSuite() {
     assert(stitched.detectedTotals.length >= 1, "Stitched table has detected total row");
     const amountTot = stitched.detectedTotals.find((t) => t.columnIndex === 3);
     assert(amountTot !== undefined, "Stitched table verified cross-page total sum");
-    assert(amountTot!.arithmeticMatches === true, "Combined rows (30625 + 31850 + 22500) match total 84975");
+    assert(
+      amountTot!.arithmeticMatches === true,
+      "Combined rows (30625 + 31850 + 22500) match total 84975",
+    );
   }
 
   // Test 20.7: Strict Anti-Concatenation Assertion (Do not simply concatenate into a paragraph)
@@ -2825,7 +3102,10 @@ export async function runProductionOcrTestSuite() {
 
     // Assert that table representation is NOT a single flattened string
     assert(Array.isArray(table.cells), "Table cells are stored in structured array, not a string");
-    assert(table.cells.length === 20, "Contains exactly 20 distinct structured cells (5 rows x 4 columns)");
+    assert(
+      table.cells.length === 20,
+      "Contains exactly 20 distinct structured cells (5 rows x 4 columns)",
+    );
 
     for (const cell of table.cells) {
       assert(typeof cell.rowIndex === "number", "Cell has structured numeric rowIndex");
@@ -2840,7 +3120,10 @@ export async function runProductionOcrTestSuite() {
     assert(layout.tables.length === 1, "analyzePageLayout detected the table structure");
     const reconstructed = layout.tables[0];
     assert(reconstructed.tableRows.length === 5, "Layout engine produces full tableRows hierarchy");
-    assert(reconstructed.tableColumns.length === 4, "Layout engine produces full tableColumns hierarchy");
+    assert(
+      reconstructed.tableColumns.length === 4,
+      "Layout engine produces full tableColumns hierarchy",
+    );
   }
 
   // ===========================================================================
@@ -2994,15 +3277,16 @@ export async function runProductionOcrTestSuite() {
       3,
       { tableId: "table-page3-energy" },
     );
-    const tableP4 = TableReconstructionEngine.reconstructTable(
-      page4EnergyLines,
-      4,
-      { tableId: "table-page4-energy-cont" },
-    );
+    const tableP4 = TableReconstructionEngine.reconstructTable(page4EnergyLines, 4, {
+      tableId: "table-page4-energy-cont",
+    });
 
     assert(tableP3.pageNumber === 3, "Table on Page 3 has pageNumber = 3");
     assert(tableP4.pageNumber === 4, "Table on Page 4 has pageNumber = 4");
-    assert(tableP4.continuationMarkerDetected === true, "Page 4 table detects continuation marker ('continued')");
+    assert(
+      tableP4.continuationMarkerDetected === true,
+      "Page 4 table detects continuation marker ('continued')",
+    );
 
     const isCont = TableReconstructionEngine.isContinuation(tableP3, tableP4);
     assert(isCont === true, "System recognises Page 4 table as continuation of Page 3 table");
@@ -3013,51 +3297,66 @@ export async function runProductionOcrTestSuite() {
     testCount++;
     console.log(`[Test ${testCount}] Recognise same logical table and link constituent tables`);
 
-    const tableP3 = TableReconstructionEngine.reconstructTable(
-      page3EnergyLines.slice(1),
-      3,
-      { tableId: "table-page3-energy" },
-    );
-    const tableP4 = TableReconstructionEngine.reconstructTable(
-      page4EnergyLines,
-      4,
-      { tableId: "table-page4-energy-cont" },
-    );
+    const tableP3 = TableReconstructionEngine.reconstructTable(page3EnergyLines.slice(1), 3, {
+      tableId: "table-page3-energy",
+    });
+    const tableP4 = TableReconstructionEngine.reconstructTable(page4EnergyLines, 4, {
+      tableId: "table-page4-energy-cont",
+    });
 
     const merged = TableReconstructionEngine.mergeContinuationTables(tableP3, tableP4);
 
     assert(merged !== undefined, "Successfully merged continuation tables");
     assert(merged.isMultiPage === true, "Merged table is flagged as isMultiPage = true");
     assert(merged.pagesSpanned.length === 2, "pagesSpanned contains 2 pages");
-    assert(merged.pagesSpanned[0] === 3 && merged.pagesSpanned[1] === 4, "pagesSpanned is exactly [3, 4]");
+    assert(
+      merged.pagesSpanned[0] === 3 && merged.pagesSpanned[1] === 4,
+      "pagesSpanned is exactly [3, 4]",
+    );
     assert(merged.constituentTableIds.length === 2, "constituentTableIds contains both tables");
-    assert(merged.constituentTableIds.includes("table-page3-energy"), "Includes table-page3-energy");
-    assert(merged.constituentTableIds.includes("table-page4-energy-cont"), "Includes table-page4-energy-cont");
+    assert(
+      merged.constituentTableIds.includes("table-page3-energy"),
+      "Includes table-page3-energy",
+    );
+    assert(
+      merged.constituentTableIds.includes("table-page4-energy-cont"),
+      "Includes table-page4-energy-cont",
+    );
 
     // Both constituent tables receive unified logicalTableId
-    assert(tableP3.logicalTableId === merged.logicalTableId, "Table on Page 3 assigned logicalTableId");
-    assert(tableP4.logicalTableId === merged.logicalTableId, "Table on Page 4 assigned logicalTableId");
-    assert(tableP3.continuesToTableId === "table-page4-energy-cont", "Page 3 table points forward to Page 4 table");
+    assert(
+      tableP3.logicalTableId === merged.logicalTableId,
+      "Table on Page 3 assigned logicalTableId",
+    );
+    assert(
+      tableP4.logicalTableId === merged.logicalTableId,
+      "Table on Page 4 assigned logicalTableId",
+    );
+    assert(
+      tableP3.continuesToTableId === "table-page4-energy-cont",
+      "Page 3 table points forward to Page 4 table",
+    );
     assert(tableP3.continuedOnPage === 4, "Page 3 table notes continuedOnPage = 4");
-    assert(tableP4.continuedFromTableId === "table-page3-energy", "Page 4 table points backward to Page 3 table");
+    assert(
+      tableP4.continuedFromTableId === "table-page3-energy",
+      "Page 4 table points backward to Page 3 table",
+    );
     assert(tableP4.continuedFromPage === 3, "Page 4 table notes continuedFromPage = 3");
   }
 
   // Test 21.3: Strict Page Provenance Preservation for Every Single Row & Cell
   {
     testCount++;
-    console.log(`[Test ${testCount}] Strict page provenance preservation for every single row and cell`);
+    console.log(
+      `[Test ${testCount}] Strict page provenance preservation for every single row and cell`,
+    );
 
-    const tableP3 = TableReconstructionEngine.reconstructTable(
-      page3EnergyLines.slice(1),
-      3,
-      { tableId: "table-p3" },
-    );
-    const tableP4 = TableReconstructionEngine.reconstructTable(
-      page4EnergyLines,
-      4,
-      { tableId: "table-p4" },
-    );
+    const tableP3 = TableReconstructionEngine.reconstructTable(page3EnergyLines.slice(1), 3, {
+      tableId: "table-p3",
+    });
+    const tableP4 = TableReconstructionEngine.reconstructTable(page4EnergyLines, 4, {
+      tableId: "table-p4",
+    });
 
     const merged = TableReconstructionEngine.mergeContinuationTables(tableP3, tableP4);
 
@@ -3067,16 +3366,25 @@ export async function runProductionOcrTestSuite() {
 
     assert(p3Cells.length > 0, "Contains cells with pageNumber = 3");
     assert(p4Cells.length > 0, "Contains cells with pageNumber = 4");
-    assert(p3Cells.length + p4Cells.length === merged.cells.length, "100% of cells preserve exact page provenance");
+    assert(
+      p3Cells.length + p4Cells.length === merged.cells.length,
+      "100% of cells preserve exact page provenance",
+    );
 
     for (const cell of p3Cells) {
       assert(cell.pageNumber === 3, `Cell ${cell.cellId} preserves pageNumber = 3`);
-      assert(cell.sourceTableId === "table-p3", `Cell ${cell.cellId} preserves sourceTableId = table-p3`);
+      assert(
+        cell.sourceTableId === "table-p3",
+        `Cell ${cell.cellId} preserves sourceTableId = table-p3`,
+      );
     }
 
     for (const cell of p4Cells) {
       assert(cell.pageNumber === 4, `Cell ${cell.cellId} preserves pageNumber = 4`);
-      assert(cell.sourceTableId === "table-p4", `Cell ${cell.cellId} preserves sourceTableId = table-p4`);
+      assert(
+        cell.sourceTableId === "table-p4",
+        `Cell ${cell.cellId} preserves sourceTableId = table-p4`,
+      );
     }
 
     // Verify row provenance
@@ -3085,16 +3393,25 @@ export async function runProductionOcrTestSuite() {
 
     assert(p3Rows.length > 0, "Contains rows with pageNumber = 3");
     assert(p4Rows.length > 0, "Contains rows with pageNumber = 4");
-    assert(p3Rows.length + p4Rows.length === merged.tableRows!.length, "100% of rows preserve exact page provenance");
+    assert(
+      p3Rows.length + p4Rows.length === merged.tableRows!.length,
+      "100% of rows preserve exact page provenance",
+    );
 
     for (const row of p3Rows) {
       assert(row.pageNumber === 3, `Row ${row.rowId} preserves pageNumber = 3`);
-      assert(row.sourceTableId === "table-p3", `Row ${row.rowId} preserves sourceTableId = table-p3`);
+      assert(
+        row.sourceTableId === "table-p3",
+        `Row ${row.rowId} preserves sourceTableId = table-p3`,
+      );
     }
 
     for (const row of p4Rows) {
       assert(row.pageNumber === 4, `Row ${row.rowId} preserves pageNumber = 4`);
-      assert(row.sourceTableId === "table-p4", `Row ${row.rowId} preserves sourceTableId = table-p4`);
+      assert(
+        row.sourceTableId === "table-p4",
+        `Row ${row.rowId} preserves sourceTableId = table-p4`,
+      );
     }
   }
 
@@ -3227,12 +3544,24 @@ export async function runProductionOcrTestSuite() {
     const multiTab = multiPageTables[0];
     assert(multiTab.isMultiPage === true, "Multi-page table flagged isMultiPage = true");
     assert(multiTab.pagesSpanned.length === 3, "Spans 3 distinct pages");
-    assert(JSON.stringify(multiTab.pagesSpanned) === JSON.stringify([2, 3, 4]), "pagesSpanned is [2, 3, 4]");
+    assert(
+      JSON.stringify(multiTab.pagesSpanned) === JSON.stringify([2, 3, 4]),
+      "pagesSpanned is [2, 3, 4]",
+    );
 
     // Verify cell provenance for each page in 3-page chain
-    assert(multiTab.cells.some((c) => c.pageNumber === 2), "Preserves Page 2 cell provenance");
-    assert(multiTab.cells.some((c) => c.pageNumber === 3), "Preserves Page 3 cell provenance");
-    assert(multiTab.cells.some((c) => c.pageNumber === 4), "Preserves Page 4 cell provenance");
+    assert(
+      multiTab.cells.some((c) => c.pageNumber === 2),
+      "Preserves Page 2 cell provenance",
+    );
+    assert(
+      multiTab.cells.some((c) => c.pageNumber === 3),
+      "Preserves Page 3 cell provenance",
+    );
+    assert(
+      multiTab.cells.some((c) => c.pageNumber === 4),
+      "Preserves Page 4 cell provenance",
+    );
   }
 
   // ===========================================================================
@@ -3350,7 +3679,9 @@ export async function runProductionOcrTestSuite() {
   // Test 22.2: Flexible non-hardcoded layout invariance (Arbitrary section order)
   {
     testCount++;
-    console.log(`[Test ${testCount}] Flexible non-hardcoded layout invariance (arbitrary section order)`);
+    console.log(
+      `[Test ${testCount}] Flexible non-hardcoded layout invariance (arbitrary section order)`,
+    );
 
     // Inverted ordering: TOTAL at top banner, then ACCOUNT, then ENERGY, then CUSTOMER
     const invertedSections = [
@@ -3369,22 +3700,42 @@ export async function runProductionOcrTestSuite() {
       { text: "Meter: KVA-1002", y: 0.83 },
     ]);
 
-    const structure = DocumentStructureEngine.analyzeDocumentStructure([mockPageInverted], "doc-inverted");
+    const structure = DocumentStructureEngine.analyzeDocumentStructure(
+      [mockPageInverted],
+      "doc-inverted",
+    );
 
-    assert(structure.totalSection !== undefined, "Discovers TOTAL even when placed at the top banner");
-    assert(structure.customerSection !== undefined, "Discovers CUSTOMER even when placed after charges");
+    assert(
+      structure.totalSection !== undefined,
+      "Discovers TOTAL even when placed at the top banner",
+    );
+    assert(
+      structure.customerSection !== undefined,
+      "Discovers CUSTOMER even when placed after charges",
+    );
     assert(structure.meterSection !== undefined, "Discovers METER even at the bottom");
-    assert(structure.sections.length === 5, "Discovered all 5 inverted sections without hardcoded assumptions");
+    assert(
+      structure.sections.length === 5,
+      "Discovered all 5 inverted sections without hardcoded assumptions",
+    );
 
     // Reading order preserves spatial sequence
-    assert(structure.readingOrderSections[0].sectionType === "TOTAL", "First in reading order is TOTAL banner");
-    assert(structure.readingOrderSections[1].sectionType === "ACCOUNT_INFORMATION", "Second is ACCOUNT");
+    assert(
+      structure.readingOrderSections[0].sectionType === "TOTAL",
+      "First in reading order is TOTAL banner",
+    );
+    assert(
+      structure.readingOrderSections[1].sectionType === "ACCOUNT_INFORMATION",
+      "Second is ACCOUNT",
+    );
   }
 
   // Test 22.3: Eskom Direct Format Variants (Standard Megaflex vs Large Power Transmission)
   {
     testCount++;
-    console.log(`[Test ${testCount}] Eskom Direct format variants (Megaflex Standard vs Large Power)`);
+    console.log(
+      `[Test ${testCount}] Eskom Direct format variants (Megaflex Standard vs Large Power)`,
+    );
 
     const pageStandard = makeMockOcrPage(1, [
       { title: "ESKOM HOLDINGS SOC LTD", y: 0.02 },
@@ -3392,7 +3743,10 @@ export async function runProductionOcrTestSuite() {
       { title: "ENERGY CHARGES", y: 0.2 },
     ]);
     const variantStandard = DocumentStructureEngine.detectFormatVariant([pageStandard]);
-    assert(variantStandard === "ESKOM_DIRECT_STANDARD", "Correctly classifies Eskom Megaflex as ESKOM_DIRECT_STANDARD");
+    assert(
+      variantStandard === "ESKOM_DIRECT_STANDARD",
+      "Correctly classifies Eskom Megaflex as ESKOM_DIRECT_STANDARD",
+    );
 
     const pageLargePower = makeMockOcrPage(1, [
       { title: "ESKOM TRANSMISSION DIVISION", y: 0.02 },
@@ -3400,7 +3754,10 @@ export async function runProductionOcrTestSuite() {
       { title: "DEMAND CHARGES", y: 0.2 },
     ]);
     const variantLargePower = DocumentStructureEngine.detectFormatVariant([pageLargePower]);
-    assert(variantLargePower === "ESKOM_DIRECT_LARGE_POWER", "Correctly classifies Eskom Transmission as ESKOM_DIRECT_LARGE_POWER");
+    assert(
+      variantLargePower === "ESKOM_DIRECT_LARGE_POWER",
+      "Correctly classifies Eskom Transmission as ESKOM_DIRECT_LARGE_POWER",
+    );
   }
 
   // Test 22.4: South African Municipal Formats Diversity
@@ -3432,26 +3789,41 @@ export async function runProductionOcrTestSuite() {
 
     // Verify Cape Town Afrikaans section recognition
     const cptStructure = DocumentStructureEngine.analyzeDocumentStructure([pCpt]);
-    assert(cptStructure.accountSection !== undefined, "Recognises Afrikaans 'REKENING BESONDERHEDE' as ACCOUNT");
-    assert(cptStructure.energyChargesSection !== undefined, "Recognises Afrikaans 'ELEKTRISITEIT HEFFING' as ENERGY");
-    assert(cptStructure.totalSection !== undefined, "Recognises Afrikaans 'TOTALE BEDRAG' as TOTAL");
+    assert(
+      cptStructure.accountSection !== undefined,
+      "Recognises Afrikaans 'REKENING BESONDERHEDE' as ACCOUNT",
+    );
+    assert(
+      cptStructure.energyChargesSection !== undefined,
+      "Recognises Afrikaans 'ELEKTRISITEIT HEFFING' as ENERGY",
+    );
+    assert(
+      cptStructure.totalSection !== undefined,
+      "Recognises Afrikaans 'TOTALE BEDRAG' as TOTAL",
+    );
 
     // 3. eThekwini (Durban Electricity)
-    const pDbn = makeMockOcrPage(1, [{ title: "ETHEKWINI MUNICIPALITY - DURBAN ELECTRICITY", y: 0.05 }]);
+    const pDbn = makeMockOcrPage(1, [
+      { title: "ETHEKWINI MUNICIPALITY - DURBAN ELECTRICITY", y: 0.05 },
+    ]);
     assert(
       DocumentStructureEngine.detectFormatVariant([pDbn]) === "MUNICIPAL_ETHEKWINI",
       "Identifies eThekwini Municipality",
     );
 
     // 4. City of Tshwane (Pretoria)
-    const pTsh = makeMockOcrPage(1, [{ title: "CITY OF TSHWANE METROPOLITAN MUNICIPALITY", y: 0.05 }]);
+    const pTsh = makeMockOcrPage(1, [
+      { title: "CITY OF TSHWANE METROPOLITAN MUNICIPALITY", y: 0.05 },
+    ]);
     assert(
       DocumentStructureEngine.detectFormatVariant([pTsh]) === "MUNICIPAL_TSHWANE",
       "Identifies City of Tshwane",
     );
 
     // 5. Ekurhuleni
-    const pEkur = makeMockOcrPage(1, [{ title: "CITY OF EKURHULENI METROPOLITAN MUNICIPALITY", y: 0.05 }]);
+    const pEkur = makeMockOcrPage(1, [
+      { title: "CITY OF EKURHULENI METROPOLITAN MUNICIPALITY", y: 0.05 },
+    ]);
     assert(
       DocumentStructureEngine.detectFormatVariant([pEkur]) === "MUNICIPAL_EKURHULENI",
       "Identifies City of Ekurhuleni",
@@ -3465,7 +3837,9 @@ export async function runProductionOcrTestSuite() {
     );
 
     // 7. Nelson Mandela Bay (Gqeberha)
-    const pNmb = makeMockOcrPage(1, [{ title: "NELSON MANDELA BAY MUNICIPALITY - GQEBERHA", y: 0.05 }]);
+    const pNmb = makeMockOcrPage(1, [
+      { title: "NELSON MANDELA BAY MUNICIPALITY - GQEBERHA", y: 0.05 },
+    ]);
     assert(
       DocumentStructureEngine.detectFormatVariant([pNmb]) === "MUNICIPAL_NELSON_MANDELA_BAY",
       "Identifies Nelson Mandela Bay Municipality",
@@ -3500,20 +3874,31 @@ export async function runProductionOcrTestSuite() {
     assert(totSec !== undefined, "Found Total Amount Due section");
 
     // Content isolation
-    assert(custSec!.rawText.includes("Sappi Southern Africa Ltd"), "Customer section contains company name");
-    assert(!custSec!.rawText.includes("1,234,567.89"), "Customer section strictly excludes total amount");
+    assert(
+      custSec!.rawText.includes("Sappi Southern Africa Ltd"),
+      "Customer section contains company name",
+    );
+    assert(
+      !custSec!.rawText.includes("1,234,567.89"),
+      "Customer section strictly excludes total amount",
+    );
     assert(totSec!.rawText.includes("1,234,567.89"), "Total section contains invoice total");
     assert(!totSec!.rawText.includes("Sappi"), "Total section strictly excludes customer name");
 
     // Bounding boxes
-    assert(custSec!.boundingBox[1] >= 0.09, "Customer section bounded appropriately in Y dimension");
+    assert(
+      custSec!.boundingBox[1] >= 0.09,
+      "Customer section bounded appropriately in Y dimension",
+    );
     assert(totSec!.boundingBox[1] >= 0.49, "Total section bounded appropriately in Y dimension");
   }
 
   // Test 22.6: HybridDocumentProcessor produces full documentStructure and multiPageTables
   {
     testCount++;
-    console.log(`[Test ${testCount}] HybridDocumentProcessor produces full documentStructure and multiPageTables`);
+    console.log(
+      `[Test ${testCount}] HybridDocumentProcessor produces full documentStructure and multiPageTables`,
+    );
 
     const rasterBuffer = generateSyntheticImageBuffer(400, 300, "text_bars");
 
@@ -3528,13 +3913,21 @@ export async function runProductionOcrTestSuite() {
       },
     );
 
-    assert(result.documentStructure !== undefined, "HybridDocumentProcessor outputs documentStructure");
-    assert(Array.isArray(result.documentStructure!.sections), "documentStructure has sections array");
+    assert(
+      result.documentStructure !== undefined,
+      "HybridDocumentProcessor outputs documentStructure",
+    );
+    assert(
+      Array.isArray(result.documentStructure!.sections),
+      "documentStructure has sections array",
+    );
     assert(Array.isArray(result.sections), "Result exposes top-level sections array");
     assert(Array.isArray(result.multiPageTables), "Result exposes multiPageTables array");
-    assert(typeof result.documentStructure!.detectedFormatVariant === "string", "Result detects format variant");
+    assert(
+      typeof result.documentStructure!.detectedFormatVariant === "string",
+      "Result detects format variant",
+    );
   }
-
 
   // ===========================================================================
   // TEST GROUP 23: EVIDENCE MODEL (Requirement 21)
@@ -3544,7 +3937,9 @@ export async function runProductionOcrTestSuite() {
   // Test 23.1: Explicit User Specification Verification
   {
     testCount++;
-    console.log(`[Test ${testCount}] Explicit User Specification Verification (Field, Value, Document, Page, OCR, Source Text, Bounding Box, Confidence, Processing Run)`);
+    console.log(
+      `[Test ${testCount}] Explicit User Specification Verification (Field, Value, Document, Page, OCR, Source Text, Bounding Box, Confidence, Processing Run)`,
+    );
 
     const evidence = OcrEvidenceModel.createFieldEvidence<string>({
       field: "Account Number",
@@ -3561,20 +3956,29 @@ export async function runProductionOcrTestSuite() {
     // Exact required field names
     assert(evidence.field === "Account Number", "Field matches exact requirement 'Account Number'");
     assert(evidence.value === "123456789", "Value matches exact requirement '123456789'");
-    assert(evidence.document === "document-001", "Document matches exact requirement 'document-001'");
+    assert(
+      evidence.document === "document-001",
+      "Document matches exact requirement 'document-001'",
+    );
     assert(evidence.page === 1, "Page matches exact requirement 1");
     assert(evidence.ocr === true, "OCR matches exact requirement true");
-    assert(evidence.sourceText === "123456789", "Source text matches exact requirement '123456789'");
+    assert(
+      evidence.sourceText === "123456789",
+      "Source text matches exact requirement '123456789'",
+    );
     assert(
       Array.isArray(evidence.boundingBox) &&
-      evidence.boundingBox[0] === 100 &&
-      evidence.boundingBox[1] === 200 &&
-      evidence.boundingBox[2] === 300 &&
-      evidence.boundingBox[3] === 40,
+        evidence.boundingBox[0] === 100 &&
+        evidence.boundingBox[1] === 200 &&
+        evidence.boundingBox[2] === 300 &&
+        evidence.boundingBox[3] === 40,
       "Bounding box matches exact coordinates [100, 200, 300, 40]",
     );
     assert(evidence.confidence === 98, "Confidence matches exact requirement 98%");
-    assert(evidence.processingRun === "ocr-run-001", "Processing run matches exact requirement 'ocr-run-001'");
+    assert(
+      evidence.processingRun === "ocr-run-001",
+      "Processing run matches exact requirement 'ocr-run-001'",
+    );
 
     // Canonical alias validation
     assert(evidence.fieldKey === "accountNumber", "Auto-derives fieldKey 'accountNumber'");
@@ -3590,7 +3994,9 @@ export async function runProductionOcrTestSuite() {
   // Test 23.2: Determinant Field Conversion with Bounding Box and Coordinate Preservation
   {
     testCount++;
-    console.log(`[Test ${testCount}] Determinant Field Conversion with Bounding Box and Coordinate Preservation`);
+    console.log(
+      `[Test ${testCount}] Determinant Field Conversion with Bounding Box and Coordinate Preservation`,
+    );
 
     const detField: OcrDeterminantField<number> = {
       fieldKey: "totalAmountDue",
@@ -3627,7 +4033,11 @@ export async function runProductionOcrTestSuite() {
       },
     };
 
-    const evidence = OcrEvidenceModel.fromDeterminantField(detField, "doc-inv-999", "run-inv-2026-001");
+    const evidence = OcrEvidenceModel.fromDeterminantField(
+      detField,
+      "doc-inv-999",
+      "run-inv-2026-001",
+    );
 
     assert(evidence.field === "Total Amount Due", "Converted field label is preserved");
     assert(evidence.fieldKey === "totalAmountDue", "Converted field key is preserved");
@@ -3646,7 +4056,9 @@ export async function runProductionOcrTestSuite() {
   // Test 23.3: Comprehensive Evidence Package Compilation from Extracted Determinants
   {
     testCount++;
-    console.log(`[Test ${testCount}] Comprehensive Evidence Package Compilation from Extracted Determinants`);
+    console.log(
+      `[Test ${testCount}] Comprehensive Evidence Package Compilation from Extracted Determinants`,
+    );
 
     const mockDeterminants = {
       accountNumber: {
@@ -3706,11 +4118,18 @@ export async function runProductionOcrTestSuite() {
       },
     };
 
-    const pkg = OcrEvidenceModel.compileEvidencePackage(mockDeterminants, "doc-test-1", "run-pkg-001");
+    const pkg = OcrEvidenceModel.compileEvidencePackage(
+      mockDeterminants,
+      "doc-test-1",
+      "run-pkg-001",
+    );
 
     assert(pkg.accountNumber !== undefined, "Compiled accountNumber evidence");
     assert(pkg.invoiceNumber !== undefined, "Compiled invoiceNumber evidence");
-    assert(pkg.missingOptionalField === undefined, "Strictly omits null / ungrounded optional fields from evidence package");
+    assert(
+      pkg.missingOptionalField === undefined,
+      "Strictly omits null / ungrounded optional fields from evidence package",
+    );
     assert(pkg.accountNumber.document === "doc-test-1", "Document ID matches in package");
     assert(pkg.accountNumber.processingRun === "run-pkg-001", "Processing run matches in package");
   }
@@ -3718,7 +4137,9 @@ export async function runProductionOcrTestSuite() {
   // Test 23.4: Rigorous Evidence Model Validation & Boundary Condition Guarding
   {
     testCount++;
-    console.log(`[Test ${testCount}] Rigorous Evidence Model Validation & Boundary Condition Guarding`);
+    console.log(
+      `[Test ${testCount}] Rigorous Evidence Model Validation & Boundary Condition Guarding`,
+    );
 
     // Valid evidence
     const validEvidence = OcrEvidenceModel.createFieldEvidence({
@@ -3758,7 +4179,9 @@ export async function runProductionOcrTestSuite() {
   // Test 23.5: Bidirectional Conversion with Canonical ProvenancedField & Ledger Compatibility
   {
     testCount++;
-    console.log(`[Test ${testCount}] Bidirectional Conversion with Canonical ProvenancedField & Ledger Compatibility`);
+    console.log(
+      `[Test ${testCount}] Bidirectional Conversion with Canonical ProvenancedField & Ledger Compatibility`,
+    );
 
     const originalEvidence = OcrEvidenceModel.createFieldEvidence({
       field: "VAT Registration Number",
@@ -3780,7 +4203,10 @@ export async function runProductionOcrTestSuite() {
     assert(provField.value === "4123456789", "ProvenancedField value matches");
     assert(provField.page === 1, "ProvenancedField page matches");
     assert(provField.provenance.pageNumber === 1, "ProvenancedField provenance pageNumber matches");
-    assert(provField.provenance.confidenceScore === 0.96, "Confidence normalized to [0, 1] range for ProvenanceGuard ledger");
+    assert(
+      provField.provenance.confidenceScore === 0.96,
+      "Confidence normalized to [0, 1] range for ProvenanceGuard ledger",
+    );
     assert(provField.runId === "run-vat-001", "Run ID preserved in ProvenancedField");
 
     // Roundtrip back to OcrFieldEvidence
@@ -3816,8 +4242,14 @@ export async function runProductionOcrTestSuite() {
     assert(trace.explanation.includes("123456789"), "Explanation references value");
     assert(trace.explanation.includes("document-001"), "Explanation references document ID");
     assert(trace.explanation.includes("ocr-run-001"), "Explanation references OCR run ID");
-    assert(trace.evidenceChain.includes("document-001 -> Page 1"), "Evidence chain traces hierarchical provenance");
-    assert(trace.evidenceChain.includes("ocr-run-001"), "Evidence chain references OCR processing run");
+    assert(
+      trace.evidenceChain.includes("document-001 -> Page 1"),
+      "Evidence chain traces hierarchical provenance",
+    );
+    assert(
+      trace.evidenceChain.includes("ocr-run-001"),
+      "Evidence chain references OCR processing run",
+    );
   }
 
   // ===========================================================================
@@ -3850,9 +4282,15 @@ export async function runProductionOcrTestSuite() {
     assert(typeof run.configuration === "object", "6. configuration is structured object");
     assert(run.language === "eng+afr+zul", "7. language matches");
     assert(run.preprocessingVersion === "2.1.0", "8. preprocessing version matches");
-    assert(typeof run.startTime === "string" && !isNaN(Date.parse(run.startTime)), "9. start time is valid ISO timestamp");
+    assert(
+      typeof run.startTime === "string" && !isNaN(Date.parse(run.startTime)),
+      "9. start time is valid ISO timestamp",
+    );
     assert(run.endTime === null || run.endTime === undefined, "10. end time is null initially");
-    assert(run.processingDuration === null || typeof run.processingDuration === "number", "11. processing duration initialized");
+    assert(
+      run.processingDuration === null || typeof run.processingDuration === "number",
+      "11. processing duration initialized",
+    );
     assert(run.status === "RUNNING", "12. status is RUNNING");
     assert(run.error === null || run.error === undefined, "13. error is null initially");
     assert(run.outputVersion === "1.0.0", "14. output version matches");
@@ -3961,7 +4399,9 @@ export async function runProductionOcrTestSuite() {
   // Test 24.5: End-to-End HybridDocumentProcessor Run Audit Trail and Evidence Binding
   {
     testCount++;
-    console.log(`[Test ${testCount}] End-to-End HybridDocumentProcessor Run Audit Trail and Evidence Binding`);
+    console.log(
+      `[Test ${testCount}] End-to-End HybridDocumentProcessor Run Audit Trail and Evidence Binding`,
+    );
 
     const rasterBuffer = generateSyntheticImageBuffer(400, 300, "text_bars");
 
@@ -3979,7 +4419,10 @@ export async function runProductionOcrTestSuite() {
     // Verify processing run
     assert(result.processingRun !== undefined, "Result contains top-level processingRun");
     const run = result.processingRun!;
-    assert(typeof run.ocrRunId === "string" && run.ocrRunId.startsWith("ocr-run-"), "Run ID formatted correctly");
+    assert(
+      typeof run.ocrRunId === "string" && run.ocrRunId.startsWith("ocr-run-"),
+      "Run ID formatted correctly",
+    );
     assert(run.status === "COMPLETED", "Run completed successfully");
     assert(typeof run.startTime === "string", "Run has valid start time");
     assert(typeof run.endTime === "string", "Run has valid end time");
@@ -3994,8 +4437,14 @@ export async function runProductionOcrTestSuite() {
     assert(Array.isArray(result.fieldEvidenceList), "Result contains fieldEvidenceList array");
 
     for (const evidence of result.fieldEvidenceList!) {
-      assert(evidence.processingRun === run.ocrRunId, "Field evidence processingRun binds to OCR run ID");
-      assert(evidence.document === result.documentId, "Field evidence document binds to document ID");
+      assert(
+        evidence.processingRun === run.ocrRunId,
+        "Field evidence processingRun binds to OCR run ID",
+      );
+      assert(
+        evidence.document === result.documentId,
+        "Field evidence document binds to document ID",
+      );
       assert(typeof evidence.ocr === "boolean", "Field evidence ocr is boolean");
       assert(typeof evidence.confidence === "number", "Field evidence confidence is numeric");
       assert(Array.isArray(evidence.boundingBox), "Field evidence boundingBox is array");
@@ -4008,7 +4457,9 @@ export async function runProductionOcrTestSuite() {
   // Test 96: Safe retry state transition sequence: FAILED -> RETRY 1 -> RETRY 2 -> REVIEW_REQUIRED
   {
     testCount++;
-    console.log(`[Test ${testCount}] Safe Retry State Transition (FAILED -> RETRY 1 -> RETRY 2 -> REVIEW_REQUIRED)`);
+    console.log(
+      `[Test ${testCount}] Safe Retry State Transition (FAILED -> RETRY 1 -> RETRY 2 -> REVIEW_REQUIRED)`,
+    );
 
     const run = OcrProcessingRunEngine.createRun({
       documentId: "doc-retry-test-01",
@@ -4067,7 +4518,10 @@ export async function runProductionOcrTestSuite() {
     // Record retry attempt 1 twice to test idempotent attempt updates
     OcrRetryEngine.recordRetryOnRun(run1, 1, "RETRY_1", "Transient network glitch");
     OcrRetryEngine.recordRetryOnRun(run1, 1, "RETRY_1", "Transient network glitch retry updated");
-    assert(run1.retryHistory!.length === 1, "Duplicate retry recording does not create duplicate history records");
+    assert(
+      run1.retryHistory!.length === 1,
+      "Duplicate retry recording does not create duplicate history records",
+    );
   }
 
   // Test 98: Successful recovery on retry transitions to COMPLETED
@@ -4099,7 +4553,9 @@ export async function runProductionOcrTestSuite() {
   // Test 99: Retryable error classification & exponential backoff computation
   {
     testCount++;
-    console.log(`[Test ${testCount}] Retryable error classification and exponential backoff computation`);
+    console.log(
+      `[Test ${testCount}] Retryable error classification and exponential backoff computation`,
+    );
 
     const timeoutErr = new Error("Tesseract worker timed out after 30000ms");
     const networkErr = { code: "NETWORK_TIMEOUT", message: "Fetch failed" };
@@ -4146,7 +4602,12 @@ export async function runProductionOcrTestSuite() {
     assert(chunk.retryAttempt === 1, "Chunk retryAttempt is 1");
     assert(chunk.retryHistory!.length === 1, "Chunk history contains 1 attempt");
 
-    OcrRetryEngine.recordRetryOnChunk(chunk, 2, "RETRY_2", new Error("Chunk page 4 second timeout"));
+    OcrRetryEngine.recordRetryOnChunk(
+      chunk,
+      2,
+      "RETRY_2",
+      new Error("Chunk page 4 second timeout"),
+    );
     assert(chunk.status === "RETRY_2", "Chunk status updated to RETRY_2");
     assert(chunk.retryAttempt === 2, "Chunk retryAttempt is 2");
 
@@ -4168,18 +4629,31 @@ export async function runProductionOcrTestSuite() {
     assert(chunks[0].startPage === 1 && chunks[0].endPage === 10, "Chunk 1 covers pages 1–10");
     assert(chunks[1].startPage === 11 && chunks[1].endPage === 20, "Chunk 2 covers pages 11–20");
     assert(chunks[2].startPage === 21 && chunks[2].endPage === 30, "Chunk 3 covers pages 21–30");
-    assert(chunks[19].startPage === 191 && chunks[19].endPage === 200, "Chunk 20 covers pages 191–200");
+    assert(
+      chunks[19].startPage === 191 && chunks[19].endPage === 200,
+      "Chunk 20 covers pages 191–200",
+    );
     assert(chunks[0].pageNumbers.length === 10, "Chunk has exactly 10 page numbers");
-    assert(chunks.every((c) => c.status === "PENDING"), "All planned chunks initially PENDING");
+    assert(
+      chunks.every((c) => c.status === "PENDING"),
+      "All planned chunks initially PENDING",
+    );
   }
 
   // Test 102: Tracking chunk states (Pages 1–10 COMPLETE, 11–20 PROCESSING, 21–30 PENDING)
   {
     testCount++;
-    console.log(`[Test ${testCount}] Tracking chunk states (Pages 1–10 COMPLETE, 11–20 PROCESSING, 21–30 PENDING)`);
+    console.log(
+      `[Test ${testCount}] Tracking chunk states (Pages 1–10 COMPLETE, 11–20 PROCESSING, 21–30 PENDING)`,
+    );
 
     const chunks = OcrLargeDocumentChunkEngine.planChunks(30, { chunkSize: 10 });
-    const progress = OcrLargeDocumentChunkEngine.createProgress("doc-large-30", "ocr-run-large-01", 30, chunks);
+    const progress = OcrLargeDocumentChunkEngine.createProgress(
+      "doc-large-30",
+      "ocr-run-large-01",
+      30,
+      chunks,
+    );
 
     // Initial state
     assert(progress.totalPages === 30, "Total pages is 30");
@@ -4212,7 +4686,12 @@ export async function runProductionOcrTestSuite() {
     console.log(`[Test ${testCount}] Genuine Progress Reporting Percentage (Never Fake Progress)`);
 
     const chunks = OcrLargeDocumentChunkEngine.planChunks(100, { chunkSize: 10 });
-    const progress = OcrLargeDocumentChunkEngine.createProgress("doc-large-100", "ocr-run-large-02", 100, chunks);
+    const progress = OcrLargeDocumentChunkEngine.createProgress(
+      "doc-large-100",
+      "ocr-run-large-02",
+      100,
+      chunks,
+    );
 
     // 0 / 100 pages -> strictly 0%
     assert(progress.percentage === 0, "Initial progress is exactly 0%");
@@ -4221,7 +4700,10 @@ export async function runProductionOcrTestSuite() {
     OcrLargeDocumentChunkEngine.startChunk(progress, 0);
     OcrLargeDocumentChunkEngine.completeChunk(progress, 0, []);
     assert(progress.completedPages === 10, "Completed pages is exactly 10");
-    assert(progress.percentage === 10, "Progress percentage is strictly 10% (not interpolated timer)");
+    assert(
+      progress.percentage === 10,
+      "Progress percentage is strictly 10% (not interpolated timer)",
+    );
 
     // Complete 2nd and 3rd chunks -> strictly 30%
     OcrLargeDocumentChunkEngine.startChunk(progress, 1);
@@ -4244,7 +4726,9 @@ export async function runProductionOcrTestSuite() {
   // Test 104: Formatted status string matching exact Requirement 24 specification
   {
     testCount++;
-    console.log(`[Test ${testCount}] Formatted status string matching exact Requirement 24 specification`);
+    console.log(
+      `[Test ${testCount}] Formatted status string matching exact Requirement 24 specification`,
+    );
 
     const chunks: OcrPageChunk[] = [
       {
@@ -4284,7 +4768,9 @@ export async function runProductionOcrTestSuite() {
   // Test 105: End-to-end HybridDocumentProcessor chunking execution with real-time onProgress events
   {
     testCount++;
-    console.log(`[Test ${testCount}] End-to-End HybridDocumentProcessor Chunking and Progress Events`);
+    console.log(
+      `[Test ${testCount}] End-to-End HybridDocumentProcessor Chunking and Progress Events`,
+    );
 
     const rasterBuffer = generateSyntheticImageBuffer(400, 300, "text_bars");
     const progressSnapshots: OcrDocumentProgress[] = [];
