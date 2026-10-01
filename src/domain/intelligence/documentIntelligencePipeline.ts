@@ -715,8 +715,7 @@ export class DocumentIntelligencePipeline {
       const pageNum = p.pageNumber;
       const pageLines = textLines.filter((l) => l.pageNumber === pageNum);
       const isReliable =
-        !options.forceOcr &&
-        HybridDocumentProcessor.isReliableNativePageText(p.rawText, pageLines);
+        !options.forceOcr && HybridDocumentProcessor.isReliableNativePageText(p.rawText, pageLines);
 
       if (isReliable) {
         // Native Text Available: preserve native PDF extraction without rasterization
@@ -746,7 +745,8 @@ export class DocumentIntelligencePipeline {
 
           // 3. OCR ENGINE (Tesseract worker pool execution)
           const ocrResult = await TesseractWorkerPool.recognizeImage(
-            preprocessed.imageData ?? new Uint8ClampedArray(rasterPage.width * rasterPage.height * 4),
+            preprocessed.imageData ??
+              new Uint8ClampedArray(rasterPage.width * rasterPage.height * 4),
             rasterPage.width,
             rasterPage.height,
             pageNum,
@@ -792,7 +792,7 @@ export class DocumentIntelligencePipeline {
           // Replace text lines for this page with OCR-extracted lines
           textLines = textLines.filter((l) => l.pageNumber !== pageNum).concat(pageOcrLines);
         } catch {
-          // Graceful fallback for non-rasterizable or mock page streams
+          // Graceful fallback: page could not be rendered or is a mock stream
           pageConfidenceScores.push(0.5);
           p.isScanned = true;
         }
@@ -1467,7 +1467,8 @@ export class DocumentIntelligencePipeline {
       const columns: TableColumn[] = ocrTable.headers.map((header, colIdx) => {
         // Derive approximate x-bounds from cells in this column
         const columnCells = ocrTable.cells.filter((c) => c.columnIndex === colIdx);
-        const minX = columnCells.length > 0 ? Math.min(...columnCells.map((c) => c.boundingBox[0])) : 0;
+        const minX =
+          columnCells.length > 0 ? Math.min(...columnCells.map((c) => c.boundingBox[0])) : 0;
         const maxX =
           columnCells.length > 0
             ? Math.max(...columnCells.map((c) => c.boundingBox[0] + c.boundingBox[2]))
