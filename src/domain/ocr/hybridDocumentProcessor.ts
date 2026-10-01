@@ -95,50 +95,65 @@ export class HybridDocumentProcessor {
     const targetDpi = options.targetDpi || 300;
     const maxPages = options.maxPages || 50;
 
-    // 2. Multi-page rasterization (or single image decoding)
-    const rasterizedPages = await PdfPageRasterizer.rasterizeDocument(bytes, filename, {
-      targetDpi,
-      maxPages,
-    });
-
-    // 3. Inspect native digital text if it's a PDF (for hybrid detection)
-    const nativeTextMap = new Map<
-      number,
-      { text: string; words: OcrWordToken[]; lines: OcrLineBlock[] }
-    >();
     const isPdf = filename.toLowerCase().endsWith(".pdf") || mimeType.includes("pdf");
-
-    if (isPdf && !options.forceOcr) {
-      await this.extractPdfNativeTextStreams(bytes, nativeTextMap, maxPages);
-    }
-
-    // 4. Process each page according to digital vs scanned characteristics
     const pageResults: OcrPageResult[] = [];
 
-    for (let pIdx = 0; pIdx < rasterizedPages.length; pIdx++) {
-      const rasterPage = rasterizedPages[pIdx];
-      const pageNum = rasterPage.pageNumber;
-      const nativeStream = nativeTextMap.get(pageNum);
+    if (isPdf) {
+      // 2. Extract native digital text streams per page
+      const nativeTextMap = new Map<
+        number,
+        { text: string; words: OcrWordToken[]; lines: OcrLineBlock[]; width: number; height: number }
+      >();
 
-      // A page is pure digital vector if it contains sufficient non-whitespace native text
-      const hasSufficientDigitalText = Boolean(
-        nativeStream &&
-        nativeStream.text.trim().length >= 100 &&
-        nativeStream.lines.length >= 4 &&
-        !options.forceOcr,
-      );
+      const pdfDoc = await this.extractPdfNativeTextStreams(bytes, nativeTextMap, maxPages);
+      const totalPages = pdfDoc?.numPages || nativeTextMap.size || 1;
+      const pagesToProcess = Math.min(totalPages, maxPages);
 
-      let pageResult: OcrPageResult;
+      // 3. Intelligently determine per-page whether OCR is necessary:
+      // IF reliable embedded text exists -> use native PDF extraction
+      // ELSE -> render page & OCR page
+      for (let pageNum = 1; pageNum <= pagesToProcess; pageNum++) {
+        const nativeStream = nativeTextMap.get(pageNum);
+        const hasReliableText = Boolean(
+          !options.forceOcr &&
+            nativeStream &&
+            this.isReliableNativePageText(nativeStream.text, nativeStream.lines),
+        );
 
-      if (hasSufficientDigitalText && nativeStream) {
-        // Pure digital vector processing path
-        pageResult = this.processDigitalVectorPage(rasterPage, nativeStream);
-      } else {
-        // Scanned raster / photographed / poor-scan OCR processing path
-        pageResult = await this.processScannedRasterPage(rasterPage, options);
+        let pageResult: OcrPageResult;
+
+        if (hasReliableText && nativeStream) {
+          // Pure digital vector processing path — ZERO RASTERIZATION, ZERO OCR
+          pageResult = this.processDigitalVectorPage(pageNum, nativeStream, {
+            width: nativeStream.width,
+            height: nativeStream.height,
+            dpi: targetDpi,
+          });
+        } else {
+          // Scanned raster / photographed / poor-scan OCR processing path:
+          // RENDER ONLY THIS SPECIFIC PAGE
+          const rasterPage = await PdfPageRasterizer.rasterizeSinglePdfPage(
+            pdfDoc || bytes,
+            pageNum,
+            targetDpi,
+          );
+          pageResult = await this.processScannedRasterPage(rasterPage, options);
+        }
+
+        pageResults.push(pageResult);
       }
+    } else {
+      // Non-PDF (PNG, JPEG, TIFF): direct image decoding & OCR
+      const rasterizedPages = await PdfPageRasterizer.rasterizeDocument(bytes, filename, {
+        targetDpi,
+        maxPages,
+      });
 
-      pageResults.push(pageResult);
+      for (let pIdx = 0; pIdx < rasterizedPages.length; pIdx++) {
+        const rasterPage = rasterizedPages[pIdx];
+        const pageResult = await this.processScannedRasterPage(rasterPage, options);
+        pageResults.push(pageResult);
+      }
     }
 
     // 5. Aggregate overall document text and layout elements
@@ -318,27 +333,67 @@ export class HybridDocumentProcessor {
   }
 
   /**
-   * Processes a digital vector page using extracted text layout
+   * Evaluates whether native embedded text on a page is dense, coherent, and reliable enough
+   * to bypass rasterization and OCR.
+   */
+  public static isReliableNativePageText(
+    text: string,
+    lines: Array<{ text?: string } | any>,
+  ): boolean {
+    const trimmed = (text || "").trim();
+    if (trimmed.length < 35) return false;
+    if (lines.length < 2) return false;
+
+    // Check alphanumeric density
+    const alphaNumMatches = trimmed.match(/[a-zA-Z0-9]/g);
+    const alphaNumCount = alphaNumMatches ? alphaNumMatches.length : 0;
+    const ratio = alphaNumCount / Math.max(1, trimmed.length);
+
+    // Reliable page must contain at least 20 alphanumeric characters and at least 40% alphanumeric density
+    return alphaNumCount >= 20 && ratio >= 0.4;
+  }
+
+  /**
+   * Processes a digital vector page using extracted text layout without rasterization
    */
   private static processDigitalVectorPage(
-    rasterPage: RasterizedPage,
+    pageIdentifier: number | RasterizedPage,
     nativeStream: { text: string; words: OcrWordToken[]; lines: OcrLineBlock[] },
+    dimensions?: { width: number; height: number; dpi?: number },
   ): OcrPageResult {
+    const pageNum =
+      typeof pageIdentifier === "number" ? pageIdentifier : pageIdentifier.pageNumber;
+    const width =
+      typeof pageIdentifier !== "number"
+        ? pageIdentifier.width
+        : dimensions?.width || 595;
+    const height =
+      typeof pageIdentifier !== "number"
+        ? pageIdentifier.height
+        : dimensions?.height || 842;
+    const dpi =
+      typeof pageIdentifier !== "number"
+        ? pageIdentifier.dpi
+        : dimensions?.dpi || 300;
+
     const layout = OcrLayoutStructureEngine.analyzePageLayout(
       nativeStream.lines,
-      rasterPage.pageNumber,
+      pageNum,
     );
 
+    const safeWidth = width > 0 ? width : 595;
+    const safeHeight = height > 0 ? height : 842;
+
     const geometry: OcrImageGeometry = {
-      width: rasterPage.width,
-      height: rasterPage.height,
-      dpi: rasterPage.dpi,
-      aspectRatio: Number((rasterPage.width / rasterPage.height).toFixed(4)),
+      width: Math.round(safeWidth),
+      height: Math.round(safeHeight),
+      dpi,
+      aspectRatio: Number((safeWidth / safeHeight).toFixed(4)),
       rotation: 0,
     };
 
     return {
-      pageNumber: rasterPage.pageNumber,
+      pageNumber: pageNum,
       fullText: nativeStream.text,
       geometry,
       words: nativeStream.words,
@@ -356,16 +411,19 @@ export class HybridDocumentProcessor {
   }
 
   /**
-   * Extracts native PDF text streams if available
+   * Extracts native PDF text streams and page viewport geometry if available
    */
   private static async extractPdfNativeTextStreams(
     bytes: Uint8Array,
-    outputMap: Map<number, { text: string; words: OcrWordToken[]; lines: OcrLineBlock[] }>,
+    outputMap: Map<
+      number,
+      { text: string; words: OcrWordToken[]; lines: OcrLineBlock[]; width: number; height: number }
+    >,
     maxPages: number,
-  ): Promise<void> {
+  ): Promise<any> {
     try {
       const pdfjs = await PdfjsLoader.getPdfjs();
-      if (!pdfjs) return;
+      if (!pdfjs) return null;
 
       const loadingTask = pdfjs.getDocument({
         data: bytes,
@@ -374,17 +432,18 @@ export class HybridDocumentProcessor {
       });
 
       const pdfDoc = await loadingTask.promise;
-      const numPages = Math.min(pdfDoc.numPages, maxPages);
+      const numPages = Math.min(pdfDoc.numPages || 1, maxPages);
 
       for (let i = 1; i <= numPages; i++) {
         const page = await pdfDoc.getPage(i);
         const textContent = await page.getTextContent();
         const viewport = page.getViewport({ scale: 1.0 });
+        const width = Math.round(viewport.width);
+        const height = Math.round(viewport.height);
 
         const words: OcrWordToken[] = [];
         const lineBuckets = new Map<number, OcrWordToken[]>();
 
-        const currentLineY = -1;
         let lineIdx = 0;
 
         for (const item of textContent.items as any[]) {
@@ -457,10 +516,12 @@ export class HybridDocumentProcessor {
         }
 
         const fullText = lines.map((l) => l.text).join("\n");
-        outputMap.set(i, { text: fullText, words, lines });
+        outputMap.set(i, { text: fullText, words, lines, width, height });
       }
+
+      return pdfDoc;
     } catch {
-      // PDF text stream extraction failed; will default to scanned raster OCR
+      return null;
     }
   }
 

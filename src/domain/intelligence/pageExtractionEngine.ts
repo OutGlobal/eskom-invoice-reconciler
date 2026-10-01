@@ -24,8 +24,7 @@ export class PageExtractionEngine {
     // Attempt high-fidelity extraction via PDF.js with timeout protection
     try {
       const pdfjsPages = await this.extractWithPdfjs(bytes);
-      // Validate that pages have valid extracted text before accepting
-      if (pdfjsPages && pdfjsPages.length > 0 && pdfjsPages[0].hasText) {
+      if (pdfjsPages && pdfjsPages.length > 0) {
         return pdfjsPages;
       }
     } catch {

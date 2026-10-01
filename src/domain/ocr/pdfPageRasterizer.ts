@@ -198,6 +198,86 @@ export class PdfPageRasterizer {
   }
 
   /**
+   * Rasterizes a single page from a PDF document or PDF bytes
+   */
+  public static async rasterizeSinglePdfPage(
+    pdfDocOrBytes: any,
+    pageNum: number,
+    targetDpi: number = 300,
+  ): Promise<RasterizedPage> {
+    let pdfDoc = pdfDocOrBytes;
+    if (pdfDocOrBytes instanceof Uint8Array || pdfDocOrBytes instanceof ArrayBuffer) {
+      try {
+        pdfDoc = await PdfjsLoader.loadDocumentWithTimeout(
+          pdfDocOrBytes instanceof Uint8Array ? pdfDocOrBytes : new Uint8Array(pdfDocOrBytes),
+          4000,
+        );
+      } catch {
+        return this.createFallbackImagePage(pageNum, targetDpi);
+      }
+    }
+
+    if (!pdfDoc || typeof pdfDoc.getPage !== "function") {
+      return this.createFallbackImagePage(pageNum, targetDpi);
+    }
+
+    const scale = targetDpi / 72;
+    try {
+      const page = await pdfDoc.getPage(pageNum);
+      const viewport = page.getViewport({ scale });
+      const width = Math.round(viewport.width);
+      const height = Math.round(viewport.height);
+
+      if (typeof document !== "undefined" && typeof document.createElement === "function") {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+
+        if (ctx) {
+          await page.render({
+            canvasContext: ctx,
+            viewport,
+          }).promise;
+
+          const imgData = ctx.getImageData(0, 0, width, height);
+          return {
+            pageNumber: pageNum,
+            width,
+            height,
+            dpi: targetDpi,
+            pixelBuffer: imgData.data,
+            format: "RGBA",
+            isDirectImage: false,
+            hasEmbeddedImages: true,
+          };
+        }
+      }
+
+      const fallbackBuffer = new Uint8ClampedArray(width * height * 4);
+      for (let i = 0; i < fallbackBuffer.length; i += 4) {
+        fallbackBuffer[i] = 255;
+        fallbackBuffer[i + 1] = 255;
+        fallbackBuffer[i + 2] = 255;
+        fallbackBuffer[i + 3] = 255;
+      }
+
+      return {
+        pageNumber: pageNum,
+        width,
+        height,
+        dpi: targetDpi,
+        pixelBuffer: fallbackBuffer,
+        format: "RGBA",
+        isDirectImage: false,
+        hasEmbeddedImages: false,
+      };
+    } catch {
+      return this.createFallbackImagePage(pageNum, targetDpi);
+    }
+  }
+
+  /**
    * Rasterizes multi-page PDF documents using PDF.js
    */
   public static async rasterizePdf(
@@ -216,68 +296,10 @@ export class PdfPageRasterizer {
     }
 
     const totalPages = Math.min(pdfDoc.numPages || 1, maxPages);
-    // Standard PDF 72 pt = 1 inch. Scale factor = targetDpi / 72 (e.g. 300 / 72 = ~4.166)
-    const scale = targetDpi / 72;
 
     for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-      try {
-        const page = await pdfDoc.getPage(pageNum);
-        const viewport = page.getViewport({ scale });
-        const width = Math.round(viewport.width);
-        const height = Math.round(viewport.height);
-
-        // Check if browser canvas is available
-        if (typeof document !== "undefined" && typeof document.createElement === "function") {
-          const canvas = document.createElement("canvas");
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext("2d");
-
-          if (ctx) {
-            await page.render({
-              canvasContext: ctx,
-              viewport,
-            }).promise;
-
-            const imgData = ctx.getImageData(0, 0, width, height);
-            rasterizedPages.push({
-              pageNumber: pageNum,
-              width,
-              height,
-              dpi: targetDpi,
-              pixelBuffer: imgData.data,
-              format: "RGBA",
-              isDirectImage: false,
-              hasEmbeddedImages: true,
-            });
-            continue;
-          }
-        }
-
-        // Headless Node.js / CI fallback:
-        // Create calibrated pixel buffer sized exactly to page viewport
-        const fallbackBuffer = new Uint8ClampedArray(width * height * 4);
-        for (let i = 0; i < fallbackBuffer.length; i += 4) {
-          fallbackBuffer[i] = 255;
-          fallbackBuffer[i + 1] = 255;
-          fallbackBuffer[i + 2] = 255;
-          fallbackBuffer[i + 3] = 255;
-        }
-
-        rasterizedPages.push({
-          pageNumber: pageNum,
-          width,
-          height,
-          dpi: targetDpi,
-          pixelBuffer: fallbackBuffer,
-          format: "RGBA",
-          isDirectImage: false,
-          hasEmbeddedImages: false,
-        });
-      } catch {
-        // Individual page render fail fallback
-        rasterizedPages.push(this.createFallbackImagePage(pageNum, targetDpi));
-      }
+      const rPage = await this.rasterizeSinglePdfPage(pdfDoc, pageNum, targetDpi);
+      rasterizedPages.push(rPage);
     }
 
     return rasterizedPages;
