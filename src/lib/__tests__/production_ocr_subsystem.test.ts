@@ -5158,7 +5158,10 @@ export async function runProductionOcrTestSuite() {
       metadata: {},
     };
 
-    assert(sampleJob.filename === "Invoice_September_2026.pdf", "Document name matches specification");
+    assert(
+      sampleJob.filename === "Invoice_September_2026.pdf",
+      "Document name matches specification",
+    );
     assert(sampleJob.totalPages === 8, "Page count matches specification (Pages: 8)");
     assert(sampleJob.status === "COMPLETED", "Terminal status is COMPLETED");
     assert(sampleJob.currentStage === "FRONTEND_REFRESH", "Stage reached FRONTEND_REFRESH");
@@ -5195,7 +5198,8 @@ export async function runProductionOcrTestSuite() {
 
     const isUploaded = Boolean(inFlightJob);
     const isStored = inFlightJob.currentStage === "OCR" || inFlightJob.currentStage === "COMPLETED";
-    const isPdfInspected = inFlightJob.currentStage === "OCR" || inFlightJob.currentStage === "COMPLETED";
+    const isPdfInspected =
+      inFlightJob.currentStage === "OCR" || inFlightJob.currentStage === "COMPLETED";
     const isPagesIdentified = inFlightJob.totalPages === 8;
     const isOcrCompleted = inFlightJob.status === "COMPLETED";
     const isAiValidationCompleted = false; // Has not happened
@@ -5205,7 +5209,10 @@ export async function runProductionOcrTestSuite() {
     assert(isPdfInspected === true, "✓ PDF inspected step is completed");
     assert(isPagesIdentified === true, "✓ Pages identified step is completed (Pages: 8)");
     assert(isOcrCompleted === false, "○ OCR is not completed (strictly in progress)");
-    assert(isAiValidationCompleted === false, "○ AI validation is pending (strictly un-fabricated)");
+    assert(
+      isAiValidationCompleted === false,
+      "○ AI validation is pending (strictly un-fabricated)",
+    );
   }
 
   // Test 118: Document title, subtitle, and multi-file formatting
@@ -5411,17 +5418,25 @@ export async function runProductionOcrTestSuite() {
     });
 
     assert(correctionRes.success === true, "Correction applied successfully");
-    assert(correctionRes.correction.originalValue === "00192X", "Original OCR value preserved as '00192X'");
+    assert(
+      correctionRes.correction.originalValue === "00192X",
+      "Original OCR value preserved as '00192X'",
+    );
     assert(correctionRes.correction.correctedValue === "001928", "Corrected value is '001928'");
     assert(correctionRes.correction.validatedValue === "001928", "Validated value is '001928'");
     assert(correctionRes.correction.user.name === "Sipho Dlamini", "Recorded who corrected it");
-    assert(typeof correctionRes.correction.timestamp === "string", "Recorded when it was corrected (timestamp)");
+    assert(
+      typeof correctionRes.correction.timestamp === "string",
+      "Recorded when it was corrected (timestamp)",
+    );
   }
 
   // Test 125: Non-destructive preservation: Original OCR evidence is NEVER overwritten
   {
     testCount++;
-    console.log(`[Test ${testCount}] Non-Destructive Preservation: Original OCR Evidence Never Overwritten`);
+    console.log(
+      `[Test ${testCount}] Non-Destructive Preservation: Original OCR Evidence Never Overwritten`,
+    );
 
     const originalEvidence: OcrFieldEvidence = {
       fieldName: "accountNumber",
@@ -5490,14 +5505,19 @@ export async function runProductionOcrTestSuite() {
   // Test 126: Three-stage correction lifecycle (ORIGINAL OCR -> USER CORRECTION -> VALIDATED VALUE)
   {
     testCount++;
-    console.log(`[Test ${testCount}] Three-Stage Correction Lifecycle (ORIGINAL -> USER -> VALIDATED)`);
+    console.log(
+      `[Test ${testCount}] Three-Stage Correction Lifecycle (ORIGINAL -> USER -> VALIDATED)`,
+    );
 
     const stage1Original = "R 1,485,230.00";
     const stage2UserCorrection = "R 1,485,230.50";
     const stage3ValidatedValue = stage2UserCorrection;
 
     assert(stage1Original !== stage3ValidatedValue, "Original OCR differs from Validated Value");
-    assert(stage2UserCorrection === stage3ValidatedValue, "Validated Value matches User Correction");
+    assert(
+      stage2UserCorrection === stage3ValidatedValue,
+      "Validated Value matches User Correction",
+    );
 
     const validStages = ["ORIGINAL_OCR", "USER_CORRECTION", "VALIDATED_VALUE"];
     for (const st of validStages) {
@@ -5557,7 +5577,10 @@ export async function runProductionOcrTestSuite() {
     assert(typeof correction.user.name === "string", "3. User stored (who corrected it)");
     assert(typeof correction.timestamp === "string", "4. Timestamp stored (when it was corrected)");
     assert(typeof correction.reason === "string", "5. Reason stored");
-    assert(correction.evidence !== null && typeof correction.evidence === "object", "6. Evidence stored");
+    assert(
+      correction.evidence !== null && typeof correction.evidence === "object",
+      "6. Evidence stored",
+    );
     assert(correction.processingRunId === "run-127", "7. Processing run stored");
   }
 
@@ -5616,7 +5639,10 @@ export async function runProductionOcrTestSuite() {
       reason: "Completed full account number",
     });
 
-    const corrected = OcrCorrectionEngine.getValidatedFieldValue(corrRes.updatedResult, "accountNumber");
+    const corrected = OcrCorrectionEngine.getValidatedFieldValue(
+      corrRes.updatedResult,
+      "accountNumber",
+    );
     assert(corrected.value === "123456789", "Corrected value returns validated value '123456789'");
     assert(corrected.isCorrected === true, "isCorrected is true");
     assert(corrected.originalValue === "12345", "originalValue returns '12345'");
@@ -5685,7 +5711,10 @@ export async function runProductionOcrTestSuite() {
       (c) => c.correctionId === corrRes.correction.correctionId,
     );
     assert(revertedCorrection?.status === "REVERTED", "Correction status marked REVERTED");
-    assert(revertedDoc.auditTrail!.lastCorrectedBy === "Admin Supervisor", "Recorded supervisor in audit trail");
+    assert(
+      revertedDoc.auditTrail!.lastCorrectedBy === "Admin Supervisor",
+      "Recorded supervisor in audit trail",
+    );
   }
 
   console.log("\n==================================================================");
@@ -5700,4 +5729,3 @@ runProductionOcrTestSuite()
     console.error("\n❌ PRODUCTION OCR TEST SUITE FAILED:", err);
     process.exit(1);
   });
-

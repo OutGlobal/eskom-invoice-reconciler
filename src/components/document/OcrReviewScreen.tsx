@@ -108,7 +108,9 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
   const [editValue, setEditValue] = useState<string>("");
   const [reviewerName, setReviewerName] = useState<string>("Energy Analyst");
   const [editReason, setEditReason] = useState<string>("");
-  const [localOverrides, setLocalOverrides] = useState<Record<string, { value: any; reason: string; by: string; at: string }>>({});
+  const [localOverrides, setLocalOverrides] = useState<
+    Record<string, { value: any; reason: string; by: string; at: string }>
+  >({});
 
   const ocrResult = currentOcrResult || propOcrResult;
 
@@ -210,7 +212,8 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
     if (ocrResult.fieldEvidenceList && ocrResult.fieldEvidenceList.length > 0) {
       for (const ev of ocrResult.fieldEvidenceList) {
         const rawBbox = ev.boundingBox;
-        const validBbox = Array.isArray(rawBbox) && rawBbox.length === 4 ? (rawBbox as BoundingBox) : null;
+        const validBbox =
+          Array.isArray(rawBbox) && rawBbox.length === 4 ? (rawBbox as BoundingBox) : null;
         const hasValidBbox = hasValidBoundingBox(validBbox);
 
         items.push({
@@ -219,8 +222,7 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
           fieldLabel: ev.fieldLabel || ev.fieldName,
           value: ev.value,
           confidence: Math.round(ev.confidence),
-          confidenceTier:
-            ev.confidence >= 90 ? "HIGH" : ev.confidence >= 70 ? "MEDIUM" : "LOW",
+          confidenceTier: ev.confidence >= 90 ? "HIGH" : ev.confidence >= 70 ? "MEDIUM" : "LOW",
           pageNumber: ev.pageNumber || 1,
           hasExactBoundingBox: hasValidBbox,
           boundingBox: hasValidBbox ? validBbox : null,
@@ -235,12 +237,7 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
     // Fallback: If no evidence list, extract from determinants
     if (items.length === 0 && ocrResult.determinants?.invoice) {
       const inv = ocrResult.determinants.invoice;
-      const addField = (
-        key: string,
-        label: string,
-        fieldObj: any,
-        category: string,
-      ) => {
+      const addField = (key: string, label: string, fieldObj: any, category: string) => {
         if (!fieldObj || fieldObj.value === null || fieldObj.value === undefined) return;
         const validBbox =
           Array.isArray(fieldObj.boundingBox) && fieldObj.boundingBox.length === 4
@@ -258,8 +255,8 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
             (fieldObj.confidence || 90) >= 90
               ? "HIGH"
               : (fieldObj.confidence || 90) >= 70
-              ? "MEDIUM"
-              : "LOW",
+                ? "MEDIUM"
+                : "LOW",
           pageNumber: fieldObj.pageNumber || 1,
           hasExactBoundingBox: hasValidBbox,
           boundingBox: hasValidBbox ? validBbox : null,
@@ -275,7 +272,12 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
       addField("invoiceDate", "Invoice Date", inv.invoiceDate, "DATE");
       addField("totalAmountDue", "Total Amount Due", inv.totalAmountDue, "FINANCIAL");
       addField("vatAmount", "VAT Amount", inv.vatAmount, "FINANCIAL");
-      addField("activeEnergyTotalKwh", "Active Energy Total (kWh)", inv.activeEnergyTotalKwh, "ENERGY");
+      addField(
+        "activeEnergyTotalKwh",
+        "Active Energy Total (kWh)",
+        inv.activeEnergyTotalKwh,
+        "ENERGY",
+      );
       addField("maximumDemandKva", "Maximum Demand (kVA)", inv.maximumDemandKva, "ENERGY");
       addField("tariffName", "Tariff Name", inv.tariffName, "TARIFF");
     }
@@ -286,7 +288,9 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
   // Selected Field Item
   const selectedField = useMemo(() => {
     if (!selectedFieldId) return null;
-    return reviewFields.find((f) => f.id === selectedFieldId || f.fieldKey === selectedFieldId) || null;
+    return (
+      reviewFields.find((f) => f.id === selectedFieldId || f.fieldKey === selectedFieldId) || null
+    );
   }, [reviewFields, selectedFieldId]);
 
   // Filtered fields by search query
@@ -297,7 +301,9 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
       (f) =>
         f.fieldLabel.toLowerCase().includes(q) ||
         f.fieldKey.toLowerCase().includes(q) ||
-        String(f.value ?? "").toLowerCase().includes(q),
+        String(f.value ?? "")
+          .toLowerCase()
+          .includes(q),
     );
   }, [reviewFields, searchQuery]);
 
@@ -321,9 +327,7 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
   }, [selectedField, currentPage]);
 
   const hasMissingBboxNotice =
-    selectedField &&
-    selectedField.pageNumber === currentPage &&
-    !selectedField.hasExactBoundingBox;
+    selectedField && selectedField.pageNumber === currentPage && !selectedField.hasExactBoundingBox;
 
   return (
     <div
@@ -377,8 +381,7 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
             <span className="font-mono font-bold text-emerald-400">
               {reviewFields.length > 0
                 ? Math.round(
-                    reviewFields.reduce((acc, f) => acc + f.confidence, 0) /
-                      reviewFields.length,
+                    reviewFields.reduce((acc, f) => acc + f.confidence, 0) / reviewFields.length,
                   )
                 : 98}
               %
@@ -490,7 +493,9 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
                 {/* Page Watermark Header */}
                 <div className="flex items-center justify-between pb-4 border-b border-border/40 text-[10px] font-mono text-muted-foreground">
                   <span>DOCUMENT: {filename}</span>
-                  <span>PAGE {currentPage} OF {totalPages}</span>
+                  <span>
+                    PAGE {currentPage} OF {totalPages}
+                  </span>
                 </div>
 
                 {/* Page Text Rendering / Structural Preview */}
@@ -548,7 +553,8 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
                 >
                   <Info className="w-3.5 h-3.5 shrink-0" />
                   <span>
-                    Bounding box coordinates not recorded for &apos;{selectedField?.fieldLabel}&apos; (Page {selectedField?.pageNumber})
+                    Bounding box coordinates not recorded for &apos;{selectedField?.fieldLabel}
+                    &apos; (Page {selectedField?.pageNumber})
                   </span>
                 </div>
               )}
@@ -642,8 +648,8 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
                             isHighConf
                               ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                               : isMedConf
-                              ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                              : "bg-rose-500/10 text-rose-400 border-rose-500/30"
+                                ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                                : "bg-rose-500/10 text-rose-400 border-rose-500/30"
                           }`}
                         >
                           {isHighConf ? (
@@ -706,13 +712,21 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
                           {/* 3-Tier Lifecycle Visualization */}
                           <div className="text-[10px] font-mono p-2 rounded-lg bg-background/80 border border-border/40 space-y-1">
                             <div className="text-muted-foreground">
-                              1. ORIGINAL OCR: <span className="text-foreground font-bold">{String(field.sourceText || field.value || "—")}</span> ({field.confidence}%)
+                              1. ORIGINAL OCR:{" "}
+                              <span className="text-foreground font-bold">
+                                {String(field.sourceText || field.value || "—")}
+                              </span>{" "}
+                              ({field.confidence}%)
                             </div>
                             <div className="text-primary">
-                              2. USER CORRECTION: <span className="font-bold">{editValue || "Enter value..."}</span>
+                              2. USER CORRECTION:{" "}
+                              <span className="font-bold">{editValue || "Enter value..."}</span>
                             </div>
                             <div className="text-emerald-400">
-                              3. VALIDATED VALUE: <span className="font-bold">{editValue || String(field.value ?? "—")}</span>
+                              3. VALIDATED VALUE:{" "}
+                              <span className="font-bold">
+                                {editValue || String(field.value ?? "—")}
+                              </span>
                             </div>
                           </div>
 
@@ -793,9 +807,7 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
                         </div>
 
                         {field.extractionMethod && (
-                          <span className="truncate max-w-[140px]">
-                            {field.extractionMethod}
-                          </span>
+                          <span className="truncate max-w-[140px]">{field.extractionMethod}</span>
                         )}
                       </div>
                     </div>

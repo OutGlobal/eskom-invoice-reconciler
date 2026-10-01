@@ -291,10 +291,7 @@ export class OcrCorrectionEngine {
     auditTrail: OcrCorrectionAuditTrail,
   ): Promise<void> {
     try {
-      await LocalWorkspaceStore.set(
-        `${this.CORRECTION_STORE_PREFIX}:${documentId}`,
-        auditTrail,
-      );
+      await LocalWorkspaceStore.set(`${this.CORRECTION_STORE_PREFIX}:${documentId}`, auditTrail);
     } catch {
       // Local workspace storage error handled gracefully
     }

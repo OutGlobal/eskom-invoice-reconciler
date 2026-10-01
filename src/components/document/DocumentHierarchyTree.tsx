@@ -13,7 +13,10 @@ import {
   Clock,
   Check,
 } from "lucide-react";
-import type { DocumentTreeViewModel, DocumentTreeItem } from "@/domain/intelligence/frontendDocumentTypes";
+import type {
+  DocumentTreeViewModel,
+  DocumentTreeItem,
+} from "@/domain/intelligence/frontendDocumentTypes";
 
 interface DocumentHierarchyTreeProps {
   document: DocumentTreeViewModel;
@@ -48,7 +51,12 @@ export const DocumentHierarchyTree: React.FC<DocumentHierarchyTreeProps> = ({
       if (val === "PROCESSED" || val === "COMPLETED" || val === "READY_FOR_VALIDATION") {
         return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
       }
-      if (val === "PROCESSING" || val === "EXTRACTING" || val === "INSPECTING" || val === "CLASSIFYING") {
+      if (
+        val === "PROCESSING" ||
+        val === "EXTRACTING" ||
+        val === "INSPECTING" ||
+        val === "CLASSIFYING"
+      ) {
         return "bg-primary/10 text-primary border-primary/30 animate-pulse";
       }
       if (val === "REVIEW_REQUIRED") {
@@ -62,7 +70,8 @@ export const DocumentHierarchyTree: React.FC<DocumentHierarchyTreeProps> = ({
 
     if (item.badgeType === "type") {
       if (val.includes("INVOICE")) return "bg-blue-500/10 text-blue-400 border-blue-500/30";
-      if (val.includes("METER") || val.includes("AMR")) return "bg-purple-500/10 text-purple-400 border-purple-500/30";
+      if (val.includes("METER") || val.includes("AMR"))
+        return "bg-purple-500/10 text-purple-400 border-purple-500/30";
       if (val.includes("TARIFF")) return "bg-cyan-500/10 text-cyan-400 border-cyan-500/30";
       return "bg-secondary/40 text-secondary-foreground border-border/40";
     }

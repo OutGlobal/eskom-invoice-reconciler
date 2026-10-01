@@ -35,7 +35,8 @@ import {
 } from "lucide-react";
 import type { OcrBackgroundJob, OcrStatus, OcrJobStage } from "@/domain/ocr/types";
 
-export type ProcessingStepStatus = "COMPLETED" | "RUNNING" | "PENDING" | "FAILED" | "REVIEW_REQUIRED";
+export type ProcessingStepStatus =
+  "COMPLETED" | "RUNNING" | "PENDING" | "FAILED" | "REVIEW_REQUIRED";
 
 export interface ProcessingStepItem {
   id: string;
@@ -89,44 +90,44 @@ export const FrontendOcrStatusCard: React.FC<FrontendOcrStatusCardProps> = ({
     // 2. Stored - Occurred once job reached BACKGROUND_PROCESSING or beyond
     const isStored = Boolean(
       job &&
-        (stage === "BACKGROUND_PROCESSING" ||
-          stage === "OCR" ||
-          stage === "DATABASE" ||
-          stage === "STATUS_UPDATE" ||
-          stage === "FRONTEND_REFRESH" ||
-          stage === "COMPLETED"),
+      (stage === "BACKGROUND_PROCESSING" ||
+        stage === "OCR" ||
+        stage === "DATABASE" ||
+        stage === "STATUS_UPDATE" ||
+        stage === "FRONTEND_REFRESH" ||
+        stage === "COMPLETED"),
     );
 
     // 3. PDF inspected - Occurred once OCR started or completed
     const isPdfInspected = Boolean(
       job &&
-        (stage === "OCR" ||
-          stage === "DATABASE" ||
-          stage === "STATUS_UPDATE" ||
-          stage === "FRONTEND_REFRESH" ||
-          stage === "COMPLETED"),
+      (stage === "OCR" ||
+        stage === "DATABASE" ||
+        stage === "STATUS_UPDATE" ||
+        stage === "FRONTEND_REFRESH" ||
+        stage === "COMPLETED"),
     );
 
     // 4. Pages identified - Occurred once totalPages > 0 or in OCR stage
     const isPagesIdentified = Boolean(
       job &&
-        (effectivePages > 0 ||
-          stage === "OCR" ||
-          stage === "DATABASE" ||
-          stage === "STATUS_UPDATE" ||
-          stage === "FRONTEND_REFRESH" ||
-          stage === "COMPLETED"),
+      (effectivePages > 0 ||
+        stage === "OCR" ||
+        stage === "DATABASE" ||
+        stage === "STATUS_UPDATE" ||
+        stage === "FRONTEND_REFRESH" ||
+        stage === "COMPLETED"),
     );
 
     // 5. OCR completed - Occurred once stage reached DATABASE, STATUS_UPDATE, FRONTEND_REFRESH, or status is terminal
     const isOcrCompleted = Boolean(
       job &&
-        (stage === "DATABASE" ||
-          stage === "STATUS_UPDATE" ||
-          stage === "FRONTEND_REFRESH" ||
-          jobStatus === "COMPLETED" ||
-          jobStatus === "REVIEW_REQUIRED" ||
-          jobStatus === "NOT_REQUIRED"),
+      (stage === "DATABASE" ||
+        stage === "STATUS_UPDATE" ||
+        stage === "FRONTEND_REFRESH" ||
+        jobStatus === "COMPLETED" ||
+        jobStatus === "REVIEW_REQUIRED" ||
+        jobStatus === "NOT_REQUIRED"),
     );
     const isOcrRunning = Boolean(job && stage === "OCR" && jobStatus === "PROCESSING");
     const isOcrFailed = Boolean(job && jobStatus === "FAILED" && stage === "OCR");
@@ -166,30 +167,30 @@ export const FrontendOcrStatusCard: React.FC<FrontendOcrStatusCardProps> = ({
         label: isOcrCompleted
           ? "OCR completed"
           : isOcrRunning
-          ? "OCR in progress"
-          : isOcrFailed
-          ? "OCR failed"
-          : "OCR pending",
+            ? "OCR in progress"
+            : isOcrFailed
+              ? "OCR failed"
+              : "OCR pending",
         status: isOcrCompleted
           ? "COMPLETED"
           : isOcrRunning
-          ? "RUNNING"
-          : isOcrFailed
-          ? "FAILED"
-          : "PENDING",
+            ? "RUNNING"
+            : isOcrFailed
+              ? "FAILED"
+              : "PENDING",
       },
       {
         id: "step-ai-validation",
         label: isAiValidationCompleted
           ? "AI validation completed"
           : isAiValidationReviewRequired
-          ? "AI validation review required"
-          : "AI validation pending",
+            ? "AI validation review required"
+            : "AI validation pending",
         status: isAiValidationCompleted
           ? "COMPLETED"
           : isAiValidationReviewRequired
-          ? "REVIEW_REQUIRED"
-          : "PENDING",
+            ? "REVIEW_REQUIRED"
+            : "PENDING",
       },
     ];
   }, [customSteps, job, explicitStatus, documentName, effectivePages]);
@@ -245,12 +246,12 @@ export const FrontendOcrStatusCard: React.FC<FrontendOcrStatusCardProps> = ({
                   job.status === "COMPLETED"
                     ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                     : job.status === "PROCESSING"
-                    ? "bg-primary/10 text-primary border-primary/30"
-                    : job.status === "REVIEW_REQUIRED"
-                    ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                    : job.status === "FAILED"
-                    ? "bg-rose-500/10 text-rose-400 border-rose-500/30"
-                    : "bg-muted/40 text-muted-foreground border-border/40"
+                      ? "bg-primary/10 text-primary border-primary/30"
+                      : job.status === "REVIEW_REQUIRED"
+                        ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                        : job.status === "FAILED"
+                          ? "bg-rose-500/10 text-rose-400 border-rose-500/30"
+                          : "bg-muted/40 text-muted-foreground border-border/40"
                 }`}
               >
                 {job.status}
@@ -325,12 +326,12 @@ export const FrontendOcrStatusCard: React.FC<FrontendOcrStatusCardProps> = ({
                   isCompleted
                     ? "text-emerald-400"
                     : isRunning
-                    ? "text-primary font-bold"
-                    : isFailed
-                    ? "text-rose-400 font-semibold"
-                    : isReview
-                    ? "text-amber-400 font-semibold"
-                    : "text-muted-foreground/70"
+                      ? "text-primary font-bold"
+                      : isFailed
+                        ? "text-rose-400 font-semibold"
+                        : isReview
+                          ? "text-amber-400 font-semibold"
+                          : "text-muted-foreground/70"
                 }`}
               >
                 <div className="flex items-center">

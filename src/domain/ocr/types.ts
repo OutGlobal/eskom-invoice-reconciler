@@ -1363,4 +1363,3 @@ export interface OcrCorrectionAuditTrail {
   lastCorrectedAt?: string;
   lastCorrectedBy?: string;
 }
-
