@@ -18,12 +18,20 @@ if (typeof (Promise as any).try !== "function") {
 // 2. Ensure DOMMatrix polyfill is installed globally
 if (typeof globalThis !== "undefined" && typeof (globalThis as any).DOMMatrix === "undefined") {
   (globalThis as any).DOMMatrix = class DOMMatrix {
-    a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+    a = 1;
+    b = 0;
+    c = 0;
+    d = 1;
+    e = 0;
+    f = 0;
     constructor(init?: any) {
       if (Array.isArray(init)) {
-        this.a = init[0] ?? 1; this.b = init[1] ?? 0;
-        this.c = init[2] ?? 0; this.d = init[3] ?? 1;
-        this.e = init[4] ?? 0; this.f = init[5] ?? 0;
+        this.a = init[0] ?? 1;
+        this.b = init[1] ?? 0;
+        this.c = init[2] ?? 0;
+        this.d = init[3] ?? 1;
+        this.e = init[4] ?? 0;
+        this.f = init[5] ?? 0;
       }
     }
   };
@@ -47,8 +55,7 @@ export class PdfjsLoader {
             };
             pdfjs.GlobalWorkerOptions.workerSrc = workerUrl.default;
           } catch {
-            pdfjs.GlobalWorkerOptions.workerSrc =
-              `https://unpkg.com/pdfjs-dist@${pdfjs.version || "6.1.200"}/build/pdf.worker.min.mjs`;
+            pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version || "6.1.200"}/build/pdf.worker.min.mjs`;
           }
         }
       } catch {
@@ -73,7 +80,7 @@ export class PdfjsLoader {
     }).promise;
 
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("PDF.js document loading timed out")), timeoutMs)
+      setTimeout(() => reject(new Error("PDF.js document loading timed out")), timeoutMs),
     );
 
     return Promise.race([loadPromise, timeoutPromise]);

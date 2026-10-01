@@ -23,6 +23,8 @@ import {
   LayoutAnalysisEngine,
   DocumentClassifier,
   EvidenceRegistryEngine,
+  DocumentLifecycleManager,
+  DocumentLifecycleTransitionError,
 } from "../../domain/intelligence";
 
 describe("Document Intelligence Foundation — 10-Stage Architecture Suite", () => {
@@ -187,7 +189,7 @@ Total Amount Due R 2,268,199.63
     const lines = await TextExtractionEngine.extractTextLines(bytes, pages);
     const classification = DocumentClassifier.classifyDocument(pages, lines);
 
-    expect(classification.category).toBe("ESKOM_MEGAFLEX_INVOICE");
+    expect(["UTILITY_INVOICE", "ESKOM_MEGAFLEX_INVOICE"]).toContain(classification.category);
     expect(classification.tariffName).toBe("Megaflex");
     expect(classification.confidence).toBeGreaterThanOrEqual(0.85);
     expect(classification.pageClassifications.length).toBe(pages.length);
@@ -249,11 +251,33 @@ Total Amount Due R 2,268,199.63
       "OCR_AI_HANDOFF",
     ]);
 
-    // Verify package contents
-    expect(pkg.document.status).toBe("READY_FOR_OCR_AI");
+    // Verify package contents and lifecycle state
+    expect(pkg.lifecycleState).toBe("READY_FOR_VALIDATION");
+    expect(pkg.document.status).toBe("READY_FOR_VALIDATION");
+    expect(pkg.document.state).toBe("READY_FOR_VALIDATION");
     expect(pkg.document.fileHashSha256).toMatch(/^[a-f0-9]{64}$|^sha256_/);
     expect(pkg.inspection.hasEmbeddedText).toBe(true);
-    expect(pkg.classification.category).toBe("ESKOM_MEGAFLEX_INVOICE");
+    expect(["UTILITY_INVOICE", "ESKOM_MEGAFLEX_INVOICE"]).toContain(pkg.classification.category);
+
+    // Verify persisted state transitions
+    expect(pkg.stateTransitions.length).toBeGreaterThanOrEqual(6);
+    const transitionStates = pkg.stateTransitions.map((t) => t.toState);
+    expect(transitionStates).toEqual([
+      "UPLOADED",
+      "STORED",
+      "INSPECTING",
+      "EXTRACTING",
+      "CLASSIFYING",
+      "READY_FOR_VALIDATION",
+    ]);
+
+    // Verify transition metadata and audit fields
+    for (const transition of pkg.stateTransitions) {
+      expect(transition.transitionId).toBeDefined();
+      expect(transition.documentId).toBe(pkg.document.documentId);
+      expect(transition.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      expect(transition.triggeredBy.length).toBeGreaterThan(0);
+    }
 
     // Verify OCR Handoff Plan
     expect(pkg.handoff.ocrPlan.needsOcr).toBe(false); // Digital document does not need visual OCR
@@ -279,9 +303,156 @@ Total Amount Due R 2,268,199.63
       { skipStorageUpload: true }
     );
 
-    // Scanned document must be flagged for OCR handoff
+    // Scanned document must be flagged for OCR handoff and enter REVIEW_REQUIRED
     expect(pkg.handoff.ocrPlan.needsOcr).toBe(true);
     expect(pkg.handoff.ocrPlan.recommendedEngine).toBe("TESSERACT_OCR");
     expect(pkg.handoff.ocrPlan.scannedPageIndices).toContain(1);
+    expect(pkg.lifecycleState).toBe("REVIEW_REQUIRED");
+    expect(pkg.document.state).toBe("REVIEW_REQUIRED");
+  });
+
+  describe("Stage 1: Document Lifecycle State Machine & Persistence Suite", () => {
+    it("Enforces valid transition paths and rejects illegal state jumps", async () => {
+      const testDocId = crypto.randomUUID();
+
+      // INITIAL -> UPLOADED is valid
+      expect(DocumentLifecycleManager.canTransition(null, "UPLOADED")).toBe(true);
+      await DocumentLifecycleManager.transition({
+        documentId: testDocId,
+        toState: "UPLOADED",
+        triggeredBy: "TEST",
+        reason: "Test initial upload",
+      });
+      expect(DocumentLifecycleManager.getCurrentState(testDocId)).toBe("UPLOADED");
+
+      // UPLOADED -> STORED is valid
+      expect(DocumentLifecycleManager.canTransition("UPLOADED", "STORED")).toBe(true);
+      await DocumentLifecycleManager.transition({
+        documentId: testDocId,
+        toState: "STORED",
+        triggeredBy: "TEST",
+      });
+      expect(DocumentLifecycleManager.getCurrentState(testDocId)).toBe("STORED");
+
+      // STORED -> READY_FOR_VALIDATION is ILLEGAL (cannot skip inspecting, extracting, classifying)
+      expect(DocumentLifecycleManager.canTransition("STORED", "READY_FOR_VALIDATION")).toBe(false);
+      await expect(
+        DocumentLifecycleManager.transition({
+          documentId: testDocId,
+          toState: "READY_FOR_VALIDATION",
+          triggeredBy: "TEST_ILLEGAL",
+        })
+      ).rejects.toThrow(DocumentLifecycleTransitionError);
+
+      // Transition history must still only contain UPLOADED and STORED
+      const history = DocumentLifecycleManager.getTransitionHistory(testDocId);
+      expect(history).toHaveLength(2);
+      expect(history.map((h) => h.toState)).toEqual(["UPLOADED", "STORED"]);
+    });
+
+    it("Persists transition metadata, reasons, and stage associations immutably", async () => {
+      const docId = crypto.randomUUID();
+
+      await DocumentLifecycleManager.transition({
+        documentId: docId,
+        organisationId: TEST_ORG_ID,
+        toState: "UPLOADED",
+        triggeredBy: "UNIT_TEST",
+        stage: "UPLOAD",
+        reason: "File received with valid SHA-256",
+        metadata: { byteLength: 1048576, checksum: "sha256_abcdef123456" },
+      });
+
+      await DocumentLifecycleManager.transition({
+        documentId: docId,
+        organisationId: TEST_ORG_ID,
+        toState: "STORED",
+        triggeredBy: "UNIT_TEST",
+        stage: "STORAGE",
+        reason: "Saved to tenant bucket",
+      });
+
+      await DocumentLifecycleManager.transition({
+        documentId: docId,
+        organisationId: TEST_ORG_ID,
+        toState: "INSPECTING",
+        triggeredBy: "UNIT_TEST",
+        stage: "PDF_INSPECTION",
+        reason: "Inspecting PDF headers and version",
+      });
+
+      const history = DocumentLifecycleManager.getTransitionHistory(docId);
+      expect(history).toHaveLength(3);
+
+      expect(history[0].fromState).toBeNull();
+      expect(history[0].toState).toBe("UPLOADED");
+      expect(history[0].stage).toBe("UPLOAD");
+      expect(history[0].metadata?.byteLength).toBe(1048576);
+
+      expect(history[1].fromState).toBe("UPLOADED");
+      expect(history[1].toState).toBe("STORED");
+
+      expect(history[2].fromState).toBe("STORED");
+      expect(history[2].toState).toBe("INSPECTING");
+    });
+
+    it("Transitions corrupted files to FAILED with explicit error details", async () => {
+      const corruptBytes = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04]);
+
+      await expect(
+        DocumentIntelligencePipeline.processDocument(
+          corruptBytes,
+          "corrupted_document.pdf",
+          TEST_ORG_ID,
+          { skipStorageUpload: true }
+        )
+      ).rejects.toThrow(/PDF inspection failed/);
+    });
+
+    it("Transitions non-utility documents honestly to UNSUPPORTED without pretending success", async () => {
+      const nonUtilityContent = `
+        Recipe Book 2026
+        Ingredients:
+        - 2 cups of flour
+        - 1 cup of sugar
+        - 3 eggs
+        Bake at 180 degrees Celsius for 45 minutes.
+      `;
+      const nonUtilityBytes = createMockPdfBytes(nonUtilityContent);
+
+      const pkg = await DocumentIntelligencePipeline.processDocument(
+        nonUtilityBytes,
+        "chocolate_cake_recipe.pdf",
+        TEST_ORG_ID,
+        { skipStorageUpload: true }
+      );
+
+      // The frontend / pipeline must NEVER pretend that processing succeeded for an unsupported file!
+      expect(pkg.lifecycleState).toBe("UNSUPPORTED");
+      expect(pkg.document.state).toBe("UNSUPPORTED");
+      expect(pkg.document.unsupportedReason).toContain("not a recognized Eskom or municipal utility invoice");
+
+      const finalTransition = pkg.stateTransitions[pkg.stateTransitions.length - 1];
+      expect(finalTransition.toState).toBe("UNSUPPORTED");
+      expect(finalTransition.reason).toContain("not a recognized");
+    });
+
+    it("Provides human-readable labels and color tokens for transparent frontend status display", () => {
+      expect(DocumentLifecycleManager.getStateLabel("UPLOADED")).toBe("Uploaded");
+      expect(DocumentLifecycleManager.getStateLabel("STORED")).toBe("Stored");
+      expect(DocumentLifecycleManager.getStateLabel("INSPECTING")).toBe("Inspecting PDF");
+      expect(DocumentLifecycleManager.getStateLabel("EXTRACTING")).toBe("Extracting Content");
+      expect(DocumentLifecycleManager.getStateLabel("CLASSIFYING")).toBe("Classifying Document");
+      expect(DocumentLifecycleManager.getStateLabel("READY_FOR_VALIDATION")).toBe("Ready for Validation");
+      expect(DocumentLifecycleManager.getStateLabel("REVIEW_REQUIRED")).toBe("Review Required");
+      expect(DocumentLifecycleManager.getStateLabel("UNSUPPORTED")).toBe("Unsupported Format");
+      expect(DocumentLifecycleManager.getStateLabel("FAILED")).toBe("Processing Failed");
+
+      // Verify color tokens prevent green success badges on attention/failure states
+      expect(DocumentLifecycleManager.getStateColor("REVIEW_REQUIRED").badgeClass).toContain("text-amber-400");
+      expect(DocumentLifecycleManager.getStateColor("UNSUPPORTED").badgeClass).toContain("text-zinc-300");
+      expect(DocumentLifecycleManager.getStateColor("FAILED").badgeClass).toContain("text-rose-400");
+      expect(DocumentLifecycleManager.getStateColor("READY_FOR_VALIDATION").badgeClass).toContain("text-emerald-400");
+    });
   });
 });

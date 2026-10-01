@@ -161,7 +161,12 @@ export class SecureIngestionGateway {
         description: `Upload initiated for ${sanitizedFilename} (${fileSize} bytes)`,
         actor: { userId: uploaderId },
         record: { entityType: "source_file", recordId: documentId, recordLabel: sanitizedFilename },
-        newState: { filename: sanitizedFilename, fileSize, sha256Checksum, fileType: resolvedFileType },
+        newState: {
+          filename: sanitizedFilename,
+          fileSize,
+          sha256Checksum,
+          fileType: resolvedFileType,
+        },
       });
     } catch {
       // Audit log error fallback
@@ -423,6 +428,32 @@ export class SecureIngestionGateway {
       context,
     );
 
+    // Stage 3 — Automatic PDF Inspection (Stage 3 Mandated Architecture)
+    let pdfInspection: import("../intelligence/types").PdfInspectionResult | undefined;
+    if (mimeResult.fileExtension.toLowerCase() === "pdf") {
+      try {
+        const { PdfInspectionEngine } = await import("../intelligence/pdfInspectionEngine");
+        pdfInspection = PdfInspectionEngine.inspectPdf(bytes);
+        addLog(
+          "INSPECTION",
+          "info",
+          `Stage 3 PDF Inspection: ${pdfInspection.pageCount} page(s), ${pdfInspection.totalCharacterCount} chars, embeddedText=${pdfInspection.hasEmbeddedText}, images=${pdfInspection.hasImages} (${pdfInspection.imageCount}), scanned=${pdfInspection.appearsScanned}, ocrLikelyRequired=${pdfInspection.isOcrLikelyRequired}. Classification: ${pdfInspection.pdfType} (${pdfInspection.workflowSteps.join(" -> ")})`,
+        );
+
+        uploadRecord = await UploadStorageService.updateUploadStatus(
+          documentId,
+          {
+            pageCount: pdfInspection.pageCount,
+            detectedFileType: pdfInspection.pdfType,
+            ocrStatus: pdfInspection.isOcrLikelyRequired ? "QUEUED" : "NOT_REQUIRED",
+          },
+          context,
+        );
+      } catch (inspectErr) {
+        addLog("INSPECTION", "warn", `Automatic PDF inspection note: ${inspectErr}`);
+      }
+    }
+
     const fileHeader: FileMetadataHeader = {
       documentId,
       filename,
@@ -537,7 +568,11 @@ export class SecureIngestionGateway {
           action: "EXTRACTION_FAILED",
           description: `Data extraction failed for ${sanitizedFilename}: ${errorMsg}`,
           actor: { userId: uploaderId },
-          record: { entityType: "source_file", recordId: documentId, recordLabel: sanitizedFilename },
+          record: {
+            entityType: "source_file",
+            recordId: documentId,
+            recordLabel: sanitizedFilename,
+          },
           newState: {
             processingStatus: "FAILED",
             errorMessage: errorMsg,
@@ -565,7 +600,10 @@ export class SecureIngestionGateway {
     }
 
     if (extractRes.documentType === "TARIFF_DOCUMENT") {
-      if (!extractRes.tariffDefinition) throw new Error("The uploaded tariff document did not contain a complete tariff definition.");
+      if (!extractRes.tariffDefinition)
+        throw new Error(
+          "The uploaded tariff document did not contain a complete tariff definition.",
+        );
       await TariffStorageService.saveTariffVersion(extractRes.tariffDefinition, {
         userId: uploaderId,
         changeSummary: `Uploaded tariff document ${sanitizedFilename}`,
@@ -578,8 +616,7 @@ export class SecureIngestionGateway {
     const linkedCustomer = extractedAccountNumber
       ? {
           accountNumber: extractedAccountNumber,
-          customerName:
-            extractRes.extractedFields?.customerName?.trim() || extractedAccountNumber,
+          customerName: extractRes.extractedFields?.customerName?.trim() || extractedAccountNumber,
           meterNumber: extractedMeterNumber,
           address: "",
           nmd: Number(extractRes.extractedFields?.notifiedMaximumDemand || 0),
@@ -833,17 +870,19 @@ export class SecureIngestionGateway {
 
         // Step 8: Store unbundled invoice line items where present
         if (fields.lineItems && fields.lineItems.length > 0) {
-          const lineItemPayloads = fields.lineItems.map((li: NonNullable<typeof fields.lineItems>[number]) => ({
-            invoice_record_id: persistedInvoiceId,
-            organisation_id: organisationId,
-            line_item_number: li.lineItemNumber,
-            charge_code: li.chargeCode || null,
-            charge_label: li.chargeLabel,
-            rate: li.rate ?? null,
-            quantity: li.quantity ?? null,
-            unit_of_measure: li.unitOfMeasure || null,
-            invoiced_amount: li.invoicedAmount ?? 0,
-          }));
+          const lineItemPayloads = fields.lineItems.map(
+            (li: NonNullable<typeof fields.lineItems>[number]) => ({
+              invoice_record_id: persistedInvoiceId,
+              organisation_id: organisationId,
+              line_item_number: li.lineItemNumber,
+              charge_code: li.chargeCode || null,
+              charge_label: li.chargeLabel,
+              rate: li.rate ?? null,
+              quantity: li.quantity ?? null,
+              unit_of_measure: li.unitOfMeasure || null,
+              invoiced_amount: li.invoicedAmount ?? 0,
+            }),
+          );
 
           InvoiceStorageService.recordLineItemsMemory(persistedInvoiceId, lineItemPayloads);
           InvoiceStorageService.recordLineItemsMemory(invNum, lineItemPayloads);
@@ -986,7 +1025,11 @@ export class SecureIngestionGateway {
             action: "INTERVAL_TELEMETRY_EXTRACTED",
             description: `Extracted ${intervalPayloads.length} interval telemetry readings from ${sanitizedFilename}`,
             actor: { userId: uploaderId },
-            record: { entityType: "source_file", recordId: documentId, recordLabel: sanitizedFilename },
+            record: {
+              entityType: "source_file",
+              recordId: documentId,
+              recordLabel: sanitizedFilename,
+            },
             newState: {
               readingsCount: intervalPayloads.length,
               meterId: primaryMeter,
@@ -1126,12 +1169,16 @@ export class SecureIngestionGateway {
         peakKwh: extractRes.extractedFields?.peakKwh,
         standardKwh: extractRes.extractedFields?.standardKwh,
         offPeakKwh: extractRes.extractedFields?.offPeakKwh,
-        maxDemandKva: extractRes.extractedFields?.billedMaximumDemand || extractRes.extractedFields?.kva,
+        maxDemandKva:
+          extractRes.extractedFields?.billedMaximumDemand || extractRes.extractedFields?.kva,
         intervalCount: extractRes.intervals?.length,
       },
     };
 
-    const duplicateResult = await DuplicateProtectionService.evaluateCandidate(duplicateCandidate, context);
+    const duplicateResult = await DuplicateProtectionService.evaluateCandidate(
+      duplicateCandidate,
+      context,
+    );
     fileHeader.duplicateStatus = duplicateResult.status;
     fileHeader.isDuplicate = duplicateResult.status === "DUPLICATE";
 
@@ -1158,6 +1205,7 @@ export class SecureIngestionGateway {
       isIdempotentDuplicate: duplicateResult.status === "DUPLICATE",
       duplicateResult,
       uploadRecord,
+      pdfInspection,
     };
 
     // Cache SHA-256 for idempotency lookup
@@ -1208,7 +1256,11 @@ export class SecureIngestionGateway {
         action: "PROCESSING_RETRY_INITIATED",
         description: `Processing retry initiated for ${uploadRecord.filename} from preserved vault storage`,
         actor: { userId: uploadRecord.userId || undefined },
-        record: { entityType: "source_file", recordId: uploadId, recordLabel: uploadRecord.filename },
+        record: {
+          entityType: "source_file",
+          recordId: uploadId,
+          recordLabel: uploadRecord.filename,
+        },
         newState: { processingStatus: "PROCESSING", retryOptions: options },
       });
     } catch {
@@ -1233,9 +1285,14 @@ export class SecureIngestionGateway {
         action: result.success ? "PROCESSING_RETRY_SUCCEEDED" : "PROCESSING_RETRY_FAILED",
         description: `Processing retry ${result.success ? "succeeded" : "failed"} for ${uploadRecord.filename}`,
         actor: { userId: uploadRecord.userId || undefined },
-        record: { entityType: "source_file", recordId: uploadId, recordLabel: uploadRecord.filename },
+        record: {
+          entityType: "source_file",
+          recordId: uploadId,
+          recordLabel: uploadRecord.filename,
+        },
         newState: {
-          processingStatus: result.uploadRecord?.processingStatus || (result.success ? "PROCESSED" : "FAILED"),
+          processingStatus:
+            result.uploadRecord?.processingStatus || (result.success ? "PROCESSED" : "FAILED"),
           validationStatus: result.uploadRecord?.validationStatus,
           errorSummary: result.uploadRecord?.errorMessage,
         },

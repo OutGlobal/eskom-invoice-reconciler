@@ -19,7 +19,7 @@ export class PageExtractionEngine {
    */
   public static async extractPages(
     bytes: Uint8Array,
-    pageCountHint: number = 1
+    pageCountHint: number = 1,
   ): Promise<ExtractedPage[]> {
     // Attempt high-fidelity extraction via PDF.js with timeout protection
     try {
@@ -47,8 +47,70 @@ export class PageExtractionEngine {
       const viewport = page.getViewport({ scale: 1.0 });
       const textContent = await page.getTextContent();
 
-      const items = (textContent.items || []) as Array<{ str?: string }>;
-      const rawText = items.map((it) => it.str || "").join(" ");
+      const items = (textContent.items || []) as Array<{
+        str?: string;
+        transform?: number[];
+        width?: number;
+      }>;
+
+      // Group items into lines preserving linebreaks and horizontal column spacing
+      const validItems = items
+        .filter((it) => it.str && it.str.trim().length > 0)
+        .map((it) => {
+          const rawX = it.transform && it.transform.length >= 6 ? it.transform[4] : 0;
+          const rawY = it.transform && it.transform.length >= 6 ? it.transform[5] : 0;
+          const width = it.width || (it.str ? it.str.length * 6 : 10);
+          return { str: it.str || "", x: rawX, y: rawY, width };
+        });
+
+      // Sort items top-to-bottom in PDF coordinates (descending Y)
+      validItems.sort((a, b) => b.y - a.y);
+
+      // Baseline clustering
+      const lineClusters: Array<{ y: number; items: typeof validItems }> = [];
+      for (const item of validItems) {
+        const matching = lineClusters.find((cl) => Math.abs(cl.y - item.y) <= 4.5);
+        if (matching) {
+          matching.items.push(item);
+        } else {
+          lineClusters.push({ y: item.y, items: [item] });
+        }
+      }
+
+      lineClusters.sort((a, b) => b.y - a.y);
+
+      const assembledLines: string[] = [];
+      for (const cl of lineClusters) {
+        cl.items.sort((a, b) => a.x - b.x);
+        let lineStr = "";
+        for (let idx = 0; idx < cl.items.length; idx++) {
+          const it = cl.items[idx];
+          if (idx === 0) {
+            lineStr = it.str;
+          } else {
+            const prev = cl.items[idx - 1];
+            const gap = it.x - (prev.x + prev.width);
+            if (gap < 1) {
+              lineStr += it.str;
+            } else if (gap < 14) {
+              lineStr += " " + it.str;
+            } else if (gap < 30) {
+              lineStr += "   " + it.str;
+            } else {
+              const sp = Math.min(12, Math.max(4, Math.round(gap / 8)));
+              lineStr += " ".repeat(sp) + it.str;
+            }
+          }
+        }
+        if (lineStr.trim()) {
+          assembledLines.push(lineStr);
+        }
+      }
+
+      const rawText =
+        assembledLines.length > 0
+          ? assembledLines.join("\n")
+          : items.map((it) => it.str || "").join(" ");
       const characterCount = rawText.replace(/\s+/g, "").length;
       const tokenCount = items.length;
 
@@ -84,7 +146,7 @@ export class PageExtractionEngine {
    */
   private static extractFromBinaryStream(
     bytes: Uint8Array,
-    pageCountHint: number
+    pageCountHint: number,
   ): ExtractedPage[] {
     const rawAscii = new TextDecoder("latin1").decode(bytes);
     const pages: ExtractedPage[] = [];
@@ -93,7 +155,9 @@ export class PageExtractionEngine {
     let defaultWidth = 595;
     let defaultHeight = 842;
 
-    const mediaBoxMatch = rawAscii.match(/\/MediaBox\s*\[\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\]/);
+    const mediaBoxMatch = rawAscii.match(
+      /\/MediaBox\s*\[\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\]/,
+    );
     if (mediaBoxMatch) {
       const w = parseFloat(mediaBoxMatch[3]) - parseFloat(mediaBoxMatch[1]);
       const h = parseFloat(mediaBoxMatch[4]) - parseFloat(mediaBoxMatch[2]);
@@ -122,7 +186,10 @@ export class PageExtractionEngine {
 
     // Extract all stream bodies: stream ... endstream
     const streamMatches = Array.from(rawAscii.matchAll(/stream[\r\n]+([\s\S]*?)[\r\n]+endstream/g));
-    const pageCount = Math.max(1, Math.min(pageCountHint, streamMatches.length > 0 ? streamMatches.length : 1));
+    const pageCount = Math.max(
+      1,
+      Math.min(pageCountHint, streamMatches.length > 0 ? streamMatches.length : 1),
+    );
 
     for (let p = 1; p <= pageCount; p++) {
       const streamBody = streamMatches[p - 1]?.[1] || rawAscii;
