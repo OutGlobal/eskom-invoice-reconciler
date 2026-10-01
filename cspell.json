@@ -49,7 +49,18 @@
     "Relogin",
     "RELOGIN",
     "reauthenticated",
-    "relogged"
+    "relogged",
+    "provenanced",
+    "Provenanced",
+    "PROVENANCED",
+    "unprovenanced",
+    "UNPROVENANCED",
+    "bbox",
+    "Bbox",
+    "bboxes",
+    "nightsave",
+    "Nightsave",
+    "NIGHTSAVE"
   ],
   "ignorePaths": ["node_modules/**", "dist/**", ".tanstack/**", "package-lock.json", "bun.lock"]
 }

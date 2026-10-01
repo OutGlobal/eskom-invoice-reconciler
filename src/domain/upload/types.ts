@@ -6,6 +6,13 @@
 
 export type UploadProcessingStatus =
   | "UPLOADED"
+  | "STORED"
+  | "INSPECTING"
+  | "EXTRACTING"
+  | "CLASSIFYING"
+  | "READY_FOR_VALIDATION"
+  | "REVIEW_REQUIRED"
+  | "UNSUPPORTED"
   | "VALIDATING"
   | "VALIDATED"
   | "PROCESSING"
@@ -31,20 +38,36 @@ export interface UploadRecord {
   id: string;
   organisationId: string;
   userId?: string | null;
+  uploadedBy?: string | null;
   filename: string;
+  originalFilename?: string;
   fileType: UploadFileType;
+  detectedFileType?: string;
   fileSizeBytes: number;
+  fileSize?: number;
+  mimeType?: string;
   fileHashSha256: string;
+  checksum?: string;
   storageLocation: string;
+  storagePath?: string;
   processingStatus: UploadProcessingStatus;
   processingStart?: string | null;
+  processingStartedTimestamp?: string | null;
   processingCompletion?: string | null;
+  processingCompletedTimestamp?: string | null;
+  pageCount?: number | null;
+  documentClassification?: string;
+  extractionStatus?: string;
+  ocrStatus?: string;
   rowCount?: number | null;
   recordCount?: number | null;
   validationStatus: UploadValidationStatus;
   errorStatus: UploadErrorStatus;
   errorMessage?: string | null;
   metadata?: Record<string, any>;
+  uploadTimestamp?: string;
+  createdTimestamp?: string;
+  updatedTimestamp?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -79,6 +102,12 @@ export interface UpdateUploadInput {
   errorStatus?: UploadErrorStatus;
   errorMessage?: string | null;
   metadata?: Record<string, any>;
+  pageCount?: number;
+  detectedFileType?: string;
+  documentClassification?: string;
+  extractionStatus?: string;
+  ocrStatus?: string;
+  checksum?: string;
 }
 
 export interface UploadFilter {

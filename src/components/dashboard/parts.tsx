@@ -36,9 +36,18 @@ export const NUM = (n: number, d = 2) =>
     maximumFractionDigits: d,
   });
 
-/** In production, telemetry is populated exclusively via user uploads or database queries. */
+import { PersistentDocumentIntelligenceService } from "@/domain/intelligence/persistentDocumentIntelligenceService";
+
+/**
+ * In production, telemetry & invoices are populated exclusively via persistent storage / database queries.
+ * Stage 16: Automatically restores document intelligence processing state on page refresh or login.
+ */
 export function useBootstrapMeter() {
-  // Deliberately no-op: does not auto-inject synthetic data into clean user sessions.
+  useEffect(() => {
+    PersistentDocumentIntelligenceService.rehydrateOnSessionStart().catch((err) => {
+      console.warn("Bootstrap meter persistent rehydration notice:", err);
+    });
+  }, []);
 }
 
 /** Returns filtered rows + derived totals/charges based on billing period. */

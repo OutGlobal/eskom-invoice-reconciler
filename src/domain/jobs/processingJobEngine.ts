@@ -456,7 +456,7 @@ export class ProcessingJobEngine {
     const orgId = job.organisationId;
     const userId = job.userId || "system";
 
-    let extractedInvoice = this.buildFallbackInvoice("invoice.pdf");
+    let extractedInvoice: any = null;
     if (input.invoiceFile) {
       const invoiceBytes = await this.resolveFileBytes(input.invoiceFile, "invoice.pdf");
       const invoiceName =
@@ -484,35 +484,22 @@ export class ProcessingJobEngine {
           orgId,
           userId,
         );
-        if (!invoiceIngestResult.success) {
+        if (!invoiceIngestResult.success || !invoiceIngestResult.extractedInvoice) {
           const failReason =
             invoiceIngestResult.uploadRecord?.errorMessage ||
             invoiceIngestResult.batchJob?.quarantineReason ||
-            "Unable to extract required invoice information.";
+            "Unable to extract required invoice information: Missing required invoice determinants.";
           this.failJob(jobId, failReason);
           return;
         }
-        extractedInvoice =
-          invoiceIngestResult.extractedInvoice || this.buildFallbackInvoice(invoiceName);
-        // Only inject a fallback meter number if none was extracted — never overwrite real OCR values
-        if (!extractedInvoice.meterNumber) {
-          extractedInvoice.meterNumber = this.buildFallbackInvoice(invoiceName).meterNumber;
-          extractedInvoice.meterSerial = extractedInvoice.meterNumber;
-        }
+        extractedInvoice = invoiceIngestResult.extractedInvoice;
       } catch (err: any) {
         this.failJob(jobId, err?.message || "Unable to extract required invoice information.");
         return;
       }
     } else {
-      this.updateProgress(
-        jobId,
-        "PDF_EXTRACTION",
-        25,
-        0,
-        undefined,
-        "Using registered baseline determinants",
-      );
-      await this.tick();
+      this.failJob(jobId, "No invoice file provided for processing job.");
+      return;
     }
 
     // -------------------------------------------------------------
@@ -553,18 +540,8 @@ export class ProcessingJobEngine {
     }
 
     if (rawTelemetryRecords.length === 0 && input.meterFile) {
-      rawTelemetryRecords = [
-        {
-          timestamp: "2025-01-01T00:00:00Z",
-          meter_id: "MTR-ESKOM-001",
-          raw_active_energy: 150.0,
-          raw_reactive_energy: 30.0,
-          raw_apparent_power: 160.0,
-          kwh: 150.0,
-          kvarh: 30.0,
-          kva: 160.0,
-        },
-      ];
+      this.failJob(jobId, "Unable to parse interval telemetry stream: No valid interval records found.");
+      return;
     }
 
     const totalRecords = rawTelemetryRecords.length;
@@ -1122,19 +1099,14 @@ export class ProcessingJobEngine {
   }
 
   /**
-   * Resolves File, AutomatedPipelineFile, or dummy string into Uint8Array
+   * Resolves File, AutomatedPipelineFile, or buffer into Uint8Array
    */
   private static async resolveFileBytes(
     file: AutomatedPipelineFile | File | undefined,
     fallbackName: string,
   ): Promise<Uint8Array> {
     if (!file) {
-      if (fallbackName.endsWith(".pdf")) {
-        return new TextEncoder().encode("%PDF-1.5\n%Enera Authoritative Fallback\n%%EOF");
-      }
-      return new TextEncoder().encode(
-        `timestamp,meter_id,active_power_kwh\n${new Date().toISOString()},MTR-ESKOM-001,100.0`,
-      );
+      throw new Error(`File payload for "${fallbackName}" is missing or unreadable.`);
     }
 
     if (typeof (file as any).data !== "undefined" && (file as any).data instanceof Uint8Array) {
@@ -1153,39 +1125,7 @@ export class ProcessingJobEngine {
       return new Uint8Array(buf);
     }
 
-    return new TextEncoder().encode(
-      `timestamp,meter_id,active_power_kwh\n${new Date().toISOString()},MTR-ESKOM-001,100.0`,
-    );
-  }
-
-  /**
-   * Builds a safe standard fallback invoice
-   */
-  private static buildFallbackInvoice(filename: string): any {
-    return {
-      invoiceNumber: "INV-2025-01-ESK",
-      accountNumber: "7856504676",
-      meterNumber: "MTR-ESKOM-001",
-      meterSerial: "MTR-ESKOM-001",
-      tariff: "Megaflex",
-      tariffName: "Megaflex",
-      // billingStart / billingEnd are the authoritative field names used by reconInput
-      billingStart: "2025-01-01",
-      billingEnd: "2025-01-31",
-      // Aliases kept for backward compatibility
-      billingPeriodStart: "2025-01-01",
-      billingPeriodEnd: "2025-01-31",
-      peakKwh: 45000,
-      standardKwh: 65000,
-      offPeakKwh: 90000,
-      totalKwh: 200000,
-      kva: 450,
-      maximumDemandKva: 450,
-      kvarh: 22000,
-      reactiveKvarh: 22000,
-      totalInvoice: 15462529.74,
-      sourceFilename: filename,
-    };
+    throw new Error(`Unable to resolve binary bytes from file "${fallbackName}".`);
   }
 
   /**

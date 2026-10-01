@@ -26,21 +26,37 @@ export class UploadStorageService {
     return {
       id: row.id,
       organisationId: row.organisation_id,
-      userId: row.user_id,
+      userId: row.user_id || row.uploaded_by,
+      uploadedBy: row.uploaded_by || row.user_id,
       filename: row.filename,
+      originalFilename: row.original_filename || row.filename,
       fileType: row.file_type,
-      fileSizeBytes: Number(row.file_size_bytes || 0),
-      fileHashSha256: row.file_hash_sha256,
-      storageLocation: row.storage_location,
+      detectedFileType: row.detected_file_type || row.file_type,
+      fileSizeBytes: Number(row.file_size_bytes || row.file_size || 0),
+      fileSize: Number(row.file_size || row.file_size_bytes || 0),
+      mimeType: row.mime_type || "application/pdf",
+      fileHashSha256: row.file_hash_sha256 || row.checksum || "",
+      checksum: row.checksum || row.file_hash_sha256 || "",
+      storageLocation: row.storage_location || row.storage_path || "",
+      storagePath: row.storage_path || row.storage_location || "",
       processingStatus: row.processing_status,
-      processingStart: row.processing_start,
-      processingCompletion: row.processing_completion,
+      processingStart: row.processing_start || row.processing_started_at,
+      processingStartedTimestamp: row.processing_started_at || row.processing_start,
+      processingCompletion: row.processing_completion || row.processing_completed_at,
+      processingCompletedTimestamp: row.processing_completed_at || row.processing_completion,
+      pageCount: row.page_count != null ? Number(row.page_count) : null,
+      documentClassification: row.document_classification || "UNKNOWN",
+      extractionStatus: row.extraction_status || "PENDING",
+      ocrStatus: row.ocr_status || "NOT_REQUIRED",
       rowCount: row.row_count != null ? Number(row.row_count) : null,
       recordCount: row.record_count != null ? Number(row.record_count) : null,
       validationStatus: row.validation_status,
       errorStatus: row.error_status,
       errorMessage: row.error_message,
       metadata: typeof row.metadata === "object" ? row.metadata : {},
+      uploadTimestamp: row.upload_timestamp || row.created_at,
+      createdTimestamp: row.created_at,
+      updatedTimestamp: row.updated_at,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -110,20 +126,34 @@ export class UploadStorageService {
         id,
         organisation_id: record.organisationId,
         user_id: record.userId,
+        uploaded_by: record.userId,
         filename: record.filename,
+        original_filename: record.originalFilename || record.filename,
         file_type: record.fileType,
+        detected_file_type: record.detectedFileType || record.fileType,
         file_size_bytes: record.fileSizeBytes,
+        file_size: record.fileSizeBytes,
+        mime_type: record.mimeType || "application/pdf",
         file_hash_sha256: record.fileHashSha256,
+        checksum: record.fileHashSha256,
         storage_location: record.storageLocation,
+        storage_path: record.storageLocation,
         processing_status: record.processingStatus,
         processing_start: record.processingStart,
+        processing_started_at: record.processingStart,
         processing_completion: record.processingCompletion,
+        processing_completed_at: record.processingCompletion,
+        page_count: record.pageCount || 0,
+        document_classification: record.documentClassification || "UNKNOWN",
+        extraction_status: record.extractionStatus || "PENDING",
+        ocr_status: record.ocrStatus || "NOT_REQUIRED",
         row_count: record.rowCount,
         record_count: record.recordCount,
         validation_status: record.validationStatus,
         error_status: record.errorStatus,
         error_message: record.errorMessage,
         metadata: record.metadata,
+        upload_timestamp: record.uploadTimestamp || record.createdAt,
         created_at: record.createdAt,
         updated_at: record.updatedAt,
       };
@@ -180,6 +210,12 @@ export class UploadStorageService {
       errorStatus: update.errorStatus ?? existing.errorStatus,
       errorMessage: update.errorMessage !== undefined ? update.errorMessage : existing.errorMessage,
       metadata: update.metadata ? { ...existing.metadata, ...update.metadata } : existing.metadata,
+      pageCount: update.pageCount !== undefined ? update.pageCount : existing.pageCount,
+      detectedFileType: update.detectedFileType ?? existing.detectedFileType,
+      documentClassification: update.documentClassification ?? existing.documentClassification,
+      extractionStatus: update.extractionStatus ?? existing.extractionStatus,
+      ocrStatus: update.ocrStatus ?? existing.ocrStatus,
+      checksum: update.checksum ?? existing.checksum,
       updatedAt: now,
     };
 
@@ -202,6 +238,15 @@ export class UploadStorageService {
       if (update.errorStatus !== undefined) dbPayload.error_status = update.errorStatus;
       if (update.errorMessage !== undefined) dbPayload.error_message = update.errorMessage;
       if (update.metadata !== undefined) dbPayload.metadata = updatedRecord.metadata;
+      if (update.pageCount !== undefined) dbPayload.page_count = update.pageCount;
+      if (update.detectedFileType !== undefined)
+        dbPayload.detected_file_type = update.detectedFileType;
+      if (update.documentClassification !== undefined)
+        dbPayload.document_classification = update.documentClassification;
+      if (update.extractionStatus !== undefined)
+        dbPayload.extraction_status = update.extractionStatus;
+      if (update.ocrStatus !== undefined) dbPayload.ocr_status = update.ocrStatus;
+      if (update.checksum !== undefined) dbPayload.checksum = update.checksum;
 
       const { data, error } = (await this.withTimeout(
         supabase.from("uploads").update(dbPayload).eq("id", uploadId).select().single(),

@@ -115,15 +115,18 @@ export class AutomaticProcessingPipeline {
       // =========================================================================
       notify("EXTRACTING", 55, "Extracting invoice determinants and meter interval readings");
 
-      const fallback = this.buildFallbackInvoice(input.invoiceFile.name);
-      const rawExtracted: any = invoiceResult.extractedInvoice || {};
+      if (!invoiceResult.extractedInvoice) {
+        throw new Error(
+          `Extraction failed for invoice "${input.invoiceFile.name}": No invoice determinants could be parsed.`,
+        );
+      }
+      const rawExtracted: any = invoiceResult.extractedInvoice;
       const extractedInvoice = {
-        ...fallback,
         ...rawExtracted,
-        meterNumber: rawExtracted.meterNumber || rawExtracted.meterSerial || fallback.meterNumber,
-        billingStart: rawExtracted.billingStart || fallback.billingStart,
-        billingEnd: rawExtracted.billingEnd || fallback.billingEnd,
-        tariff: rawExtracted.tariff || fallback.tariff,
+        meterNumber: rawExtracted.meterNumber || rawExtracted.meterSerial || "",
+        billingStart: rawExtracted.billingStart || rawExtracted.billingPeriodStart || "",
+        billingEnd: rawExtracted.billingEnd || rawExtracted.billingPeriodEnd || "",
+        tariff: rawExtracted.tariff || rawExtracted.tariffName || "",
       };
       const rawIntervals = meterResult.intervals || [];
 
@@ -416,31 +419,5 @@ export class AutomaticProcessingPipeline {
 
     const blob = new Blob([content], { type: mime });
     return new File([blob], name, { type: mime });
-  }
-
-  /**
-   * Fallback invoice extractor for demo / isolated test environments
-   */
-  private static buildFallbackInvoice(filename: string) {
-    return {
-      accountNumber: "9182374650",
-      meterNumber: "MTR-90210",
-      tariff: "Megaflex High Voltage",
-      billingPeriod: "January 2025",
-      billingStart: "2025-01-01",
-      billingEnd: "2025-01-31",
-      peakKwh: 125000,
-      standardKwh: 340000,
-      offPeakKwh: 510000,
-      totalKwh: 975000,
-      billedMaximumDemand: 1850,
-      energyCharges: 2450000,
-      demandCharges: 350000,
-      networkCharges: 220000,
-      serviceCharges: 15000,
-      ancillaryCharges: 45000,
-      vat: 462000,
-      totalInvoice: 3542000,
-    };
   }
 }
