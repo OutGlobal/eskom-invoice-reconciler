@@ -31,7 +31,7 @@
 
 import { PdfPageRasterizer, type RasterizedPage } from "./pdfPageRasterizer";
 import { ImagePreprocessingEngine } from "./imagePreprocessingEngine";
-import { TesseractWorkerPool } from "./tesseractWorkerPool";
+import { getOcrEngine } from "./ocrEngineRegistry";
 import { OcrLayoutStructureEngine } from "./ocrLayoutStructureEngine";
 import { OcrConfidenceScorer } from "./ocrConfidenceScorer";
 import { OcrEvidenceExtractor } from "./ocrEvidenceExtractor";
@@ -290,16 +290,14 @@ export class HybridDocumentProcessor {
       },
     );
 
-    // Step B: OCR Recognition via Worker Pool
-    const ocrRaw = await TesseractWorkerPool.recognizeImage(
-      preprocessed.imageData || rasterPage.pixelBuffer,
-      rasterPage.width,
-      rasterPage.height,
-      rasterPage.pageNumber,
-      {
-        language: options.language || "eng",
-      },
-    );
+    // Step B: OCR Recognition — dispatched through provider-agnostic registry
+    const ocrRaw = await getOcrEngine().recognizePage({
+      imageData: preprocessed.imageData || rasterPage.pixelBuffer,
+      width: rasterPage.width,
+      height: rasterPage.height,
+      pageNumber: rasterPage.pageNumber,
+      language: options.language || "eng",
+    });
 
     // Step C: Reconstruct Layout Structure (Reading order, blocks, tables, KV)
     const layout = OcrLayoutStructureEngine.analyzePageLayout(ocrRaw.lines, rasterPage.pageNumber);

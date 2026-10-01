@@ -19,6 +19,9 @@
  */
 
 export * from "./types";
+export * from "./ocrEngineInterface";
+export * from "./ocrProviderConfig";
+export * from "./ocrEngineRegistry";
 export * from "./imagePreprocessingEngine";
 export * from "./pdfPageRasterizer";
 export * from "./tesseractWorkerPool";
@@ -28,3 +31,6 @@ export * from "./ocrEvidenceExtractor";
 export * from "./hybridDocumentProcessor";
 export * from "./scannedInvoiceOcrAdapter";
 export * from "./ocrPersistenceService";
+export * from "./providers/tesseractOcrProvider";
+export * from "./providers/cloudOcrProvider";
+export * from "./providers/nullOcrProvider";

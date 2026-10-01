@@ -26,6 +26,17 @@ export class TesseractWorkerPool {
   private static isInitialized = false;
 
   /**
+   * Sets the maximum number of concurrent Tesseract workers.
+   * Called once by `TesseractOcrProvider` on construction, injecting the
+   * value from `OcrProviderConfig.maxWorkers` (env: OCR_MAX_WORKERS).
+   */
+  public static setMaxWorkers(count: number): void {
+    if (count > 0 && Number.isInteger(count)) {
+      this.maxConcurrentWorkers = count;
+    }
+  }
+
+  /**
    * Recognizes text and spatial coordinates from an image buffer
    */
   public static async recognizeImage(

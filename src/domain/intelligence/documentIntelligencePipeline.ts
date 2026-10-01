@@ -52,7 +52,7 @@ import { DocumentSecurityGuard } from "./documentSecurityGuard";
 import { HybridDocumentProcessor } from "../ocr/hybridDocumentProcessor";
 import { PdfPageRasterizer } from "../ocr/pdfPageRasterizer";
 import { ImagePreprocessingEngine } from "../ocr/imagePreprocessingEngine";
-import { TesseractWorkerPool } from "../ocr/tesseractWorkerPool";
+import { getOcrEngine, getOcrLimits } from "../ocr/ocrEngineRegistry";
 import { OcrLayoutStructureEngine } from "../ocr/ocrLayoutStructureEngine";
 import type { UserSecurityContext } from "../security/types";
 import type {
@@ -743,15 +743,17 @@ export class DocumentIntelligencePipeline {
             rasterPage.height,
           );
 
-          // 3. OCR ENGINE (Tesseract worker pool execution)
-          const ocrResult = await TesseractWorkerPool.recognizeImage(
-            preprocessed.imageData ??
+          // 3. OCR ENGINE — dispatched through provider-agnostic registry
+          // The active provider is determined by the OCR_PROVIDER env variable.
+          // To switch providers, update that variable — no code changes needed.
+          const ocrResult = await getOcrEngine().recognizePage({
+            imageData:
+              preprocessed.imageData ??
               new Uint8ClampedArray(rasterPage.width * rasterPage.height * 4),
-            rasterPage.width,
-            rasterPage.height,
-            pageNum,
-            { language: "eng" },
-          );
+            width: rasterPage.width,
+            height: rasterPage.height,
+            pageNumber: pageNum,
+          });
 
           // 4. OCR TEXT & 5. WORD / LINE COORDINATES
           const pageOcrLines: ExtractedTextLine[] = ocrResult.lines.map((l, lIdx) => ({
