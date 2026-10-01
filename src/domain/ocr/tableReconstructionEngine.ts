@@ -73,6 +73,14 @@ export class TableReconstructionEngine {
       return this.createEmptyTable(tableId, pageNumber, tableType, coordinateSystem);
     }
 
+    // Check for continuation markers in table lines (Requirement 19: e.g. "continued", "vervolg")
+    const continuationMatch = lines.some((l) =>
+      /\b(continued|cont'?d|vervolg|tabel vervolg|charges continued)\b/i.test(l.text),
+    );
+    const continuationMarkerText = lines
+      .map((l) => l.text.match(/\b(continued|cont'?d|vervolg|tabel vervolg|charges continued)\b/i)?.[0])
+      .find(Boolean);
+
     // 1. Identify header line and column boundaries
     const headerLine = lines[0];
     const headerTokens = this.extractHeaderTokens(headerLine, options.knownHeaders);
@@ -95,6 +103,8 @@ export class TableReconstructionEngine {
         cellId: `cell-${tableId}-r0-c${cIdx}`,
         rowIndex: 0,
         columnIndex: cIdx,
+        pageNumber,
+        sourceTableId: tableId,
         rowSpan: 1,
         colSpan: 1,
         text: headerText.trim(),
@@ -126,6 +136,8 @@ export class TableReconstructionEngine {
     const headerRow: OcrTableRow = {
       rowId: `row-${tableId}-0`,
       rowIndex: 0,
+      pageNumber,
+      sourceTableId: tableId,
       rowType: "HEADER",
       cells: headerCells,
       rawText: headerLine.text,
@@ -167,6 +179,8 @@ export class TableReconstructionEngine {
           cellId: `cell-${tableId}-r${currentAbsoluteRowIndex}-c0-span`,
           rowIndex: currentAbsoluteRowIndex,
           columnIndex: 0,
+          pageNumber,
+          sourceTableId: tableId,
           rowSpan: 1,
           colSpan: colCount,
           text: line.text.trim(),
@@ -208,6 +222,8 @@ export class TableReconstructionEngine {
             cellId: `cell-${tableId}-r${currentAbsoluteRowIndex}-c${cIdx}`,
             rowIndex: currentAbsoluteRowIndex,
             columnIndex: cIdx,
+            pageNumber,
+            sourceTableId: tableId,
             rowSpan: 1,
             colSpan: 1,
             text: val,
@@ -249,6 +265,8 @@ export class TableReconstructionEngine {
       const rowObj: OcrTableRow = {
         rowId: `row-${tableId}-${currentAbsoluteRowIndex}`,
         rowIndex: currentAbsoluteRowIndex,
+        pageNumber,
+        sourceTableId: tableId,
         rowType,
         cells: rowCells,
         rawText: line.text,
@@ -311,7 +329,7 @@ export class TableReconstructionEngine {
       confidenceNormalized,
       confidenceTier,
 
-      // Enhanced Hierarchy (Requirement 18)
+      // Enhanced Hierarchy (Requirement 18 & 19)
       tableRows,
       tableColumns,
       headerRows,
@@ -321,31 +339,48 @@ export class TableReconstructionEngine {
       mergedCells,
       hasRepeatedHeaders: repeatedHeaderIndices.length > 0,
       repeatedHeaderRowIndices: repeatedHeaderIndices,
-      isContinuation: false,
+      isContinuation: continuationMatch || false,
+      continuationMarkerDetected: continuationMatch || false,
+      continuationMarkerText: continuationMarkerText || undefined,
       detectedTotals,
+      isMultiPage: false,
+      pagesSpanned: [pageNumber],
+      constituentTableIds: [tableId],
+      logicalTableId: tableId,
     };
   }
 
   // ---------------------------------------------------------------------------
-  // Page Continuation Detection & Table Stitching (Requirement 18)
+  // Page Continuation Detection & Table Stitching (Requirement 18 & 19)
   // ---------------------------------------------------------------------------
 
   /**
    * Evaluates whether table2 on page N+1 is a logical continuation of table1 on page N.
+   * Requirement 19: Recognizes continuation markers, matching columns, and unclosed totals.
    */
   public static isContinuation(
     table1: OcrTableStructure,
     table2: OcrTableStructure,
   ): boolean {
-    // Must be on subsequent pages or same document
+    // Must be on subsequent pages
     if (table2.pageNumber <= table1.pageNumber) {
       return false;
     }
 
+    const t1HeaderStr = (table1.headers.join(" ") + " " + (table1.tableRows?.[0]?.rawText || "")).toUpperCase();
+    const t2HeaderStr = (table2.headers.join(" ") + " " + (table2.tableRows?.[0]?.rawText || "")).toUpperCase();
+    const t2FirstRowText = (table2.tableRows?.[0]?.rawText || "").toUpperCase();
+
+    // Check for explicit continuation markers (Requirement 19: "continued", "cont'd", "vervolg")
+    const hasExplicitContinuationMarker =
+      Boolean(table2.continuationMarkerDetected) ||
+      /\b(CONTINUED|CONT'?D|VERVOLG|TABEL VERVOLG)\b/i.test(t2HeaderStr) ||
+      /\b(CONTINUED|CONT'?D|VERVOLG)\b/i.test(t2FirstRowText);
+
     // Check if column counts match
     const colCountMatch = table1.columnCount === table2.columnCount;
 
-    // Check if headers match or if table2 starts directly with data rows or repeated header
+    // Check if headers match
     const headersMatch =
       table1.headers.length > 0 &&
       table2.headers.length > 0 &&
@@ -353,12 +388,30 @@ export class TableReconstructionEngine {
         h.toUpperCase() === (table2.headers[idx] || "").toUpperCase(),
       );
 
-    // Check if table1 lacks a total row while table2 concludes with a total row
+    // Check if table 2 header indicates continuation of table 1 theme
+    // e.g. Table 1: "Energy Charges", Table 2: "continued" or "Energy Charges (continued)"
+    const titleOrThemeMatch =
+      (t1HeaderStr.includes("ENERGY") && (t2HeaderStr.includes("ENERGY") || hasExplicitContinuationMarker)) ||
+      (t1HeaderStr.includes("DEMAND") && (t2HeaderStr.includes("DEMAND") || hasExplicitContinuationMarker)) ||
+      (t1HeaderStr.includes("NETWORK") && (t2HeaderStr.includes("NETWORK") || hasExplicitContinuationMarker)) ||
+      (t1HeaderStr.includes("METER") && (t2HeaderStr.includes("METER") || hasExplicitContinuationMarker));
+
+    // Check if table 1 has no total row while table 2 has a total row or continues data
     const table1HasNoTotal = !table1.totalRows || table1.totalRows.length === 0;
     const table2HasTotal = table2.totalRows && table2.totalRows.length > 0;
 
-    // Continuation confidence heuristics
-    if (colCountMatch && (headersMatch || (table1HasNoTotal && table2HasTotal))) {
+    // 1. Strongest cue: Explicit continuation marker
+    if (hasExplicitContinuationMarker && (colCountMatch || titleOrThemeMatch || table2.columnCount === 1)) {
+      return true;
+    }
+
+    // 2. Exact same headers across consecutive pages
+    if (colCountMatch && headersMatch) {
+      return true;
+    }
+
+    // 3. Unfinished table on page N continues on page N+1 with matching column count
+    if (colCountMatch && table1HasNoTotal && (table2HasTotal || table1.tableType === table2.tableType)) {
       return true;
     }
 
@@ -367,48 +420,86 @@ export class TableReconstructionEngine {
 
   /**
    * Merges two continuation tables across page boundaries into a single unified table.
-   * Links both tables and preserves original page provenance.
+   * Requirement 19: Strictly preserves page provenance for every individual row and cell.
    */
   public static mergeContinuationTables(
     table1: OcrTableStructure,
     table2: OcrTableStructure,
   ): OcrTableStructure {
-    // Mark continuation pointers
+    const logicalTableId = table1.logicalTableId || `logical-${table1.tableId}`;
+
+    // Mark continuation pointers and logical group on both originals
     table1.continuesToTableId = table2.tableId;
     table1.continuedOnPage = table2.pageNumber;
+    table1.logicalTableId = logicalTableId;
+    table1.isMultiPage = true;
+    table1.pagesSpanned = Array.from(
+      new Set([...(table1.pagesSpanned || [table1.pageNumber]), table2.pageNumber]),
+    ).sort((a, b) => a - b);
 
     table2.isContinuation = true;
     table2.continuedFromTableId = table1.tableId;
     table2.continuedFromPage = table1.pageNumber;
+    table2.logicalTableId = logicalTableId;
+    table2.isMultiPage = true;
+    table2.pagesSpanned = Array.from(
+      new Set([...(table2.pagesSpanned || [table2.pageNumber]), table1.pageNumber]),
+    ).sort((a, b) => a - b);
 
     const mergedId = `unified-${table1.tableId}-${table2.tableId}`;
     const combinedRows: OcrTableRow[] = [];
-    const combinedCells: OcrTableCell[] = [...table1.cells];
+    const combinedCells: OcrTableCell[] = [];
     const combinedMatrix: string[][] = [...table1.rows];
 
-    // Add table1 rows
+    // Add table1 rows - strictly preserving pageNumber and sourceTableId
     if (table1.tableRows) {
-      combinedRows.push(...table1.tableRows);
+      table1.tableRows.forEach((row) => {
+        combinedRows.push({
+          ...row,
+          pageNumber: row.pageNumber ?? table1.pageNumber,
+          sourceTableId: row.sourceTableId ?? table1.tableId,
+        });
+      });
     }
 
-    // Add table2 data rows (skip repeated headers if identical to table1 headers)
+    // Add table1 cells - strictly preserving pageNumber and sourceTableId
+    if (table1.cells) {
+      table1.cells.forEach((cell) => {
+        combinedCells.push({
+          ...cell,
+          pageNumber: cell.pageNumber ?? table1.pageNumber,
+          sourceTableId: cell.sourceTableId ?? table1.tableId,
+        });
+      });
+    }
+
+    // Determine whether table2's first row is a redundant header or continuation banner
+    const isTable2FirstRowHeaderOrBanner =
+      table2.tableRows &&
+      table2.tableRows.length > 0 &&
+      (table2.tableRows[0].isHeaderRow ||
+        table2.tableRows[0].rowType === "HEADER" ||
+        table2.tableRows[0].rowType === "SUBHEADER" ||
+        /\b(continued|cont'?d|vervolg)\b/i.test(table2.tableRows[0].rawText));
+
+    // Add table2 rows with updated row indices, strictly preserving row & cell page provenance!
     if (table2.tableRows) {
       const startRowIdx = combinedRows.length;
       table2.tableRows.forEach((row, offset) => {
-        if (row.isHeaderRow && offset === 0) {
-          // Repeated header at start of page 2; preserve but flag
-          row.isHeaderRow = true;
-        }
+        const isBanner = /\b(continued|cont'?d|vervolg)\b/i.test(row.rawText);
         const updatedRow: OcrTableRow = {
           ...row,
           rowIndex: startRowIdx + offset,
           rowId: `row-${mergedId}-${startRowIdx + offset}`,
+          pageNumber: row.pageNumber ?? table2.pageNumber,
+          sourceTableId: row.sourceTableId ?? table2.tableId,
+          rowType: isBanner ? "SUBHEADER" : row.rowType,
         };
         combinedRows.push(updatedRow);
       });
     }
 
-    // Append cells with updated row index
+    // Append table2 cells with updated rowIndex, strictly preserving cell page provenance!
     if (table2.cells) {
       const rowOffset = table1.rowCount;
       table2.cells.forEach((c) => {
@@ -416,14 +507,15 @@ export class TableReconstructionEngine {
           ...c,
           cellId: `cell-${mergedId}-r${c.rowIndex + rowOffset}-c${c.columnIndex}`,
           rowIndex: c.rowIndex + rowOffset,
+          pageNumber: c.pageNumber ?? table2.pageNumber,
+          sourceTableId: c.sourceTableId ?? table2.tableId,
         });
       });
     }
 
-    // Append matrix rows
+    // Append matrix rows from table2
     if (table2.rows) {
-      // If table 2 row 0 is repeated header, skip in data matrix or keep
-      const sliceRows = table2.hasRepeatedHeaders ? table2.rows.slice(1) : table2.rows.slice(1);
+      const sliceRows = isTable2FirstRowHeaderOrBanner ? table2.rows.slice(1) : table2.rows;
       combinedMatrix.push(...sliceRows);
     }
 
@@ -435,8 +527,21 @@ export class TableReconstructionEngine {
     const tableColumns = this.constructColumns(table1.headers, combinedRows, table1.columnCount);
     const detectedTotals = this.detectAndVerifyTotals(combinedRows, table1.columnCount);
 
+    const pagesSpanned = Array.from(
+      new Set([
+        ...(table1.pagesSpanned || [table1.pageNumber]),
+        ...(table2.pagesSpanned || [table2.pageNumber]),
+      ]),
+    ).sort((a, b) => a - b);
+
+    const constituentTableIds = [
+      ...(table1.constituentTableIds || [table1.tableId]),
+      ...(table2.constituentTableIds || [table2.tableId]),
+    ];
+
     return {
       tableId: mergedId,
+      logicalTableId,
       pageNumber: table1.pageNumber,
       tableType: table1.tableType,
       headers: table1.headers,
@@ -467,6 +572,65 @@ export class TableReconstructionEngine {
       continuedOnPage: table2.pageNumber,
       continuesToTableId: table2.tableId,
       detectedTotals,
+
+      // Multi-Page Table continuation metadata (Requirement 19)
+      isMultiPage: true,
+      pagesSpanned,
+      constituentTableIds,
+      continuationMarkerDetected: Boolean(
+        table1.continuationMarkerDetected || table2.continuationMarkerDetected,
+      ),
+      continuationMarkerText: table2.continuationMarkerText || table1.continuationMarkerText,
+    };
+  }
+
+  /**
+   * Scans a set of tables across pages, detects continuation chains,
+   * merges matching tables into multi-page tables, and links constituent tables.
+   */
+  public static stitchMultiPageTables(tables: OcrTableStructure[]): {
+    multiPageTables: OcrTableStructure[];
+    allTables: OcrTableStructure[];
+  } {
+    if (!tables || tables.length <= 1) {
+      return { multiPageTables: [], allTables: tables || [] };
+    }
+
+    const sortedTables = [...tables].sort((a, b) => {
+      if (a.pageNumber !== b.pageNumber) return a.pageNumber - b.pageNumber;
+      return a.y - b.y;
+    });
+
+    const multiPageTables: OcrTableStructure[] = [];
+    const constituentTableIds = new Set<string>();
+
+    for (let i = 0; i < sortedTables.length; i++) {
+      const t1 = sortedTables[i];
+      if (constituentTableIds.has(t1.tableId)) continue;
+
+      let currentUnified = t1;
+      let chained = false;
+
+      for (let j = i + 1; j < sortedTables.length; j++) {
+        const t2 = sortedTables[j];
+        if (constituentTableIds.has(t2.tableId)) continue;
+
+        if (this.isContinuation(currentUnified, t2)) {
+          currentUnified = this.mergeContinuationTables(currentUnified, t2);
+          constituentTableIds.add(t2.tableId);
+          chained = true;
+        }
+      }
+
+      if (chained) {
+        constituentTableIds.add(t1.tableId);
+        multiPageTables.push(currentUnified);
+      }
+    }
+
+    return {
+      multiPageTables,
+      allTables: sortedTables,
     };
   }
 

@@ -200,6 +200,10 @@ export interface OcrTableCell {
   confidence: number;
   confidenceNormalized?: number;
   confidenceTier?: OcrConfidenceTier;
+
+  // Provenance & Multi-Page Tables (Requirement 19)
+  pageNumber?: number;
+  sourceTableId?: string;
 }
 
 export type OcrTableRowType = "HEADER" | "DATA" | "TOTAL" | "SUBHEADER" | "EMPTY";
@@ -223,6 +227,10 @@ export interface OcrTableRow {
   confidenceTier?: OcrConfidenceTier;
   isTotalRow: boolean;
   isHeaderRow: boolean;
+
+  // Provenance & Multi-Page Tables (Requirement 19)
+  pageNumber?: number;
+  sourceTableId?: string;
 }
 
 export interface OcrTableColumn {
@@ -297,6 +305,14 @@ export interface OcrTableStructure {
   continuedOnPage?: number;
   continuesToTableId?: string;
   detectedTotals?: OcrTableTotalSummary[];
+
+  // Multi-Page Table Continuation Support (Requirement 19)
+  isMultiPage?: boolean;
+  pagesSpanned?: number[];
+  constituentTableIds?: string[];
+  continuationMarkerDetected?: boolean;
+  continuationMarkerText?: string;
+  logicalTableId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -385,6 +401,7 @@ export interface OcrPageResult {
   wasOrientationCorrected?: boolean;
   languageUsed?: string;
   candidateDates?: CandidateDateRecognition[]; // Requirement 17: identified candidate dates on page
+  sections?: OcrDocumentSection[]; // Requirement 20: identified document sections on page
 }
 
 /**
@@ -408,6 +425,135 @@ export interface OcrFieldProvenance {
   height?: number;
   coordinateSystem?: CoordinateSystem;
   detailedBoundingBox?: OcrElementBoundingBox;
+
+  // Requirements 21 & 22: Evidence & Processing Run linkage
+  processingRun?: string;
+  ocrRunId?: string;
+  ocr?: boolean;
+  isOcr?: boolean;
+  sourceText?: string;
+}
+
+/**
+ * Authoritative Field Evidence Record (Requirement 21)
+ * Every extracted field must be traceable to OCR evidence.
+ *
+ * Example:
+ * Field: Account Number
+ * Value: 123456789
+ * Document: document-001
+ * Page: 1
+ * OCR: true
+ * Source Text: 123456789
+ * Bounding Box: [x, y, w, h]
+ * Confidence: 98%
+ * Processing Run: ocr-run-001
+ */
+export interface OcrFieldEvidence<T = string | number | null> {
+  field: string;
+  fieldKey?: string;
+  fieldLabel?: string;
+  value: T;
+  rawValue?: string;
+  document: string;
+  documentId?: string;
+  page: number;
+  pageNumber?: number;
+  ocr: boolean;
+  sourceText: string;
+  boundingBox: OcrBoundingBox;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  coordinateSystem?: CoordinateSystem;
+  detailedBoundingBox?: OcrElementBoundingBox;
+  confidence: number;
+  confidenceTier?: OcrConfidenceTier;
+  processingRun: string;
+  ocrRunId?: string;
+  extractionMethod?: string;
+  extractedAt?: string;
+}
+
+// ---------------------------------------------------------------------------
+// OCR Processing Run Record (Requirement 22)
+// ---------------------------------------------------------------------------
+
+export type OcrProcessingRunStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "PARTIAL";
+
+/**
+ * Authoritative OCR Processing Run Record (Requirement 22)
+ * Every OCR execution must create a processing run.
+ *
+ * Stores:
+ * OCR run ID
+ * document ID
+ * page ID
+ * provider
+ * provider version
+ * configuration
+ * language
+ * preprocessing version
+ * start time
+ * end time
+ * processing duration
+ * status
+ * error
+ * output version
+ *
+ * This makes OCR reproducible and auditable.
+ */
+export interface OcrProcessingRun {
+  ocrRunId: string;
+  documentId: string;
+  pageId?: string;
+  pageIds?: string[];
+  pageRuns?: OcrPageProcessingRun[];
+  provider: string;
+  providerVersion: string;
+  configuration: Record<string, any>;
+  language: string;
+  preprocessingVersion: string;
+  startTime: string;
+  endTime: string | null;
+  processingDuration: number | null;
+  processingDurationMs?: number | null;
+  status: OcrProcessingRunStatus;
+  error: string | null;
+  outputVersion: string;
+
+  // Metadata for audit trail & reproducibility
+  startedAt?: string;
+  completedAt?: string | null;
+  totalPages?: number;
+  evidenceCount?: number;
+  overallConfidence?: number;
+  characterCount?: number;
+  metadata?: Record<string, any>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface OcrPageProcessingRun {
+  pageRunId: string;
+  ocrRunId: string;
+  documentId: string;
+  pageId: string;
+  pageNumber: number;
+  provider: string;
+  providerVersion: string;
+  configuration: Record<string, any>;
+  language: string;
+  preprocessingVersion: string;
+  startTime: string;
+  endTime: string | null;
+  processingDuration: number | null;
+  status: OcrProcessingRunStatus;
+  error: string | null;
+  outputVersion: string;
+  characterCount?: number;
+  averageConfidence?: number;
 }
 
 /**
@@ -590,6 +736,9 @@ export interface OcrDocumentResult {
   detectedErrors?: OcrDetectedError[]; // Requirement 14: all detected OCR issues
   tables: OcrTableStructure[];
   candidateDates?: CandidateDateRecognition[]; // Requirement 17: all identified candidate dates across document
+  sections?: OcrDocumentSection[]; // Requirement 20: all detected sections across document
+  documentStructure?: DocumentStructureAnalysis; // Requirement 20: comprehensive document structure
+  multiPageTables?: OcrTableStructure[]; // Requirement 19: multi-page tables continuing across pages
   rawFullText: string;
 
   // Extracted domain determinants based on category
@@ -599,6 +748,13 @@ export interface OcrDocumentResult {
   adjustmentDeterminants?: OcrExtractedAdjustmentDeterminants;
   tariffDeterminants?: OcrExtractedTariffDeterminants;
   meterDeterminants?: OcrExtractedMeterDeterminants;
+
+  // Requirement 21: Direct Field Evidence Records Dictionary
+  evidenceRecords?: Record<string, OcrFieldEvidence>;
+  fieldEvidenceList?: OcrFieldEvidence[];
+
+  // Requirement 22: Authoritative OCR Processing Run Record
+  processingRun?: OcrProcessingRun;
 
   // Execution timing and audit
   executionEngine: "TESSERACT_HYBRID" | "TESSERACT_PURE" | "DIGITAL_FALLBACK";
@@ -897,5 +1053,82 @@ export interface ValidatedDateField {
   reviewRequired: boolean;
   /** Suggested candidate for human review */
   suggestedCandidate?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Document Section & Multi-Format Structural Types (Requirement 20)
+// ---------------------------------------------------------------------------
+
+export type DocumentSectionType =
+  | "CUSTOMER_INFORMATION"
+  | "ACCOUNT_INFORMATION"
+  | "METER_INFORMATION"
+  | "BILLING_PERIOD"
+  | "ENERGY_CHARGES"
+  | "DEMAND_CHARGES"
+  | "NETWORK_CHARGES"
+  | "REACTIVE_ENERGY"
+  | "TAX"
+  | "TOTAL"
+  | "PAYMENT_INFORMATION"
+  | "DEPOSIT_INFORMATION"
+  | "HISTORICAL_CONSUMPTION"
+  | "GENERIC_SECTION";
+
+export type UtilityDocumentFormatVariant =
+  | "ESKOM_DIRECT_STANDARD" // Eskom Megaflex, Miniflex, Nightsave
+  | "ESKOM_DIRECT_LARGE_POWER" // Large transmission / transmission customer
+  | "MUNICIPAL_CITY_POWER_JHB" // City Power / City of Johannesburg
+  | "MUNICIPAL_CITY_OF_CAPE_TOWN" // City of Cape Town
+  | "MUNICIPAL_ETHEKWINI" // eThekwini (Durban)
+  | "MUNICIPAL_TSHWANE" // City of Tshwane (Pretoria)
+  | "MUNICIPAL_EKURHULENI" // City of Ekurhuleni
+  | "MUNICIPAL_MANGAUNG" // Mangaung (Bloemfontein)
+  | "MUNICIPAL_NELSON_MANDELA_BAY" // Nelson Mandela Bay (Gqeberha)
+  | "GENERIC_MUNICIPAL" // Generic South African Municipality
+  | "UNKNOWN_UTILITY_FORMAT";
+
+export interface OcrDocumentSection {
+  sectionId: string;
+  sectionType: DocumentSectionType;
+  title: string;
+  normalizedTitle: string;
+  pageNumber: number;
+  startLineIndex: number;
+  endLineIndex: number;
+  boundingBox: OcrBoundingBox;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  coordinateSystem?: CoordinateSystem;
+  detailedBoundingBox?: OcrElementBoundingBox;
+  confidence: number;
+  confidenceTier: OcrConfidenceTier;
+  lines: OcrLineBlock[];
+  blocks?: OcrLayoutBlock[];
+  tables: OcrTableStructure[];
+  keyValuePairs: OcrKeyValuePair[];
+  rawText: string;
+  detectedFormatVariant?: UtilityDocumentFormatVariant;
+}
+
+export interface DocumentStructureAnalysis {
+  documentId?: string;
+  totalPages: number;
+  detectedFormatVariant: UtilityDocumentFormatVariant;
+  sections: OcrDocumentSection[];
+  sectionsByType: Record<DocumentSectionType, OcrDocumentSection[]>;
+  customerSection?: OcrDocumentSection;
+  accountSection?: OcrDocumentSection;
+  meterSection?: OcrDocumentSection;
+  billingPeriodSection?: OcrDocumentSection;
+  energyChargesSection?: OcrDocumentSection;
+  demandChargesSection?: OcrDocumentSection;
+  networkChargesSection?: OcrDocumentSection;
+  reactiveEnergySection?: OcrDocumentSection;
+  taxSection?: OcrDocumentSection;
+  totalSection?: OcrDocumentSection;
+  readingOrderSections: OcrDocumentSection[];
 }
 

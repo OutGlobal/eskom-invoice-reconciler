@@ -39,3 +39,6 @@ export * from "./ocrErrorDetector";
 export * from "./numericProtectionEngine";
 export * from "./dateRecognitionEngine";
 export * from "./tableReconstructionEngine";
+export * from "./documentStructureEngine";
+export * from "./ocrEvidenceModel";
+export * from "./ocrProcessingRunEngine";

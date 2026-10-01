@@ -30,9 +30,11 @@ import type {
   OcrElementBoundingBox,
   OcrEvidenceLocationReport,
   NumericFieldCategory,
+  OcrFieldEvidence,
 } from "./types";
 import { OcrConfidenceScorer } from "./ocrConfidenceScorer";
 import { NumericProtectionEngine } from "./numericProtectionEngine";
+import { OcrEvidenceModel } from "./ocrEvidenceModel";
 import { ProvenanceGuard } from "../intelligence/provenanceGuard";
 import type { ProvenancedField, BoundingBox } from "../intelligence/types";
 
@@ -94,6 +96,7 @@ export class OcrEvidenceExtractor {
   public static extractInvoiceDeterminants(
     pages: OcrPageResult[],
     documentId: string,
+    ocrRunId?: string,
   ): OcrExtractedInvoiceDeterminants {
     const fullText = pages.map((p) => p.fullText).join("\n");
 
@@ -108,6 +111,7 @@ export class OcrEvidenceExtractor {
         /\b(?:ACCOUNT\s*NO|ACCOUNT\s*NUMBER)[:\s]+([A-Z0-9\-_]{6,16})\b/i,
       ],
       (val) => val.replace(/\s+/g, ""),
+      ocrRunId,
     );
 
     // 2. Invoice Number
@@ -120,6 +124,8 @@ export class OcrEvidenceExtractor {
         /\b(?:TAX\s*INVOICE\s*NO|INVOICE\s*NO|INVOICE\s*NUMBER|INV\s*NO)[:\s]+([A-Z0-9\-_]{5,20})\b/i,
         /\b(?:TAX\s*INVOICE)[:\s]+([A-Z0-9\-_]{5,20})\b/i,
       ],
+      undefined,
+      ocrRunId,
     );
 
     // 3. Customer Name
@@ -133,6 +139,7 @@ export class OcrEvidenceExtractor {
         /(?:TO|DEBTOR)[:\s]+([A-Z0-9\s.,&'()-]{4,40})/i,
       ],
       (val) => val.trim(),
+      ocrRunId,
     );
 
     // 4. VAT Registration
@@ -142,12 +149,14 @@ export class OcrEvidenceExtractor {
       "vatRegistrationNumber",
       "VAT Registration Number",
       [/\b(?:VAT\s*REG(?:\s*NO)?|VAT\s*NO|TAX\s*REG)[:\s]+([0-9]{10})\b/i],
+      undefined,
+      ocrRunId,
     );
 
     // 5. Billing Period Start & End
     let billingStart: string | null = null;
     let billingEnd: string | null = null;
-    let periodProv: OcrFieldProvenance = this.createEmptyProvenance(documentId, 1, "billingPeriod");
+    let periodProv: OcrFieldProvenance = this.createEmptyProvenance(documentId, 1, "billingPeriod", ocrRunId);
 
     for (const page of pages) {
       const match = page.fullText.match(
@@ -179,6 +188,8 @@ export class OcrEvidenceExtractor {
         /\b(?:INVOICE\s*DATE|DATE\s*OF\s*INVOICE|DATE)[:\s]+(\d{4}[/-]\d{1,2}[/-]\d{1,2})\b/i,
         /\b(?:INVOICE\s*DATE|DATE)[:\s]+(\d{1,2}[/-]\d{1,2}[/-]\d{4})\b/i,
       ],
+      undefined,
+      ocrRunId,
     );
 
     const dueDateField = this.findFieldByPattern(
@@ -190,6 +201,8 @@ export class OcrEvidenceExtractor {
         /\b(?:PAYMENT\s*DUE\s*DATE|DUE\s*DATE|PAY\s*BY)[:\s]+(\d{4}[/-]\d{1,2}[/-]\d{1,2})\b/i,
         /\b(?:PAYMENT\s*DUE\s*DATE|DUE\s*DATE)[:\s]+(\d{1,2}[/-]\d{1,2}[/-]\d{4})\b/i,
       ],
+      undefined,
+      ocrRunId,
     );
 
     // 7. Tariff Code
@@ -203,12 +216,19 @@ export class OcrEvidenceExtractor {
         /\b(?:TARIFF(?:\s*TYPE|\s*CODE)?)[:\s]+([A-Z0-9_\-]{4,20})\b/i,
       ],
       (val) => val.toUpperCase(),
+      ocrRunId,
     );
 
     // 8. Meter Number
-    const meterField = this.findFieldByPattern(pages, documentId, "meterNumber", "Meter Number", [
-      /\b(?:METER\s*(?:NO|NUMBER|#)|MTR)[:\s]+([A-Z0-9\-_]{5,20})/i,
-    ]);
+    const meterField = this.findFieldByPattern(
+      pages,
+      documentId,
+      "meterNumber",
+      "Meter Number",
+      [/\b(?:METER\s*(?:NO|NUMBER|#)|MTR)[:\s]+([A-Z0-9\-_]{5,20})/i],
+      undefined,
+      ocrRunId,
+    );
 
     // 9. Financial Amounts: Total Due, VAT, Subtotal
     const totalDueField = this.findNumericFieldByPattern(
@@ -220,6 +240,7 @@ export class OcrEvidenceExtractor {
         /\b(?:TOTAL\s*DUE|AMOUNT\s*DUE|TOTAL\s*PAYABLE|TOTAL\s*AMOUNT\s*DUE)[:\s]+(?:R|ZAR)?\s*([0-9,]+\.[0-9]{2})/i,
         /\b(?:BALANCE\s*DUE)[:\s]+(?:R|ZAR)?\s*([0-9,]+\.[0-9]{2})/i,
       ],
+      ocrRunId,
     );
 
     const vatAmountField = this.findNumericFieldByPattern(
@@ -228,6 +249,7 @@ export class OcrEvidenceExtractor {
       "vatAmount",
       "VAT (15%)",
       [/VAT\s*(?:\([0-9]+%\)|[0-9]+%)?[:\s]+(?:R|ZAR)?\s*([0-9,]+\.[0-9]{2})/i],
+      ocrRunId,
     );
 
     const subtotalField = this.findNumericFieldByPattern(
@@ -236,6 +258,7 @@ export class OcrEvidenceExtractor {
       "subtotalAmount",
       "Subtotal Amount",
       [/\b(?:SUB-?TOTAL|TOTAL\s*EXCL(?:UDING)?\s*VAT)[:\s]+(?:R|ZAR)?\s*([0-9,]+\.[0-9]{2})/i],
+      ocrRunId,
     );
 
     // 10. Energy Determinants: Active Energy (Total, Peak, Standard, Off-Peak), Demand, Reactive
@@ -247,6 +270,7 @@ export class OcrEvidenceExtractor {
       [
         /\b(?:TOTAL\s*ACTIVE\s*ENERGY|TOTAL\s*ENERGY|TOTAL\s*KWH)[:\s]+([0-9,]+(?:\.[0-9]+)?)\s*(?:KWH)?/i,
       ],
+      ocrRunId,
     );
 
     const peakKwhField = this.findNumericFieldByPattern(
@@ -255,6 +279,7 @@ export class OcrEvidenceExtractor {
       "activeEnergyPeakKwh",
       "Peak Active Energy (kWh)",
       [/PEAK(?:[A-Z\s]*ENERGY)?[:\s]+([0-9,]+(?:\.[0-9]+)?)\s*(?:KWH)/i],
+      ocrRunId,
     );
 
     const standardKwhField = this.findNumericFieldByPattern(
@@ -263,6 +288,7 @@ export class OcrEvidenceExtractor {
       "activeEnergyStandardKwh",
       "Standard Active Energy (kWh)",
       [/STANDARD(?:[A-Z\s]*ENERGY)?[:\s]+([0-9,]+(?:\.[0-9]+)?)\s*(?:KWH)/i],
+      ocrRunId,
     );
 
     const offPeakKwhField = this.findNumericFieldByPattern(
@@ -271,6 +297,7 @@ export class OcrEvidenceExtractor {
       "activeEnergyOffPeakKwh",
       "Off-Peak Active Energy (kWh)",
       [/OFF-?PEAK(?:[A-Z\s]*ENERGY)?[:\s]+([0-9,]+(?:\.[0-9]+)?)\s*(?:KWH)/i],
+      ocrRunId,
     );
 
     const maxDemandField = this.findNumericFieldByPattern(
@@ -279,6 +306,7 @@ export class OcrEvidenceExtractor {
       "maximumDemandKva",
       "Maximum Demand (kVA)",
       [/\b(?:MAXIMUM\s*DEMAND|MAX\s*DEMAND|DEMAND)[:\s]+([0-9,]+(?:\.[0-9]+)?)\s*(?:KVA)/i],
+      ocrRunId,
     );
 
     const nmdField = this.findNumericFieldByPattern(
@@ -287,6 +315,7 @@ export class OcrEvidenceExtractor {
       "notifiedMaximumDemandKva",
       "Notified Maximum Demand (NMD)",
       [/\b(?:NOTIFIED\s*MAXIMUM\s*DEMAND|NMD)[:\s]+([0-9,]+(?:\.[0-9]+)?)\s*(?:KVA)?/i],
+      ocrRunId,
     );
 
     const reactiveField = this.findNumericFieldByPattern(
@@ -295,6 +324,7 @@ export class OcrEvidenceExtractor {
       "reactiveEnergyKvarh",
       "Reactive Energy (kVArh)",
       [/\b(?:REACTIVE\s*ENERGY|KVARH)[:\s]+([0-9,]+(?:\.[0-9]+)?)\s*(?:KVARH)?/i],
+      ocrRunId,
     );
 
     const powerFactorField = this.findNumericFieldByPattern(
@@ -303,6 +333,7 @@ export class OcrEvidenceExtractor {
       "powerFactor",
       "Power Factor",
       [/\b(?:POWER\s*FACTOR|PF)[:\s]+([0-1](?:\.[0-9]+)?)/i],
+      ocrRunId,
     );
 
     // 11. Extract line items from detected tables
@@ -339,6 +370,11 @@ export class OcrEvidenceExtractor {
                     height: table.height,
                     coordinateSystem: table.coordinateSystem,
                     detailedBoundingBox: table.detailedBoundingBox,
+                    ocrRunId,
+                    processingRun: ocrRunId,
+                    ocr: !page.isNativeDigital,
+                    isOcr: !page.isNativeDigital,
+                    sourceText: desc.trim(),
                   },
                 });
               }
@@ -392,10 +428,17 @@ export class OcrEvidenceExtractor {
   public static extractStatementDeterminants(
     pages: OcrPageResult[],
     documentId: string,
+    ocrRunId?: string,
   ): OcrExtractedStatementDeterminants {
-    const accField = this.findFieldByPattern(pages, documentId, "accountNumber", "Account Number", [
-      /\b(?:ACCOUNT\s*NO|ACCOUNT\s*NUMBER)[:\s]+([0-9]{10,12})\b/i,
-    ]);
+    const accField = this.findFieldByPattern(
+      pages,
+      documentId,
+      "accountNumber",
+      "Account Number",
+      [/\b(?:ACCOUNT\s*NO|ACCOUNT\s*NUMBER)[:\s]+([0-9]{10,12})\b/i],
+      undefined,
+      ocrRunId,
+    );
 
     const stmtDateField = this.findFieldByPattern(
       pages,
@@ -403,6 +446,8 @@ export class OcrEvidenceExtractor {
       "statementDate",
       "Statement Date",
       [/\b(?:STATEMENT\s*DATE|DATE)[:\s]+(\d{4}[/-]\d{1,2}[/-]\d{1,2})\b/i],
+      undefined,
+      ocrRunId,
     );
 
     const openingBalance = this.findNumericFieldByPattern(
@@ -413,6 +458,7 @@ export class OcrEvidenceExtractor {
       [
         /\b(?:OPENING\s*BALANCE|BALANCE\s*BROUGHT\s*FORWARD)[:\s]+(?:R|ZAR)?\s*([0-9,]+\.[0-9]{2})/i,
       ],
+      ocrRunId,
     );
 
     const closingBalance = this.findNumericFieldByPattern(
@@ -423,6 +469,7 @@ export class OcrEvidenceExtractor {
       [
         /\b(?:CLOSING\s*BALANCE(?:\s*DUE)?|TOTAL\s*(?:AMOUNT\s*)?DUE|AMOUNT\s*PAYABLE)[:\s]+(?:R|ZAR)?\s*([0-9,]+\.[0-9]{2})/i,
       ],
+      ocrRunId,
     );
 
     const paymentsReceived = this.findNumericFieldByPattern(
@@ -431,6 +478,7 @@ export class OcrEvidenceExtractor {
       "paymentsReceived",
       "Payments Received",
       [/\b(?:PAYMENTS\s*RECEIVED|LESS\s*PAYMENTS)[:\s]+(?:R|ZAR)?\s*([0-9,]+\.[0-9]{2})/i],
+      ocrRunId,
     );
 
     const currentCharges = this.findNumericFieldByPattern(
@@ -439,6 +487,7 @@ export class OcrEvidenceExtractor {
       "currentCharges",
       "Current Charges",
       [/\b(?:CURRENT\s*CHARGES|NEW\s*CHARGES)[:\s]+(?:R|ZAR)?\s*([0-9,]+\.[0-9]{2})/i],
+      ocrRunId,
     );
 
     const adjustmentsAmount = this.findNumericFieldByPattern(
@@ -447,14 +496,21 @@ export class OcrEvidenceExtractor {
       "adjustmentsAmount",
       "Adjustments",
       [/\b(?:ADJUSTMENTS)[:\s]+(?:R|ZAR)?\s*([0-9,]+\.[0-9]{2})/i],
+      ocrRunId,
     );
 
     return {
       accountNumber: accField,
       statementDate: stmtDateField,
-      customerName: this.findFieldByPattern(pages, documentId, "customerName", "Customer Name", [
-        /\b(?:CUSTOMER|NAME)[:\s]+([A-Z0-9\s.,&'()-]{4,40})/i,
-      ]),
+      customerName: this.findFieldByPattern(
+        pages,
+        documentId,
+        "customerName",
+        "Customer Name",
+        [/\b(?:CUSTOMER|NAME)[:\s]+([A-Z0-9\s.,&'()-]{4,40})/i],
+        undefined,
+        ocrRunId,
+      ),
       openingBalance,
       paymentsReceived,
       adjustmentsAmount,
@@ -470,6 +526,7 @@ export class OcrEvidenceExtractor {
   public static extractCreditNoteDeterminants(
     pages: OcrPageResult[],
     documentId: string,
+    ocrRunId?: string,
   ): OcrExtractedCreditNoteDeterminants {
     const cnNumber = this.findFieldByPattern(
       pages,
@@ -480,6 +537,8 @@ export class OcrEvidenceExtractor {
         /\b(?:CREDIT\s*NOTE\s*(?:NO\.?|NUMBER|#|REF)|CN\s*(?:NO\.?|NUMBER|#)?)\b[:\s]*([A-Z0-9\-_]{4,25})\b/i,
         /\b(?:CREDIT\s*NOTE)[:#]\s*([A-Z0-9\-_]{4,25})\b/i,
       ],
+      undefined,
+      ocrRunId,
     );
 
     const origInv = this.findFieldByPattern(
@@ -491,11 +550,19 @@ export class OcrEvidenceExtractor {
         /\b(?:ORIGINAL\s*(?:TAX\s*)?INVOICE\s*(?:NO\.?|NUMBER|REF)|RE:\s*INVOICE|REF\s*INVOICE)\b[:\s]*([A-Z0-9\-_]{4,25})\b/i,
         /\b(?:ORIGINAL\s*(?:TAX\s*)?INVOICE)[:#]\s*([A-Z0-9\-_]{4,25})\b/i,
       ],
+      undefined,
+      ocrRunId,
     );
 
-    const creditDate = this.findFieldByPattern(pages, documentId, "creditDate", "Credit Date", [
-      /\b(?:CREDIT\s*DATE|DATE)[:\s]+(\d{4}[/-]\d{1,2}[/-]\d{1,2})\b/i,
-    ]);
+    const creditDate = this.findFieldByPattern(
+      pages,
+      documentId,
+      "creditDate",
+      "Credit Date",
+      [/\b(?:CREDIT\s*DATE|DATE)[:\s]+(\d{4}[/-]\d{1,2}[/-]\d{1,2})\b/i],
+      undefined,
+      ocrRunId,
+    );
 
     const totalCredit = this.findNumericFieldByPattern(
       pages,
@@ -505,31 +572,56 @@ export class OcrEvidenceExtractor {
       [
         /\b(?:TOTAL\s*CREDIT|CREDIT\s*AMOUNT|TOTAL\s*AMOUNT)[:\s]+(?:R|ZAR)?\s*([0-9,]+\.[0-9]{2})/i,
       ],
+      ocrRunId,
     );
 
     return {
       creditNoteNumber: cnNumber,
       originalInvoiceReference: origInv,
       creditDate,
-      accountNumber: this.findFieldByPattern(pages, documentId, "accountNumber", "Account Number", [
-        /\b(?:ACCOUNT(?:\s*NO|\s*NUMBER)?|ACC)[:\s]+([0-9]{10,12})\b/i,
-      ]),
-      customerName: this.findFieldByPattern(pages, documentId, "customerName", "Customer Name", [
-        /\b(?:CUSTOMER\s*NAME|CLIENT\s*NAME|CUSTOMER|NAME)[:\s]+([A-Z0-9\s.,&'()-]{4,40})/i,
-      ]),
-      creditReason: this.findFieldByPattern(pages, documentId, "creditReason", "Credit Reason", [
-        /\b(?:CREDIT\s*REASON|REASON(?:\s*FOR\s*CREDIT)?)[:\s]+([A-Z0-9\s.,&'()-]{4,60})/i,
-      ]),
+      accountNumber: this.findFieldByPattern(
+        pages,
+        documentId,
+        "accountNumber",
+        "Account Number",
+        [/\b(?:ACCOUNT(?:\s*NO|\s*NUMBER)?|ACC)[:\s]+([0-9]{10,12})\b/i],
+        undefined,
+        ocrRunId,
+      ),
+      customerName: this.findFieldByPattern(
+        pages,
+        documentId,
+        "customerName",
+        "Customer Name",
+        [/\b(?:CUSTOMER\s*NAME|CLIENT\s*NAME|CUSTOMER|NAME)[:\s]+([A-Z0-9\s.,&'()-]{4,40})/i],
+        undefined,
+        ocrRunId,
+      ),
+      creditReason: this.findFieldByPattern(
+        pages,
+        documentId,
+        "creditReason",
+        "Credit Reason",
+        [/\b(?:CREDIT\s*REASON|REASON(?:\s*FOR\s*CREDIT)?)[:\s]+([A-Z0-9\s.,&'()-]{4,60})/i],
+        undefined,
+        ocrRunId,
+      ),
       creditSubtotal: this.findNumericFieldByPattern(
         pages,
         documentId,
         "creditSubtotal",
         "Credit Subtotal",
         [/\b(?:CREDIT\s*SUB-?TOTAL|SUB-?TOTAL)[:\s]+(?:R|ZAR)?\s*([0-9,]+\.[0-9]{2})/i],
+        ocrRunId,
       ),
-      creditVat: this.findNumericFieldByPattern(pages, documentId, "creditVat", "Credit VAT", [
-        /\b(?:CREDIT\s*VAT|VAT)[:\s]+(?:R|ZAR)?\s*([0-9,]+\.[0-9]{2})/i,
-      ]),
+      creditVat: this.findNumericFieldByPattern(
+        pages,
+        documentId,
+        "creditVat",
+        "Credit VAT",
+        [/\b(?:CREDIT\s*VAT|VAT)[:\s]+(?:R|ZAR)?\s*([0-9,]+\.[0-9]{2})/i],
+        ocrRunId,
+      ),
       totalCreditAmount: totalCredit,
     };
   }
@@ -540,6 +632,7 @@ export class OcrEvidenceExtractor {
   public static extractMeterDeterminants(
     pages: OcrPageResult[],
     documentId: string,
+    ocrRunId?: string,
   ): OcrExtractedMeterDeterminants {
     const meterNo = this.findFieldByPattern(
       pages,
@@ -547,11 +640,19 @@ export class OcrEvidenceExtractor {
       "meterSerialNumber",
       "Meter Serial Number",
       [/\b(?:METER\s*(?:NO|SERIAL|NUMBER)|MTR)[:\s]+([A-Z0-9\-_]{5,20})/i],
+      undefined,
+      ocrRunId,
     );
 
-    const readingDate = this.findFieldByPattern(pages, documentId, "readingDate", "Reading Date", [
-      /\b(?:READING\s*DATE|DATE)[:\s]+(\d{4}[/-]\d{1,2}[/-]\d{1,2})\b/i,
-    ]);
+    const readingDate = this.findFieldByPattern(
+      pages,
+      documentId,
+      "readingDate",
+      "Reading Date",
+      [/\b(?:READING\s*DATE|DATE)[:\s]+(\d{4}[/-]\d{1,2}[/-]\d{1,2})\b/i],
+      undefined,
+      ocrRunId,
+    );
 
     const prevReading = this.findNumericFieldByPattern(
       pages,
@@ -561,6 +662,7 @@ export class OcrEvidenceExtractor {
       [
         /\b(?:PREVIOUS\s*(?:READING|DIAL|INDEX)|PREV\s*(?:RDG|READING|DIAL))[:\s]+([0-9,]+(?:\.[0-9]+)?)/i,
       ],
+      ocrRunId,
     );
 
     const currReading = this.findNumericFieldByPattern(
@@ -571,6 +673,7 @@ export class OcrEvidenceExtractor {
       [
         /\b(?:CURRENT\s*(?:READING|DIAL|INDEX)|CURR\s*(?:RDG|READING|DIAL)|PRESENT\s*(?:READING|DIAL))[:\s]+([0-9,]+(?:\.[0-9]+)?)/i,
       ],
+      ocrRunId,
     );
 
     const multiplier = this.findNumericFieldByPattern(
@@ -579,6 +682,7 @@ export class OcrEvidenceExtractor {
       "multiplyingFactor",
       "Multiplying Factor",
       [/\b(?:MULTIPLYING\s*FACTOR|MULTIPLIER|MF)[:\s]+([0-9]+(?:\.[0-9]+)?)/i],
+      ocrRunId,
     );
 
     const consumption = this.findNumericFieldByPattern(
@@ -589,6 +693,7 @@ export class OcrEvidenceExtractor {
       [
         /\b(?:TOTAL\s*CONSUMPTION|UNITS\s*CONSUMED|TOTAL\s*KWH|CONSUMPTION)[:\s]+([0-9,]+(?:\.[0-9]+)?)/i,
       ],
+      ocrRunId,
     );
 
     return {
@@ -602,6 +707,7 @@ export class OcrEvidenceExtractor {
         "dialDifference",
         "Dial Difference",
         [/\b(?:DIAL\s*DIFFERENCE|DIFFERENCE)[:\s]+([0-9,]+(?:\.[0-9]+)?)/i],
+        ocrRunId,
       ),
       multiplyingFactor: multiplier,
       totalConsumptionKwh: consumption,
@@ -614,6 +720,7 @@ export class OcrEvidenceExtractor {
   public static extractAdjustmentDeterminants(
     pages: OcrPageResult[],
     documentId: string,
+    ocrRunId?: string,
   ): OcrExtractedAdjustmentDeterminants {
     const rawFullText = pages.map((p) => p.fullText).join("\n");
     const isCredit =
@@ -628,6 +735,8 @@ export class OcrEvidenceExtractor {
         "adjustmentNumber",
         "Adjustment Number",
         [/\b(?:ADJUSTMENT\s*(?:NO|NUMBER)|ADJ\s*NO)[:\s]+([A-Z0-9\-_]+)/i],
+        undefined,
+        ocrRunId,
       ),
       referencedInvoiceOrPeriod: this.findFieldByPattern(
         pages,
@@ -635,6 +744,8 @@ export class OcrEvidenceExtractor {
         "referencedInvoiceOrPeriod",
         "Referenced Invoice / Period",
         [/\b(?:REFERENCED?\s*(?:INVOICE|PERIOD)|INVOICE\s*REF)[:\s]+([A-Z0-9\-_/\s]+)/i],
+        undefined,
+        ocrRunId,
       ),
       adjustmentDate: this.findFieldByPattern(
         pages,
@@ -642,16 +753,36 @@ export class OcrEvidenceExtractor {
         "adjustmentDate",
         "Adjustment Date",
         [/\b(?:ADJUSTMENT\s*DATE|DATE)[:\s]+(\d{4}[-/]\d{2}[-/]\d{2})/i],
+        undefined,
+        ocrRunId,
       ),
-      accountNumber: this.findFieldByPattern(pages, documentId, "accountNumber", "Account Number", [
-        /\b(?:ACCOUNT(?:\s*NO)?|ACC)[:\s]+(\d{10,12}|\b785\d{7,9}\b)/i,
-      ]),
-      meterNumber: this.findFieldByPattern(pages, documentId, "meterNumber", "Meter Number", [
-        /\b(?:METER(?:\s*NO)?|SERIAL)[:\s]+([A-Z0-9\-_]+)/i,
-      ]),
-      reason: this.findFieldByPattern(pages, documentId, "reason", "Adjustment Reason", [
-        /\b(?:REASON|DESCRIPTION|CAUSE)[:\s]+([^\n\r]+)/i,
-      ]),
+      accountNumber: this.findFieldByPattern(
+        pages,
+        documentId,
+        "accountNumber",
+        "Account Number",
+        [/\b(?:ACCOUNT(?:\s*NO)?|ACC)[:\s]+(\d{10,12}|\b785\d{7,9}\b)/i],
+        undefined,
+        ocrRunId,
+      ),
+      meterNumber: this.findFieldByPattern(
+        pages,
+        documentId,
+        "meterNumber",
+        "Meter Number",
+        [/\b(?:METER(?:\s*NO)?|SERIAL)[:\s]+([A-Z0-9\-_]+)/i],
+        undefined,
+        ocrRunId,
+      ),
+      reason: this.findFieldByPattern(
+        pages,
+        documentId,
+        "reason",
+        "Adjustment Reason",
+        [/\b(?:REASON|DESCRIPTION|CAUSE)[:\s]+([^\n\r]+)/i],
+        undefined,
+        ocrRunId,
+      ),
       financialVarianceAmount: this.findNumericFieldByPattern(
         pages,
         documentId,
@@ -660,6 +791,7 @@ export class OcrEvidenceExtractor {
         [
           /\b(?:FINANCIAL\s*VARIANCE|VARIANCE|ADJUSTMENT\s*AMOUNT|AMOUNT)[:\s]+(?:R\s*)?([0-9,]+(?:\.[0-9]+)?)/i,
         ],
+        ocrRunId,
       ),
       isCreditToCustomer: isCredit,
     };
@@ -671,8 +803,8 @@ export class OcrEvidenceExtractor {
   public static extractTariffDeterminants(
     pages: OcrPageResult[],
     documentId: string,
+    ocrRunId?: string,
   ): OcrExtractedTariffDeterminants {
-    const rawFullText = pages.map((p) => p.fullText).join("\n");
     const rates: OcrExtractedTariffDeterminants["rates"] = [];
 
     for (const page of pages) {
@@ -701,6 +833,11 @@ export class OcrEvidenceExtractor {
               height: line.height,
               coordinateSystem: line.coordinateSystem,
               detailedBoundingBox: line.detailedBoundingBox,
+              ocrRunId,
+              processingRun: ocrRunId,
+              ocr: !page.isNativeDigital,
+              isOcr: !page.isNativeDigital,
+              sourceText: line.text,
             },
           });
         }
@@ -727,6 +864,11 @@ export class OcrEvidenceExtractor {
               height: line.height,
               coordinateSystem: line.coordinateSystem,
               detailedBoundingBox: line.detailedBoundingBox,
+              ocrRunId,
+              processingRun: ocrRunId,
+              ocr: !page.isNativeDigital,
+              isOcr: !page.isNativeDigital,
+              sourceText: line.text,
             },
           });
         }
@@ -753,6 +895,11 @@ export class OcrEvidenceExtractor {
               height: line.height,
               coordinateSystem: line.coordinateSystem,
               detailedBoundingBox: line.detailedBoundingBox,
+              ocrRunId,
+              processingRun: ocrRunId,
+              ocr: !page.isNativeDigital,
+              isOcr: !page.isNativeDigital,
+              sourceText: line.text,
             },
           });
         }
@@ -760,19 +907,35 @@ export class OcrEvidenceExtractor {
     }
 
     return {
-      tariffCode: this.findFieldByPattern(pages, documentId, "tariffCode", "Tariff Code", [
-        /\b(?:TARIFF\s*CODE|CODE)[:\s]+([A-Z0-9\-_]+)/i,
-        /\b(MEGAFLEX|MINIFLEX|NIGHTSAVE|MEGEX)\b/i,
-      ]),
-      tariffName: this.findFieldByPattern(pages, documentId, "tariffName", "Tariff Name", [
-        /\b(?:TARIFF\s*NAME|TARIFF)[:\s]+([^\n\r]+)/i,
-      ]),
+      tariffCode: this.findFieldByPattern(
+        pages,
+        documentId,
+        "tariffCode",
+        "Tariff Code",
+        [
+          /\b(?:TARIFF\s*CODE|CODE)[:\s]+([A-Z0-9\-_]+)/i,
+          /\b(MEGAFLEX|MINIFLEX|NIGHTSAVE|MEGEX)\b/i,
+        ],
+        undefined,
+        ocrRunId,
+      ),
+      tariffName: this.findFieldByPattern(
+        pages,
+        documentId,
+        "tariffName",
+        "Tariff Name",
+        [/\b(?:TARIFF\s*NAME|TARIFF)[:\s]+([^\n\r]+)/i],
+        undefined,
+        ocrRunId,
+      ),
       effectiveStartDate: this.findFieldByPattern(
         pages,
         documentId,
         "effectiveStartDate",
         "Effective Date",
         [/\b(?:EFFECTIVE(?:\s*START)?\s*DATE|FROM)[:\s]+(\d{4}[-/]\d{2}[-/]\d{2})/i],
+        undefined,
+        ocrRunId,
       ),
       regulatoryAuthority: this.findFieldByPattern(
         pages,
@@ -780,6 +943,8 @@ export class OcrEvidenceExtractor {
         "regulatoryAuthority",
         "Regulatory Authority",
         [/\b(NERSA|ESKOM|MUNICIPALITY)\b/i],
+        undefined,
+        ocrRunId,
       ),
       rates,
     };
@@ -796,6 +961,7 @@ export class OcrEvidenceExtractor {
     fieldLabel: string,
     patterns: RegExp[],
     transformer?: (val: string) => string,
+    ocrRunId?: string,
   ): OcrDeterminantField<string | null> {
     for (const page of pages) {
       // First check structured Key-Value pairs
@@ -825,6 +991,11 @@ export class OcrEvidenceExtractor {
             height: matchedKv.height,
             coordinateSystem: matchedKv.coordinateSystem,
             detailedBoundingBox: matchedKv.detailedBoundingBox,
+            ocrRunId,
+            processingRun: ocrRunId,
+            ocr: !page.isNativeDigital,
+            isOcr: !page.isNativeDigital,
+            sourceText: raw,
           },
         };
       }
@@ -856,6 +1027,11 @@ export class OcrEvidenceExtractor {
                 height: line.height,
                 coordinateSystem: line.coordinateSystem,
                 detailedBoundingBox: line.detailedBoundingBox,
+                ocrRunId,
+                processingRun: ocrRunId,
+                ocr: !page.isNativeDigital,
+                isOcr: !page.isNativeDigital,
+                sourceText: raw,
               },
             };
           }
@@ -869,7 +1045,7 @@ export class OcrEvidenceExtractor {
       fieldLabel,
       value: null,
       rawValue: "",
-      provenance: this.createEmptyProvenance(documentId, 1, fieldKey),
+      provenance: this.createEmptyProvenance(documentId, 1, fieldKey, ocrRunId),
     };
   }
 
@@ -898,6 +1074,7 @@ export class OcrEvidenceExtractor {
     fieldKey: string,
     fieldLabel: string,
     patterns: RegExp[],
+    ocrRunId?: string,
   ): OcrDeterminantField<number | null> {
     const category = this.mapFieldKeyToCategory(fieldKey);
 
@@ -933,6 +1110,11 @@ export class OcrEvidenceExtractor {
                   height: line.height,
                   coordinateSystem: line.coordinateSystem,
                   detailedBoundingBox: line.detailedBoundingBox,
+                  ocrRunId,
+                  processingRun: ocrRunId,
+                  ocr: !page.isNativeDigital,
+                  isOcr: !page.isNativeDigital,
+                  sourceText: raw,
                 },
               };
             }
@@ -946,7 +1128,7 @@ export class OcrEvidenceExtractor {
       fieldLabel,
       value: null,
       rawValue: "",
-      provenance: this.createEmptyProvenance(documentId, 1, fieldKey),
+      provenance: this.createEmptyProvenance(documentId, 1, fieldKey, ocrRunId),
     };
   }
 
@@ -981,6 +1163,7 @@ export class OcrEvidenceExtractor {
     documentId: string,
     pageNumber: number,
     fieldKey: string,
+    ocrRunId?: string,
   ): OcrFieldProvenance {
     return {
       documentId,
@@ -990,6 +1173,11 @@ export class OcrEvidenceExtractor {
       contextSnippet: `Field '${fieldKey}' was not present in document.`,
       confidenceScore: 0,
       confidenceTier: "LOW",
+      ocrRunId,
+      processingRun: ocrRunId,
+      ocr: false,
+      isOcr: false,
+      sourceText: "",
     };
   }
 
@@ -1121,7 +1309,37 @@ export class OcrEvidenceExtractor {
             confidence: prov.detailedBoundingBox.confidence,
           }
         : undefined,
+      runId: prov.processingRun || prov.ocrRunId,
     });
+  }
+
+  /**
+   * Converts an OCR determinant field to an authoritative OcrFieldEvidence record (Requirement 21).
+   */
+  public static toFieldEvidence<T = string | number | null>(
+    field: OcrDeterminantField<T>,
+    documentId: string,
+    processingRunId?: string,
+    isOcr: boolean = true,
+  ): OcrFieldEvidence<T> {
+    return OcrEvidenceModel.fromDeterminantField(field, documentId, processingRunId, isOcr);
+  }
+
+  /**
+   * Compiles an entire dictionary of OcrFieldEvidence records from extracted determinants (Requirement 21).
+   */
+  public static compileFieldEvidenceRecords(
+    determinants: any,
+    documentId: string,
+    processingRunId: string = "ocr-run-default",
+    defaultIsOcr: boolean = true,
+  ): Record<string, OcrFieldEvidence> {
+    return OcrEvidenceModel.compileEvidencePackage(
+      determinants,
+      documentId,
+      processingRunId,
+      defaultIsOcr,
+    );
   }
 
   /**

@@ -40,6 +40,9 @@ import { OcrEvidenceExtractor } from "./ocrEvidenceExtractor";
 import { PdfjsLoader } from "../intelligence/pdfjsLoader";
 import { DateRecognitionEngine } from "./dateRecognitionEngine";
 import { TableReconstructionEngine } from "./tableReconstructionEngine";
+import { DocumentStructureEngine } from "./documentStructureEngine";
+import { OcrEvidenceModel } from "./ocrEvidenceModel";
+import { OcrProcessingRunEngine } from "./ocrProcessingRunEngine";
 import type {
   OcrDocumentResult,
   OcrPageResult,
@@ -51,10 +54,14 @@ import type {
   PageProcessingStatus,
   PageProcessingState,
   OcrRunLanguageConfig,
+  OcrProcessingRun,
+  OcrPageProcessingRun,
+  OcrFieldEvidence,
 } from "./types";
 
 export interface ProcessDocumentOptions {
   documentId?: string;
+  runId?: string;
   organisationId?: string;
   checksum?: string;
   maxPages?: number;
@@ -97,6 +104,7 @@ export class HybridDocumentProcessor {
     const documentId =
       options.documentId ||
       `DOC-OCR-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+    const ocrRunId = options.runId || `ocr-run-${documentId}-${Date.now()}`;
     const organisationId = options.organisationId || "DEFAULT_TENANT";
     const checksum = options.checksum || (await this.computeSha256(bytes));
     const targetDpi = options.targetDpi || 300;
@@ -105,6 +113,28 @@ export class HybridDocumentProcessor {
     const isPdf = filename.toLowerCase().endsWith(".pdf") || mimeType.includes("pdf");
     const pageResults: OcrPageResult[] = [];
     const pageStatuses: PageProcessingStatus[] = [];
+    const pageRuns: OcrPageProcessingRun[] = [];
+
+    // Initialize the authoritative OCR Processing Run (Requirement 22)
+    const processingRun = OcrProcessingRunEngine.createRun({
+      ocrRunId,
+      documentId,
+      provider: getOcrEngine().providerType,
+      providerVersion: OcrProcessingRunEngine.DEFAULT_PROVIDER_VERSION,
+      language: options.language || getOcrProviderConfig().language,
+      configuration: {
+        targetDpi,
+        maxPages,
+        enableDeskew: options.enableDeskew ?? true,
+        enableBinarization: options.enableBinarization ?? true,
+        forceOcr: options.forceOcr ?? false,
+      },
+      startTime: startedAt,
+      metadata: {
+        filename,
+        organisationId,
+      },
+    });
 
     /** Convenience: creates/updates a PageProcessingStatus entry. */
     const setPageStatus = (
@@ -171,6 +201,14 @@ export class HybridDocumentProcessor {
         );
 
         let pageResult: OcrPageResult;
+        const pageRun = OcrProcessingRunEngine.createPageRun({
+          ocrRunId,
+          documentId,
+          pageNumber: pageNum,
+          provider: hasReliableText ? "DIGITAL_STREAM_HYBRID" : getOcrEngine().providerType,
+          language: executionLanguage,
+          configuration: { targetDpi },
+        });
 
         if (hasReliableText && nativeStream) {
           // Pure digital vector processing path — ZERO RASTERIZATION, ZERO OCR
@@ -189,6 +227,13 @@ export class HybridDocumentProcessor {
             requiredOcr: false,
             ocrConfidence: pageResult.averageConfidence,
           });
+
+          OcrProcessingRunEngine.completePageRun(pageRun, {
+            characterCount: pageResult.characterCount,
+            averageConfidence: pageResult.averageConfidence,
+            processingDuration: pageResult.processingDurationMs,
+          });
+          pageRuns.push(pageRun);
         } else {
           // Scanned raster / photographed / poor-scan OCR processing path:
           // RENDER ONLY THIS SPECIFIC PAGE
@@ -210,10 +255,22 @@ export class HybridDocumentProcessor {
               ocrConfidence: pageResult.averageConfidence,
               preprocessingDecision: (pageResult as any)._preprocessingDecision,
             });
+
+            OcrProcessingRunEngine.completePageRun(pageRun, {
+              characterCount: pageResult.characterCount,
+              averageConfidence: pageResult.averageConfidence,
+              processingDuration: pageResult.processingDurationMs,
+            });
+            pageRuns.push(pageRun);
           } catch (err) {
             setPageStatus(pageNum, "FAILED", {
               errorMessage: err instanceof Error ? err.message : String(err),
             });
+            OcrProcessingRunEngine.failPageRun(
+              pageRun,
+              err instanceof Error ? err.message : String(err),
+            );
+            pageRuns.push(pageRun);
             // Continue to next page rather than aborting the document
             continue;
           }
@@ -243,6 +300,15 @@ export class HybridDocumentProcessor {
 
       for (let pIdx = 0; pIdx < rasterizedPages.length; pIdx++) {
         const rasterPage = rasterizedPages[pIdx];
+        const pageRun = OcrProcessingRunEngine.createPageRun({
+          ocrRunId,
+          documentId,
+          pageNumber: rasterPage.pageNumber,
+          provider: getOcrEngine().providerType,
+          language: executionLanguage,
+          configuration: { targetDpi },
+        });
+
         setPageStatus(rasterPage.pageNumber, "OCR");
         try {
           const pageResult = await this.processScannedRasterPage(
@@ -255,11 +321,23 @@ export class HybridDocumentProcessor {
             ocrConfidence: pageResult.averageConfidence,
             preprocessingDecision: (pageResult as any)._preprocessingDecision,
           });
+
+          OcrProcessingRunEngine.completePageRun(pageRun, {
+            characterCount: pageResult.characterCount,
+            averageConfidence: pageResult.averageConfidence,
+            processingDuration: pageResult.processingDurationMs,
+          });
+          pageRuns.push(pageRun);
           pageResults.push(pageResult);
         } catch (err) {
           setPageStatus(rasterPage.pageNumber, "FAILED", {
             errorMessage: err instanceof Error ? err.message : String(err),
           });
+          OcrProcessingRunEngine.failPageRun(
+            pageRun,
+            err instanceof Error ? err.message : String(err),
+          );
+          pageRuns.push(pageRun);
         }
       }
     }
@@ -268,21 +346,15 @@ export class HybridDocumentProcessor {
     const rawFullText = pageResults.map((p) => p.fullText).join("\n\n");
     const allTables = pageResults.flatMap((p) => p.tables);
 
-    // 5b. Multi-page table continuation detection & linking (Requirement 18)
-    for (let i = 0; i < allTables.length; i++) {
-      for (let j = i + 1; j < allTables.length; j++) {
-        if (TableReconstructionEngine.isContinuation(allTables[i], allTables[j])) {
-          allTables[i].continuesToTableId = allTables[j].tableId;
-          allTables[i].continuedOnPage = allTables[j].pageNumber;
-          allTables[j].isContinuation = true;
-          allTables[j].continuedFromTableId = allTables[i].tableId;
-          allTables[j].continuedFromPage = allTables[i].pageNumber;
-        }
-      }
-    }
+    // 5b. Multi-page table continuation detection, stitching & linking (Requirements 18 & 19)
+    const { multiPageTables } = TableReconstructionEngine.stitchMultiPageTables(allTables);
 
     // 5c. Aggregate candidate dates recognized across document pages (Requirement 17)
     const allCandidateDates = pageResults.flatMap((p) => p.candidateDates || []);
+
+    // 5d. Semantic Document Structure & Section Analysis across all pages (Requirement 20)
+    const documentStructure = DocumentStructureEngine.analyzeDocumentStructure(pageResults, documentId);
+    const allSections = documentStructure.sections;
 
     // 6. Classify document category
     const documentCategory: OcrDocumentCategory =
@@ -295,49 +367,77 @@ export class HybridDocumentProcessor {
     let adjustmentDeterminants;
     let tariffDeterminants;
     let meterDeterminants;
+    let chosenDeterminants: any;
 
     switch (documentCategory) {
       case "INVOICE":
         invoiceDeterminants = OcrEvidenceExtractor.extractInvoiceDeterminants(
           pageResults,
           documentId,
+          ocrRunId,
         );
+        chosenDeterminants = invoiceDeterminants;
         break;
       case "STATEMENT":
         statementDeterminants = OcrEvidenceExtractor.extractStatementDeterminants(
           pageResults,
           documentId,
+          ocrRunId,
         );
+        chosenDeterminants = statementDeterminants;
         break;
       case "CREDIT_NOTE":
         creditNoteDeterminants = OcrEvidenceExtractor.extractCreditNoteDeterminants(
           pageResults,
           documentId,
+          ocrRunId,
         );
+        chosenDeterminants = creditNoteDeterminants;
         break;
       case "ADJUSTMENT":
         adjustmentDeterminants = OcrEvidenceExtractor.extractAdjustmentDeterminants(
           pageResults,
           documentId,
+          ocrRunId,
         );
+        chosenDeterminants = adjustmentDeterminants;
         break;
       case "TARIFF_DOCUMENT":
         tariffDeterminants = OcrEvidenceExtractor.extractTariffDeterminants(
           pageResults,
           documentId,
+          ocrRunId,
         );
+        chosenDeterminants = tariffDeterminants;
         break;
       case "METER_DOCUMENT":
-        meterDeterminants = OcrEvidenceExtractor.extractMeterDeterminants(pageResults, documentId);
+        meterDeterminants = OcrEvidenceExtractor.extractMeterDeterminants(
+          pageResults,
+          documentId,
+          ocrRunId,
+        );
+        chosenDeterminants = meterDeterminants;
         break;
       default:
         // Attempt invoice extraction as baseline fallback
         invoiceDeterminants = OcrEvidenceExtractor.extractInvoiceDeterminants(
           pageResults,
           documentId,
+          ocrRunId,
         );
+        chosenDeterminants = invoiceDeterminants;
         break;
     }
+
+    // Step 7b: Compile Authoritative Field Evidence Records (Requirement 21)
+    const hasAnyScannedPage = pageResults.some((p) => p.isScannedRaster);
+    const evidenceRecords = OcrEvidenceModel.compileEvidencePackage(
+      chosenDeterminants || invoiceDeterminants,
+      documentId,
+      ocrRunId,
+      hasAnyScannedPage,
+    );
+    const fieldEvidenceList = Object.values(evidenceRecords);
 
     // 8. Confidence Evaluation & Review Gating (< 85 requires review)
     const confidenceEval = OcrConfidenceScorer.evaluateDocumentConfidence(
@@ -365,8 +465,24 @@ export class HybridDocumentProcessor {
     const completedAt = new Date().toISOString();
     const durationMs = Date.now() - startTime;
 
+    // Step 8b: Complete and record the processing run (Requirement 22)
+    const totalChars = pageResults.reduce((acc, p) => acc + (p.characterCount || 0), 0);
+    OcrProcessingRunEngine.completeRun(processingRun, {
+      endTime: completedAt,
+      processingDuration: durationMs,
+      pageRuns,
+      totalPages: pageResults.length,
+      evidenceCount: fieldEvidenceList.length,
+      overallConfidence: confidenceEval.overallScore,
+      characterCount: totalChars,
+      metadata: {
+        documentCategory,
+        executionEngine,
+      },
+    });
+
     return {
-      ocrRunId: `ocr-run-${documentId}-${Date.now()}`,
+      ocrRunId,
       documentId,
       organisationId,
       checksum,
@@ -381,7 +497,10 @@ export class HybridDocumentProcessor {
       reviewReasons: confidenceEval.reviewReasons,
       detectedErrors: confidenceEval.detectedErrors,
       tables: allTables,
+      multiPageTables,
       candidateDates: allCandidateDates,
+      sections: allSections,
+      documentStructure,
       rawFullText,
       invoiceDeterminants,
       statementDeterminants,
@@ -389,6 +508,9 @@ export class HybridDocumentProcessor {
       adjustmentDeterminants,
       tariffDeterminants,
       meterDeterminants,
+      evidenceRecords,
+      fieldEvidenceList,
+      processingRun,
       executionEngine,
       startedAt,
       completedAt,
@@ -474,6 +596,7 @@ export class HybridDocumentProcessor {
       blocks: layout.blocks,
       tables: layout.tables,
       keyValuePairs: layout.keyValuePairs,
+      sections: layout.sections,
       averageConfidence: ocrRaw.averageConfidence,
       minConfidence,
       characterCount: ocrRaw.fullText.length,
@@ -564,6 +687,7 @@ export class HybridDocumentProcessor {
       blocks: layout.blocks,
       tables: layout.tables,
       keyValuePairs: layout.keyValuePairs,
+      sections: layout.sections,
       averageConfidence: 98.5,
       minConfidence: 95.0,
       characterCount: nativeStream.text.length,
@@ -739,17 +863,30 @@ export class HybridDocumentProcessor {
   /**
    * Computes SHA-256 hash for byte array
    */
-  private static async computeSha256(bytes: Uint8Array): Promise<string> {
+  private static async computeSha256(
+    bytes: Uint8Array | Uint8ClampedArray | ArrayBuffer,
+  ): Promise<string> {
+    const uint8 =
+      bytes instanceof Uint8Array
+        ? bytes
+        : bytes instanceof ArrayBuffer
+          ? new Uint8Array(bytes)
+          : new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+
     if (typeof crypto !== "undefined" && crypto.subtle) {
-      const digest = await crypto.subtle.digest("SHA-256", bytes as any);
-      return Array.from(new Uint8Array(digest))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
+      try {
+        const digest = await crypto.subtle.digest("SHA-256", uint8 as any);
+        return Array.from(new Uint8Array(digest))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+      } catch {
+        // Fall through to fallback
+      }
     }
     // Fallback Node-compatible hash
     let hash = 0;
-    for (let i = 0; i < bytes.length; i++) {
-      hash = (hash << 5) - hash + bytes[i];
+    for (let i = 0; i < uint8.length; i++) {
+      hash = (hash << 5) - hash + uint8[i];
       hash |= 0;
     }
     return `sha256-fallback-${Math.abs(hash).toString(16)}`;

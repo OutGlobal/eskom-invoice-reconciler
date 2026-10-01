@@ -70,6 +70,7 @@ export class ProvenanceGuard {
     isVerified?: boolean;
     coordinateSystem?: CoordinateSystem;
     detailedBoundingBox?: DetailedElementBoundingBox;
+    runId?: string;
   }): ProvenancedField<T> {
     if (
       params.confidenceScore !== undefined &&
@@ -123,6 +124,7 @@ export class ProvenanceGuard {
       confidenceScore: score,
       confidenceLevel: tier,
       extractedAt: new Date().toISOString(),
+      runId: params.runId,
       coordinateSystem: params.coordinateSystem,
       detailedBoundingBox:
         params.detailedBoundingBox ||
@@ -150,6 +152,7 @@ export class ProvenanceGuard {
       extraction: methodLabel,
       confidence: tier,
       provenance,
+      runId: params.runId,
       isVerified: params.isVerified ?? false,
     };
 

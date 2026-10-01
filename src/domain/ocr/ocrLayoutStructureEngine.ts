@@ -25,8 +25,10 @@ import type {
   CoordinateSystem,
   OcrElementBoundingBox,
   OcrConfidenceTier,
+  OcrDocumentSection,
 } from "./types";
 import { TableReconstructionEngine } from "./tableReconstructionEngine";
+import { DocumentStructureEngine } from "./documentStructureEngine";
 
 export class OcrLayoutStructureEngine {
   /**
@@ -41,6 +43,7 @@ export class OcrLayoutStructureEngine {
     blocks: OcrLayoutBlock[];
     tables: OcrTableStructure[];
     keyValuePairs: OcrKeyValuePair[];
+    sections: OcrDocumentSection[];
   } {
     // 1. Sort lines into natural top-to-bottom reading order
     const sortedLines = this.sortLinesReadingOrder(lines);
@@ -86,11 +89,30 @@ export class OcrLayoutStructureEngine {
       if (!kv.confidenceTier) kv.confidenceTier = tierOf(kv.confidence);
     });
 
+    // 6. Identify Document Sections on this page (Requirement 20)
+    const sections = DocumentStructureEngine.identifyPageSections({
+      pageNumber,
+      fullText: sortedLines.map((l) => l.text).join("\n"),
+      geometry: { width: 1000, height: 1414, dpi: 300, aspectRatio: 0.7072, rotation: 0 },
+      words: sortedLines.flatMap((l) => l.words || []),
+      lines: sortedLines,
+      blocks,
+      tables,
+      keyValuePairs,
+      averageConfidence: 90,
+      minConfidence: 80,
+      characterCount: sortedLines.reduce((acc, l) => acc + l.text.length, 0),
+      isNativeDigital: true,
+      isScannedRaster: false,
+      processingDurationMs: 0,
+    });
+
     return {
       sortedLines,
       blocks,
       tables,
       keyValuePairs,
+      sections,
     };
   }
 

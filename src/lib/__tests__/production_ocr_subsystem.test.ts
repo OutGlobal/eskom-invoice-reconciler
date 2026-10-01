@@ -70,17 +70,25 @@ import {
   NumericProtectionEngine,
   DateRecognitionEngine,
   TableReconstructionEngine,
+  DocumentStructureEngine,
+  OcrEvidenceModel,
+  OcrProcessingRunEngine,
   SOUTH_AFRICA_LOCALE_PROFILE,
   INTERNATIONAL_ANGLO_LOCALE_PROFILE,
   INTERNATIONAL_CONTINENTAL_LOCALE_PROFILE,
   INTERNATIONAL_SWISS_LOCALE_PROFILE,
   AUTO_DETECT_LOCALE_PROFILE,
   type CandidateDateRecognition,
+  type OcrTableCell,
   type OcrTableRow,
   type OcrTableColumn,
   type OcrMergedCell,
   type OcrTableTotalSummary,
   type OcrTableStructure,
+  type DocumentSectionType,
+  type UtilityDocumentFormatVariant,
+  type OcrDocumentSection,
+  type DocumentStructureAnalysis,
   type OcrLineBlock,
   type OcrWordToken,
   type OcrPageResult,
@@ -94,6 +102,9 @@ import {
   type ParsedNumericField,
   type ValidatedDateField,
   type NumericFieldCategory,
+  type OcrFieldEvidence,
+  type OcrProcessingRun,
+  type OcrPageProcessingRun,
 } from "../../domain/ocr";
 import { ProvenanceGuard } from "../../domain/intelligence/provenanceGuard";
 import { TenantIsolationViolationError } from "../../domain/security/tenantContextService";
@@ -2822,6 +2833,1165 @@ export async function runProductionOcrTestSuite() {
     const reconstructed = layout.tables[0];
     assert(reconstructed.tableRows.length === 5, "Layout engine produces full tableRows hierarchy");
     assert(reconstructed.tableColumns.length === 4, "Layout engine produces full tableColumns hierarchy");
+  }
+
+  // ===========================================================================
+  // TEST GROUP 21: Multi-Page Tables & Continuation Support (Requirement 19)
+  // ===========================================================================
+  console.log("\n==================================================================");
+  console.log("TEST GROUP 21: Multi-Page Tables & Continuation Support (Requirement 19)");
+  console.log("==================================================================");
+
+  // User Example for Requirement 19:
+  // Page 3:
+  // Energy Charges
+  // ...
+  // Page 4:
+  // continued
+  // ...
+
+  const page3EnergyLines: OcrLineBlock[] = [
+    {
+      lineId: "line-p3-hdr",
+      lineIndex: 0,
+      pageNumber: 3,
+      text: "ENERGY CHARGES",
+      confidence: 96,
+      boundingBox: [0.1, 0.2, 0.8, 0.03],
+      x: 0.1,
+      y: 0.2,
+      width: 0.8,
+      height: 0.03,
+      coordinateSystem: "NORMALIZED_0_1",
+      words: [],
+      baselineY: 0.22,
+    },
+    {
+      lineId: "line-p3-cols",
+      lineIndex: 1,
+      pageNumber: 3,
+      text: "TIME      ENERGY      RATE       AMOUNT",
+      confidence: 95,
+      boundingBox: [0.1, 0.24, 0.8, 0.03],
+      x: 0.1,
+      y: 0.24,
+      width: 0.8,
+      height: 0.03,
+      coordinateSystem: "NORMALIZED_0_1",
+      words: [],
+      baselineY: 0.26,
+    },
+    {
+      lineId: "line-p3-row1",
+      lineIndex: 2,
+      pageNumber: 3,
+      text: "Peak      12,500      2.45       30,625",
+      confidence: 94,
+      boundingBox: [0.1, 0.28, 0.8, 0.03],
+      x: 0.1,
+      y: 0.28,
+      width: 0.8,
+      height: 0.03,
+      coordinateSystem: "NORMALIZED_0_1",
+      words: [],
+      baselineY: 0.3,
+    },
+    {
+      lineId: "line-p3-row2",
+      lineIndex: 3,
+      pageNumber: 3,
+      text: "Standard  18,200      1.75       31,850",
+      confidence: 93,
+      boundingBox: [0.1, 0.32, 0.8, 0.03],
+      x: 0.1,
+      y: 0.32,
+      width: 0.8,
+      height: 0.03,
+      coordinateSystem: "NORMALIZED_0_1",
+      words: [],
+      baselineY: 0.34,
+    },
+  ];
+
+  const page4EnergyLines: OcrLineBlock[] = [
+    {
+      lineId: "line-p4-cont",
+      lineIndex: 0,
+      pageNumber: 4,
+      text: "Energy Charges (continued)",
+      confidence: 95,
+      boundingBox: [0.1, 0.1, 0.8, 0.03],
+      x: 0.1,
+      y: 0.1,
+      width: 0.8,
+      height: 0.03,
+      coordinateSystem: "NORMALIZED_0_1",
+      words: [],
+      baselineY: 0.12,
+    },
+    {
+      lineId: "line-p4-cols",
+      lineIndex: 1,
+      pageNumber: 4,
+      text: "TIME      ENERGY      RATE       AMOUNT",
+      confidence: 94,
+      boundingBox: [0.1, 0.14, 0.8, 0.03],
+      x: 0.1,
+      y: 0.14,
+      width: 0.8,
+      height: 0.03,
+      coordinateSystem: "NORMALIZED_0_1",
+      words: [],
+      baselineY: 0.16,
+    },
+    {
+      lineId: "line-p4-row1",
+      lineIndex: 2,
+      pageNumber: 4,
+      text: "OffPeak   25,000      0.90       22,500",
+      confidence: 94,
+      boundingBox: [0.1, 0.18, 0.8, 0.03],
+      x: 0.1,
+      y: 0.18,
+      width: 0.8,
+      height: 0.03,
+      coordinateSystem: "NORMALIZED_0_1",
+      words: [],
+      baselineY: 0.2,
+    },
+    {
+      lineId: "line-p4-total",
+      lineIndex: 3,
+      pageNumber: 4,
+      text: "Total     55,700                 84,975",
+      confidence: 96,
+      boundingBox: [0.1, 0.22, 0.8, 0.03],
+      x: 0.1,
+      y: 0.22,
+      width: 0.8,
+      height: 0.03,
+      coordinateSystem: "NORMALIZED_0_1",
+      words: [],
+      baselineY: 0.24,
+    },
+  ];
+
+  // Test 21.1: User example Page 3 "Energy Charges" continuing onto Page 4 "continued"
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Page 3 'Energy Charges' continuing onto Page 4 'continued'`);
+
+    const tableP3 = TableReconstructionEngine.reconstructTable(
+      page3EnergyLines.slice(1), // Starting from column headers
+      3,
+      { tableId: "table-page3-energy" },
+    );
+    const tableP4 = TableReconstructionEngine.reconstructTable(
+      page4EnergyLines,
+      4,
+      { tableId: "table-page4-energy-cont" },
+    );
+
+    assert(tableP3.pageNumber === 3, "Table on Page 3 has pageNumber = 3");
+    assert(tableP4.pageNumber === 4, "Table on Page 4 has pageNumber = 4");
+    assert(tableP4.continuationMarkerDetected === true, "Page 4 table detects continuation marker ('continued')");
+
+    const isCont = TableReconstructionEngine.isContinuation(tableP3, tableP4);
+    assert(isCont === true, "System recognises Page 4 table as continuation of Page 3 table");
+  }
+
+  // Test 21.2: Recognise same logical table and link constituent tables
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Recognise same logical table and link constituent tables`);
+
+    const tableP3 = TableReconstructionEngine.reconstructTable(
+      page3EnergyLines.slice(1),
+      3,
+      { tableId: "table-page3-energy" },
+    );
+    const tableP4 = TableReconstructionEngine.reconstructTable(
+      page4EnergyLines,
+      4,
+      { tableId: "table-page4-energy-cont" },
+    );
+
+    const merged = TableReconstructionEngine.mergeContinuationTables(tableP3, tableP4);
+
+    assert(merged !== undefined, "Successfully merged continuation tables");
+    assert(merged.isMultiPage === true, "Merged table is flagged as isMultiPage = true");
+    assert(merged.pagesSpanned.length === 2, "pagesSpanned contains 2 pages");
+    assert(merged.pagesSpanned[0] === 3 && merged.pagesSpanned[1] === 4, "pagesSpanned is exactly [3, 4]");
+    assert(merged.constituentTableIds.length === 2, "constituentTableIds contains both tables");
+    assert(merged.constituentTableIds.includes("table-page3-energy"), "Includes table-page3-energy");
+    assert(merged.constituentTableIds.includes("table-page4-energy-cont"), "Includes table-page4-energy-cont");
+
+    // Both constituent tables receive unified logicalTableId
+    assert(tableP3.logicalTableId === merged.logicalTableId, "Table on Page 3 assigned logicalTableId");
+    assert(tableP4.logicalTableId === merged.logicalTableId, "Table on Page 4 assigned logicalTableId");
+    assert(tableP3.continuesToTableId === "table-page4-energy-cont", "Page 3 table points forward to Page 4 table");
+    assert(tableP3.continuedOnPage === 4, "Page 3 table notes continuedOnPage = 4");
+    assert(tableP4.continuedFromTableId === "table-page3-energy", "Page 4 table points backward to Page 3 table");
+    assert(tableP4.continuedFromPage === 3, "Page 4 table notes continuedFromPage = 3");
+  }
+
+  // Test 21.3: Strict Page Provenance Preservation for Every Single Row & Cell
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Strict page provenance preservation for every single row and cell`);
+
+    const tableP3 = TableReconstructionEngine.reconstructTable(
+      page3EnergyLines.slice(1),
+      3,
+      { tableId: "table-p3" },
+    );
+    const tableP4 = TableReconstructionEngine.reconstructTable(
+      page4EnergyLines,
+      4,
+      { tableId: "table-p4" },
+    );
+
+    const merged = TableReconstructionEngine.mergeContinuationTables(tableP3, tableP4);
+
+    // Verify cell provenance
+    const p3Cells = merged.cells.filter((c) => c.pageNumber === 3);
+    const p4Cells = merged.cells.filter((c) => c.pageNumber === 4);
+
+    assert(p3Cells.length > 0, "Contains cells with pageNumber = 3");
+    assert(p4Cells.length > 0, "Contains cells with pageNumber = 4");
+    assert(p3Cells.length + p4Cells.length === merged.cells.length, "100% of cells preserve exact page provenance");
+
+    for (const cell of p3Cells) {
+      assert(cell.pageNumber === 3, `Cell ${cell.cellId} preserves pageNumber = 3`);
+      assert(cell.sourceTableId === "table-p3", `Cell ${cell.cellId} preserves sourceTableId = table-p3`);
+    }
+
+    for (const cell of p4Cells) {
+      assert(cell.pageNumber === 4, `Cell ${cell.cellId} preserves pageNumber = 4`);
+      assert(cell.sourceTableId === "table-p4", `Cell ${cell.cellId} preserves sourceTableId = table-p4`);
+    }
+
+    // Verify row provenance
+    const p3Rows = merged.tableRows!.filter((r) => r.pageNumber === 3);
+    const p4Rows = merged.tableRows!.filter((r) => r.pageNumber === 4);
+
+    assert(p3Rows.length > 0, "Contains rows with pageNumber = 3");
+    assert(p4Rows.length > 0, "Contains rows with pageNumber = 4");
+    assert(p3Rows.length + p4Rows.length === merged.tableRows!.length, "100% of rows preserve exact page provenance");
+
+    for (const row of p3Rows) {
+      assert(row.pageNumber === 3, `Row ${row.rowId} preserves pageNumber = 3`);
+      assert(row.sourceTableId === "table-p3", `Row ${row.rowId} preserves sourceTableId = table-p3`);
+    }
+
+    for (const row of p4Rows) {
+      assert(row.pageNumber === 4, `Row ${row.rowId} preserves pageNumber = 4`);
+      assert(row.sourceTableId === "table-p4", `Row ${row.rowId} preserves sourceTableId = table-p4`);
+    }
+  }
+
+  // Test 21.4: Multi-page document table stitching engine across 3 pages (Pages 2 -> 3 -> 4)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Multi-page document table stitching engine across 3 pages`);
+
+    const p2Lines: OcrLineBlock[] = [
+      {
+        lineId: "l-p2-h",
+        lineIndex: 0,
+        pageNumber: 2,
+        text: "TIME      ENERGY      RATE       AMOUNT",
+        confidence: 95,
+        boundingBox: [0.1, 0.5, 0.8, 0.03],
+        x: 0.1,
+        y: 0.5,
+        width: 0.8,
+        height: 0.03,
+        coordinateSystem: "NORMALIZED_0_1",
+        words: [],
+        baselineY: 0.52,
+      },
+      {
+        lineId: "l-p2-d1",
+        lineIndex: 1,
+        pageNumber: 2,
+        text: "Peak      10,000      2.50       25,000",
+        confidence: 94,
+        boundingBox: [0.1, 0.54, 0.8, 0.03],
+        x: 0.1,
+        y: 0.54,
+        width: 0.8,
+        height: 0.03,
+        coordinateSystem: "NORMALIZED_0_1",
+        words: [],
+        baselineY: 0.56,
+      },
+    ];
+
+    const p3Lines: OcrLineBlock[] = [
+      {
+        lineId: "l-p3-h",
+        lineIndex: 0,
+        pageNumber: 3,
+        text: "TIME      ENERGY      RATE       AMOUNT",
+        confidence: 95,
+        boundingBox: [0.1, 0.1, 0.8, 0.03],
+        x: 0.1,
+        y: 0.1,
+        width: 0.8,
+        height: 0.03,
+        coordinateSystem: "NORMALIZED_0_1",
+        words: [],
+        baselineY: 0.12,
+      },
+      {
+        lineId: "l-p3-d1",
+        lineIndex: 1,
+        pageNumber: 3,
+        text: "Standard  20,000      1.50       30,000",
+        confidence: 94,
+        boundingBox: [0.1, 0.14, 0.8, 0.03],
+        x: 0.1,
+        y: 0.14,
+        width: 0.8,
+        height: 0.03,
+        coordinateSystem: "NORMALIZED_0_1",
+        words: [],
+        baselineY: 0.16,
+      },
+    ];
+
+    const p4Lines: OcrLineBlock[] = [
+      {
+        lineId: "l-p4-c",
+        lineIndex: 0,
+        pageNumber: 4,
+        text: "continued",
+        confidence: 95,
+        boundingBox: [0.1, 0.1, 0.8, 0.03],
+        x: 0.1,
+        y: 0.1,
+        width: 0.8,
+        height: 0.03,
+        coordinateSystem: "NORMALIZED_0_1",
+        words: [],
+        baselineY: 0.12,
+      },
+      {
+        lineId: "l-p4-d1",
+        lineIndex: 1,
+        pageNumber: 4,
+        text: "OffPeak   30,000      1.00       30,000",
+        confidence: 94,
+        boundingBox: [0.1, 0.14, 0.8, 0.03],
+        x: 0.1,
+        y: 0.14,
+        width: 0.8,
+        height: 0.03,
+        coordinateSystem: "NORMALIZED_0_1",
+        words: [],
+        baselineY: 0.16,
+      },
+      {
+        lineId: "l-p4-tot",
+        lineIndex: 2,
+        pageNumber: 4,
+        text: "Total     60,000                 85,000",
+        confidence: 95,
+        boundingBox: [0.1, 0.18, 0.8, 0.03],
+        x: 0.1,
+        y: 0.18,
+        width: 0.8,
+        height: 0.03,
+        coordinateSystem: "NORMALIZED_0_1",
+        words: [],
+        baselineY: 0.2,
+      },
+    ];
+
+    const t2 = TableReconstructionEngine.reconstructTable(p2Lines, 2, { tableId: "tab-p2" });
+    const t3 = TableReconstructionEngine.reconstructTable(p3Lines, 3, { tableId: "tab-p3" });
+    const t4 = TableReconstructionEngine.reconstructTable(p4Lines, 4, { tableId: "tab-p4" });
+
+    const { multiPageTables } = TableReconstructionEngine.stitchMultiPageTables([t2, t3, t4]);
+
+    assert(multiPageTables.length === 1, "Discovered exactly 1 multi-page continuation table");
+    const multiTab = multiPageTables[0];
+    assert(multiTab.isMultiPage === true, "Multi-page table flagged isMultiPage = true");
+    assert(multiTab.pagesSpanned.length === 3, "Spans 3 distinct pages");
+    assert(JSON.stringify(multiTab.pagesSpanned) === JSON.stringify([2, 3, 4]), "pagesSpanned is [2, 3, 4]");
+
+    // Verify cell provenance for each page in 3-page chain
+    assert(multiTab.cells.some((c) => c.pageNumber === 2), "Preserves Page 2 cell provenance");
+    assert(multiTab.cells.some((c) => c.pageNumber === 3), "Preserves Page 3 cell provenance");
+    assert(multiTab.cells.some((c) => c.pageNumber === 4), "Preserves Page 4 cell provenance");
+  }
+
+  // ===========================================================================
+  // TEST GROUP 22: Document Structure & Multi-Format Utility Model (Requirement 20)
+  // ===========================================================================
+  console.log("\n==================================================================");
+  console.log("TEST GROUP 22: Document Structure & Multi-Format Utility Model (Requirement 20)");
+  console.log("==================================================================");
+
+  // Helper to generate a realistic mock page with lines
+  function makeMockOcrPage(
+    pageNumber: number,
+    sectionHeadings: Array<{ title: string; y: number }>,
+    otherLines: Array<{ text: string; y: number }> = [],
+  ): OcrPageResult {
+    const allLineTuples = [
+      ...sectionHeadings.map((s) => ({ text: s.title, y: s.y, isHdr: true })),
+      ...otherLines.map((o) => ({ text: o.text, y: o.y, isHdr: false })),
+    ].sort((a, b) => a.y - b.y);
+
+    const lines: OcrLineBlock[] = allLineTuples.map((l, idx) => ({
+      lineId: `line-p${pageNumber}-${idx}`,
+      lineIndex: idx,
+      pageNumber,
+      text: l.text,
+      confidence: 94,
+      boundingBox: [0.1, l.y, 0.8, 0.03],
+      x: 0.1,
+      y: l.y,
+      width: 0.8,
+      height: 0.03,
+      coordinateSystem: "NORMALIZED_0_1",
+      words: [],
+      baselineY: l.y + 0.02,
+    }));
+
+    return {
+      pageNumber,
+      fullText: lines.map((l) => l.text).join("\n"),
+      geometry: { width: 1000, height: 1414, dpi: 300, aspectRatio: 0.7072, rotation: 0 },
+      words: [],
+      lines,
+      blocks: [],
+      tables: [],
+      keyValuePairs: [],
+      averageConfidence: 94,
+      minConfidence: 90,
+      characterCount: lines.reduce((acc, l) => acc + l.text.length, 0),
+      isNativeDigital: true,
+      isScannedRaster: false,
+      processingDurationMs: 10,
+    };
+  }
+
+  // Test 22.1: Identification of all 10 target document sections
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Identification of all 10 required document sections`);
+
+    const all10Sections = [
+      { title: "CUSTOMER INFORMATION", y: 0.05 },
+      { title: "ACCOUNT INFORMATION", y: 0.15 },
+      { title: "METER INFORMATION", y: 0.25 },
+      { title: "BILLING PERIOD", y: 0.35 },
+      { title: "ENERGY CHARGES", y: 0.45 },
+      { title: "DEMAND CHARGES", y: 0.55 },
+      { title: "NETWORK CHARGES", y: 0.65 },
+      { title: "REACTIVE ENERGY", y: 0.75 },
+      { title: "VALUE ADDED TAX", y: 0.85 },
+      { title: "TOTAL AMOUNT DUE", y: 0.92 },
+    ];
+
+    const mockPage = makeMockOcrPage(1, all10Sections, [
+      { text: "Acme Industrial Pty Ltd", y: 0.08 },
+      { text: "Account No: 1234567890", y: 0.18 },
+      { text: "Meter Serial: MTR-998877", y: 0.28 },
+      { text: "Period: 2026-08-01 to 2026-08-31", y: 0.38 },
+      { text: "Active Energy: R 54,320.00", y: 0.48 },
+      { text: "Maximum Demand: R 18,200.00", y: 0.58 },
+      { text: "Network Access Charge: R 6,500.00", y: 0.68 },
+      { text: "Reactive Energy kvarh: R 2,100.00", y: 0.78 },
+      { text: "VAT @ 15%: R 12,168.00", y: 0.88 },
+      { text: "Amount Payable: R 93,288.00", y: 0.95 },
+    ]);
+
+    const structure = DocumentStructureEngine.analyzeDocumentStructure([mockPage], "doc-full-10");
+
+    assert(structure.sections.length === 10, "Discovered exactly 10 distinct semantic sections");
+
+    const detectedTypes = new Set(structure.sections.map((s) => s.sectionType));
+    assert(detectedTypes.has("CUSTOMER_INFORMATION"), "Discovered CUSTOMER_INFORMATION section");
+    assert(detectedTypes.has("ACCOUNT_INFORMATION"), "Discovered ACCOUNT_INFORMATION section");
+    assert(detectedTypes.has("METER_INFORMATION"), "Discovered METER_INFORMATION section");
+    assert(detectedTypes.has("BILLING_PERIOD"), "Discovered BILLING_PERIOD section");
+    assert(detectedTypes.has("ENERGY_CHARGES"), "Discovered ENERGY_CHARGES section");
+    assert(detectedTypes.has("DEMAND_CHARGES"), "Discovered DEMAND_CHARGES section");
+    assert(detectedTypes.has("NETWORK_CHARGES"), "Discovered NETWORK_CHARGES section");
+    assert(detectedTypes.has("REACTIVE_ENERGY"), "Discovered REACTIVE_ENERGY section");
+    assert(detectedTypes.has("TAX"), "Discovered TAX section");
+    assert(detectedTypes.has("TOTAL"), "Discovered TOTAL section");
+
+    // Check strongly typed convenience getters
+    assert(structure.customerSection !== undefined, "customerSection getter populated");
+    assert(structure.accountSection !== undefined, "accountSection getter populated");
+    assert(structure.meterSection !== undefined, "meterSection getter populated");
+    assert(structure.billingPeriodSection !== undefined, "billingPeriodSection getter populated");
+    assert(structure.energyChargesSection !== undefined, "energyChargesSection getter populated");
+    assert(structure.demandChargesSection !== undefined, "demandChargesSection getter populated");
+    assert(structure.networkChargesSection !== undefined, "networkChargesSection getter populated");
+    assert(structure.reactiveEnergySection !== undefined, "reactiveEnergySection getter populated");
+    assert(structure.taxSection !== undefined, "taxSection getter populated");
+    assert(structure.totalSection !== undefined, "totalSection getter populated");
+  }
+
+  // Test 22.2: Flexible non-hardcoded layout invariance (Arbitrary section order)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Flexible non-hardcoded layout invariance (arbitrary section order)`);
+
+    // Inverted ordering: TOTAL at top banner, then ACCOUNT, then ENERGY, then CUSTOMER
+    const invertedSections = [
+      { title: "TOTAL AMOUNT DUE", y: 0.05 },
+      { title: "ACCOUNT DETAILS", y: 0.2 },
+      { title: "ENERGY CHARGES", y: 0.4 },
+      { title: "CUSTOMER DETAILS", y: 0.6 },
+      { title: "METER PARTICULARS", y: 0.8 },
+    ];
+
+    const mockPageInverted = makeMockOcrPage(1, invertedSections, [
+      { text: "Total Payable: R 45,000.00", y: 0.08 },
+      { text: "Tax Invoice: INV-2026-001", y: 0.23 },
+      { text: "Standard Energy: 15000 kWh", y: 0.43 },
+      { text: "Delivery: Pretoria Industrial", y: 0.63 },
+      { text: "Meter: KVA-1002", y: 0.83 },
+    ]);
+
+    const structure = DocumentStructureEngine.analyzeDocumentStructure([mockPageInverted], "doc-inverted");
+
+    assert(structure.totalSection !== undefined, "Discovers TOTAL even when placed at the top banner");
+    assert(structure.customerSection !== undefined, "Discovers CUSTOMER even when placed after charges");
+    assert(structure.meterSection !== undefined, "Discovers METER even at the bottom");
+    assert(structure.sections.length === 5, "Discovered all 5 inverted sections without hardcoded assumptions");
+
+    // Reading order preserves spatial sequence
+    assert(structure.readingOrderSections[0].sectionType === "TOTAL", "First in reading order is TOTAL banner");
+    assert(structure.readingOrderSections[1].sectionType === "ACCOUNT_INFORMATION", "Second is ACCOUNT");
+  }
+
+  // Test 22.3: Eskom Direct Format Variants (Standard Megaflex vs Large Power Transmission)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Eskom Direct format variants (Megaflex Standard vs Large Power)`);
+
+    const pageStandard = makeMockOcrPage(1, [
+      { title: "ESKOM HOLDINGS SOC LTD", y: 0.02 },
+      { title: "MEGAFLEX TARIFF INVOICE", y: 0.05 },
+      { title: "ENERGY CHARGES", y: 0.2 },
+    ]);
+    const variantStandard = DocumentStructureEngine.detectFormatVariant([pageStandard]);
+    assert(variantStandard === "ESKOM_DIRECT_STANDARD", "Correctly classifies Eskom Megaflex as ESKOM_DIRECT_STANDARD");
+
+    const pageLargePower = makeMockOcrPage(1, [
+      { title: "ESKOM TRANSMISSION DIVISION", y: 0.02 },
+      { title: "TRANSMISSION GENERATOR CONNECTION", y: 0.05 },
+      { title: "DEMAND CHARGES", y: 0.2 },
+    ]);
+    const variantLargePower = DocumentStructureEngine.detectFormatVariant([pageLargePower]);
+    assert(variantLargePower === "ESKOM_DIRECT_LARGE_POWER", "Correctly classifies Eskom Transmission as ESKOM_DIRECT_LARGE_POWER");
+  }
+
+  // Test 22.4: South African Municipal Formats Diversity
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] South African municipal formats diversity`);
+
+    // 1. City Power / City of Johannesburg
+    const pJhb = makeMockOcrPage(1, [
+      { title: "CITY OF JOHANNESBURG - CITY POWER", y: 0.05 },
+      { title: "CONSUMER DETAILS", y: 0.15 },
+    ]);
+    assert(
+      DocumentStructureEngine.detectFormatVariant([pJhb]) === "MUNICIPAL_CITY_POWER_JHB",
+      "Identifies City Power Johannesburg",
+    );
+
+    // 2. City of Cape Town (Bilingual English / Afrikaans / isiXhosa)
+    const pCpt = makeMockOcrPage(1, [
+      { title: "CITY OF CAPE TOWN / STAD KAAPSTAD / ISIXEKO SASEKAPA", y: 0.05 },
+      { title: "REKENING BESONDERHEDE", y: 0.15 },
+      { title: "ELEKTRISITEIT HEFFING", y: 0.35 },
+      { title: "TOTALE BEDRAG", y: 0.6 },
+    ]);
+    assert(
+      DocumentStructureEngine.detectFormatVariant([pCpt]) === "MUNICIPAL_CITY_OF_CAPE_TOWN",
+      "Identifies City of Cape Town",
+    );
+
+    // Verify Cape Town Afrikaans section recognition
+    const cptStructure = DocumentStructureEngine.analyzeDocumentStructure([pCpt]);
+    assert(cptStructure.accountSection !== undefined, "Recognises Afrikaans 'REKENING BESONDERHEDE' as ACCOUNT");
+    assert(cptStructure.energyChargesSection !== undefined, "Recognises Afrikaans 'ELEKTRISITEIT HEFFING' as ENERGY");
+    assert(cptStructure.totalSection !== undefined, "Recognises Afrikaans 'TOTALE BEDRAG' as TOTAL");
+
+    // 3. eThekwini (Durban Electricity)
+    const pDbn = makeMockOcrPage(1, [{ title: "ETHEKWINI MUNICIPALITY - DURBAN ELECTRICITY", y: 0.05 }]);
+    assert(
+      DocumentStructureEngine.detectFormatVariant([pDbn]) === "MUNICIPAL_ETHEKWINI",
+      "Identifies eThekwini Municipality",
+    );
+
+    // 4. City of Tshwane (Pretoria)
+    const pTsh = makeMockOcrPage(1, [{ title: "CITY OF TSHWANE METROPOLITAN MUNICIPALITY", y: 0.05 }]);
+    assert(
+      DocumentStructureEngine.detectFormatVariant([pTsh]) === "MUNICIPAL_TSHWANE",
+      "Identifies City of Tshwane",
+    );
+
+    // 5. Ekurhuleni
+    const pEkur = makeMockOcrPage(1, [{ title: "CITY OF EKURHULENI METROPOLITAN MUNICIPALITY", y: 0.05 }]);
+    assert(
+      DocumentStructureEngine.detectFormatVariant([pEkur]) === "MUNICIPAL_EKURHULENI",
+      "Identifies City of Ekurhuleni",
+    );
+
+    // 6. Mangaung (Bloemfontein)
+    const pMng = makeMockOcrPage(1, [{ title: "MANGAUNG METROPOLITAN MUNICIPALITY", y: 0.05 }]);
+    assert(
+      DocumentStructureEngine.detectFormatVariant([pMng]) === "MUNICIPAL_MANGAUNG",
+      "Identifies Mangaung Metropolitan Municipality",
+    );
+
+    // 7. Nelson Mandela Bay (Gqeberha)
+    const pNmb = makeMockOcrPage(1, [{ title: "NELSON MANDELA BAY MUNICIPALITY - GQEBERHA", y: 0.05 }]);
+    assert(
+      DocumentStructureEngine.detectFormatVariant([pNmb]) === "MUNICIPAL_NELSON_MANDELA_BAY",
+      "Identifies Nelson Mandela Bay Municipality",
+    );
+  }
+
+  // Test 22.5: Section content isolation and bounding box preservation
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Section content isolation and bounding box preservation`);
+
+    const mockPage = makeMockOcrPage(
+      1,
+      [
+        { title: "CUSTOMER INFORMATION", y: 0.1 },
+        { title: "TOTAL AMOUNT DUE", y: 0.5 },
+      ],
+      [
+        { text: "Sappi Southern Africa Ltd", y: 0.14 },
+        { text: "100 Paper Mill Road", y: 0.18 },
+        { text: "Current Due: R 1,234,567.89", y: 0.54 },
+      ],
+    );
+
+    const sections = DocumentStructureEngine.identifyPageSections(mockPage);
+    assert(sections.length === 2, "Identified 2 bounded sections");
+
+    const custSec = sections.find((s) => s.sectionType === "CUSTOMER_INFORMATION");
+    const totSec = sections.find((s) => s.sectionType === "TOTAL");
+
+    assert(custSec !== undefined, "Found Customer Information section");
+    assert(totSec !== undefined, "Found Total Amount Due section");
+
+    // Content isolation
+    assert(custSec!.rawText.includes("Sappi Southern Africa Ltd"), "Customer section contains company name");
+    assert(!custSec!.rawText.includes("1,234,567.89"), "Customer section strictly excludes total amount");
+    assert(totSec!.rawText.includes("1,234,567.89"), "Total section contains invoice total");
+    assert(!totSec!.rawText.includes("Sappi"), "Total section strictly excludes customer name");
+
+    // Bounding boxes
+    assert(custSec!.boundingBox[1] >= 0.09, "Customer section bounded appropriately in Y dimension");
+    assert(totSec!.boundingBox[1] >= 0.49, "Total section bounded appropriately in Y dimension");
+  }
+
+  // Test 22.6: HybridDocumentProcessor produces full documentStructure and multiPageTables
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] HybridDocumentProcessor produces full documentStructure and multiPageTables`);
+
+    const rasterBuffer = generateSyntheticImageBuffer(400, 300, "text_bars");
+
+    const result = await HybridDocumentProcessor.processDocument(
+      {
+        name: "utility_bill.png",
+        bytes: new Uint8Array(rasterBuffer.buffer),
+        mimeType: "image/png",
+      },
+      {
+        organisationId: "org-test-multi",
+      },
+    );
+
+    assert(result.documentStructure !== undefined, "HybridDocumentProcessor outputs documentStructure");
+    assert(Array.isArray(result.documentStructure!.sections), "documentStructure has sections array");
+    assert(Array.isArray(result.sections), "Result exposes top-level sections array");
+    assert(Array.isArray(result.multiPageTables), "Result exposes multiPageTables array");
+    assert(typeof result.documentStructure!.detectedFormatVariant === "string", "Result detects format variant");
+  }
+
+
+  // ===========================================================================
+  // TEST GROUP 23: EVIDENCE MODEL (Requirement 21)
+  // ===========================================================================
+  console.log("\n--- TEST GROUP 23: EVIDENCE MODEL (Requirement 21) ---");
+
+  // Test 23.1: Explicit User Specification Verification
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Explicit User Specification Verification (Field, Value, Document, Page, OCR, Source Text, Bounding Box, Confidence, Processing Run)`);
+
+    const evidence = OcrEvidenceModel.createFieldEvidence<string>({
+      field: "Account Number",
+      value: "123456789",
+      document: "document-001",
+      page: 1,
+      ocr: true,
+      sourceText: "123456789",
+      boundingBox: [100, 200, 300, 40],
+      confidence: 98,
+      processingRun: "ocr-run-001",
+    });
+
+    // Exact required field names
+    assert(evidence.field === "Account Number", "Field matches exact requirement 'Account Number'");
+    assert(evidence.value === "123456789", "Value matches exact requirement '123456789'");
+    assert(evidence.document === "document-001", "Document matches exact requirement 'document-001'");
+    assert(evidence.page === 1, "Page matches exact requirement 1");
+    assert(evidence.ocr === true, "OCR matches exact requirement true");
+    assert(evidence.sourceText === "123456789", "Source text matches exact requirement '123456789'");
+    assert(
+      Array.isArray(evidence.boundingBox) &&
+      evidence.boundingBox[0] === 100 &&
+      evidence.boundingBox[1] === 200 &&
+      evidence.boundingBox[2] === 300 &&
+      evidence.boundingBox[3] === 40,
+      "Bounding box matches exact coordinates [100, 200, 300, 40]",
+    );
+    assert(evidence.confidence === 98, "Confidence matches exact requirement 98%");
+    assert(evidence.processingRun === "ocr-run-001", "Processing run matches exact requirement 'ocr-run-001'");
+
+    // Canonical alias validation
+    assert(evidence.fieldKey === "accountNumber", "Auto-derives fieldKey 'accountNumber'");
+    assert(evidence.fieldLabel === "Account Number", "Matches fieldLabel");
+    assert(evidence.documentId === "document-001", "Document ID alias matches");
+    assert(evidence.pageNumber === 1, "Page number alias matches");
+    assert(evidence.isOcr === true, "isOcr alias matches");
+    assert(evidence.ocrRunId === "ocr-run-001", "ocrRunId alias matches");
+    assert(evidence.confidenceScore === 98, "confidenceScore alias matches");
+    assert(evidence.confidenceTier === "HIGH", "Confidence >= 85% maps to HIGH tier");
+  }
+
+  // Test 23.2: Determinant Field Conversion with Bounding Box and Coordinate Preservation
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Determinant Field Conversion with Bounding Box and Coordinate Preservation`);
+
+    const detField: OcrDeterminantField<number> = {
+      fieldKey: "totalAmountDue",
+      fieldLabel: "Total Amount Due",
+      value: 12345.67,
+      rawValue: "R 12,345.67",
+      provenance: {
+        documentId: "doc-inv-999",
+        pageNumber: 2,
+        extractionMethod: "OCR_KEY_VALUE",
+        hasExactBoundingBox: true,
+        boundingBox: [0.65, 0.85, 0.25, 0.05],
+        confidenceScore: 95.5,
+        confidenceTier: "HIGH",
+        x: 0.65,
+        y: 0.85,
+        width: 0.25,
+        height: 0.05,
+        coordinateSystem: "NORMALIZED_0_1",
+        detailedBoundingBox: {
+          pageNumber: 2,
+          x: 0.65,
+          y: 0.85,
+          width: 0.25,
+          height: 0.05,
+          coordinateSystem: "NORMALIZED_0_1",
+          confidence: 95.5,
+        },
+        ocrRunId: "run-inv-2026-001",
+        processingRun: "run-inv-2026-001",
+        ocr: true,
+        isOcr: true,
+        sourceText: "Total: R 12,345.67",
+      },
+    };
+
+    const evidence = OcrEvidenceModel.fromDeterminantField(detField, "doc-inv-999", "run-inv-2026-001");
+
+    assert(evidence.field === "Total Amount Due", "Converted field label is preserved");
+    assert(evidence.fieldKey === "totalAmountDue", "Converted field key is preserved");
+    assert(evidence.value === 12345.67, "Numeric value preserved");
+    assert(evidence.rawValue === "R 12,345.67", "Raw value preserved without mutation");
+    assert(evidence.document === "doc-inv-999", "Document ID matches");
+    assert(evidence.page === 2, "Page number matches");
+    assert(evidence.ocr === true, "OCR flag matches");
+    assert(evidence.sourceText === "Total: R 12,345.67", "Source text snippet preserved");
+    assert(evidence.confidence === 95.5, "Confidence score preserved");
+    assert(evidence.processingRun === "run-inv-2026-001", "Processing run ID preserved");
+    assert(evidence.coordinateSystem === "NORMALIZED_0_1", "Coordinate system preserved");
+    assert(evidence.detailedBoundingBox !== undefined, "Detailed bounding box preserved");
+  }
+
+  // Test 23.3: Comprehensive Evidence Package Compilation from Extracted Determinants
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Comprehensive Evidence Package Compilation from Extracted Determinants`);
+
+    const mockDeterminants = {
+      accountNumber: {
+        fieldKey: "accountNumber",
+        fieldLabel: "Account Number",
+        value: "0123456789",
+        rawValue: "0123456789",
+        provenance: {
+          documentId: "doc-test-1",
+          pageNumber: 1,
+          extractionMethod: "OCR_KEY_VALUE" as const,
+          hasExactBoundingBox: true,
+          boundingBox: [0.1, 0.2, 0.3, 0.04] as [number, number, number, number],
+          confidenceScore: 99,
+          confidenceTier: "HIGH" as const,
+          ocrRunId: "run-pkg-001",
+          processingRun: "run-pkg-001",
+          ocr: true,
+          isOcr: true,
+          sourceText: "0123456789",
+        },
+      },
+      invoiceNumber: {
+        fieldKey: "invoiceNumber",
+        fieldLabel: "Invoice Number",
+        value: "INV-2026-888",
+        rawValue: "INV-2026-888",
+        provenance: {
+          documentId: "doc-test-1",
+          pageNumber: 1,
+          extractionMethod: "OCR_TESSERACT" as const,
+          hasExactBoundingBox: true,
+          boundingBox: [0.5, 0.2, 0.2, 0.04] as [number, number, number, number],
+          confidenceScore: 94,
+          confidenceTier: "HIGH" as const,
+          ocrRunId: "run-pkg-001",
+          processingRun: "run-pkg-001",
+          ocr: true,
+          isOcr: true,
+          sourceText: "Invoice No: INV-2026-888",
+        },
+      },
+      missingOptionalField: {
+        fieldKey: "taxInvoiceNumber",
+        fieldLabel: "Tax Invoice Number",
+        value: null,
+        rawValue: "",
+        provenance: {
+          documentId: "doc-test-1",
+          pageNumber: 1,
+          extractionMethod: "OCR_TESSERACT" as const,
+          hasExactBoundingBox: false,
+          contextSnippet: "Unobserved",
+          confidenceScore: 0,
+          confidenceTier: "LOW" as const,
+        },
+      },
+    };
+
+    const pkg = OcrEvidenceModel.compileEvidencePackage(mockDeterminants, "doc-test-1", "run-pkg-001");
+
+    assert(pkg.accountNumber !== undefined, "Compiled accountNumber evidence");
+    assert(pkg.invoiceNumber !== undefined, "Compiled invoiceNumber evidence");
+    assert(pkg.missingOptionalField === undefined, "Strictly omits null / ungrounded optional fields from evidence package");
+    assert(pkg.accountNumber.document === "doc-test-1", "Document ID matches in package");
+    assert(pkg.accountNumber.processingRun === "run-pkg-001", "Processing run matches in package");
+  }
+
+  // Test 23.4: Rigorous Evidence Model Validation & Boundary Condition Guarding
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Rigorous Evidence Model Validation & Boundary Condition Guarding`);
+
+    // Valid evidence
+    const validEvidence = OcrEvidenceModel.createFieldEvidence({
+      field: "Meter Number",
+      value: "MTR-987654",
+      document: "doc-001",
+      page: 1,
+      ocr: true,
+      sourceText: "MTR-987654",
+      boundingBox: [0.1, 0.2, 0.3, 0.05],
+      confidence: 90,
+      processingRun: "run-001",
+    });
+
+    const validReport = OcrEvidenceModel.validateFieldEvidence(validEvidence);
+    assert(validReport.valid === true, "Valid evidence passes validation check");
+    assert(validReport.errors.length === 0, "No errors reported for valid evidence");
+
+    // Invalid evidence (missing document, negative page, confidence > 100, invalid bbox)
+    const invalidEvidence: any = {
+      field: "",
+      value: "test",
+      document: "",
+      page: 0,
+      ocr: true,
+      sourceText: "",
+      boundingBox: [10, 20], // only 2 items instead of 4
+      confidence: 150,
+      processingRun: "",
+    };
+
+    const invalidReport = OcrEvidenceModel.validateFieldEvidence(invalidEvidence);
+    assert(invalidReport.valid === false, "Invalid evidence fails validation check");
+    assert(invalidReport.errors.length >= 4, "Detects all validation issues");
+  }
+
+  // Test 23.5: Bidirectional Conversion with Canonical ProvenancedField & Ledger Compatibility
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Bidirectional Conversion with Canonical ProvenancedField & Ledger Compatibility`);
+
+    const originalEvidence = OcrEvidenceModel.createFieldEvidence({
+      field: "VAT Registration Number",
+      fieldKey: "vatRegistrationNumber",
+      value: "4123456789",
+      rawValue: "VAT: 4123456789",
+      document: "doc-vat-001",
+      page: 1,
+      ocr: true,
+      sourceText: "VAT Reg: 4123456789",
+      boundingBox: [0.15, 0.35, 0.25, 0.03],
+      confidence: 96,
+      processingRun: "run-vat-001",
+    });
+
+    // To ProvenancedField
+    const provField = OcrEvidenceModel.toProvenancedField(originalEvidence);
+    assert(provField.fieldKey === "vatRegistrationNumber", "ProvenancedField key matches");
+    assert(provField.value === "4123456789", "ProvenancedField value matches");
+    assert(provField.page === 1, "ProvenancedField page matches");
+    assert(provField.provenance.pageNumber === 1, "ProvenancedField provenance pageNumber matches");
+    assert(provField.provenance.confidenceScore === 0.96, "Confidence normalized to [0, 1] range for ProvenanceGuard ledger");
+    assert(provField.runId === "run-vat-001", "Run ID preserved in ProvenancedField");
+
+    // Roundtrip back to OcrFieldEvidence
+    const roundtrip = OcrEvidenceModel.fromProvenancedField(provField, "VAT Registration Number");
+    assert(roundtrip.field === "VAT Registration Number", "Roundtrip field name preserved");
+    assert(roundtrip.value === "4123456789", "Roundtrip value preserved");
+    assert(roundtrip.document === "doc-vat-001", "Roundtrip document preserved");
+    assert(roundtrip.confidence === 96, "Roundtrip confidence recovered to 96%");
+    assert(roundtrip.processingRun === "run-vat-001", "Roundtrip run ID preserved");
+  }
+
+  // Test 23.6: Audit Trail Explanations & Evidence Tracing Chain
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Audit Trail Explanations & Evidence Tracing Chain`);
+
+    const evidence = OcrEvidenceModel.createFieldEvidence({
+      field: "Account Number",
+      value: "123456789",
+      document: "document-001",
+      page: 1,
+      ocr: true,
+      sourceText: "123456789",
+      boundingBox: [100, 200, 300, 40],
+      confidence: 98,
+      processingRun: "ocr-run-001",
+    });
+
+    const trace = OcrEvidenceModel.traceEvidence(evidence);
+    assert(trace.isGrounded === true, "Evidence marked as grounded");
+    assert(trace.found === true, "Evidence marked as found");
+    assert(trace.explanation.includes("Account Number"), "Explanation references field label");
+    assert(trace.explanation.includes("123456789"), "Explanation references value");
+    assert(trace.explanation.includes("document-001"), "Explanation references document ID");
+    assert(trace.explanation.includes("ocr-run-001"), "Explanation references OCR run ID");
+    assert(trace.evidenceChain.includes("document-001 -> Page 1"), "Evidence chain traces hierarchical provenance");
+    assert(trace.evidenceChain.includes("ocr-run-001"), "Evidence chain references OCR processing run");
+  }
+
+  // ===========================================================================
+  // TEST GROUP 24: OCR PROCESSING RUNS (Requirement 22)
+  // ===========================================================================
+  console.log("\n--- TEST GROUP 24: OCR PROCESSING RUNS (Requirement 22) ---");
+
+  // Test 24.1: Processing Run Creation with all 14 Mandatory Fields
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Processing Run Creation with all 14 Mandatory Fields`);
+
+    const run = OcrProcessingRunEngine.createRun({
+      documentId: "doc-run-001",
+      pageId: "page-1",
+      provider: "TESSERACT_OCR",
+      providerVersion: "5.3.0",
+      configuration: { psm: 6, oem: 1, dpi: 300 },
+      language: "eng+afr+zul",
+      preprocessingVersion: "2.1.0",
+      outputVersion: "1.0.0",
+    });
+
+    // Verify all 14 mandatory fields
+    assert(typeof run.ocrRunId === "string" && run.ocrRunId.length > 0, "1. OCR run ID present");
+    assert(run.documentId === "doc-run-001", "2. document ID matches");
+    assert(run.pageId === "page-1", "3. page ID matches");
+    assert(run.provider === "TESSERACT_OCR", "4. provider matches");
+    assert(run.providerVersion === "5.3.0", "5. provider version matches");
+    assert(typeof run.configuration === "object", "6. configuration is structured object");
+    assert(run.language === "eng+afr+zul", "7. language matches");
+    assert(run.preprocessingVersion === "2.1.0", "8. preprocessing version matches");
+    assert(typeof run.startTime === "string" && !isNaN(Date.parse(run.startTime)), "9. start time is valid ISO timestamp");
+    assert(run.endTime === null || run.endTime === undefined, "10. end time is null initially");
+    assert(run.processingDuration === null || typeof run.processingDuration === "number", "11. processing duration initialized");
+    assert(run.status === "RUNNING", "12. status is RUNNING");
+    assert(run.error === null || run.error === undefined, "13. error is null initially");
+    assert(run.outputVersion === "1.0.0", "14. output version matches");
+  }
+
+  // Test 24.2: Page-Level Processing Runs & Cumulative Run Completion
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Page-Level Processing Runs & Cumulative Run Completion`);
+
+    const run = OcrProcessingRunEngine.createRun({
+      documentId: "doc-multi-page-run",
+      totalPages: 2,
+    });
+
+    // Page 1
+    const page1Run = OcrProcessingRunEngine.createPageRun(run.ocrRunId, "doc-multi-page-run", 1);
+    assert(page1Run.pageNumber === 1, "Page 1 run pageNumber is 1");
+    assert(page1Run.status === "RUNNING", "Page 1 status is RUNNING");
+
+    // Simulate page 1 work and complete
+    const completedPage1 = OcrProcessingRunEngine.completePageRun(page1Run, {
+      wordCount: 150,
+      lineCount: 20,
+      tableCount: 1,
+      confidence: 94.2,
+      confidenceTier: "HIGH",
+    });
+
+    assert(completedPage1.status === "COMPLETED", "Page 1 status marked COMPLETED");
+    assert(completedPage1.endTime !== undefined, "Page 1 endTime recorded");
+    assert(completedPage1.processingDuration >= 0, "Page 1 duration computed");
+    assert(completedPage1.wordCount === 150, "Page 1 word count recorded");
+    assert(completedPage1.tableCount === 1, "Page 1 table count recorded");
+
+    // Complete overall run
+    const completedRun = OcrProcessingRunEngine.completeRun(run.ocrRunId, {
+      totalWords: 300,
+      totalLines: 40,
+      totalTables: 2,
+      overallConfidence: 93.8,
+      overallConfidenceTier: "HIGH",
+      pageRuns: [completedPage1],
+    });
+
+    assert(completedRun.status === "COMPLETED", "Overall run marked COMPLETED");
+    assert(typeof completedRun.endTime === "string", "Overall run endTime recorded");
+    assert(completedRun.processingDuration >= 0, "Overall run processingDuration >= 0");
+    assert(completedRun.pageRuns.length === 1, "Page runs attached to overall run");
+    assert(completedRun.totalWords === 300, "Total words recorded");
+  }
+
+  // Test 24.3: Processing Run Error Tracking & Failure Lifecycle
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Processing Run Error Tracking & Failure Lifecycle`);
+
+    const run = OcrProcessingRunEngine.createRun({
+      documentId: "doc-corrupted-pdf",
+    });
+
+    const failedRun = OcrProcessingRunEngine.failRun(run.ocrRunId, {
+      code: "CORRUPTED_PDF_STREAM",
+      message: "The PDF header is malformed and could not be rasterized at 300 DPI",
+      stack: "Error: Malformed PDF stream at PdfPageRasterizer.rasterize",
+    });
+
+    assert(failedRun.status === "FAILED", "Run status transitioned to FAILED");
+    assert(typeof failedRun.endTime === "string", "endTime timestamped on failure");
+    assert(failedRun.error !== null && failedRun.error !== undefined, "Error record attached");
+    assert(failedRun.error!.code === "CORRUPTED_PDF_STREAM", "Error code matches");
+    assert(failedRun.error!.message.includes("malformed"), "Error message preserved");
+    assert(failedRun.error!.stack !== undefined, "Error stack trace recorded for reproducibility");
+  }
+
+  // Test 24.4: In-Memory Processing Run Registry & Auditing
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] In-Memory Processing Run Registry & Auditing`);
+
+    OcrProcessingRunEngine.clearRunRegistry();
+
+    const runA = OcrProcessingRunEngine.createRun({ documentId: "doc-audit-A" });
+    const runB = OcrProcessingRunEngine.createRun({ documentId: "doc-audit-B" });
+    const runC = OcrProcessingRunEngine.createRun({ documentId: "doc-audit-A" });
+
+    OcrProcessingRunEngine.completeRun(runA.ocrRunId, { overallConfidence: 95 });
+    OcrProcessingRunEngine.failRun(runB.ocrRunId, { code: "TIMEOUT", message: "Worker timed out" });
+
+    // Query registry
+    const fetchedA = OcrProcessingRunEngine.getRun(runA.ocrRunId);
+    assert(fetchedA !== undefined, "Run A retrieved from registry");
+    assert(fetchedA!.status === "COMPLETED", "Run A status in registry is COMPLETED");
+
+    const allRuns = OcrProcessingRunEngine.listRuns();
+    assert(allRuns.length === 3, "Registry contains all 3 recorded runs");
+
+    const docARuns = OcrProcessingRunEngine.listRuns({ documentId: "doc-audit-A" });
+    assert(docARuns.length === 2, "Filtered runs for doc-audit-A returns 2 runs");
+
+    const failedRuns = OcrProcessingRunEngine.listRuns({ status: "FAILED" });
+    assert(failedRuns.length === 1, "Filtered runs for FAILED returns 1 run");
+    assert(failedRuns[0].ocrRunId === runB.ocrRunId, "Failed run is runB");
+  }
+
+  // Test 24.5: End-to-End HybridDocumentProcessor Run Audit Trail and Evidence Binding
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] End-to-End HybridDocumentProcessor Run Audit Trail and Evidence Binding`);
+
+    const rasterBuffer = generateSyntheticImageBuffer(400, 300, "text_bars");
+
+    const result = await HybridDocumentProcessor.processDocument(
+      {
+        name: "test_invoice_with_runs.png",
+        bytes: new Uint8Array(rasterBuffer.buffer),
+        mimeType: "image/png",
+      },
+      {
+        organisationId: "org-audit-test",
+      },
+    );
+
+    // Verify processing run
+    assert(result.processingRun !== undefined, "Result contains top-level processingRun");
+    const run = result.processingRun!;
+    assert(typeof run.ocrRunId === "string" && run.ocrRunId.startsWith("ocr-run-"), "Run ID formatted correctly");
+    assert(run.status === "COMPLETED", "Run completed successfully");
+    assert(typeof run.startTime === "string", "Run has valid start time");
+    assert(typeof run.endTime === "string", "Run has valid end time");
+    assert(run.processingDuration >= 0, "Run has non-negative duration");
+    assert(typeof run.provider === "string" && run.provider.length > 0, "Provider recorded");
+    assert(typeof run.providerVersion === "string", "Provider version recorded");
+    assert(typeof run.outputVersion === "string", "Output version recorded");
+    assert(typeof run.preprocessingVersion === "string", "Preprocessing version recorded");
+
+    // Verify evidence records binding
+    assert(result.evidenceRecords !== undefined, "Result contains evidenceRecords map");
+    assert(Array.isArray(result.fieldEvidenceList), "Result contains fieldEvidenceList array");
+
+    for (const evidence of result.fieldEvidenceList!) {
+      assert(evidence.processingRun === run.ocrRunId, "Field evidence processingRun binds to OCR run ID");
+      assert(evidence.document === result.documentId, "Field evidence document binds to document ID");
+      assert(typeof evidence.ocr === "boolean", "Field evidence ocr is boolean");
+      assert(typeof evidence.confidence === "number", "Field evidence confidence is numeric");
+      assert(Array.isArray(evidence.boundingBox), "Field evidence boundingBox is array");
+    }
   }
 
   console.log("\n==================================================================");
