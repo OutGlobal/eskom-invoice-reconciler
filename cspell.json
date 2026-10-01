@@ -60,7 +60,26 @@
     "bboxes",
     "nightsave",
     "Nightsave",
-    "NIGHTSAVE"
+    "NIGHTSAVE",
+    "vinxi",
+    "ntvs",
+    "njsproj",
+    "traineddata",
+    "Otsu",
+    "otsu",
+    "binarization",
+    "Binarization",
+    "binarize",
+    "deskew",
+    "Deskew",
+    "BITMAPFILEHEADER",
+    "BITMAPINFOHEADER",
+    "BGRA",
+    "bgra",
+    "RGBA",
+    "rgba",
+    "Leptonica",
+    "leptonica"
   ],
   "ignorePaths": ["node_modules/**", "dist/**", ".tanstack/**", "package-lock.json", "bun.lock"]
 }
