@@ -262,6 +262,7 @@ export class OcrEvidenceModel {
    * Validates whether an OcrFieldEvidence record satisfies all strict Requirement 21 constraints.
    */
   public static validateFieldEvidence(evidence: OcrFieldEvidence<any>): {
+    valid: boolean;
     isValid: boolean;
     errors: string[];
     warnings: string[];
@@ -359,10 +360,8 @@ export class OcrEvidenceModel {
   ): OcrFieldEvidence<T> {
     const prov = field.provenance;
     const isOcr =
-      prov?.extractionMethod === "OCR_RECONSTRUCTED" ||
-      prov?.extractionMethod === "OCR_LAYOUT_TABLE" ||
-      prov?.extractionMethod === "OCR_KEY_VALUE" ||
-      field.extraction?.includes("OCR") ||
+      String(prov?.extractionMethod || "").includes("OCR") ||
+      String(field.extraction || "").includes("OCR") ||
       true;
 
     const rawConfidence =
@@ -438,7 +437,7 @@ export class OcrEvidenceModel {
 
     const coordStr = `[x=${bb[0]}, y=${bb[1]}, w=${bb[2]}, h=${bb[3]}]`;
     const evidenceChain = isGrounded
-      ? `Document ${evidence.document} -> Page ${evidence.page} -> BoundingBox ${coordStr} -> SourceText '${evidence.sourceText}' -> Run ${evidence.processingRun} -> Confidence ${evidence.confidence}% (${evidence.confidenceTier})`
+      ? `Document ${evidence.document} -> Page ${evidence.page} -> BoundingBox ${coordStr} -> SourceText '${evidence.sourceText}' -> Run ${evidence.processingRun} -> Confidence ${evidence.confidence}% (${evidence.confidenceTier || "HIGH"})`
       : `Document ${evidence.document} -> Unobserved / Not Grounded`;
 
     const explanation = isGrounded
@@ -450,8 +449,8 @@ export class OcrEvidenceModel {
       found: isGrounded,
       isGrounded,
       field: evidence.field,
-      fieldKey: evidence.fieldKey,
-      fieldLabel: evidence.fieldLabel,
+      fieldKey: evidence.fieldKey || OcrEvidenceModel.toCamelCase(evidence.field),
+      fieldLabel: evidence.fieldLabel || evidence.field,
       value: evidence.value,
       document: evidence.document,
       page: evidence.page,
@@ -459,7 +458,7 @@ export class OcrEvidenceModel {
       sourceText: evidence.sourceText,
       boundingBox: bb,
       confidence: evidence.confidence,
-      confidenceTier: evidence.confidenceTier,
+      confidenceTier: evidence.confidenceTier || (evidence.confidence >= 85 ? "HIGH" : evidence.confidence >= 70 ? "MEDIUM" : "LOW"),
       processingRun: evidence.processingRun,
       explanation,
       evidenceChain,

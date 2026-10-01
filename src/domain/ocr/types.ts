@@ -460,6 +460,7 @@ export interface OcrFieldEvidence<T = string | number | null> {
   page: number;
   pageNumber?: number;
   ocr: boolean;
+  isOcr?: boolean;
   sourceText: string;
   boundingBox: OcrBoundingBox;
   x?: number;
@@ -469,6 +470,7 @@ export interface OcrFieldEvidence<T = string | number | null> {
   coordinateSystem?: CoordinateSystem;
   detailedBoundingBox?: OcrElementBoundingBox;
   confidence: number;
+  confidenceScore?: number;
   confidenceTier?: OcrConfidenceTier;
   processingRun: string;
   ocrRunId?: string;
@@ -520,7 +522,7 @@ export interface OcrProcessingRun {
   processingDuration: number | null;
   processingDurationMs?: number | null;
   status: OcrProcessingRunStatus;
-  error: string | null;
+  error: string | { code?: string; message: string; stack?: string } | null;
   outputVersion: string;
 
   // Metadata for audit trail & reproducibility
@@ -529,7 +531,11 @@ export interface OcrProcessingRun {
   totalPages?: number;
   evidenceCount?: number;
   overallConfidence?: number;
+  overallConfidenceTier?: OcrConfidenceTier;
   characterCount?: number;
+  totalWords?: number;
+  totalLines?: number;
+  totalTables?: number;
   metadata?: Record<string, any>;
   createdAt?: string;
   updatedAt?: string;
@@ -550,10 +556,14 @@ export interface OcrPageProcessingRun {
   endTime: string | null;
   processingDuration: number | null;
   status: OcrProcessingRunStatus;
-  error: string | null;
+  error: string | { code?: string; message: string; stack?: string } | null;
   outputVersion: string;
   characterCount?: number;
+  wordCount?: number;
+  lineCount?: number;
+  tableCount?: number;
   averageConfidence?: number;
+  confidenceTier?: OcrConfidenceTier;
 }
 
 /**

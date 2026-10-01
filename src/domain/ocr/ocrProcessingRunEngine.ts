@@ -24,6 +24,7 @@ import type {
   OcrProcessingRun,
   OcrPageProcessingRun,
   OcrProcessingRunStatus,
+  OcrConfidenceTier,
 } from "./types";
 import { getOcrProviderConfig } from "./ocrProviderConfig";
 
