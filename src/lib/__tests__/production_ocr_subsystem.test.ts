@@ -73,6 +73,8 @@ import {
   DocumentStructureEngine,
   OcrEvidenceModel,
   OcrProcessingRunEngine,
+  OcrRetryEngine,
+  OcrLargeDocumentChunkEngine,
   SOUTH_AFRICA_LOCALE_PROFILE,
   INTERNATIONAL_ANGLO_LOCALE_PROFILE,
   INTERNATIONAL_CONTINENTAL_LOCALE_PROFILE,
@@ -105,6 +107,12 @@ import {
   type OcrFieldEvidence,
   type OcrProcessingRun,
   type OcrPageProcessingRun,
+  type OcrProcessingRunStatus,
+  type OcrRetryAttempt,
+  type OcrRetryPolicy,
+  type OcrPageChunk,
+  type OcrChunkStatus,
+  type OcrDocumentProgress,
 } from "../../domain/ocr";
 import { ProvenanceGuard } from "../../domain/intelligence/provenanceGuard";
 import { TenantIsolationViolationError } from "../../domain/security/tenantContextService";
@@ -3992,6 +4000,316 @@ export async function runProductionOcrTestSuite() {
       assert(typeof evidence.confidence === "number", "Field evidence confidence is numeric");
       assert(Array.isArray(evidence.boundingBox), "Field evidence boundingBox is array");
     }
+  }
+
+  // --- TEST GROUP 25: RETRIES & IDEMPOTENCY (Requirement 23) ---
+  console.log("\n--- TEST GROUP 25: RETRIES & IDEMPOTENCY (Requirement 23) ---");
+
+  // Test 96: Safe retry state transition sequence: FAILED -> RETRY 1 -> RETRY 2 -> REVIEW_REQUIRED
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Safe Retry State Transition (FAILED -> RETRY 1 -> RETRY 2 -> REVIEW_REQUIRED)`);
+
+    const run = OcrProcessingRunEngine.createRun({
+      documentId: "doc-retry-test-01",
+      maxRetries: 2,
+    });
+
+    assert(run.status === "RUNNING", "Initial status is RUNNING");
+
+    // Attempt 1 fails -> RETRY_1
+    const s1 = OcrRetryEngine.getNextStatusOnFailure(1, 2);
+    assert(s1 === "RETRY_1", "Attempt 1 failure transitions to RETRY_1");
+    OcrRetryEngine.recordRetryOnRun(run, 1, s1, new Error("Transient OCR timeout"), 120);
+    assert(run.status === "RETRY_1", "Run status updated to RETRY_1");
+    assert(run.retryAttempt === 1, "Run retryAttempt recorded as 1");
+    assert(run.retryHistory!.length === 1, "Retry history contains 1 attempt");
+
+    // Attempt 2 fails -> RETRY_2
+    const s2 = OcrRetryEngine.getNextStatusOnFailure(2, 2);
+    assert(s2 === "RETRY_2", "Attempt 2 failure transitions to RETRY_2");
+    OcrRetryEngine.recordRetryOnRun(run, 2, s2, new Error("Worker restart failed"), 150);
+    assert(run.status === "RETRY_2", "Run status updated to RETRY_2");
+    assert(run.retryAttempt === 2, "Run retryAttempt recorded as 2");
+    assert(run.retryHistory!.length === 2, "Retry history contains 2 attempts");
+
+    // Attempt 3 fails (max retries exhausted) -> REVIEW_REQUIRED
+    const s3 = OcrRetryEngine.getNextStatusOnFailure(3, 2);
+    assert(s3 === "REVIEW_REQUIRED", "Attempt 3 failure transitions to REVIEW_REQUIRED");
+    OcrRetryEngine.recordRetryOnRun(run, 3, s3, new Error("Unrecoverable page corruption"), 200);
+    assert(run.status === "REVIEW_REQUIRED", "Run status updated to REVIEW_REQUIRED");
+    assert(run.retryAttempt === 3, "Run retryAttempt recorded as 3");
+    assert(run.retryHistory!.length === 3, "Retry history contains 3 attempts");
+  }
+
+  // Test 97: Idempotent processing & non-duplication during retries
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Idempotent processing and de-duplication during retries`);
+
+    const ocrRunId = "ocr-run-idempotent-001";
+    const run1 = OcrProcessingRunEngine.createRun({
+      ocrRunId,
+      documentId: "doc-idempotency-01",
+      idempotencyKey: "idempotency-key-01",
+    });
+
+    // Second call with same ocrRunId should return identical run instance without creating duplicate
+    const run2 = OcrProcessingRunEngine.createRun({
+      ocrRunId,
+      documentId: "doc-idempotency-01",
+      idempotencyKey: "idempotency-key-01",
+    });
+
+    assert(run1 === run2, "Re-creating with same run ID returns existing run idempotently");
+    assert(run1.ocrRunId === ocrRunId, "OCR Run ID preserved");
+
+    // Record retry attempt 1 twice to test idempotent attempt updates
+    OcrRetryEngine.recordRetryOnRun(run1, 1, "RETRY_1", "Transient network glitch");
+    OcrRetryEngine.recordRetryOnRun(run1, 1, "RETRY_1", "Transient network glitch retry updated");
+    assert(run1.retryHistory!.length === 1, "Duplicate retry recording does not create duplicate history records");
+  }
+
+  // Test 98: Successful recovery on retry transitions to COMPLETED
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Successful recovery on retry transitions to COMPLETED`);
+
+    let executionAttempts = 0;
+    const retryResult = await OcrRetryEngine.executeWithRetry(
+      async (attempt) => {
+        executionAttempts++;
+        if (attempt === 0) {
+          throw new Error("Worker busy, retryable failure");
+        }
+        return { extractedText: "Account Number: 987654321" };
+      },
+      {
+        policy: { initialBackoffMs: 10, maxRetries: 2, jitter: false },
+      },
+    );
+
+    assert(retryResult.success === true, "Task succeeded after retry");
+    assert(retryResult.finalStatus === "COMPLETED", "Final status is COMPLETED");
+    assert(retryResult.attempts === 2, "Task succeeded on attempt 2 (retry 1)");
+    assert(executionAttempts === 2, "Executed exactly 2 attempts");
+    assert(retryResult.result?.extractedText === "Account Number: 987654321", "Result preserved");
+  }
+
+  // Test 99: Retryable error classification & exponential backoff computation
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Retryable error classification and exponential backoff computation`);
+
+    const timeoutErr = new Error("Tesseract worker timed out after 30000ms");
+    const networkErr = { code: "NETWORK_TIMEOUT", message: "Fetch failed" };
+    const fatalErr = new Error("Syntax error in application business logic");
+
+    assert(OcrRetryEngine.isRetryable(timeoutErr) === true, "Worker timeout is retryable");
+    assert(OcrRetryEngine.isRetryable(networkErr) === true, "Network timeout is retryable");
+    assert(OcrRetryEngine.isRetryable(fatalErr) === false, "Fatal logic error is not retryable");
+
+    const policy: OcrRetryPolicy = {
+      maxRetries: 2,
+      initialBackoffMs: 100,
+      maxBackoffMs: 1000,
+      backoffMultiplier: 2,
+      jitter: false,
+    };
+
+    const delay1 = OcrRetryEngine.computeBackoffDelay(1, policy);
+    const delay2 = OcrRetryEngine.computeBackoffDelay(2, policy);
+    const delay3 = OcrRetryEngine.computeBackoffDelay(3, policy);
+
+    assert(delay1 === 100, "Attempt 1 backoff delay is 100ms");
+    assert(delay2 === 200, "Attempt 2 backoff delay is 200ms");
+    assert(delay3 === 400, "Attempt 3 backoff delay is 400ms");
+  }
+
+  // Test 100: Chunk-level retry tracking and audit logging
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Chunk-level retry tracking and audit logging`);
+
+    const chunk: OcrPageChunk = {
+      chunkIndex: 0,
+      startPage: 1,
+      endPage: 10,
+      pageNumbers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      status: "PENDING",
+      progressPercentage: 0,
+      pageStatuses: {},
+    };
+
+    OcrRetryEngine.recordRetryOnChunk(chunk, 1, "RETRY_1", new Error("Chunk page 4 timeout"));
+    assert(chunk.status === "RETRY_1", "Chunk status updated to RETRY_1");
+    assert(chunk.retryAttempt === 1, "Chunk retryAttempt is 1");
+    assert(chunk.retryHistory!.length === 1, "Chunk history contains 1 attempt");
+
+    OcrRetryEngine.recordRetryOnChunk(chunk, 2, "RETRY_2", new Error("Chunk page 4 second timeout"));
+    assert(chunk.status === "RETRY_2", "Chunk status updated to RETRY_2");
+    assert(chunk.retryAttempt === 2, "Chunk retryAttempt is 2");
+
+    OcrRetryEngine.recordRetryOnChunk(chunk, 3, "REVIEW_REQUIRED", new Error("Exhausted retries"));
+    assert(chunk.status === "REVIEW_REQUIRED", "Chunk status updated to REVIEW_REQUIRED");
+    assert(chunk.retryHistory!.length === 3, "Chunk history contains all 3 attempts");
+  }
+
+  // --- TEST GROUP 26: LARGE DOCUMENTS & CHUNKING (Requirement 24) ---
+  console.log("\n--- TEST GROUP 26: LARGE DOCUMENTS & CHUNKING (Requirement 24) ---");
+
+  // Test 101: 200-page document chunk planning (20 chunks of 10 pages)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] 200-page document chunk planning (20 chunks of 10 pages)`);
+
+    const chunks = OcrLargeDocumentChunkEngine.planChunks(200, { chunkSize: 10 });
+    assert(chunks.length === 20, "200-page document planned into exactly 20 chunks");
+    assert(chunks[0].startPage === 1 && chunks[0].endPage === 10, "Chunk 1 covers pages 1–10");
+    assert(chunks[1].startPage === 11 && chunks[1].endPage === 20, "Chunk 2 covers pages 11–20");
+    assert(chunks[2].startPage === 21 && chunks[2].endPage === 30, "Chunk 3 covers pages 21–30");
+    assert(chunks[19].startPage === 191 && chunks[19].endPage === 200, "Chunk 20 covers pages 191–200");
+    assert(chunks[0].pageNumbers.length === 10, "Chunk has exactly 10 page numbers");
+    assert(chunks.every((c) => c.status === "PENDING"), "All planned chunks initially PENDING");
+  }
+
+  // Test 102: Tracking chunk states (Pages 1–10 COMPLETE, 11–20 PROCESSING, 21–30 PENDING)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Tracking chunk states (Pages 1–10 COMPLETE, 11–20 PROCESSING, 21–30 PENDING)`);
+
+    const chunks = OcrLargeDocumentChunkEngine.planChunks(30, { chunkSize: 10 });
+    const progress = OcrLargeDocumentChunkEngine.createProgress("doc-large-30", "ocr-run-large-01", 30, chunks);
+
+    // Initial state
+    assert(progress.totalPages === 30, "Total pages is 30");
+    assert(progress.completedPages === 0, "Completed pages initialized to 0");
+    assert(progress.percentage === 0, "Progress percentage initialized to 0%");
+
+    // Complete chunk 1 (pages 1-10)
+    OcrLargeDocumentChunkEngine.startChunk(progress, 0);
+    assert(chunks[0].status === "PROCESSING", "Chunk 0 is PROCESSING");
+    OcrLargeDocumentChunkEngine.completeChunk(progress, 0, []);
+    assert(chunks[0].status === "COMPLETE", "Chunk 0 is COMPLETE");
+    assert(progress.completedPages === 10, "Completed pages updated to 10");
+
+    // Start chunk 2 (pages 11-20)
+    OcrLargeDocumentChunkEngine.startChunk(progress, 1);
+    assert(chunks[1].status === "PROCESSING", "Chunk 1 is PROCESSING");
+
+    // Chunk 3 (pages 21-30) remains PENDING
+    assert(chunks[2].status === "PENDING", "Chunk 2 is PENDING");
+
+    const summary = OcrLargeDocumentChunkEngine.formatProgressSummary(progress.chunks);
+    assert(summary.includes("Pages 1–10 COMPLETE"), "Summary includes 'Pages 1–10 COMPLETE'");
+    assert(summary.includes("Pages 11–20 PROCESSING"), "Summary includes 'Pages 11–20 PROCESSING'");
+    assert(summary.includes("Pages 21–30 PENDING"), "Summary includes 'Pages 21–30 PENDING'");
+  }
+
+  // Test 103: Genuine progress reporting percentage strictly grounded in actual completed pages (Never fake progress!)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Genuine Progress Reporting Percentage (Never Fake Progress)`);
+
+    const chunks = OcrLargeDocumentChunkEngine.planChunks(100, { chunkSize: 10 });
+    const progress = OcrLargeDocumentChunkEngine.createProgress("doc-large-100", "ocr-run-large-02", 100, chunks);
+
+    // 0 / 100 pages -> strictly 0%
+    assert(progress.percentage === 0, "Initial progress is exactly 0%");
+
+    // Complete 1 chunk (10 pages) -> strictly 10%
+    OcrLargeDocumentChunkEngine.startChunk(progress, 0);
+    OcrLargeDocumentChunkEngine.completeChunk(progress, 0, []);
+    assert(progress.completedPages === 10, "Completed pages is exactly 10");
+    assert(progress.percentage === 10, "Progress percentage is strictly 10% (not interpolated timer)");
+
+    // Complete 2nd and 3rd chunks -> strictly 30%
+    OcrLargeDocumentChunkEngine.startChunk(progress, 1);
+    OcrLargeDocumentChunkEngine.completeChunk(progress, 1, []);
+    OcrLargeDocumentChunkEngine.startChunk(progress, 2);
+    OcrLargeDocumentChunkEngine.completeChunk(progress, 2, []);
+    assert(progress.completedPages === 30, "Completed pages is exactly 30");
+    assert(progress.percentage === 30, "Progress percentage is strictly 30%");
+
+    // Complete all 10 chunks -> strictly 100%
+    for (let i = 3; i < 10; i++) {
+      OcrLargeDocumentChunkEngine.startChunk(progress, i);
+      OcrLargeDocumentChunkEngine.completeChunk(progress, i, []);
+    }
+    assert(progress.completedPages === 100, "Completed pages is exactly 100");
+    assert(progress.percentage === 100, "Progress percentage is strictly 100%");
+    assert(progress.isComplete === true, "Document progress marked complete");
+  }
+
+  // Test 104: Formatted status string matching exact Requirement 24 specification
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Formatted status string matching exact Requirement 24 specification`);
+
+    const chunks: OcrPageChunk[] = [
+      {
+        chunkIndex: 0,
+        startPage: 1,
+        endPage: 10,
+        pageNumbers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        status: "COMPLETE",
+        progressPercentage: 100,
+        pageStatuses: {},
+      },
+      {
+        chunkIndex: 1,
+        startPage: 11,
+        endPage: 20,
+        pageNumbers: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+        status: "PROCESSING",
+        progressPercentage: 50,
+        pageStatuses: {},
+      },
+      {
+        chunkIndex: 2,
+        startPage: 21,
+        endPage: 30,
+        pageNumbers: [21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+        status: "PENDING",
+        progressPercentage: 0,
+        pageStatuses: {},
+      },
+    ];
+
+    const formatted = OcrLargeDocumentChunkEngine.formatProgressSummary(chunks);
+    const expected = "Pages 1–10 COMPLETE\nPages 11–20 PROCESSING\nPages 21–30 PENDING";
+    assert(formatted === expected, "Formatted progress summary matches exact specification");
+  }
+
+  // Test 105: End-to-end HybridDocumentProcessor chunking execution with real-time onProgress events
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] End-to-End HybridDocumentProcessor Chunking and Progress Events`);
+
+    const rasterBuffer = generateSyntheticImageBuffer(400, 300, "text_bars");
+    const progressSnapshots: OcrDocumentProgress[] = [];
+
+    const result = await HybridDocumentProcessor.processDocument(
+      {
+        name: "test_large_document.png",
+        bytes: new Uint8Array(rasterBuffer.buffer),
+        mimeType: "image/png",
+      },
+      {
+        chunkSize: 1,
+        onProgress: (prog) => {
+          progressSnapshots.push(JSON.parse(JSON.stringify(prog)));
+        },
+      },
+    );
+
+    assert(progressSnapshots.length > 0, "Received real-time progress event callbacks");
+    assert(result.chunks !== undefined && result.chunks.length > 0, "Result exposes chunk list");
+    assert(result.documentProgress !== undefined, "Result exposes documentProgress");
+    assert(result.documentProgress!.percentage === 100, "Final progress percentage is 100%");
+    assert(result.documentProgress!.isComplete === true, "Document progress is marked complete");
+    assert(result.processingRun!.chunks !== undefined, "Processing run contains chunk records");
+    assert(result.processingRun!.progressPercentage === 100, "Processing run has 100% progress");
   }
 
   console.log("\n==================================================================");

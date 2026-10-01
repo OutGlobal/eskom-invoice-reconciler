@@ -42,3 +42,5 @@ export * from "./tableReconstructionEngine";
 export * from "./documentStructureEngine";
 export * from "./ocrEvidenceModel";
 export * from "./ocrProcessingRunEngine";
+export * from "./ocrRetryEngine";
+export * from "./ocrLargeDocumentChunkEngine";

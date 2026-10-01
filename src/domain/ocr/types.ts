@@ -479,13 +479,99 @@ export interface OcrFieldEvidence<T = string | number | null> {
 }
 
 // ---------------------------------------------------------------------------
-// OCR Processing Run Record (Requirement 22)
+// OCR Processing Run Record (Requirement 22, 23 & 24)
 // ---------------------------------------------------------------------------
 
-export type OcrProcessingRunStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "PARTIAL";
+export type OcrProcessingRunStatus =
+  | "PENDING"
+  | "RUNNING"
+  | "COMPLETED"
+  | "FAILED"
+  | "RETRY_1"
+  | "RETRY_2"
+  | "RETRYING"
+  | "REVIEW_REQUIRED"
+  | "PARTIAL";
 
 /**
- * Authoritative OCR Processing Run Record (Requirement 22)
+ * Historical audit log of retry attempts for an OCR run or chunk (Requirement 23)
+ */
+export interface OcrRetryAttempt {
+  attempt: number;
+  status: OcrProcessingRunStatus;
+  timestamp: string;
+  error: string | { code?: string; message: string; stack?: string } | null;
+  durationMs?: number;
+  strategyApplied?: string;
+}
+
+/**
+ * Authoritative Retry Policy configuration (Requirement 23)
+ */
+export interface OcrRetryPolicy {
+  maxRetries: number;
+  initialBackoffMs: number;
+  maxBackoffMs: number;
+  backoffMultiplier: number;
+  jitter: boolean;
+  retryableErrorCodes?: string[];
+}
+
+/**
+ * Chunk status for multi-page large document processing (Requirement 24)
+ */
+export type OcrChunkStatus =
+  | "PENDING"
+  | "PROCESSING"
+  | "COMPLETE"
+  | "FAILED"
+  | "RETRY_1"
+  | "RETRY_2"
+  | "RETRYING"
+  | "REVIEW_REQUIRED";
+
+/**
+ * Definition and state of a page chunk for large documents (Requirement 24)
+ */
+export interface OcrPageChunk {
+  chunkIndex: number;
+  startPage: number;
+  endPage: number;
+  pageNumbers: number[];
+  status: OcrChunkStatus;
+  progressPercentage: number;
+  pageStatuses: Record<number, PageProcessingState>;
+  pageResults?: OcrPageResult[];
+  startedAt?: string;
+  completedAt?: string | null;
+  durationMs?: number | null;
+  error?: string | { code?: string; message: string; stack?: string } | null;
+  retryAttempt?: number;
+  retryHistory?: OcrRetryAttempt[];
+}
+
+/**
+ * Authoritative Document Progress Tracking (Requirement 24)
+ * Grounded in real chunk/page completion — NEVER displays fake progress.
+ */
+export interface OcrDocumentProgress {
+  documentId: string;
+  ocrRunId: string;
+  totalPages: number;
+  processedPages: number;
+  completedPages: number;
+  failedPages: number;
+  percentage: number; // strictly real: (completedPages / totalPages) * 100
+  chunks: OcrPageChunk[];
+  activeChunkIndex: number | null;
+  currentChunkLabel: string;
+  formattedStatus: string; // e.g. "Pages 1–10 COMPLETE\nPages 11–20 PROCESSING\nPages 21–30 PENDING"
+  isComplete: boolean;
+  hasFailures: boolean;
+}
+
+/**
+ * Authoritative OCR Processing Run Record (Requirement 22, 23 & 24)
  * Every OCR execution must create a processing run.
  *
  * Stores:
@@ -524,6 +610,19 @@ export interface OcrProcessingRun {
   status: OcrProcessingRunStatus;
   error: string | { code?: string; message: string; stack?: string } | null;
   outputVersion: string;
+
+  // Retry & Idempotency Metadata (Requirement 23)
+  retryAttempt?: number;
+  maxRetries?: number;
+  retryHistory?: OcrRetryAttempt[];
+  idempotencyKey?: string;
+
+  // Chunking & Large Document Metadata (Requirement 24)
+  chunkSize?: number;
+  chunkCount?: number;
+  completedChunkCount?: number;
+  chunks?: OcrPageChunk[];
+  progressPercentage?: number;
 
   // Metadata for audit trail & reproducibility
   startedAt?: string;
@@ -564,6 +663,8 @@ export interface OcrPageProcessingRun {
   tableCount?: number;
   averageConfidence?: number;
   confidenceTier?: OcrConfidenceTier;
+  retryAttempt?: number;
+  retryHistory?: OcrRetryAttempt[];
 }
 
 /**
@@ -765,6 +866,19 @@ export interface OcrDocumentResult {
 
   // Requirement 22: Authoritative OCR Processing Run Record
   processingRun?: OcrProcessingRun;
+
+  // Requirement 23: Retry & Idempotency Metadata
+  retryAttempt?: number;
+  maxRetries?: number;
+  retryHistory?: OcrRetryAttempt[];
+  idempotencyKey?: string;
+
+  // Requirement 24: Large Document Chunking & Progress Tracking
+  chunks?: OcrPageChunk[];
+  chunkCount?: number;
+  completedChunkCount?: number;
+  documentProgress?: OcrDocumentProgress;
+  progressPercentage?: number;
 
   // Execution timing and audit
   executionEngine: "TESSERACT_HYBRID" | "TESSERACT_PURE" | "DIGITAL_FALLBACK";

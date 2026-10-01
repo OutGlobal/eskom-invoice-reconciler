@@ -43,6 +43,8 @@ import { TableReconstructionEngine } from "./tableReconstructionEngine";
 import { DocumentStructureEngine } from "./documentStructureEngine";
 import { OcrEvidenceModel } from "./ocrEvidenceModel";
 import { OcrProcessingRunEngine } from "./ocrProcessingRunEngine";
+import { OcrRetryEngine } from "./ocrRetryEngine";
+import { OcrLargeDocumentChunkEngine } from "./ocrLargeDocumentChunkEngine";
 import type {
   OcrDocumentResult,
   OcrPageResult,
@@ -57,6 +59,9 @@ import type {
   OcrProcessingRun,
   OcrPageProcessingRun,
   OcrFieldEvidence,
+  OcrRetryPolicy,
+  OcrPageChunk,
+  OcrDocumentProgress,
 } from "./types";
 
 export interface ProcessDocumentOptions {
@@ -70,6 +75,10 @@ export interface ProcessDocumentOptions {
   language?: string;
   enableDeskew?: boolean;
   enableBinarization?: boolean;
+  chunkSize?: number;
+  retryPolicy?: Partial<OcrRetryPolicy>;
+  onProgress?: (progress: OcrDocumentProgress) => void;
+  idempotencyKey?: string;
 }
 
 export class HybridDocumentProcessor {
@@ -109,13 +118,14 @@ export class HybridDocumentProcessor {
     const checksum = options.checksum || (await this.computeSha256(bytes));
     const targetDpi = options.targetDpi || 300;
     const maxPages = options.maxPages || 50;
+    const chunkSize = Math.max(1, options.chunkSize || OcrLargeDocumentChunkEngine.DEFAULT_CHUNK_SIZE);
 
     const isPdf = filename.toLowerCase().endsWith(".pdf") || mimeType.includes("pdf");
     const pageResults: OcrPageResult[] = [];
     const pageStatuses: PageProcessingStatus[] = [];
     const pageRuns: OcrPageProcessingRun[] = [];
 
-    // Initialize the authoritative OCR Processing Run (Requirement 22)
+    // Initialize the authoritative OCR Processing Run (Requirement 22, 23 & 24)
     const processingRun = OcrProcessingRunEngine.createRun({
       ocrRunId,
       documentId,
@@ -125,11 +135,15 @@ export class HybridDocumentProcessor {
       configuration: {
         targetDpi,
         maxPages,
+        chunkSize,
         enableDeskew: options.enableDeskew ?? true,
         enableBinarization: options.enableBinarization ?? true,
         forceOcr: options.forceOcr ?? false,
       },
       startTime: startedAt,
+      idempotencyKey: options.idempotencyKey || ocrRunId,
+      maxRetries: options.retryPolicy?.maxRetries ?? 2,
+      chunkSize,
       metadata: {
         filename,
         organisationId,
@@ -161,6 +175,9 @@ export class HybridDocumentProcessor {
       }
     };
 
+    let documentProgress: OcrDocumentProgress;
+    let chunks: OcrPageChunk[] = [];
+
     if (isPdf) {
       // 2. Extract native digital text streams per page
       const nativeTextMap = new Map<
@@ -187,96 +204,133 @@ export class HybridDocumentProcessor {
       });
       const executionLanguage = ocrLanguageConfig.actualLanguageUsed;
 
-      // 3. Intelligently determine per-page whether OCR is necessary:
-      // IF reliable embedded text exists -> use native PDF extraction
-      // ELSE -> render page & OCR page
-      for (let pageNum = 1; pageNum <= pagesToProcess; pageNum++) {
-        setPageStatus(pageNum, "PENDING", { requiredOcr: null });
+      // Plan page chunks for large document handling (Requirement 24)
+      chunks = OcrLargeDocumentChunkEngine.planChunks(pagesToProcess, { chunkSize });
+      documentProgress = OcrLargeDocumentChunkEngine.createProgress(documentId, ocrRunId, pagesToProcess, chunks);
+      options.onProgress?.(documentProgress);
 
-        const nativeStream = nativeTextMap.get(pageNum);
-        const hasReliableText = Boolean(
-          !options.forceOcr &&
-          nativeStream &&
-          this.isReliableNativePageText(nativeStream.text, nativeStream.lines),
+      // 3. Process pages chunk-by-chunk with safe retries (Requirements 23 & 24)
+      for (const chunk of chunks) {
+        OcrLargeDocumentChunkEngine.startChunk(documentProgress, chunk.chunkIndex);
+        options.onProgress?.(documentProgress);
+
+        const chunkPageResults: OcrPageResult[] = [];
+
+        // Execute chunk processing with retry protection
+        const retryResult = await OcrRetryEngine.executeWithRetry(
+          async (attempt) => {
+            const tempPageResults: OcrPageResult[] = [];
+            for (const pageNum of chunk.pageNumbers) {
+              setPageStatus(pageNum, "PENDING", { requiredOcr: null });
+
+              const nativeStream = nativeTextMap.get(pageNum);
+              const hasReliableText = Boolean(
+                !options.forceOcr &&
+                nativeStream &&
+                this.isReliableNativePageText(nativeStream.text, nativeStream.lines),
+              );
+
+              let pageResult: OcrPageResult;
+              const pageRun = OcrProcessingRunEngine.createPageRun({
+                ocrRunId,
+                documentId,
+                pageNumber: pageNum,
+                provider: hasReliableText ? "DIGITAL_STREAM_HYBRID" : getOcrEngine().providerType,
+                language: executionLanguage,
+                configuration: { targetDpi },
+              });
+
+              if (hasReliableText && nativeStream) {
+                // Pure digital vector processing path — ZERO RASTERIZATION, ZERO OCR
+                setPageStatus(pageNum, "PREPROCESSING", { requiredOcr: false });
+                pageResult = this.processDigitalVectorPage(
+                  pageNum,
+                  nativeStream,
+                  {
+                    width: nativeStream.width,
+                    height: nativeStream.height,
+                    dpi: targetDpi,
+                  },
+                  executionLanguage,
+                );
+                setPageStatus(pageNum, "DONE", {
+                  requiredOcr: false,
+                  ocrConfidence: pageResult.averageConfidence,
+                });
+
+                OcrProcessingRunEngine.completePageRun(pageRun, {
+                  characterCount: pageResult.characterCount,
+                  averageConfidence: pageResult.averageConfidence,
+                  processingDuration: pageResult.processingDurationMs,
+                });
+                pageRuns.push(pageRun);
+              } else {
+                // Scanned raster / photographed / poor-scan OCR processing path:
+                setPageStatus(pageNum, "RASTERIZING", { requiredOcr: true });
+                const rasterPage = await PdfPageRasterizer.rasterizeSinglePdfPage(
+                  pdfDoc || bytes,
+                  pageNum,
+                  targetDpi,
+                );
+                setPageStatus(pageNum, "PREPROCESSING");
+                try {
+                  pageResult = await this.processScannedRasterPage(
+                    rasterPage,
+                    options,
+                    executionLanguage,
+                  );
+                  setPageStatus(pageNum, "DONE", {
+                    requiredOcr: true,
+                    ocrConfidence: pageResult.averageConfidence,
+                    preprocessingDecision: (pageResult as any)._preprocessingDecision,
+                  });
+
+                  OcrProcessingRunEngine.completePageRun(pageRun, {
+                    characterCount: pageResult.characterCount,
+                    averageConfidence: pageResult.averageConfidence,
+                    processingDuration: pageResult.processingDurationMs,
+                  });
+                  pageRuns.push(pageRun);
+                } catch (err) {
+                  setPageStatus(pageNum, "FAILED", {
+                    errorMessage: err instanceof Error ? err.message : String(err),
+                  });
+                  OcrProcessingRunEngine.failPageRun(
+                    pageRun,
+                    err instanceof Error ? err.message : String(err),
+                  );
+                  pageRuns.push(pageRun);
+                  throw err; // Trigger retry policy for this chunk
+                }
+              }
+
+              tempPageResults.push(pageResult);
+            }
+            return tempPageResults;
+          },
+          {
+            runId: ocrRunId,
+            documentId,
+            idempotencyKey: options.idempotencyKey || ocrRunId,
+            policy: options.retryPolicy,
+            strategyName: "PDF_CHUNK_RETRY",
+          },
         );
 
-        let pageResult: OcrPageResult;
-        const pageRun = OcrProcessingRunEngine.createPageRun({
-          ocrRunId,
-          documentId,
-          pageNumber: pageNum,
-          provider: hasReliableText ? "DIGITAL_STREAM_HYBRID" : getOcrEngine().providerType,
-          language: executionLanguage,
-          configuration: { targetDpi },
-        });
-
-        if (hasReliableText && nativeStream) {
-          // Pure digital vector processing path — ZERO RASTERIZATION, ZERO OCR
-          setPageStatus(pageNum, "PREPROCESSING", { requiredOcr: false });
-          pageResult = this.processDigitalVectorPage(
-            pageNum,
-            nativeStream,
-            {
-              width: nativeStream.width,
-              height: nativeStream.height,
-              dpi: targetDpi,
-            },
-            executionLanguage,
-          );
-          setPageStatus(pageNum, "DONE", {
-            requiredOcr: false,
-            ocrConfidence: pageResult.averageConfidence,
-          });
-
-          OcrProcessingRunEngine.completePageRun(pageRun, {
-            characterCount: pageResult.characterCount,
-            averageConfidence: pageResult.averageConfidence,
-            processingDuration: pageResult.processingDurationMs,
-          });
-          pageRuns.push(pageRun);
+        if (retryResult.success && retryResult.result) {
+          OcrLargeDocumentChunkEngine.completeChunk(documentProgress, chunk.chunkIndex, retryResult.result);
+          chunkPageResults.push(...retryResult.result);
+          pageResults.push(...retryResult.result);
         } else {
-          // Scanned raster / photographed / poor-scan OCR processing path:
-          // RENDER ONLY THIS SPECIFIC PAGE
-          setPageStatus(pageNum, "RASTERIZING", { requiredOcr: true });
-          const rasterPage = await PdfPageRasterizer.rasterizeSinglePdfPage(
-            pdfDoc || bytes,
-            pageNum,
-            targetDpi,
+          OcrLargeDocumentChunkEngine.failChunk(
+            documentProgress,
+            chunk.chunkIndex,
+            retryResult.error,
+            retryResult.finalStatus as any,
           );
-          setPageStatus(pageNum, "PREPROCESSING");
-          try {
-            pageResult = await this.processScannedRasterPage(
-              rasterPage,
-              options,
-              executionLanguage,
-            );
-            setPageStatus(pageNum, "DONE", {
-              requiredOcr: true,
-              ocrConfidence: pageResult.averageConfidence,
-              preprocessingDecision: (pageResult as any)._preprocessingDecision,
-            });
-
-            OcrProcessingRunEngine.completePageRun(pageRun, {
-              characterCount: pageResult.characterCount,
-              averageConfidence: pageResult.averageConfidence,
-              processingDuration: pageResult.processingDurationMs,
-            });
-            pageRuns.push(pageRun);
-          } catch (err) {
-            setPageStatus(pageNum, "FAILED", {
-              errorMessage: err instanceof Error ? err.message : String(err),
-            });
-            OcrProcessingRunEngine.failPageRun(
-              pageRun,
-              err instanceof Error ? err.message : String(err),
-            );
-            pageRuns.push(pageRun);
-            // Continue to next page rather than aborting the document
-            continue;
-          }
         }
 
-        pageResults.push(pageResult);
+        options.onProgress?.(documentProgress);
       }
     } else {
       // Non-PDF (PNG, JPEG, TIFF): direct image decoding & OCR
@@ -298,47 +352,87 @@ export class HybridDocumentProcessor {
         },
       });
 
-      for (let pIdx = 0; pIdx < rasterizedPages.length; pIdx++) {
-        const rasterPage = rasterizedPages[pIdx];
-        const pageRun = OcrProcessingRunEngine.createPageRun({
-          ocrRunId,
-          documentId,
-          pageNumber: rasterPage.pageNumber,
-          provider: getOcrEngine().providerType,
-          language: executionLanguage,
-          configuration: { targetDpi },
-        });
+      const totalPages = rasterizedPages.length;
+      chunks = OcrLargeDocumentChunkEngine.planChunks(totalPages, { chunkSize });
+      documentProgress = OcrLargeDocumentChunkEngine.createProgress(documentId, ocrRunId, totalPages, chunks);
+      options.onProgress?.(documentProgress);
 
-        setPageStatus(rasterPage.pageNumber, "OCR");
-        try {
-          const pageResult = await this.processScannedRasterPage(
-            rasterPage,
-            options,
-            executionLanguage,
-          );
-          setPageStatus(rasterPage.pageNumber, "DONE", {
-            requiredOcr: true,
-            ocrConfidence: pageResult.averageConfidence,
-            preprocessingDecision: (pageResult as any)._preprocessingDecision,
-          });
+      for (const chunk of chunks) {
+        OcrLargeDocumentChunkEngine.startChunk(documentProgress, chunk.chunkIndex);
+        options.onProgress?.(documentProgress);
 
-          OcrProcessingRunEngine.completePageRun(pageRun, {
-            characterCount: pageResult.characterCount,
-            averageConfidence: pageResult.averageConfidence,
-            processingDuration: pageResult.processingDurationMs,
-          });
-          pageRuns.push(pageRun);
-          pageResults.push(pageResult);
-        } catch (err) {
-          setPageStatus(rasterPage.pageNumber, "FAILED", {
-            errorMessage: err instanceof Error ? err.message : String(err),
-          });
-          OcrProcessingRunEngine.failPageRun(
-            pageRun,
-            err instanceof Error ? err.message : String(err),
+        const retryResult = await OcrRetryEngine.executeWithRetry(
+          async () => {
+            const chunkPages: OcrPageResult[] = [];
+            for (const pageNum of chunk.pageNumbers) {
+              const rasterPage = rasterizedPages[pageNum - 1];
+              if (!rasterPage) continue;
+
+              const pageRun = OcrProcessingRunEngine.createPageRun({
+                ocrRunId,
+                documentId,
+                pageNumber: rasterPage.pageNumber,
+                provider: getOcrEngine().providerType,
+                language: executionLanguage,
+                configuration: { targetDpi },
+              });
+
+              setPageStatus(rasterPage.pageNumber, "OCR");
+              try {
+                const pageResult = await this.processScannedRasterPage(
+                  rasterPage,
+                  options,
+                  executionLanguage,
+                );
+                setPageStatus(rasterPage.pageNumber, "DONE", {
+                  requiredOcr: true,
+                  ocrConfidence: pageResult.averageConfidence,
+                  preprocessingDecision: (pageResult as any)._preprocessingDecision,
+                });
+
+                OcrProcessingRunEngine.completePageRun(pageRun, {
+                  characterCount: pageResult.characterCount,
+                  averageConfidence: pageResult.averageConfidence,
+                  processingDuration: pageResult.processingDurationMs,
+                });
+                pageRuns.push(pageRun);
+                chunkPages.push(pageResult);
+              } catch (err) {
+                setPageStatus(rasterPage.pageNumber, "FAILED", {
+                  errorMessage: err instanceof Error ? err.message : String(err),
+                });
+                OcrProcessingRunEngine.failPageRun(
+                  pageRun,
+                  err instanceof Error ? err.message : String(err),
+                );
+                pageRuns.push(pageRun);
+                throw err;
+              }
+            }
+            return chunkPages;
+          },
+          {
+            runId: ocrRunId,
+            documentId,
+            idempotencyKey: options.idempotencyKey || ocrRunId,
+            policy: options.retryPolicy,
+            strategyName: "IMAGE_CHUNK_RETRY",
+          },
+        );
+
+        if (retryResult.success && retryResult.result) {
+          OcrLargeDocumentChunkEngine.completeChunk(documentProgress, chunk.chunkIndex, retryResult.result);
+          pageResults.push(...retryResult.result);
+        } else {
+          OcrLargeDocumentChunkEngine.failChunk(
+            documentProgress,
+            chunk.chunkIndex,
+            retryResult.error,
+            retryResult.finalStatus as any,
           );
-          pageRuns.push(pageRun);
         }
+
+        options.onProgress?.(documentProgress);
       }
     }
 
@@ -465,8 +559,10 @@ export class HybridDocumentProcessor {
     const completedAt = new Date().toISOString();
     const durationMs = Date.now() - startTime;
 
-    // Step 8b: Complete and record the processing run (Requirement 22)
+    // Step 8b: Complete and record the processing run (Requirements 22, 23 & 24)
     const totalChars = pageResults.reduce((acc, p) => acc + (p.characterCount || 0), 0);
+    const completedChunks = chunks.filter((c) => c.status === "COMPLETE").length;
+
     OcrProcessingRunEngine.completeRun(processingRun, {
       endTime: completedAt,
       processingDuration: durationMs,
@@ -475,6 +571,10 @@ export class HybridDocumentProcessor {
       evidenceCount: fieldEvidenceList.length,
       overallConfidence: confidenceEval.overallScore,
       characterCount: totalChars,
+      chunks,
+      chunkCount: chunks.length,
+      completedChunkCount: completedChunks,
+      progressPercentage: documentProgress.percentage,
       metadata: {
         documentCategory,
         executionEngine,
@@ -511,6 +611,11 @@ export class HybridDocumentProcessor {
       evidenceRecords,
       fieldEvidenceList,
       processingRun,
+      chunks,
+      chunkCount: chunks.length,
+      completedChunkCount: completedChunks,
+      documentProgress,
+      progressPercentage: documentProgress.percentage,
       executionEngine,
       startedAt,
       completedAt,

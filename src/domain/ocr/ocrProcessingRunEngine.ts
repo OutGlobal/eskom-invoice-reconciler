@@ -40,6 +40,9 @@ export interface CreateRunOptions {
   outputVersion?: string;
   startTime?: string;
   metadata?: Record<string, any>;
+  idempotencyKey?: string;
+  maxRetries?: number;
+  chunkSize?: number;
 }
 
 export interface CreatePageRunOptions {
@@ -66,12 +69,20 @@ export class OcrProcessingRunEngine {
 
   /**
    * Initializes a new OCR processing run for a document execution.
+   * If a run with the given ocrRunId already exists, returns it idempotently.
    */
   public static createRun(options: CreateRunOptions): OcrProcessingRun {
     const timestamp = options.startTime || new Date().toISOString();
     const ocrRunId =
       options.ocrRunId ||
       `ocr-run-${options.documentId}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    
+    // Idempotency check: if run already exists in store, return existing
+    const existing = this.runStore.get(ocrRunId);
+    if (existing) {
+      return existing;
+    }
+
     const primaryPageId = options.pageId || `${options.documentId}-p1`;
 
     const config = getOcrProviderConfig();
@@ -108,6 +119,11 @@ export class OcrProcessingRunEngine {
       status: "RUNNING",
       error: null,
       outputVersion,
+      retryAttempt: 0,
+      maxRetries: options.maxRetries ?? 2,
+      retryHistory: [],
+      idempotencyKey: options.idempotencyKey || ocrRunId,
+      chunkSize: options.chunkSize,
       metadata: options.metadata || {},
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -232,6 +248,42 @@ export class OcrProcessingRunEngine {
   }
 
   /**
+   * Transitions run status through retry/review lifecycles (Requirement 23).
+   * e.g. RUNNING -> FAILED -> RETRY_1 -> RETRY_2 -> REVIEW_REQUIRED
+   */
+  public static transitionRunStatus(
+    runOrId: OcrProcessingRun | string,
+    newStatus: OcrProcessingRunStatus,
+    error?: string | Error | { code?: string; message: string; stack?: string } | null,
+  ): OcrProcessingRun {
+    let run: OcrProcessingRun;
+    if (typeof runOrId === "string") {
+      const existing = this.runStore.get(runOrId);
+      if (existing) {
+        run = existing;
+      } else {
+        run = this.createRun({ ocrRunId: runOrId, documentId: "unknown-doc" });
+      }
+    } else {
+      run = runOrId;
+    }
+
+    run.status = newStatus;
+    run.updatedAt = new Date().toISOString();
+    if (error !== undefined) {
+      run.error =
+        error instanceof Error
+          ? { code: "OCR_ERROR", message: error.message, stack: error.stack }
+          : typeof error === "object" && error !== null
+            ? error
+            : error ? { code: "OCR_ERROR", message: String(error) } : null;
+    }
+
+    this.runStore.set(run.ocrRunId, run);
+    return run;
+  }
+
+  /**
    * Completes an overall document OCR processing run and stores it in the audit registry.
    */
   public static completeRun(
@@ -250,6 +302,10 @@ export class OcrProcessingRunEngine {
       totalTables?: number;
       metadata?: Record<string, any>;
       status?: OcrProcessingRunStatus;
+      chunks?: any[];
+      chunkCount?: number;
+      completedChunkCount?: number;
+      progressPercentage?: number;
     },
   ): OcrProcessingRun {
     let run: OcrProcessingRun;
@@ -292,6 +348,10 @@ export class OcrProcessingRunEngine {
     if (updates?.totalWords !== undefined) run.totalWords = updates.totalWords;
     if (updates?.totalLines !== undefined) run.totalLines = updates.totalLines;
     if (updates?.totalTables !== undefined) run.totalTables = updates.totalTables;
+    if (updates?.chunks) run.chunks = updates.chunks;
+    if (updates?.chunkCount !== undefined) run.chunkCount = updates.chunkCount;
+    if (updates?.completedChunkCount !== undefined) run.completedChunkCount = updates.completedChunkCount;
+    if (updates?.progressPercentage !== undefined) run.progressPercentage = updates.progressPercentage;
     if (updates?.metadata) {
       run.metadata = { ...run.metadata, ...updates.metadata };
     }
@@ -307,6 +367,7 @@ export class OcrProcessingRunEngine {
     runOrId: OcrProcessingRun | string,
     error: string | Error | { code?: string; message: string; stack?: string },
     endTime?: string,
+    status: OcrProcessingRunStatus = "FAILED",
   ): OcrProcessingRun {
     let run: OcrProcessingRun;
     if (typeof runOrId === "string") {
@@ -329,7 +390,7 @@ export class OcrProcessingRunEngine {
     run.completedAt = end;
     run.processingDuration = duration;
     run.processingDurationMs = duration;
-    run.status = "FAILED";
+    run.status = status;
     run.error =
       error instanceof Error
         ? { code: "OCR_EXECUTION_FAILURE", message: error.message, stack: error.stack }
