@@ -8,15 +8,24 @@
  * - Graceful fallback mode for offline/headless test environments
  */
 
-import type { OcrWordToken, OcrLineBlock, OcrBoundingBox } from "./types";
+import type {
+  OcrWordToken,
+  OcrLineBlock,
+  OcrLayoutBlock,
+  OcrBoundingBox,
+  CoordinateSystem,
+  OcrElementBoundingBox,
+} from "./types";
 
 export interface OcrRawResult {
   fullText: string;
   words: OcrWordToken[];
   lines: OcrLineBlock[];
+  blocks?: OcrLayoutBlock[];
   averageConfidence: number;
   engineUsed: "TESSERACT_WORKER" | "HEURISTIC_OCR_EMULATOR";
   durationMs: number;
+  providerNativeData?: unknown;
 }
 
 export class TesseractWorkerPool {
@@ -196,37 +205,71 @@ export class TesseractWorkerPool {
 
       const words: OcrWordToken[] = [];
       const lines: OcrLineBlock[] = [];
+      const blocks: OcrLayoutBlock[] = [];
       let totalConfidence = 0;
       let wordCount = 0;
+      const data = res.data as any;
 
       // Extract lines and words from Tesseract structure
-      if (res.data && Array.isArray((res.data as any).lines)) {
-        (res.data as any).lines.forEach((l: any, lIdx: number) => {
+      if (data && Array.isArray(data.lines)) {
+        data.lines.forEach((l: any, lIdx: number) => {
           const lineWords: OcrWordToken[] = [];
+          const lX0 = l.bbox ? l.bbox.x0 : 0;
+          const lY0 = l.bbox ? l.bbox.y0 : 0;
+          const lX1 = l.bbox ? l.bbox.x1 : 0;
+          const lY1 = l.bbox ? l.bbox.y1 : 0;
+          const lWidth = Math.max(1, lX1 - lX0);
+          const lHeight = Math.max(1, lY1 - lY0);
+
           const lBox: OcrBoundingBox = [
-            Number((l.bbox.x0 / width).toFixed(4)),
-            Number((l.bbox.y0 / height).toFixed(4)),
-            Number(((l.bbox.x1 - l.bbox.x0) / width).toFixed(4)),
-            Number(((l.bbox.y1 - l.bbox.y0) / height).toFixed(4)),
+            Number((lX0 / width).toFixed(4)),
+            Number((lY0 / height).toFixed(4)),
+            Number((lWidth / width).toFixed(4)),
+            Number((lHeight / height).toFixed(4)),
           ];
+          const lConf = typeof l.confidence === "number" ? l.confidence : 85;
+          const lNormConf = Number((lConf > 1 ? lConf / 100 : lConf).toFixed(4));
 
           if (Array.isArray(l.words)) {
             l.words.forEach((w: any, wIdx: number) => {
+              const wX0 = w.bbox ? w.bbox.x0 : 0;
+              const wY0 = w.bbox ? w.bbox.y0 : 0;
+              const wX1 = w.bbox ? w.bbox.x1 : 0;
+              const wY1 = w.bbox ? w.bbox.y1 : 0;
+              const wWidth = Math.max(1, wX1 - wX0);
+              const wHeight = Math.max(1, wY1 - wY0);
+
               const wBox: OcrBoundingBox = [
-                Number((w.bbox.x0 / width).toFixed(4)),
-                Number((w.bbox.y0 / height).toFixed(4)),
-                Number(((w.bbox.x1 - w.bbox.x0) / width).toFixed(4)),
-                Number(((w.bbox.y1 - w.bbox.y0) / height).toFixed(4)),
+                Number((wX0 / width).toFixed(4)),
+                Number((wY0 / height).toFixed(4)),
+                Number((wWidth / width).toFixed(4)),
+                Number((wHeight / height).toFixed(4)),
               ];
               const conf = typeof w.confidence === "number" ? w.confidence : 85;
-
-              const token: OcrWordToken = {
+              const normConf = Number((conf > 1 ? conf / 100 : conf).toFixed(4));              const token: OcrWordToken = {
                 wordId: `word-p${pageNumber}-l${lIdx}-w${wIdx}`,
                 text: w.text || "",
                 sanitizedText: (w.text || "").trim(),
                 confidence: conf,
+                confidenceNormalized: normConf,
+                confidenceTier: conf >= 85 ? "HIGH" : conf >= 70 ? "MEDIUM" : "LOW",
                 boundingBox: wBox,
                 pageNumber,
+                x: wX0,
+                y: wY0,
+                width: wWidth,
+                height: wHeight,
+                coordinateSystem: "PIXEL_SPACE",
+                detailedBoundingBox: {
+                  pageNumber,
+                  x: wX0,
+                  y: wY0,
+                  width: wWidth,
+                  height: wHeight,
+                  coordinateSystem: "PIXEL_SPACE",
+                  confidence: normConf,
+                  confidenceTier: conf >= 85 ? "HIGH" : conf >= 70 ? "MEDIUM" : "LOW",
+                },
               };
 
               lineWords.push(token);
@@ -241,10 +284,84 @@ export class TesseractWorkerPool {
             lineIndex: lIdx,
             pageNumber,
             text: l.text || "",
-            confidence: typeof l.confidence === "number" ? l.confidence : 85,
+            confidence: lConf,
+            confidenceNormalized: lNormConf,
+            confidenceTier: lConf >= 85 ? "HIGH" : lConf >= 70 ? "MEDIUM" : "LOW",
             boundingBox: lBox,
+            x: lX0,
+            y: lY0,
+            width: lWidth,
+            height: lHeight,
+            coordinateSystem: "PIXEL_SPACE",
+            detailedBoundingBox: {
+              pageNumber,
+              x: lX0,
+              y: lY0,
+              width: lWidth,
+              height: lHeight,
+              coordinateSystem: "PIXEL_SPACE",
+              confidence: lNormConf,
+              confidenceTier: lConf >= 85 ? "HIGH" : lConf >= 70 ? "MEDIUM" : "LOW",
+            },
             words: lineWords,
             baselineY: lBox[1] + lBox[3],
+          });
+        });
+      }
+
+      // Extract native blocks where available from Tesseract
+      if (data && Array.isArray(data.blocks) && data.blocks.length > 0) {
+        data.blocks.forEach((b: any, bIdx: number) => {
+          const bX0 = b.bbox ? b.bbox.x0 : 0;
+          const bY0 = b.bbox ? b.bbox.y0 : 0;
+          const bX1 = b.bbox ? b.bbox.x1 : 0;
+          const bY1 = b.bbox ? b.bbox.y1 : 0;
+          const bWidth = Math.max(1, bX1 - bX0);
+          const bHeight = Math.max(1, bY1 - bY0);
+
+          const bBox: OcrBoundingBox = [
+            Number((bX0 / width).toFixed(4)),
+            Number((bY0 / height).toFixed(4)),
+            Number((bWidth / width).toFixed(4)),
+            Number((bHeight / height).toFixed(4)),
+          ];
+
+          const blockLines = lines.filter(
+            (l) =>
+              l.x >= bX0 - 5 &&
+              l.y >= bY0 - 5 &&
+              l.x + l.width <= bX1 + 5 &&
+              l.y + l.height <= bY1 + 5,
+          );
+
+          const bConf = typeof b.confidence === "number" ? b.confidence : 85;
+          const bNormConf = Number((bConf > 1 ? bConf / 100 : bConf).toFixed(4));
+
+          blocks.push({
+            blockId: `block-p${pageNumber}-b${bIdx}`,
+            pageNumber,
+            type: "PARAGRAPH",
+            boundingBox: bBox,
+            x: bX0,
+            y: bY0,
+            width: bWidth,
+            height: bHeight,
+            coordinateSystem: "PIXEL_SPACE",
+            detailedBoundingBox: {
+              pageNumber,
+              x: bX0,
+              y: bY0,
+              width: bWidth,
+              height: bHeight,
+              coordinateSystem: "PIXEL_SPACE",
+              confidence: bNormConf,
+              confidenceTier: bConf >= 85 ? "HIGH" : bConf >= 70 ? "MEDIUM" : "LOW",
+            },
+            text: b.text || blockLines.map((l) => l.text).join("\n"),
+            lines: blockLines,
+            confidence: bConf,
+            confidenceNormalized: bNormConf,
+            confidenceTier: bConf >= 85 ? "HIGH" : bConf >= 70 ? "MEDIUM" : "LOW",
           });
         });
       }
@@ -255,9 +372,11 @@ export class TesseractWorkerPool {
         fullText: res.data.text || "",
         words,
         lines,
+        blocks: blocks.length > 0 ? blocks : undefined,
         averageConfidence: avgConfidence,
         engineUsed: "TESSERACT_WORKER",
         durationMs: Date.now() - startTime,
+        providerNativeData: res.data,
       };
     } catch (err) {
       try {
@@ -285,6 +404,7 @@ export class TesseractWorkerPool {
       fullText: "",
       words: [],
       lines: [],
+      blocks: [],
       averageConfidence: 0.0,
       engineUsed: "HEURISTIC_OCR_EMULATOR",
       durationMs: Date.now() - startTime,

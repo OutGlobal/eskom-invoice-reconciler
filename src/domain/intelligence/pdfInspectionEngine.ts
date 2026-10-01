@@ -554,7 +554,8 @@ export class PdfInspectionEngine {
       pageText = streamBody;
 
       // Image detection for this page
-      const hasDocumentImages = /\/Subtype\s*\/Image|\/Type\s*\/XObject\s*\/Subtype\s*\/Image/i.test(rawText);
+      const hasDocumentImages =
+        /\/Subtype\s*\/Image|\/Type\s*\/XObject\s*\/Subtype\s*\/Image/i.test(rawText);
       const hasPageImages =
         /\/Subtype\s*\/Image|\/XObject\b[\s\S]*?\/Image/i.test(pageObjStr || streamBody) ||
         /\/[A-Za-z0-9_]+\s+Do\b/.test(streamBody) ||
@@ -636,7 +637,12 @@ export class PdfInspectionEngine {
     }
 
     // Match plain words ONLY for non-PDF raw plain text payloads
-    if (count === 0 && !rawText.includes("%PDF") && !rawText.includes("obj") && !rawText.includes("endobj")) {
+    if (
+      count === 0 &&
+      !rawText.includes("%PDF") &&
+      !rawText.includes("obj") &&
+      !rawText.includes("endobj")
+    ) {
       const words = rawText.match(/\b[A-Za-z0-9_-]{3,}\b/g);
       if (words && words.length > 20) {
         count = words.reduce((acc, w) => acc + w.length, 0);

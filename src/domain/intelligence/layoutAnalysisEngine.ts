@@ -542,7 +542,7 @@ export class LayoutAnalysisEngine {
           const cellText = token ? token.text.trim() : colIdx === 0 ? line.text.trim() : "";
           const cellBbox: BoundingBox = token
             ? [...token.bbox]
-            : [col.minX, line.bbox[1], col.width ?? (col.maxX - col.minX), line.bbox[3]];
+            : [col.minX, line.bbox[1], col.width ?? col.maxX - col.minX, line.bbox[3]];
 
           const cell: TableCell = {
             cellId: `${tableId}_r${currentRowIndex}_c${colIdx}`,
@@ -582,7 +582,7 @@ export class LayoutAnalysisEngine {
               minDistance = 0;
               break;
             }
-            const colWidth = col.width ?? (col.maxX - col.minX);
+            const colWidth = col.width ?? col.maxX - col.minX;
             const colMidX = col.minX + colWidth / 2;
             const dist = Math.abs(tokenMidX - colMidX);
             if (dist < minDistance) {
@@ -614,7 +614,7 @@ export class LayoutAnalysisEngine {
                     Math.min(...colToks.map((t) => t.bbox[0])),
                   Math.max(...colToks.map((t) => t.bbox[3])),
                 ]
-              : [col.minX, line.bbox[1], col.width ?? (col.maxX - col.minX), line.bbox[3]];
+              : [col.minX, line.bbox[1], col.width ?? col.maxX - col.minX, line.bbox[3]];
 
           const cell: TableCell = {
             cellId: `${tableId}_r${currentRowIndex}_c${colIdx}`,

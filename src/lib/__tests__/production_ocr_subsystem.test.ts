@@ -65,10 +65,29 @@ import {
   HybridDocumentProcessor,
   ScannedInvoiceOcrAdapter,
   OcrPersistenceService,
+  SouthAfricanLanguageManager,
+  OcrErrorDetector,
+  NumericProtectionEngine,
+  SOUTH_AFRICA_LOCALE_PROFILE,
+  INTERNATIONAL_ANGLO_LOCALE_PROFILE,
+  INTERNATIONAL_CONTINENTAL_LOCALE_PROFILE,
+  INTERNATIONAL_SWISS_LOCALE_PROFILE,
+  AUTO_DETECT_LOCALE_PROFILE,
   type OcrLineBlock,
   type OcrWordToken,
   type OcrPageResult,
+  type OcrLayoutBlock,
+  type OcrDeterminantField,
+  type OcrEvidenceLocationReport,
+  type OcrConfidenceTier,
+  type OcrDetectedError,
+  type OcrErrorType,
+  type OcrPipelineValidationResult,
+  type ParsedNumericField,
+  type ValidatedDateField,
+  type NumericFieldCategory,
 } from "../../domain/ocr";
+import { ProvenanceGuard } from "../../domain/intelligence/provenanceGuard";
 import { TenantIsolationViolationError } from "../../domain/security/tenantContextService";
 
 function assert(condition: boolean, message: string) {
@@ -145,15 +164,42 @@ function buildLine(
   const wordWidth = Math.min(0.15, 0.8 / Math.max(1, rawWords.length));
 
   rawWords.forEach((w, wIdx) => {
+    const x = Math.round((0.1 + wIdx * (wordWidth + 0.01)) * 1000);
+    const y = Math.round(yBox * 1000);
+    const width = Math.round(wordWidth * 1000);
+    const height = Math.round(0.025 * 1000);
+    const confNorm = Number((confidence / 100).toFixed(4));
+
     words.push({
       wordId: `w-p${pageNumber}-l${lineIndex}-${wIdx}`,
       text: w,
       sanitizedText: w,
       confidence,
+      confidenceNormalized: confNorm,
       boundingBox: [0.1 + wIdx * (wordWidth + 0.01), yBox, wordWidth, 0.025],
       pageNumber,
+      x,
+      y,
+      width,
+      height,
+      coordinateSystem: "PIXEL_SPACE",
+      detailedBoundingBox: {
+        pageNumber,
+        x,
+        y,
+        width,
+        height,
+        coordinateSystem: "PIXEL_SPACE",
+        confidence: confNorm,
+      },
     });
   });
+
+  const lineX = Math.round(0.1 * 1000);
+  const lineY = Math.round(yBox * 1000);
+  const lineW = Math.round(0.8 * 1000);
+  const lineH = Math.round(0.03 * 1000);
+  const lineConfNorm = Number((confidence / 100).toFixed(4));
 
   return {
     lineId: `line-p${pageNumber}-${lineIndex}`,
@@ -161,9 +207,24 @@ function buildLine(
     pageNumber,
     text,
     confidence,
+    confidenceNormalized: lineConfNorm,
     boundingBox: [0.1, yBox, 0.8, 0.03],
     words,
     baselineY: yBox + 0.03,
+    x: lineX,
+    y: lineY,
+    width: lineW,
+    height: lineH,
+    coordinateSystem: "PIXEL_SPACE",
+    detailedBoundingBox: {
+      pageNumber,
+      x: lineX,
+      y: lineY,
+      width: lineW,
+      height: lineH,
+      coordinateSystem: "PIXEL_SPACE",
+      confidence: lineConfNorm,
+    },
   };
 }
 
@@ -869,6 +930,1503 @@ export async function runProductionOcrTestSuite() {
       caughtTenantError === true,
       "Enforces strict TenantIsolationViolationError on cross-tenant read",
     );
+  }
+
+  // -------------------------------------------------------------------------
+  // TEST GROUP 11: ROTATION & ORIENTATION HANDLING
+  // -------------------------------------------------------------------------
+  console.log("\n--- TEST GROUP 11: Rotation & Orientation Handling ---");
+
+  // Test 11.1: Portrait vs. Landscape aspect ratio detection
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Portrait vs. Landscape aspect ratio detection`);
+    const portraitGrayscale = new Uint8Array(200 * 300);
+    const landscapeGrayscale = new Uint8Array(300 * 200);
+
+    const portRes = ImagePreprocessingEngine.detectOrientationAndRotation(
+      portraitGrayscale,
+      200,
+      300,
+    );
+    const landRes = ImagePreprocessingEngine.detectOrientationAndRotation(
+      landscapeGrayscale,
+      300,
+      200,
+    );
+
+    assert(portRes.orientation === "PORTRAIT", "Correctly classifies 200x300 as PORTRAIT");
+    assert(landRes.orientation === "LANDSCAPE", "Correctly classifies 300x200 as LANDSCAPE");
+  }
+
+  // Test 11.2: Rotated 90° and 270° orientation detection and correction
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Rotated 90° and 270° orientation detection and correction`);
+    const rot90Res = ImagePreprocessingEngine.detectOrientationAndRotation(
+      new Uint8Array(300 * 200),
+      300,
+      200,
+      90,
+    );
+    assert(rot90Res.detectedRotation === 90, "Identifies 90° rotation from document metadata");
+    assert(
+      rot90Res.recommendedCorrectionRotation === 270,
+      "Calculates 270° clockwise correction for 90° rotation",
+    );
+
+    const rot270Res = ImagePreprocessingEngine.detectOrientationAndRotation(
+      new Uint8Array(300 * 200),
+      300,
+      200,
+      270,
+    );
+    assert(rot270Res.detectedRotation === 270, "Identifies 270° rotation from document metadata");
+    assert(
+      rot270Res.recommendedCorrectionRotation === 90,
+      "Calculates 90° clockwise correction for 270° rotation",
+    );
+  }
+
+  // Test 11.3: Rotated 180° upside-down orientation detection and correction
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Rotated 180° upside-down orientation detection and correction`,
+    );
+    const rot180Res = ImagePreprocessingEngine.detectOrientationAndRotation(
+      new Uint8Array(200 * 300),
+      200,
+      300,
+      180,
+    );
+    assert(rot180Res.detectedRotation === 180, "Identifies 180° upside-down orientation");
+    assert(
+      rot180Res.recommendedCorrectionRotation === 180,
+      "Calculates 180° correction for upside-down page",
+    );
+  }
+
+  // Test 11.4: Pure lossless rotation and original buffer immutability
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Lossless rotation preserves original document buffer without mutation`,
+    );
+    const originalBuffer = generateSyntheticImageBuffer(200, 300, "text_bars");
+    const bufferSnapshot = new Uint8ClampedArray(originalBuffer);
+
+    const preprocessed = ImagePreprocessingEngine.preprocess(originalBuffer, 200, 300, 1, {
+      pdfRotation: 90,
+      enableOrientationCorrection: true,
+    });
+
+    // Check immutability: original buffer must remain 100% byte-for-byte identical
+    let isMutated = false;
+    for (let i = 0; i < originalBuffer.length; i++) {
+      if (originalBuffer[i] !== bufferSnapshot[i]) {
+        isMutated = true;
+        break;
+      }
+    }
+    assert(!isMutated, "Original document image buffer is NEVER mutated");
+    assert(
+      preprocessed.originalGeometry.detectedRotation === 90,
+      "Original geometry records detected rotation",
+    );
+    assert(
+      preprocessed.preprocessedGeometry.width === 300,
+      "Preprocessed geometry dimensions swapped upright (width 300)",
+    );
+    assert(
+      preprocessed.preprocessedGeometry.height === 200,
+      "Preprocessed geometry dimensions swapped upright (height 200)",
+    );
+    assert(
+      preprocessed.preprocessingDecision?.orientationCorrectionApplied === true,
+      "Records transformation in decision audit record",
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // TEST GROUP 12: SOUTH AFRICAN UTILITY DOCUMENT OCR LANGUAGES
+  // -------------------------------------------------------------------------
+  console.log("\n--- TEST GROUP 12: South African Utility Document Languages ---");
+
+  // Test 12.1: Default English configuration for Eskom utility billing
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Default English language configuration`);
+    const config = SouthAfricanLanguageManager.resolveExecutionLanguage({});
+    assert(
+      config.actualLanguageUsed === "eng",
+      "Defaults to 'eng' for standard South African utility bills",
+    );
+    assert(config.fallbackLanguage === "eng", "Fallback language is configured as 'eng'");
+    assert(
+      config.isFallbackUsed === false,
+      "Standard resolution does not trigger fallback warning",
+    );
+  }
+
+  // Test 12.2: Afrikaans municipal utility vocabulary detection
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Afrikaans municipal utility vocabulary detection`);
+    const afrText =
+      "STAD KAAPSTAD MUNISIPALITEIT BELASTINGFAKTUUR REKENINGNOMMER ELEKTRISITEIT VERBRUIK METERLESING TOTALE BEDRAG";
+    const detection = SouthAfricanLanguageManager.detectLanguage(afrText);
+    assert(detection.detectedLanguage === "afr", "Accurately detects Afrikaans utility vocabulary");
+    assert(detection.confidence >= 70.0, "Calculates high confidence (>= 70%) for Afrikaans bill");
+
+    const resolved = SouthAfricanLanguageManager.resolveExecutionLanguage({
+      sampleText: afrText,
+    });
+    assert(
+      resolved.actualLanguageUsed === "afr",
+      "Adopts 'afr' when detection confidence meets threshold",
+    );
+    assert(resolved.isFallbackUsed === false, "Does not fall back when confidence is high");
+  }
+
+  // Test 12.3: Bilingual English & Afrikaans dual-language bill detection
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Bilingual (English & Afrikaans) municipal bill detection`);
+    const bilingualText =
+      "TAX INVOICE / BELASTINGFAKTUUR ACCOUNT NUMBER / REKENINGNOMMER ELECTRICITY / ELEKTRISITEIT TOTAL DUE / TOTALE BEDRAG";
+    const detection = SouthAfricanLanguageManager.detectLanguage(bilingualText);
+    assert(detection.detectedLanguage === "eng+afr", "Identifies dual-language bill as 'eng+afr'");
+    assert(detection.isDualLanguage === true, "Flags isDualLanguage = true");
+
+    const resolved = SouthAfricanLanguageManager.resolveExecutionLanguage({
+      sampleText: bilingualText,
+    });
+    assert(resolved.actualLanguageUsed === "eng+afr", "Resolves to dual language pack 'eng+afr'");
+  }
+
+  // Test 12.4: Ambiguous/low-confidence detection safely falls back to English (Do not assume detection is correct!)
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Low-confidence/ambiguous detection safely falls back to English`,
+    );
+    const ambiguousText =
+      "Random numeric serial 9948271 XJ-443 non-linguistic noise text without clear utility markers";
+    const resolved = SouthAfricanLanguageManager.resolveExecutionLanguage({
+      sampleText: ambiguousText,
+      providerConfigLanguage: "eng",
+    });
+
+    assert(
+      resolved.actualLanguageUsed === "eng",
+      "Safeguard: Low-confidence detection safely falls back to 'eng'",
+    );
+    assert(resolved.isFallbackUsed === true, "Flags isFallbackUsed = true when falling back");
+    assert(
+      resolved.selectionReason.includes("below safe adoption threshold") ||
+        resolved.selectionReason.includes("Default"),
+      "Documents clear audit rationale for fallback",
+    );
+  }
+
+  // Test 12.5: Caller explicit language preference honored with high precedence
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Caller explicit language preference takes precedence`);
+    const resolved = SouthAfricanLanguageManager.resolveExecutionLanguage({
+      requestedLanguage: "afr",
+      sampleText: "Some English invoice text that would otherwise detect as eng",
+    });
+
+    assert(resolved.actualLanguageUsed === "afr", "Honors caller-specified language 'afr'");
+    assert(resolved.requestedLanguage === "afr", "Records requested language in audit trail");
+  }
+
+  // Test 12.6: OCR processing run stores language configuration in OcrDocumentResult
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] HybridDocumentProcessor stores language config audit in result`,
+    );
+    const rawBuffer = generateSyntheticImageBuffer(200, 200, "text_bars");
+    const docResult = await HybridDocumentProcessor.processDocument(
+      { name: "test_invoice.png", bytes: new Uint8Array(rawBuffer.buffer), mimeType: "image/png" },
+      { language: "eng" },
+    );
+
+    assert(
+      docResult.ocrLanguageConfig !== undefined,
+      "Stores ocrLanguageConfig in OcrDocumentResult",
+    );
+    assert(
+      docResult.ocrLanguageConfig?.actualLanguageUsed === "eng",
+      "Records actual language used",
+    );
+    assert(docResult.pages[0]?.languageUsed === "eng", "Records languageUsed on OcrPageResult");
+    assert(
+      docResult.pages[0]?.detectedOrientation !== undefined,
+      "Records detectedOrientation on OcrPageResult",
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // TEST GROUP 13: STRUCTURED OCR OUTPUT HIERARCHY (REQUIREMENT 11)
+  // -------------------------------------------------------------------------
+  console.log("\n------------------------------------------------------------------");
+  console.log("TEST GROUP 13: Structured OCR Output Hierarchy (Requirement 11)");
+  console.log("------------------------------------------------------------------");
+
+  // Test 13.1: Strict 5-tier structural hierarchy: DOCUMENT -> PAGE -> BLOCK -> LINE -> WORD
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Strict 5-tier structural hierarchy (DOCUMENT -> PAGE -> BLOCK -> LINE -> WORD)`,
+    );
+    const l1 = buildLine(1, 0, "ESKOM TAX INVOICE", 0.05, 98);
+    const l2 = buildLine(1, 1, "Account Number: 123456789", 0.1, 98);
+    const l3 = buildLine(1, 2, "Invoice Total: R 54321.00", 0.15, 99);
+
+    const layout = OcrLayoutStructureEngine.analyzePageLayout([l1, l2, l3], 1);
+    assert(layout.blocks.length > 0, "Reconstructs semantic layout blocks from lines");
+
+    const pageResult: OcrPageResult = {
+      pageNumber: 1,
+      fullText: [l1, l2, l3].map((l) => l.text).join("\n"),
+      geometry: { width: 800, height: 1100, dpi: 300, aspectRatio: 0.727, rotation: 0 },
+      words: [l1, l2, l3].flatMap((l) => l.words),
+      lines: layout.sortedLines,
+      blocks: layout.blocks,
+      tables: layout.tables,
+      keyValuePairs: layout.keyValuePairs,
+      averageConfidence: 98.3,
+      minConfidence: 98.0,
+      characterCount: 65,
+      isNativeDigital: false,
+      isScannedRaster: true,
+      processingDurationMs: 45,
+    };
+
+    // DOCUMENT tier
+    assert(Array.isArray([pageResult]), "Document contains pages collection");
+    // PAGE tier
+    const page = pageResult;
+    assert(page.pageNumber === 1, "Page has valid pageNumber");
+    assert(page.blocks.length > 0, "Page contains blocks collection");
+    // BLOCK tier
+    const block = page.blocks[0];
+    assert(block.blockId !== undefined, "Block has unique blockId");
+    assert(Array.isArray(block.lines) && block.lines.length > 0, "Block contains lines collection");
+    // LINE tier
+    const line = block.lines[0];
+    assert(line.lineId !== undefined, "Line has unique lineId");
+    assert(Array.isArray(line.words) && line.words.length > 0, "Line contains words collection");
+    // WORD tier
+    const word = line.words[0];
+    assert(typeof word.text === "string" && word.text.length > 0, "Word text is non-empty string");
+    assert(typeof word.confidence === "number", "Word has confidence metric");
+    assert(
+      typeof word.x === "number" && typeof word.y === "number",
+      "Word has explicit x and y coordinates",
+    );
+    assert(
+      typeof word.width === "number" && typeof word.height === "number",
+      "Word has explicit width and height",
+    );
+  }
+
+  // Test 13.2: Word token attributes ({ text, confidence, x, y, width, height }) validation
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Word token structure matches specification`);
+    const line = buildLine(1, 0, "123456789", 0.24, 98);
+    const word = line.words[0];
+
+    // Specification:
+    // { "text": "123456789", "confidence": 0.98, "x": 120, "y": 240, "width": 150, "height": 24 }
+    assert(word.text === "123456789", "Word text matches expected determinant value");
+    assert(
+      word.confidenceNormalized === 0.98 || word.confidence === 98,
+      "Word confidence captures 0.98 (or 98% scale)",
+    );
+    assert(word.x !== undefined && word.x >= 0, "Word contains valid x coordinate");
+    assert(word.y !== undefined && word.y >= 0, "Word contains valid y coordinate");
+    assert(word.width !== undefined && word.width > 0, "Word contains valid width");
+    assert(word.height !== undefined && word.height > 0, "Word contains valid height");
+    assert(
+      word.detailedBoundingBox?.coordinateSystem === "PIXEL_SPACE",
+      "Word detailedBoundingBox specifies coordinateSystem: PIXEL_SPACE",
+    );
+  }
+
+  // Test 13.3: Native OCR provider blocks preservation
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Native OCR provider blocks preservation`);
+    const nativeBlock: OcrLayoutBlock = {
+      blockId: "prov-native-block-1",
+      pageNumber: 1,
+      blockType: "PARAGRAPH",
+      readingOrderIndex: 0,
+      boundingBox: [0.1, 0.1, 0.8, 0.2],
+      text: "Account Number: 123456789\nInvoice Total: R 54321.00",
+      lines: [],
+      confidence: 97.5,
+      confidenceNormalized: 0.975,
+      x: 100,
+      y: 100,
+      width: 800,
+      height: 200,
+      coordinateSystem: "PIXEL_SPACE",
+      detailedBoundingBox: {
+        pageNumber: 1,
+        x: 100,
+        y: 100,
+        width: 800,
+        height: 200,
+        coordinateSystem: "PIXEL_SPACE",
+        confidence: 0.975,
+      },
+    };
+
+    const l1 = buildLine(1, 0, "Account Number: 123456789", 0.1, 98);
+    const l2 = buildLine(1, 1, "Invoice Total: R 54321.00", 0.15, 97);
+
+    const layout = OcrLayoutStructureEngine.analyzePageLayout([l1, l2], 1, [nativeBlock]);
+    assert(layout.blocks.length >= 1, "Layout preserves native provider blocks");
+    const preserved = layout.blocks.find((b) => b.blockId === "prov-native-block-1");
+    assert(preserved !== undefined, "Found preserved native provider block in layout");
+    assert(
+      preserved!.lines.length === 2,
+      "Correlated constituent lines into native provider block",
+    );
+  }
+
+  // Test 13.4: Reconstructed blocks contain lines, and lines contain words
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Reconstructed blocks contain lines, lines contain words`);
+    const l1 = buildLine(1, 0, "Item Description Unit Price Total", 0.1);
+    const l2 = buildLine(1, 1, "Energy Active Charge 100 kWh R 250.00", 0.15);
+    const layout = OcrLayoutStructureEngine.analyzePageLayout([l1, l2], 1);
+
+    for (const b of layout.blocks) {
+      assert(b.lines.length > 0, `Block ${b.blockId} has at least 1 line`);
+      for (const l of b.lines) {
+        assert(l.words.length > 0, `Line ${l.lineId} in block has at least 1 word`);
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // TEST GROUP 14: SPATIAL BOUNDING BOXES & EVIDENCE MODEL INTEGRATION (REQUIREMENT 12)
+  // -------------------------------------------------------------------------
+  console.log("\n------------------------------------------------------------------");
+  console.log("TEST GROUP 14: Spatial Bounding Boxes & Evidence Model (Requirement 12)");
+  console.log("------------------------------------------------------------------");
+
+  // Test 14.1: Bounding boxes preserve pageNumber, x, y, width, height, coordinateSystem, confidence across elements
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Spatial bounding box properties preserved across OCR elements`,
+    );
+    const line = buildLine(1, 0, "Account: 078491827401", 0.2);
+    const word = line.words[1]; // "078491827401"
+
+    assert(word.pageNumber === 1, "Word preserves pageNumber");
+    assert(word.x !== undefined && word.y !== undefined, "Word preserves x and y");
+    assert(
+      word.width !== undefined && word.height !== undefined,
+      "Word preserves width and height",
+    );
+    assert(word.coordinateSystem === "PIXEL_SPACE", "Word preserves coordinateSystem");
+    assert(word.confidence !== undefined, "Word preserves confidence");
+
+    assert(line.pageNumber === 1, "Line preserves pageNumber");
+    assert(line.x !== undefined && line.y !== undefined, "Line preserves x and y");
+    assert(
+      line.width !== undefined && line.height !== undefined,
+      "Line preserves width and height",
+    );
+    assert(line.coordinateSystem === "PIXEL_SPACE", "Line preserves coordinateSystem");
+    assert(line.confidence !== undefined, "Line preserves confidence");
+
+    const layout = OcrLayoutStructureEngine.analyzePageLayout([line], 1);
+    const block = layout.blocks[0];
+    assert(block.pageNumber === 1, "Block preserves pageNumber");
+    assert(block.x !== undefined && block.y !== undefined, "Block preserves x and y");
+    assert(
+      block.width !== undefined && block.height !== undefined,
+      "Block preserves width and height",
+    );
+    assert(block.coordinateSystem === "PIXEL_SPACE", "Block preserves coordinateSystem");
+    assert(block.confidence !== undefined, "Block preserves confidence");
+  }
+
+  // Test 14.2: Answering "Where exactly on the invoice did this value come from?"
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Answer 'Where exactly on the invoice did this value come from?'`,
+    );
+    const l1 = buildLine(1, 0, "TAX INVOICE", 0.05);
+    const l2 = buildLine(1, 1, "Account Number: 078491827401", 0.15);
+    const l3 = buildLine(1, 2, "Total Due: R 12500.50", 0.25);
+
+    const pageResult: OcrPageResult = {
+      pageNumber: 1,
+      fullText: [l1, l2, l3].map((l) => l.text).join("\n"),
+      geometry: { width: 800, height: 1000, dpi: 300, aspectRatio: 0.8, rotation: 0 },
+      words: [l1, l2, l3].flatMap((l) => l.words),
+      lines: [l1, l2, l3],
+      blocks: [],
+      tables: [],
+      keyValuePairs: [],
+      averageConfidence: 94.0,
+      minConfidence: 90.0,
+      characterCount: 60,
+      isNativeDigital: false,
+      isScannedRaster: true,
+      processingDurationMs: 40,
+    };
+
+    const invoiceDet = OcrEvidenceExtractor.extractInvoiceDeterminants(
+      [pageResult],
+      "DOC-EVIDENCE-001",
+    );
+    assert(invoiceDet.accountNumber.value === "078491827401", "Extracted account number");
+
+    // Ask the evidence model: "Where exactly on the invoice did this value come from?"
+    const locationReport: OcrEvidenceLocationReport = OcrEvidenceExtractor.answerEvidenceLocation(
+      invoiceDet.accountNumber,
+    );
+    assert(locationReport.found === true, "Report confirms location was found on invoice");
+    assert(locationReport.fieldKey === "accountNumber", "Report identifies fieldKey");
+    assert(locationReport.value === "078491827401", "Report identifies exact value");
+    assert(locationReport.pageNumber === 1, "Report pinpoints page number 1");
+    assert(
+      locationReport.x !== null && locationReport.x !== undefined,
+      "Report provides exact x coordinate",
+    );
+    assert(
+      locationReport.y !== null && locationReport.y !== undefined,
+      "Report provides exact y coordinate",
+    );
+    assert(
+      locationReport.width !== null && locationReport.width > 0,
+      "Report provides exact width",
+    );
+    assert(
+      locationReport.height !== null && locationReport.height > 0,
+      "Report provides exact height",
+    );
+    assert(locationReport.coordinateSystem === "PIXEL_SPACE", "Report specifies coordinate system");
+    assert(
+      locationReport.confidence !== null && locationReport.confidence >= 90,
+      "Report provides confidence",
+    );
+    assert(
+      locationReport.groundingText.includes("Account Number: 078491827401"),
+      "Report provides original OCR grounding text snippet",
+    );
+    assert(
+      locationReport.explanation.includes("page 1") &&
+        locationReport.explanation.includes("PIXEL_SPACE"),
+      "Report generates comprehensive human/audit explanation answering where it came from",
+    );
+  }
+
+  // Test 14.3: Integration with Document Intelligence Evidence Model (ProvenancedField)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Integration with Document Intelligence ProvenanceGuard`);
+    const l1 = buildLine(1, 0, "TAX INVOICE", 0.05);
+    const l2 = buildLine(1, 1, "Invoice Number: INV-2026-9912", 0.1);
+    const l3 = buildLine(1, 2, "Total Due: R 88000.00", 0.2);
+
+    const pageResult: OcrPageResult = {
+      pageNumber: 1,
+      fullText: [l1, l2, l3].map((l) => l.text).join("\n"),
+      geometry: { width: 1000, height: 1400, dpi: 300, aspectRatio: 0.714, rotation: 0 },
+      words: [l1, l2, l3].flatMap((l) => l.words),
+      lines: [l1, l2, l3],
+      blocks: [],
+      tables: [],
+      keyValuePairs: [],
+      averageConfidence: 95.0,
+      minConfidence: 92.0,
+      characterCount: 50,
+      isNativeDigital: false,
+      isScannedRaster: true,
+      processingDurationMs: 30,
+    };
+
+    const invoiceDet = OcrEvidenceExtractor.extractInvoiceDeterminants([pageResult], "DOC-PROV-1");
+
+    // Convert OCR determinant to canonical Document Intelligence ProvenancedField
+    const provField = OcrEvidenceExtractor.toProvenancedField(
+      invoiceDet.invoiceNumber,
+      "DOC-PROV-1",
+    );
+    assert(provField !== null, "Converts determinant to ProvenancedField");
+    assert(provField!.fieldKey === "invoiceNumber", "Field key matches");
+    assert(provField!.value === "INV-2026-9912", "Field value matches");
+    assert(provField!.provenance.pageNumber === 1, "Provenance pageNumber matches");
+    assert(
+      provField!.provenance.coordinateSystem === "PIXEL_SPACE",
+      "Provenance coordinateSystem matches",
+    );
+    assert(
+      provField!.provenance.detailedBoundingBox !== undefined,
+      "Provenance detailedBoundingBox is populated",
+    );
+    assert(
+      provField!.provenance.detailedBoundingBox?.x !== undefined,
+      "detailedBoundingBox x is populated",
+    );
+    assert(
+      provField!.provenance.detailedBoundingBox?.width !== undefined,
+      "detailedBoundingBox width is populated",
+    );
+
+    // Validate using Stage 8 ProvenanceGuard
+    const validation = ProvenanceGuard.validateField(provField);
+    assert(
+      validation.isValid === true,
+      "ProvenanceGuard validates OCR-derived field with 0 errors",
+    );
+    assert(validation.errors.length === 0, "No provenance errors in canonical 6-link chain");
+  }
+
+  // Test 14.4: Complete document evidence compilation & strict non-fabrication preservation
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Compile document evidence and enforce strict non-fabrication`);
+    const l1 = buildLine(1, 0, "TAX INVOICE", 0.05);
+    const l2 = buildLine(1, 1, "Total Amount Due: R 15400.00", 0.15);
+
+    const pageResult: OcrPageResult = {
+      pageNumber: 1,
+      fullText: [l1, l2].map((l) => l.text).join("\n"),
+      geometry: { width: 800, height: 1000, dpi: 300, aspectRatio: 0.8, rotation: 0 },
+      words: [l1, l2].flatMap((l) => l.words),
+      lines: [l1, l2],
+      blocks: [],
+      tables: [],
+      keyValuePairs: [],
+      averageConfidence: 93.0,
+      minConfidence: 90.0,
+      characterCount: 40,
+      isNativeDigital: false,
+      isScannedRaster: true,
+      processingDurationMs: 25,
+    };
+
+    const invoiceDet = OcrEvidenceExtractor.extractInvoiceDeterminants(
+      [pageResult],
+      "DOC-EVIDENCE-NONFAB",
+    );
+    // Verify unobserved field is strictly null
+    assert(invoiceDet.vatRegistrationNumber.value === null, "Unobserved field is strictly null");
+
+    // Compile into Document Intelligence evidence dictionary
+    const compiledEvidence = OcrEvidenceExtractor.compileDocumentEvidence(
+      invoiceDet,
+      "DOC-EVIDENCE-NONFAB",
+    );
+
+    // totalAmountDue is observed -> must exist in compiled evidence
+    assert(
+      compiledEvidence["totalAmountDue"] !== undefined,
+      "Observed field is present in compiled evidence",
+    );
+    const valTotal = ProvenanceGuard.validateField(compiledEvidence["totalAmountDue"]);
+    assert(valTotal.isValid === true, "Observed field passes ProvenanceGuard validation");
+
+    // vatRegistrationNumber is null -> must NOT be fabricated into an ungrounded provenanced field
+    assert(
+      compiledEvidence["vatRegistrationNumber"] === undefined,
+      "Strict non-fabrication: Null unobserved field is NOT compiled into bare/fake evidence",
+    );
+  }
+
+  // =========================================================================
+  // TEST GROUP 15: OCR CONFIDENCE ACROSS ALL LEVELS & STATUS GATING (REQUIREMENT 13)
+  // =========================================================================
+  console.log("\n==================================================================");
+  console.log("TEST GROUP 15: OCR Confidence at All Levels & Status Gating (Requirement 13)");
+  console.log("==================================================================");
+
+  // Test 15.1: Status Thresholds & Reliability Function
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Status thresholds (HIGH, MEDIUM, LOW) and reliability gating`);
+    assert(OcrConfidenceScorer.getConfidenceTier(95) === "HIGH", "95% maps to HIGH tier");
+    assert(OcrConfidenceScorer.getConfidenceTier(85) === "HIGH", "85% maps to HIGH tier");
+    assert(OcrConfidenceScorer.getConfidenceTier(84.9) === "MEDIUM", "84.9% maps to MEDIUM tier");
+    assert(OcrConfidenceScorer.getConfidenceTier(70) === "MEDIUM", "70% maps to MEDIUM tier");
+    assert(OcrConfidenceScorer.getConfidenceTier(69.9) === "LOW", "69.9% maps to LOW tier");
+    assert(OcrConfidenceScorer.getConfidenceTier(30) === "LOW", "30% maps to LOW tier");
+
+    // Do not pretend a low-confidence OCR result is reliable
+    assert(OcrConfidenceScorer.isReliable("HIGH") === true, "HIGH tier is reliable");
+    assert(OcrConfidenceScorer.isReliable("MEDIUM") === false, "MEDIUM tier is not unconditionally reliable");
+    assert(OcrConfidenceScorer.isReliable("LOW") === false, "LOW tier is strictly NOT reliable");
+    assert(OcrConfidenceScorer.isReliable(90) === true, "Score 90% is reliable");
+    assert(OcrConfidenceScorer.isReliable(75) === false, "Score 75% is not unconditionally reliable");
+    assert(OcrConfidenceScorer.isReliable(55) === false, "Score 55% is strictly NOT reliable");
+  }
+
+  // Test 15.2: Word, Line, Block, and Page Level Confidence Propagation
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Confidence tier propagation across word, line, block, and page levels`);
+    const lineHigh = buildLine(1, 1, "Megaflex Electricity Invoice", 0.1, 95);
+    const lineMed = buildLine(1, 2, "Standard Off-Peak Charges", 0.2, 75);
+    const lineLow = buildLine(1, 3, "Degraded Noise Token 9882", 0.3, 50);
+
+    const blockHigh: OcrLayoutBlock = {
+      blockId: "block-1",
+      pageNumber: 1,
+      blockType: "HEADING",
+      boundingBox: [0.1, 0.1, 0.8, 0.05],
+      lines: [lineHigh],
+      confidence: 95,
+      confidenceNormalized: 0.95,
+      x: 100,
+      y: 100,
+      width: 800,
+      height: 50,
+      coordinateSystem: "PIXEL_SPACE",
+      detailedBoundingBox: {
+        pageNumber: 1,
+        x: 100,
+        y: 100,
+        width: 800,
+        height: 50,
+        coordinateSystem: "PIXEL_SPACE",
+        confidence: 0.95,
+      },
+    };
+
+    const blockMed: OcrLayoutBlock = {
+      blockId: "block-2",
+      pageNumber: 1,
+      blockType: "PARAGRAPH",
+      boundingBox: [0.1, 0.2, 0.8, 0.05],
+      lines: [lineMed],
+      confidence: 75,
+      confidenceNormalized: 0.75,
+      x: 100,
+      y: 200,
+      width: 800,
+      height: 50,
+      coordinateSystem: "PIXEL_SPACE",
+      detailedBoundingBox: {
+        pageNumber: 1,
+        x: 100,
+        y: 200,
+        width: 800,
+        height: 50,
+        coordinateSystem: "PIXEL_SPACE",
+        confidence: 0.75,
+      },
+    };
+
+    const blockLow: OcrLayoutBlock = {
+      blockId: "block-3",
+      pageNumber: 1,
+      blockType: "PARAGRAPH",
+      boundingBox: [0.1, 0.3, 0.8, 0.05],
+      lines: [lineLow],
+      confidence: 50,
+      confidenceNormalized: 0.5,
+      x: 100,
+      y: 300,
+      width: 800,
+      height: 50,
+      coordinateSystem: "PIXEL_SPACE",
+      detailedBoundingBox: {
+        pageNumber: 1,
+        x: 100,
+        y: 300,
+        width: 800,
+        height: 50,
+        coordinateSystem: "PIXEL_SPACE",
+        confidence: 0.5,
+      },
+    };
+
+    const rawPage: OcrPageResult = {
+      pageNumber: 1,
+      fullText: "Megaflex Electricity Invoice\nStandard Off-Peak Charges\nDegraded Noise Token 9882",
+      geometry: { width: 1000, height: 1000, dpi: 300, aspectRatio: 1.0, rotation: 0 },
+      words: [...lineHigh.words, ...lineMed.words, ...lineLow.words],
+      lines: [lineHigh, lineMed, lineLow],
+      blocks: [blockHigh, blockMed, blockLow],
+      tables: [],
+      keyValuePairs: [],
+      averageConfidence: 73.33,
+      minConfidence: 50,
+      characterCount: 80,
+      isNativeDigital: false,
+      isScannedRaster: true,
+      processingDurationMs: 45,
+    };
+
+    const enrichedPage = OcrConfidenceScorer.assignTiersToPage(rawPage);
+
+    // 1. Word level check
+    const wHigh = enrichedPage.words.find((w) => w.confidence === 95);
+    const wMed = enrichedPage.words.find((w) => w.confidence === 75);
+    const wLow = enrichedPage.words.find((w) => w.confidence === 50);
+    assert(wHigh?.confidenceTier === "HIGH", "Word level confidence has HIGH tier");
+    assert(wHigh?.detailedBoundingBox?.confidenceTier === "HIGH", "Word detailedBoundingBox has HIGH tier");
+    assert(wMed?.confidenceTier === "MEDIUM", "Word level confidence has MEDIUM tier");
+    assert(wLow?.confidenceTier === "LOW", "Word level confidence has LOW tier");
+
+    // 2. Line level check
+    assert(enrichedPage.lines[0].confidenceTier === "HIGH", "Line 0 has HIGH confidence tier");
+    assert(enrichedPage.lines[0].detailedBoundingBox?.confidenceTier === "HIGH", "Line 0 detailedBoundingBox has HIGH tier");
+    assert(enrichedPage.lines[1].confidenceTier === "MEDIUM", "Line 1 has MEDIUM confidence tier");
+    assert(enrichedPage.lines[2].confidenceTier === "LOW", "Line 2 has LOW confidence tier");
+
+    // 3. Block level check
+    assert(enrichedPage.blocks[0].confidenceTier === "HIGH", "Block 0 has HIGH confidence tier");
+    assert(enrichedPage.blocks[0].detailedBoundingBox?.confidenceTier === "HIGH", "Block 0 detailedBoundingBox has HIGH tier");
+    assert(enrichedPage.blocks[1].confidenceTier === "MEDIUM", "Block 1 has MEDIUM confidence tier");
+    assert(enrichedPage.blocks[2].confidenceTier === "LOW", "Block 2 has LOW confidence tier");
+
+    // 4. Page level check
+    assert(enrichedPage.confidenceTier === "MEDIUM", "Page level average (73.33%) has MEDIUM tier");
+    assert(enrichedPage.isReliable === false, "MEDIUM average page is not unconditionally reliable");
+  }
+
+  // Test 15.3: Document Level Confidence & Low-Confidence Gating
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Document-level confidence evaluation and degraded reliability gating`);
+    // Case A: High confidence document
+    const highLine1 = buildLine(1, 1, "Account Number: 0789123456", 0.1, 98);
+    const highLine2 = buildLine(1, 2, "Total Amount Due: R 125000.00", 0.2, 96);
+    const pageHigh: OcrPageResult = {
+      pageNumber: 1,
+      fullText: "Account Number: 0789123456\nTotal Amount Due: R 125000.00",
+      geometry: { width: 1000, height: 1000, dpi: 300, aspectRatio: 1.0, rotation: 0 },
+      words: [...highLine1.words, ...highLine2.words],
+      lines: [highLine1, highLine2],
+      blocks: [],
+      tables: [],
+      keyValuePairs: [],
+      averageConfidence: 97.0,
+      minConfidence: 96.0,
+      characterCount: 50,
+      isNativeDigital: false,
+      isScannedRaster: true,
+      processingDurationMs: 30,
+    };
+
+    const determinantsHigh = OcrEvidenceExtractor.extractInvoiceDeterminants([pageHigh], "DOC-CONF-HIGH");
+    const evalHigh = OcrConfidenceScorer.evaluateDocumentConfidence([pageHigh], determinantsHigh);
+    assert(evalHigh.tier === "HIGH", "High-confidence invoice receives HIGH tier");
+    assert(evalHigh.isReliable === true, "High-confidence invoice with valid determinants is reliable");
+    assert(evalHigh.reviewRequired === false, "High-confidence invoice does not force human review");
+
+    // Case B: Degraded low-confidence document
+    const lowLine1 = buildLine(1, 1, "Acc??? 078???456", 0.1, 52);
+    const lowLine2 = buildLine(1, 2, "Tot R ????.??", 0.2, 48);
+    const pageLow: OcrPageResult = {
+      pageNumber: 1,
+      fullText: "Acc??? 078???456\nTot R ????.??",
+      geometry: { width: 1000, height: 1000, dpi: 300, aspectRatio: 1.0, rotation: 0 },
+      words: [...lowLine1.words, ...lowLine2.words],
+      lines: [lowLine1, lowLine2],
+      blocks: [],
+      tables: [],
+      keyValuePairs: [],
+      averageConfidence: 50.0,
+      minConfidence: 48.0,
+      characterCount: 30,
+      isNativeDigital: false,
+      isScannedRaster: true,
+      processingDurationMs: 30,
+    };
+
+    const determinantsLow = OcrEvidenceExtractor.extractInvoiceDeterminants([pageLow], "DOC-CONF-LOW");
+    const evalLow = OcrConfidenceScorer.evaluateDocumentConfidence([pageLow], determinantsLow);
+    assert(evalLow.tier === "LOW", "Degraded invoice receives LOW tier");
+    assert(evalLow.isReliable === false, "LOW tier result is strictly NOT reliable");
+    assert(evalLow.reviewRequired === true, "LOW tier result strictly requires human review");
+    assert(
+      evalLow.reviewReasons.some((r) => r.toLowerCase().includes("unreliable") || r.toLowerCase().includes("low")),
+      "Review reasons explicitly state that low-confidence OCR is unreliable",
+    );
+  }
+
+  // =========================================================================
+  // TEST GROUP 16: OCR ERROR DETECTION & NON-REWRITING PIPELINE (REQUIREMENT 14)
+  // =========================================================================
+  console.log("\n==================================================================");
+  console.log("TEST GROUP 16: OCR Error Detection & Non-Rewriting Pipeline (Requirement 14)");
+  console.log("==================================================================");
+
+  // Test 16.1: Common Substitutions O↔0, I↔1, l↔1
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Substitution detection: O ↔ 0, I ↔ 1, l ↔ 1`);
+    // O in numeric
+    const errO = OcrErrorDetector.detectSubstitutionsInValue("078O198274", "NUMERIC", { pageNumber: 1 });
+    assert(errO.length > 0 && errO[0].errorType === "SUBSTITUTION_O_0", "Detects letter 'O' in numeric sequence");
+    assert(errO[0].suggestedCandidate === "0780198274", "Suggests '0' substitution candidate");
+
+    // 0 in word
+    const err0 = OcrErrorDetector.detectSubstitutionsInValue("ESK0M", "GENERAL", { pageNumber: 1 });
+    assert(err0.length > 0 && err0[0].errorType === "SUBSTITUTION_O_0", "Detects digit '0' inside word");
+    assert(err0[0].suggestedCandidate === "ESKOM", "Suggests 'O' substitution candidate");
+
+    // I in numeric
+    const errI = OcrErrorDetector.detectSubstitutionsInValue("I23456", "NUMERIC", { pageNumber: 1 });
+    assert(errI.length > 0 && errI[0].errorType === "SUBSTITUTION_I_1", "Detects letter 'I' in numeric sequence");
+    assert(errI[0].suggestedCandidate === "123456", "Suggests '1' candidate for 'I'");
+
+    // 1 in word
+    const err1 = OcrErrorDetector.detectSubstitutionsInValue("1NVOICE", "GENERAL", { pageNumber: 1 });
+    assert(err1.length > 0 && err1[0].errorType === "SUBSTITUTION_I_1", "Detects digit '1' in word");
+    assert(err1[0].suggestedCandidate === "INVOICE", "Suggests 'I' candidate for '1'");
+
+    // l in numeric
+    const errL = OcrErrorDetector.detectSubstitutionsInValue("l500.00", "NUMERIC", { pageNumber: 1 });
+    assert(errL.length > 0 && errL[0].errorType === "SUBSTITUTION_L_1", "Detects lowercase 'l' in numeric sequence");
+    assert(errL[0].suggestedCandidate === "1500.00", "Suggests '1' candidate for 'l'");
+  }
+
+  // Test 16.2: Substitutions S↔5, B↔8, G↔6, Z↔2
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Substitution detection: S ↔ 5, B ↔ 8, G ↔ 6, Z ↔ 2`);
+    // S in numeric
+    const errS = OcrErrorDetector.detectSubstitutionsInValue("S500.00", "NUMERIC", { pageNumber: 1 });
+    assert(errS.length > 0 && errS[0].errorType === "SUBSTITUTION_S_5", "Detects letter 'S' in numeric sequence");
+    assert(errS[0].suggestedCandidate === "5500.00", "Suggests '5' candidate for 'S'");
+
+    // 5 in word
+    const err5 = OcrErrorDetector.detectSubstitutionsInValue("5UBTOTAL", "GENERAL", { pageNumber: 1 });
+    assert(err5.length > 0 && err5[0].errorType === "SUBSTITUTION_S_5", "Detects digit '5' in word");
+    assert(err5[0].suggestedCandidate === "SUBTOTAL", "Suggests 'S' candidate for '5'");
+
+    // B in numeric
+    const errB = OcrErrorDetector.detectSubstitutionsInValue("B5000", "NUMERIC", { pageNumber: 1 });
+    assert(errB.length > 0 && errB[0].errorType === "SUBSTITUTION_B_8", "Detects letter 'B' in numeric sequence");
+    assert(errB[0].suggestedCandidate === "85000", "Suggests '8' candidate for 'B'");
+
+    // 8 in word
+    const err8 = OcrErrorDetector.detectSubstitutionsInValue("8ILLING", "GENERAL", { pageNumber: 1 });
+    assert(err8.length > 0 && err8[0].errorType === "SUBSTITUTION_B_8", "Detects digit '8' in word");
+    assert(err8[0].suggestedCandidate === "BILLING", "Suggests 'B' candidate for '8'");
+
+    // G in numeric
+    const errG = OcrErrorDetector.detectSubstitutionsInValue("G480", "NUMERIC", { pageNumber: 1 });
+    assert(errG.length > 0 && errG[0].errorType === "SUBSTITUTION_G_6", "Detects letter 'G' in numeric sequence");
+    assert(errG[0].suggestedCandidate === "6480", "Suggests '6' candidate for 'G'");
+
+    // 6 in word
+    const err6 = OcrErrorDetector.detectSubstitutionsInValue("CHAR6E", "GENERAL", { pageNumber: 1 });
+    assert(err6.length > 0 && err6[0].errorType === "SUBSTITUTION_G_6", "Detects digit '6' in word");
+    assert(err6[0].suggestedCandidate === "CHARGE", "Suggests 'G' candidate for '6'");
+
+    // Z in numeric
+    const errZ = OcrErrorDetector.detectSubstitutionsInValue("Z50.00", "NUMERIC", { pageNumber: 1 });
+    assert(errZ.length > 0 && errZ[0].errorType === "SUBSTITUTION_Z_2", "Detects letter 'Z' in numeric sequence");
+    assert(errZ[0].suggestedCandidate === "250.00", "Suggests '2' candidate for 'Z'");
+
+    // 2 in currency marker
+    const err2 = OcrErrorDetector.detectSubstitutionsInValue("2AR", "GENERAL", { pageNumber: 1 });
+    assert(err2.length > 0 && err2[0].errorType === "SUBSTITUTION_Z_2", "Detects digit '2' in '2AR'");
+    assert(err2[0].suggestedCandidate === "ZAR", "Suggests 'ZAR' candidate for '2AR'");
+  }
+
+  // Test 16.3: Comma ↔ Decimal Ambiguity & Missing Decimal Points
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Comma/decimal ambiguity and missing decimal point detection`);
+    // Consecutive separators
+    const errCommaDup = OcrErrorDetector.detectCommaDecimalAmbiguity("12,,50", 1);
+    assert(errCommaDup.length > 0 && errCommaDup[0].errorType === "COMMA_DECIMAL_AMBIGUITY", "Detects consecutive separators");
+    assert(errCommaDup[0].suggestedCandidate === "12.50", "Suggests clean decimal candidate");
+
+    // Trailing separator
+    const errTrailing = OcrErrorDetector.detectCommaDecimalAmbiguity("12500,", 1);
+    assert(errTrailing.length > 0 && errTrailing[0].errorType === "COMMA_DECIMAL_AMBIGUITY", "Detects trailing comma without cents");
+
+    // Missing decimal point in large integer financial field
+    const errDecMissing = OcrErrorDetector.detectMissingDecimalPoint("totalAmountDue", "1250000", 1);
+    assert(errDecMissing !== null && errDecMissing.errorType === "DECIMAL_POINT_MISSING", "Detects missing decimal in totalAmountDue");
+    assert(errDecMissing?.suggestedCandidate === "12500.00", "Suggests 12500.00 for missing decimal point");
+  }
+
+  // Test 16.4: Currency Symbol & Date Corruption
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Currency symbol corruption and date corruption detection`);
+    // Currency symbol corruption: 'B' or '2AR' or 'K'
+    const currErrB = OcrErrorDetector.detectCurrencyErrors("B 12500.00", 1);
+    assert(currErrB.length > 0 && currErrB[0].errorType === "CURRENCY_SYMBOL_CORRUPTION", "Detects 'B 12500.00' as corrupted Rand symbol");
+    assert(currErrB[0].suggestedCandidate === "R 12500.00", "Suggests 'R 12500.00'");
+
+    const currErr2AR = OcrErrorDetector.detectCurrencyErrors("2AR 4500.00", 1);
+    assert(currErr2AR.length > 0 && currErr2AR[0].errorType === "CURRENCY_SYMBOL_CORRUPTION", "Detects '2AR 4500.00'");
+
+    // Date corruption: alpha substitution in date (e.g. 2O26-05-12)
+    const dateErrAlpha = OcrErrorDetector.detectDateCorruption("2O26-05-12", 1);
+    assert(dateErrAlpha !== null && dateErrAlpha.errorType === "DATE_CORRUPTION", "Detects letter 'O' in date");
+    assert(dateErrAlpha?.suggestedCandidate === "2026-05-12", "Suggests 2026-05-12");
+
+    // Date corruption: out of bounds month (e.g. 2026-15-40)
+    const dateErrBounds = OcrErrorDetector.detectDateCorruption("2026-15-40", 1);
+    assert(dateErrBounds !== null && dateErrBounds.errorType === "DATE_CORRUPTION", "Detects out of calendar bounds date");
+  }
+
+  // Test 16.5: Account Number & Meter Number Corruption
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Account number and meter number corruption detection`);
+    // Account number with alpha characters
+    const accErr = OcrErrorDetector.detectAccountNumberCorruption("078O198274", 1);
+    assert(accErr !== null && accErr.errorType === "ACCOUNT_NUMBER_CORRUPTION", "Detects alpha character in 10-digit account");
+    assert(accErr?.suggestedCandidate === "0780198274", "Suggests numeric candidate '0780198274'");
+
+    // Account number wrong length
+    const accErrLen = OcrErrorDetector.detectAccountNumberCorruption("078912", 1);
+    assert(accErrLen !== null && accErrLen.errorType === "ACCOUNT_NUMBER_CORRUPTION", "Detects invalid account length (6 digits instead of 10)");
+
+    // Meter number with noise punctuation
+    const meterErr = OcrErrorDetector.detectMeterNumberCorruption("MTR#8841-B", 1);
+    assert(meterErr !== null && meterErr.errorType === "METER_NUMBER_CORRUPTION", "Detects illegal noise symbols in meter serial");
+    assert(meterErr?.suggestedCandidate === "MTR8841-B", "Suggests stripped alphanumeric candidate");
+  }
+
+  // Test 16.6: Authoritative 5-Step Pipeline Execution
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Authoritative 5-step pipeline execution: OCR VALUE -> POTENTIAL ERROR -> VALIDATION -> CONFIDENCE -> REVIEW IF NECESSARY`);
+    const rawInput = "B 125O0.00"; // Corrupted Rand symbol ('B') and 'O' in numeric amount
+    const pipeRes = OcrErrorDetector.validatePipeline({
+      ocrValue: rawInput,
+      fieldKey: "totalAmountDue",
+      fieldLabel: "Total Amount Due",
+      expectedType: "CURRENCY",
+      pageNumber: 1,
+      baseConfidence: 95.0,
+    });
+
+    // Step 1: OCR VALUE
+    assert(pipeRes.ocrValue === rawInput, "Step 1: OCR VALUE is preserved immutably");
+
+    // Step 2: POTENTIAL ERROR
+    assert(pipeRes.potentialErrors.length >= 2, "Step 2: POTENTIAL ERROR detects anomalies (currency corruption & substitution)");
+
+    // Step 3: VALIDATION
+    assert(pipeRes.validationPassed === false, "Step 3: VALIDATION flags critical format/syntax failures");
+
+    // Step 4: CONFIDENCE
+    assert(pipeRes.confidenceScore < 70, "Step 4: CONFIDENCE score penalized below 70%");
+    assert(pipeRes.confidenceTier === "LOW", "Step 4: CONFIDENCE tier downgraded to LOW");
+    assert(pipeRes.isReliable === false, "Step 4: Do not pretend a low-confidence OCR result is reliable");
+
+    // Step 5: REVIEW IF NECESSARY
+    assert(pipeRes.reviewRequired === true, "Step 5: REVIEW IF NECESSARY requires human review");
+    assert(pipeRes.reviewReasons.length > 0, "Step 5: Specific audit review reasons provided");
+  }
+
+  // Test 16.7: Critical Non-Rewriting Assertion (Never Silently Rewrite Financial Values)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] CRITICAL NON-REWRITING ASSERTION: Never silently rewrite financial values`);
+    const rawFinancialValue = "R 12,500,00"; // Corrupted second comma instead of decimal
+    const pipelineResult = OcrErrorDetector.validatePipeline({
+      ocrValue: rawFinancialValue,
+      fieldKey: "totalAmountDue",
+      fieldLabel: "Total Amount Due",
+      expectedType: "CURRENCY",
+      pageNumber: 1,
+    });
+
+    // MANDATORY AUDIT ASSERTION:
+    // The engine must NEVER silently rewrite the financial value to "R 12500.00".
+    // The ocrValue must remain strictly the original string.
+    assert(
+      pipelineResult.ocrValue === rawFinancialValue,
+      "CRITICAL: ocrValue in pipeline result strictly equals original unedited input (no silent rewrite!)",
+    );
+    assert(
+      pipelineResult.ocrValue !== "R 12500.00",
+      "CRITICAL: Financial value was NOT silently altered or normalized behind the scenes",
+    );
+
+    // Suggestions are only stored in candidate proposals for explicit human review
+    assert(
+      pipelineResult.suggestedCandidates.length > 0,
+      "Candidate suggestion is generated for human reviewer inspection",
+    );
+    assert(
+      pipelineResult.reviewRequired === true,
+      "Human review is mandatory before any correction is accepted",
+    );
+  }
+
+  // ==================================================================
+  // TEST GROUP 17: Numeric Protection (Requirement 15)
+  // ==================================================================
+  console.log("\n==================================================================");
+  console.log("TEST GROUP 17: Numeric Protection (Requirement 15)");
+  console.log("==================================================================");
+
+  // Test 17.1: Preservation of all 15 Critical Entity Categories
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Preservation of all 15 critical entity categories`);
+
+    // 1. Account Number: Preserved as string, never converted to float or scientific notation
+    const accField = NumericProtectionEngine.parseAndProtectNumeric("0780198274", "ACCOUNT_NUMBER");
+    assert(accField.originalRaw === "0780198274", "1. Account Number original string preserved");
+    assert(accField.normalizedText === "0780198274", "1. Account Number normalized as string");
+    assert(accField.numericValue === null, "1. Account Number is NOT converted to floating point number");
+    assert(accField.isValid === true, "1. Valid 10-digit account number passes validation");
+
+    // 2. Meter Number: Preserved as string with alphanumeric serial
+    const mtrField = NumericProtectionEngine.parseAndProtectNumeric("MTR-908123-B", "METER_NUMBER");
+    assert(mtrField.originalRaw === "MTR-908123-B", "2. Meter Number original string preserved");
+    assert(mtrField.normalizedText === "MTR-908123-B", "2. Meter Number normalized as string");
+    assert(mtrField.numericValue === null, "2. Meter Number is preserved as identifier");
+
+    // 3. Invoice Number: Preserved as string
+    const invField = NumericProtectionEngine.parseAndProtectNumeric("INV-2026-00452", "INVOICE_NUMBER");
+    assert(invField.originalRaw === "INV-2026-00452", "3. Invoice Number original string preserved");
+    assert(invField.isValid === true, "3. Invoice Number is valid");
+
+    // 4. Date: Preserved and calendar validated
+    const dateField = NumericProtectionEngine.parseAndValidateDate("2026-03-31");
+    assert(dateField.originalRaw === "2026-03-31", "4. Date original string preserved");
+    assert(dateField.isoDate === "2026-03-31", "4. Date converted to ISO YYYY-MM-DD");
+    assert(dateField.isValidDate === true, "4. Valid date passes calendar checks");
+
+    // 5. kWh (Active Energy)
+    const kwhField = NumericProtectionEngine.parseAndProtectNumeric("12 450 kWh", "KWH");
+    assert(kwhField.originalRaw === "12 450 kWh", "5. kWh original string preserved");
+    assert(kwhField.numericValue === 12450, "5. kWh numeric value parsed accurately (12450)");
+    assert(kwhField.unit?.toLowerCase() === "kwh", "5. kWh unit preserved");
+
+    // 6. kVA (Apparent Power / Max Demand)
+    const kvaField = NumericProtectionEngine.parseAndProtectNumeric("450.25 kVA", "KVA");
+    assert(kvaField.originalRaw === "450.25 kVA", "6. kVA original string preserved");
+    assert(kvaField.numericValue === 450.25, "6. kVA numeric value parsed (450.25)");
+    assert(kvaField.unit?.toLowerCase() === "kva", "6. kVA unit preserved");
+
+    // 7. kVAh (Apparent Energy)
+    const kvahField = NumericProtectionEngine.parseAndProtectNumeric("14 800 kVAh", "KVAH");
+    assert(kvahField.originalRaw === "14 800 kVAh", "7. kVAh original string preserved");
+    assert(kvahField.numericValue === 14800, "7. kVAh numeric value parsed (14800)");
+    assert(kvahField.unit?.toLowerCase() === "kvah", "7. kVAh unit preserved");
+
+    // 8. kVArh (Reactive Energy)
+    const kvarhField = NumericProtectionEngine.parseAndProtectNumeric("3 200 kVArh", "KVARH");
+    assert(kvarhField.originalRaw === "3 200 kVArh", "8. kVArh original string preserved");
+    assert(kvarhField.numericValue === 3200, "8. kVArh numeric value parsed (3200)");
+    assert(kvarhField.unit?.toLowerCase() === "kvarh", "8. kVArh unit preserved");
+
+    // 9. Demand (Peak Demand)
+    const demandField = NumericProtectionEngine.parseAndProtectNumeric("850.5 kW", "DEMAND");
+    assert(demandField.originalRaw === "850.5 kW", "9. Demand original string preserved");
+    assert(demandField.numericValue === 850.5, "9. Demand numeric value parsed (850.5)");
+
+    // 10. Power Factor: strictly 0.00 to 1.00
+    const pfField = NumericProtectionEngine.parseAndProtectNumeric("0.92", "POWER_FACTOR");
+    assert(pfField.originalRaw === "0.92", "10. Power Factor original string preserved");
+    assert(pfField.numericValue === 0.92, "10. Power Factor value parsed within bounds (0.92)");
+    assert(pfField.isValid === true, "10. Valid power factor passes validation");
+
+    // 11. Tariff Structure Code
+    const tariffField = NumericProtectionEngine.parseAndProtectNumeric("MEGAFLEX", "TARIFF");
+    assert(tariffField.originalRaw === "MEGAFLEX", "11. Tariff code original string preserved");
+    assert(tariffField.isValid === true, "11. Tariff code is valid");
+
+    // 12. Rate (e.g. c/kWh or R/kVA)
+    const rateField = NumericProtectionEngine.parseAndProtectNumeric("145.23 c/kWh", "RATE");
+    assert(rateField.originalRaw === "145.23 c/kWh", "12. Rate original string preserved");
+    assert(rateField.numericValue === 145.23, "12. Rate numeric value parsed (145.23)");
+    assert(rateField.unit === "c/kWh", "12. Rate unit preserved (c/kWh)");
+
+    // 13. Amount (Line Item Charges)
+    const amountField = NumericProtectionEngine.parseAndProtectNumeric("R 56 420.50", "AMOUNT");
+    assert(amountField.originalRaw === "R 56 420.50", "13. Amount original string preserved");
+    assert(amountField.numericValue === 56420.5, "13. Amount numeric value parsed (56420.50)");
+    assert(amountField.currencySymbol === "R", "13. Currency symbol identified as 'R'");
+
+    // 14. VAT (Rate & Amount)
+    const vatField = NumericProtectionEngine.parseAndProtectNumeric("15%", "VAT");
+    assert(vatField.originalRaw === "15%", "14. VAT percentage original string preserved");
+    assert(vatField.isPercentage === true, "14. VAT isPercentage flagged true");
+    assert(vatField.percentageValue === 15.0, "14. VAT percentage value parsed as 15.0");
+
+    // 15. Total (Total Amount Due / Payable)
+    const totalField = NumericProtectionEngine.parseAndProtectNumeric("R 64 883.58", "TOTAL");
+    assert(totalField.originalRaw === "R 64 883.58", "15. Total original string preserved");
+    assert(totalField.numericValue === 64883.58, "15. Total numeric value parsed (64883.58)");
+  }
+
+  // Test 17.2: Scale Shift & Dropped Decimal: "R 12 345.67" must NOT become "R 1234567" without detection
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Scale shift dropped decimal: 'R 12 345.67' becoming 'R 1234567' detected`);
+    const corruptedOcrTotal = "R 1234567"; // Dropped decimal: integer 1234567 instead of 12345.67
+    const result = NumericProtectionEngine.parseAndProtectNumeric(corruptedOcrTotal, "TOTAL");
+
+    // Assert scale shift was detected
+    assert(result.scaleShift.detected === true, "Scale shift detected on dropped decimal total");
+    assert(result.scaleShift.shiftFactor === 100, "Detects 100x scale shift factor");
+    assert(result.validationErrors.some((e) => e.errorType === "SCALE_SHIFT_DROPPED_DECIMAL"), "Generates SCALE_SHIFT_DROPPED_DECIMAL error");
+
+    // Assert candidate suggestion is provided for human review
+    assert(result.suggestedCandidate === "R 12345.67", "Proposes 'R 12345.67' candidate for human review");
+
+    // Assert review is required and confidence is penalized
+    assert(result.reviewRequired === true, "Review required is strictly true for scale shift");
+    assert(result.confidenceTier === "LOW", "Confidence tier penalized to LOW");
+    assert(result.isValid === false, "Validity flag is false due to unreviewed scale shift");
+
+    // MANDATORY: Never silently rewrite original raw value!
+    assert(result.originalRaw === corruptedOcrTotal, "CRITICAL: originalRaw remains strictly 'R 1234567'");
+    assert(result.originalRaw !== "R 12345.67", "CRITICAL: Did NOT silently rewrite financial total");
+  }
+
+  // Test 17.3: Scale Shift & Dropped Decimal: "12.50" must NOT silently become "1250"
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Scale shift dropped decimal: '12.50' becoming '1250' detected`);
+    const corruptedRate = "1250"; // Dropped decimal: integer 1250 instead of 12.50
+    const result = NumericProtectionEngine.parseAndProtectNumeric(corruptedRate, "RATE");
+
+    assert(result.scaleShift.detected === true, "Detects scale shift on rate field without decimal point");
+    assert(result.scaleShift.shiftFactor === 100, "Calculates 100x scale shift factor");
+    assert(result.suggestedCandidate === "12.50", "Suggests candidate '12.50' for reviewer");
+    assert(result.reviewRequired === true, "Forces human review requirement");
+
+    // Strict non-rewriting guarantee
+    assert(result.originalRaw === "1250", "CRITICAL: originalRaw preserved as '1250' without mutation");
+  }
+
+  // Test 17.4: Power Factor Physical Bounding & Scale Shift Protection (0.00 to 1.00)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Power factor physical bounding (0.00 to 1.00) and scale shift protection`);
+
+    // Valid Power Factor with lag direction
+    const validPf = NumericProtectionEngine.parseAndProtectNumeric("0.85 lag", "POWER_FACTOR");
+    assert(validPf.numericValue === 0.85, "Parses 0.85 numeric value");
+    assert(validPf.unit?.toLowerCase() === "lag", "Preserves 'lag' direction unit");
+    assert(validPf.isValid === true, "Valid 0.85 PF is marked valid");
+    assert(validPf.reviewRequired === false, "Valid 0.85 PF does not force review");
+
+    // Dropped Decimal Power Factor: "85" (100x scale shift for 0.85)
+    const droppedDecPf = NumericProtectionEngine.parseAndProtectNumeric("85", "POWER_FACTOR");
+    assert(droppedDecPf.scaleShift.detected === true, "Detects scale shift for PF value 85 (> 1.00)");
+    assert(droppedDecPf.scaleShift.shiftFactor === 100, "Identifies 100x factor for dropped decimal");
+    assert(droppedDecPf.suggestedCandidate === "0.85", "Proposes '0.85' candidate for reviewer");
+    assert(droppedDecPf.validationErrors.some((e) => e.errorType === "POWER_FACTOR_OUT_OF_BOUNDS"), "Raises POWER_FACTOR_OUT_OF_BOUNDS error");
+    assert(droppedDecPf.reviewRequired === true, "Review required for out of bounds power factor");
+    assert(droppedDecPf.originalRaw === "85", "Original raw preserved as '85'");
+
+    // Another example: "92" -> candidate "0.92"
+    const droppedDecPf92 = NumericProtectionEngine.parseAndProtectNumeric("92", "POWER_FACTOR");
+    assert(droppedDecPf92.suggestedCandidate === "0.92", "Suggests '0.92' candidate for '92'");
+  }
+
+  // Test 17.5: Relative Baseline Scale Shift Detection (10x or 100x jump vs baseline)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Baseline comparison scale shift detection (10x / 100x jump)`);
+    const baseline = 5000.00; // Expected monthly baseline
+    const anomalyObserved = "R 50 000.00"; // 10x jump due to duplicated digit or stray zero
+    const result = NumericProtectionEngine.parseAndProtectNumeric(anomalyObserved, "AMOUNT", {
+      baselineComparisonValue: baseline,
+    });
+
+    assert(result.scaleShift.detected === true, "Detects 10x scale shift against baseline");
+    assert(result.scaleShift.shiftFactor === 10, "Calculates shift factor of 10");
+    assert(result.reviewRequired === true, "Requires human review for baseline anomaly");
+  }
+
+  // ==================================================================
+  // TEST GROUP 18: Decimal Validation (Requirement 16)
+  // ==================================================================
+  console.log("\n==================================================================");
+  console.log("TEST GROUP 18: Decimal Validation (Requirement 16)");
+  console.log("==================================================================");
+
+  // Test 18.1: Decimal Separator Disambiguation (. vs ,)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Decimal separator disambiguation (dot vs comma)`);
+
+    // South African English: Dot decimal with space thousands
+    const saEng = NumericProtectionEngine.parseAndProtectNumeric("R 12 345.67", "TOTAL");
+    assert(saEng.decimalSeparator === "DOT", "Detects DOT decimal separator");
+    assert(saEng.thousandsSeparator === "SPACE", "Detects SPACE thousands separator");
+    assert(saEng.numericValue === 12345.67, "Accurately parses 12345.67");
+
+    // South African Afrikaans / Continental: Comma decimal with space thousands
+    const saAfr = NumericProtectionEngine.parseAndProtectNumeric("R 12 345,67", "TOTAL");
+    assert(saAfr.decimalSeparator === "COMMA", "Detects COMMA decimal separator");
+    assert(saAfr.thousandsSeparator === "SPACE", "Detects SPACE thousands separator");
+    assert(saAfr.numericValue === 12345.67, "Accurately parses 12345.67 with comma decimal");
+
+    // Simple single decimal point: "12.50" vs "12,50"
+    const dotSimple = NumericProtectionEngine.parseAndProtectNumeric("12.50", "AMOUNT");
+    const commaSimple = NumericProtectionEngine.parseAndProtectNumeric("12,50", "AMOUNT");
+    assert(dotSimple.numericValue === 12.5, "Parses 12.50 from '12.50'");
+    assert(commaSimple.numericValue === 12.5, "Parses 12.50 from '12,50'");
+  }
+
+  // Test 18.2: Thousands Separator Variations (Space, Comma, Dot, Apostrophe, None)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Thousands separator variations (Space, Comma, Dot, Apostrophe, None)`);
+
+    // Space (SABS South African metric standard)
+    const spaceSep = NumericProtectionEngine.parseAndProtectNumeric("12 345.67", "AMOUNT");
+    assert(spaceSep.thousandsSeparator === "SPACE", "Identifies SPACE thousands separator");
+    assert(spaceSep.numericValue === 12345.67, "Parses number with space thousands separator");
+
+    // Comma (Anglo / UK / US / SA Commercial)
+    const commaSep = NumericProtectionEngine.parseAndProtectNumeric("12,345.67", "AMOUNT");
+    assert(commaSep.thousandsSeparator === "COMMA", "Identifies COMMA thousands separator");
+    assert(commaSep.decimalSeparator === "DOT", "Identifies DOT decimal separator");
+    assert(commaSep.numericValue === 12345.67, "Parses number with comma thousands separator");
+
+    // Dot (Continental European)
+    const dotSep = NumericProtectionEngine.parseAndProtectNumeric("12.345,67", "AMOUNT", {
+      localeProfile: INTERNATIONAL_CONTINENTAL_LOCALE_PROFILE,
+    });
+    assert(dotSep.thousandsSeparator === "DOT", "Identifies DOT thousands separator");
+    assert(dotSep.decimalSeparator === "COMMA", "Identifies COMMA decimal separator");
+    assert(dotSep.numericValue === 12345.67, "Parses number with dot thousands separator");
+
+    // Apostrophe (Swiss banking standard)
+    const swissSep = NumericProtectionEngine.parseAndProtectNumeric("12'345.67", "AMOUNT", {
+      localeProfile: INTERNATIONAL_SWISS_LOCALE_PROFILE,
+    });
+    assert(swissSep.thousandsSeparator === "APOSTROPHE", "Identifies APOSTROPHE thousands separator");
+    assert(swissSep.decimalSeparator === "DOT", "Identifies DOT decimal separator");
+    assert(swissSep.numericValue === 12345.67, "Parses number with apostrophe thousands separator");
+
+    // None (plain unspaced)
+    const noneSep = NumericProtectionEngine.parseAndProtectNumeric("12345.67", "AMOUNT");
+    assert(noneSep.thousandsSeparator === "NONE", "Identifies NONE thousands separator");
+    assert(noneSep.numericValue === 12345.67, "Parses unspaced number");
+  }
+
+  // Test 18.3: Currency Formatting (South African & International)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Currency formatting (South African R/ZAR/cents, $, €, £)`);
+
+    // South African Rand: "R 12 345.67"
+    const rCurr = NumericProtectionEngine.parseAndProtectNumeric("R 12 345.67", "AMOUNT");
+    assert(rCurr.currencySymbol === "R", "Identifies 'R' currency symbol");
+    assert(rCurr.currencyIsoCode === "ZAR", "Maps to 'ZAR' ISO code");
+
+    // South African Rand: "ZAR 12 345.67"
+    const zarCurr = NumericProtectionEngine.parseAndProtectNumeric("ZAR 12 345.67", "AMOUNT");
+    assert(zarCurr.currencySymbol === "ZAR", "Identifies 'ZAR' currency symbol");
+    assert(zarCurr.currencyIsoCode === "ZAR", "Maps to 'ZAR' ISO code");
+
+    // South African Cents: "c 123.45"
+    const centCurr = NumericProtectionEngine.parseAndProtectNumeric("c 123.45", "AMOUNT");
+    assert(centCurr.currencySymbol === "c", "Identifies 'c' cents currency symbol");
+
+    // US Dollar: "$ 1,234.56"
+    const usdCurr = NumericProtectionEngine.parseAndProtectNumeric("$ 1,234.56", "AMOUNT");
+    assert(usdCurr.currencySymbol === "$", "Identifies '$' currency symbol");
+    assert(usdCurr.currencyIsoCode === "USD", "Maps to 'USD' ISO code");
+
+    // Euro: "€ 1.234,56"
+    const eurCurr = NumericProtectionEngine.parseAndProtectNumeric("€ 1.234,56", "AMOUNT");
+    assert(eurCurr.currencySymbol === "€", "Identifies '€' currency symbol");
+    assert(eurCurr.currencyIsoCode === "EUR", "Maps to 'EUR' ISO code");
+
+    // British Pound: "£ 1,234.56"
+    const gbpCurr = NumericProtectionEngine.parseAndProtectNumeric("£ 1,234.56", "AMOUNT");
+    assert(gbpCurr.currencySymbol === "£", "Identifies '£' currency symbol");
+    assert(gbpCurr.currencyIsoCode === "GBP", "Maps to 'GBP' ISO code");
+  }
+
+  // Test 18.4: Negative Numbers & Credit Notation
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Negative numbers and credit notation (leading minus, trailing minus, parentheses, CR)`);
+
+    // Leading Minus: "-R 450.00"
+    const leadMinus = NumericProtectionEngine.parseAndProtectNumeric("-R 450.00", "AMOUNT");
+    assert(leadMinus.isNegative === true, "Flags isNegative = true for leading minus");
+    assert(leadMinus.negativeFormat === "LEADING_MINUS", "Identifies LEADING_MINUS format");
+    assert(leadMinus.numericValue === -450.0, "Parses negative value -450.00");
+
+    // Trailing Minus: "450.00-"
+    const trailMinus = NumericProtectionEngine.parseAndProtectNumeric("450.00-", "AMOUNT");
+    assert(trailMinus.isNegative === true, "Flags isNegative = true for trailing minus");
+    assert(trailMinus.negativeFormat === "TRAILING_MINUS", "Identifies TRAILING_MINUS format");
+    assert(trailMinus.numericValue === -450.0, "Parses negative value -450.00");
+
+    // Accounting Parentheses: "(R 450.00)"
+    const paren = NumericProtectionEngine.parseAndProtectNumeric("(R 450.00)", "AMOUNT");
+    assert(paren.isNegative === true, "Flags isNegative = true for parentheses");
+    assert(paren.negativeFormat === "PARENTHESES", "Identifies PARENTHESES format");
+    assert(paren.numericValue === -450.0, "Parses negative value -450.00");
+
+    // Credit Suffix: "R 450.00 CR"
+    const crSuffix = NumericProtectionEngine.parseAndProtectNumeric("R 450.00 CR", "AMOUNT");
+    assert(crSuffix.isNegative === true, "Flags isNegative = true for 'CR' suffix");
+    assert(crSuffix.negativeFormat === "CREDIT_SUFFIX", "Identifies CREDIT_SUFFIX format");
+    assert(crSuffix.numericValue === -450.0, "Parses credit as negative value -450.00");
+
+    // Credit Word: "450.00 Credit"
+    const crWord = NumericProtectionEngine.parseAndProtectNumeric("450.00 Credit", "AMOUNT");
+    assert(crWord.isNegative === true, "Flags isNegative = true for 'Credit' word");
+    assert(crWord.numericValue === -450.0, "Parses credit word as negative value -450.00");
+  }
+
+  // Test 18.5: Percentage Formatting & VAT Range Checking
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Percentage formatting and VAT range checking`);
+
+    // Standard South African VAT (15%)
+    const vat15 = NumericProtectionEngine.parseAndProtectNumeric("15%", "VAT");
+    assert(vat15.isPercentage === true, "Flags isPercentage = true for 15%");
+    assert(vat15.percentageValue === 15.0, "Parses 15.0 percentage value");
+    assert(vat15.isValid === true, "Standard 15% VAT is valid");
+
+    // Standard SA VAT with decimals: "15.00%"
+    const vat15Dec = NumericProtectionEngine.parseAndProtectNumeric("15.00%", "VAT");
+    assert(vat15Dec.percentageValue === 15.0, "Parses 15.00% as 15.0");
+
+    // Historical SA VAT: "14%"
+    const vat14 = NumericProtectionEngine.parseAndProtectNumeric("14%", "VAT");
+    assert(vat14.percentageValue === 14.0, "Parses historical 14% VAT");
+    assert(vat14.isValid === true, "Historical 14% VAT is valid");
+
+    // Zero-rated: "0%"
+    const vat0 = NumericProtectionEngine.parseAndProtectNumeric("0%", "VAT");
+    assert(vat0.percentageValue === 0.0, "Parses zero-rated 0% VAT");
+    assert(vat0.isValid === true, "Zero-rated VAT is valid");
+
+    // Corrupted Out-of-bounds Percentage: "1500%" (100x scale shift for 15%)
+    const corruptPerc = NumericProtectionEngine.parseAndProtectNumeric("1500%", "VAT");
+    assert(corruptPerc.validationErrors.some((e) => e.errorType === "PERCENTAGE_OUT_OF_BOUNDS"), "Raises PERCENTAGE_OUT_OF_BOUNDS error for 1500%");
+    assert(corruptPerc.suggestedCandidate === "15%", "Suggests '15%' candidate for '1500%'");
+    assert(corruptPerc.reviewRequired === true, "Review required for corrupted percentage");
+  }
+
+  // Test 18.6: Unit Extraction and Validation
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Unit extraction and dictionary validation`);
+
+    // Active Energy: kWh
+    const kwh = NumericProtectionEngine.parseAndProtectNumeric("12 450 kWh", "KWH");
+    assert(kwh.unit === "kWh", "Extracts 'kWh' unit");
+    assert(kwh.numericValue === 12450, "Extracts numeric 12450");
+    assert(kwh.isValid === true, "Standard unit is marked valid");
+
+    // Reactive Energy: kVArh
+    const kvarh = NumericProtectionEngine.parseAndProtectNumeric("3 200 kVArh", "KVARH");
+    assert(kwh.unit === "kWh", "Extracts 'kWh'");
+    assert(kvarh.unit === "kVArh", "Extracts 'kVArh' unit");
+
+    // Tariff Rates: c/kWh and R/kVA
+    const rate1 = NumericProtectionEngine.parseAndProtectNumeric("145.23 c/kWh", "RATE");
+    const rate2 = NumericProtectionEngine.parseAndProtectNumeric("56.40 R/kVA", "RATE");
+    assert(rate1.unit === "c/kWh", "Extracts 'c/kWh' rate unit");
+    assert(rate2.unit === "R/kVA", "Extracts 'R/kVA' rate unit");
+
+    // Corrupted / Unrecognized unit: "12 450 XYZW"
+    const corruptUnit = NumericProtectionEngine.parseAndProtectNumeric("12 450 XYZW", "KWH");
+    assert(corruptUnit.validationErrors.some((e) => e.errorType === "INVALID_UNIT_SPECIFICATION"), "Flags INVALID_UNIT_SPECIFICATION for unknown unit");
+    assert(corruptUnit.reviewRequired === true, "Requires review for invalid unit token");
+  }
+
+  // Test 18.7: Date Validation (South African and International Formats)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Date validation across South African and International patterns`);
+
+    // Pattern 1: ISO YYYY-MM-DD
+    const d1 = NumericProtectionEngine.parseAndValidateDate("2026-03-31");
+    assert(d1.isoDate === "2026-03-31", "Validates ISO date 2026-03-31");
+    assert(d1.isValidDate === true, "Marks valid ISO date as valid");
+
+    // Pattern 2: SA Slash YYYY/MM/DD
+    const d2 = NumericProtectionEngine.parseAndValidateDate("2026/03/31");
+    assert(d2.isoDate === "2026-03-31", "Validates SA slash date 2026/03/31");
+
+    // Pattern 3: SA DMY DD/MM/YYYY
+    const d3 = NumericProtectionEngine.parseAndValidateDate("31/03/2026");
+    assert(d3.isoDate === "2026-03-31", "Validates SA DMY date 31/03/2026");
+    assert(d3.localePattern === "SOUTH_AFRICAN", "Classifies as SOUTH_AFRICAN locale pattern");
+
+    // Pattern 4: Text Month DD MMM YYYY ("31 Jan 2026")
+    const d4 = NumericProtectionEngine.parseAndValidateDate("31 Jan 2026");
+    assert(d4.isoDate === "2026-01-31", "Validates text month date 31 Jan 2026 -> 2026-01-31");
+
+    // Pattern 5: Compact 8-digit YYYYMMDD
+    const d5 = NumericProtectionEngine.parseAndValidateDate("20260331");
+    assert(d5.isoDate === "2026-03-31", "Validates compact YYYYMMDD date 20260331 -> 2026-03-31");
+
+    // Pattern 6: International US MDY ("03/31/2026")
+    const d6 = NumericProtectionEngine.parseAndValidateDate("03/31/2026");
+    assert(d6.isoDate === "2026-03-31", "Validates US MDY date 03/31/2026 -> 2026-03-31");
+    assert(d6.localePattern === "INTERNATIONAL", "Classifies 03/31/2026 as INTERNATIONAL pattern");
+
+    // Invalid Calendar Date: February 30th ("2026-02-30")
+    const dInvalid = NumericProtectionEngine.parseAndValidateDate("2026-02-30");
+    assert(dInvalid.isValidDate === false, "Flags February 30th as invalid calendar date");
+    assert(dInvalid.validationErrors.some((e) => e.errorType === "DATE_CORRUPTION"), "Raises DATE_CORRUPTION for non-existent calendar date");
+    assert(dInvalid.reviewRequired === true, "Requires review for invalid calendar date");
+  }
+
+  // Test 18.8: International Flexibility (Zero Hard-Coded Assumptive Blockades)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] International flexibility: Zero hard-coded assumptive blockades`);
+
+    // US Utility Document: $ 14,520.50 with MDY date and USD currency
+    const usDocTotal = NumericProtectionEngine.parseAndProtectNumeric("$ 14,520.50", "TOTAL", {
+      localeProfile: INTERNATIONAL_ANGLO_LOCALE_PROFILE,
+    });
+    assert(usDocTotal.numericValue === 14520.5, "US invoice total parses cleanly (14520.50)");
+    assert(usDocTotal.currencySymbol === "$", "US dollar symbol identified");
+    assert(usDocTotal.thousandsSeparator === "COMMA", "Comma thousands separator handled cleanly");
+    assert(usDocTotal.decimalSeparator === "DOT", "Dot decimal separator handled cleanly");
+    assert(usDocTotal.isValid === true, "Valid US document passes without South African bias failure");
+
+    // European Utility Document: € 14.520,50 with DMY date and EUR currency
+    const euDocTotal = NumericProtectionEngine.parseAndProtectNumeric("€ 14.520,50", "TOTAL", {
+      localeProfile: INTERNATIONAL_CONTINENTAL_LOCALE_PROFILE,
+    });
+    assert(euDocTotal.numericValue === 14520.5, "European invoice total parses cleanly (14520.50)");
+    assert(euDocTotal.currencySymbol === "€", "Euro symbol identified");
+    assert(euDocTotal.thousandsSeparator === "DOT", "Dot thousands separator handled cleanly");
+    assert(euDocTotal.decimalSeparator === "COMMA", "Comma decimal separator handled cleanly");
+    assert(euDocTotal.isValid === true, "Valid European document passes without bias failure");
+
+    // Swiss Document: CHF 14'520.50
+    const swissDocTotal = NumericProtectionEngine.parseAndProtectNumeric("CHF 14'520.50", "TOTAL", {
+      localeProfile: INTERNATIONAL_SWISS_LOCALE_PROFILE,
+    });
+    assert(swissDocTotal.numericValue === 14520.5, "Swiss invoice total parses cleanly (14520.50)");
+    assert(swissDocTotal.thousandsSeparator === "APOSTROPHE", "Apostrophe thousands separator handled cleanly");
+    assert(swissDocTotal.isValid === true, "Valid Swiss document passes without bias failure");
   }
 
   console.log("\n==================================================================");

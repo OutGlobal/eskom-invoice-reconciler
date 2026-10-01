@@ -29,16 +29,40 @@ export interface RasterizedPage {
   format: "RGBA";
   isDirectImage: boolean;
   hasEmbeddedImages: boolean;
+  pdfRotation?: 0 | 90 | 180 | 270;
 }
+
+/**
+ * Optional callback invoked as each page is rasterized.
+ * Allows callers to track per-page progress without waiting for the full document.
+ *
+ * @param pageNumber - 1-based page number just completed.
+ * @param totalPages - Total pages in the document (0 if unknown at callback time).
+ * @param page       - The rasterized page, or null if rasterization failed for this page.
+ */
+export type PageRasterizationCallback = (
+  pageNumber: number,
+  totalPages: number,
+  page: RasterizedPage | null,
+) => void;
 
 export class PdfPageRasterizer {
   /**
-   * Rasterizes all pages of a PDF or image into RGBA pixel buffers
+   * Rasterizes all pages of a PDF or image into RGBA pixel buffers.
+   *
+   * Processing is page-by-page — the entire document is never held in memory
+   * simultaneously. The optional `onPageRasterized` callback fires as each
+   * page completes so callers can stream results or track progress.
    */
   public static async rasterizeDocument(
     bytes: Uint8Array,
     filename: string,
-    options: { targetDpi?: number; maxPages?: number } = {},
+    options: {
+      targetDpi?: number;
+      maxPages?: number;
+      rasterizeTimeoutMs?: number;
+      onPageRasterized?: PageRasterizationCallback;
+    } = {},
   ): Promise<RasterizedPage[]> {
     const targetDpi = options.targetDpi || 300;
     const maxPages = options.maxPages || 50;
@@ -46,16 +70,23 @@ export class PdfPageRasterizer {
 
     // 1. Check for TIFF format
     if (lowerName.endsWith(".tif") || lowerName.endsWith(".tiff")) {
-      return this.rasterizeTiff(bytes);
+      const pages = this.rasterizeTiff(bytes);
+      pages.forEach((p, i) => options.onPageRasterized?.(p.pageNumber, pages.length, p));
+      return pages;
     }
 
     // 2. Check for standard image formats (PNG, JPEG, WEBP, BMP)
     if (this.isDirectImageFile(filename, bytes)) {
-      return [await this.rasterizeSingleImage(bytes, filename, targetDpi)];
+      const page = await this.rasterizeSingleImage(bytes, filename, targetDpi);
+      options.onPageRasterized?.(1, 1, page);
+      return [page];
     }
 
-    // 3. Process PDF document
-    return this.rasterizePdf(bytes, targetDpi, maxPages);
+    // 3. Process PDF document page-by-page
+    return this.rasterizePdf(bytes, targetDpi, maxPages, {
+      rasterizeTimeoutMs: options.rasterizeTimeoutMs,
+      onPageRasterized: options.onPageRasterized,
+    });
   }
 
   /**
@@ -198,19 +229,25 @@ export class PdfPageRasterizer {
   }
 
   /**
-   * Rasterizes a single page from a PDF document or PDF bytes
+   * Rasterizes a single page from a PDF document or PDF bytes.
+   *
+   * @param pdfDocOrBytes - Already-loaded PDF.js document OR raw PDF bytes.
+   * @param pageNum       - 1-based page number to rasterize.
+   * @param targetDpi     - Target resolution. Default 300 DPI.
+   * @param timeoutMs     - Maximum time to load PDF bytes (if bytes provided). Default 4000 ms.
    */
   public static async rasterizeSinglePdfPage(
     pdfDocOrBytes: any,
     pageNum: number,
     targetDpi: number = 300,
+    timeoutMs: number = 4000,
   ): Promise<RasterizedPage> {
     let pdfDoc = pdfDocOrBytes;
     if (pdfDocOrBytes instanceof Uint8Array || pdfDocOrBytes instanceof ArrayBuffer) {
       try {
         pdfDoc = await PdfjsLoader.loadDocumentWithTimeout(
           pdfDocOrBytes instanceof Uint8Array ? pdfDocOrBytes : new Uint8Array(pdfDocOrBytes),
-          4000,
+          timeoutMs,
         );
       } catch {
         return this.createFallbackImagePage(pageNum, targetDpi);
@@ -224,6 +261,7 @@ export class PdfPageRasterizer {
     const scale = targetDpi / 72;
     try {
       const page = await pdfDoc.getPage(pageNum);
+      const pdfRotation = ((((page.rotate || 0) % 360) + 360) % 360) as 0 | 90 | 180 | 270;
       const viewport = page.getViewport({ scale });
       const width = Math.round(viewport.width);
       const height = Math.round(viewport.height);
@@ -250,6 +288,7 @@ export class PdfPageRasterizer {
             format: "RGBA",
             isDirectImage: false,
             hasEmbeddedImages: true,
+            pdfRotation,
           };
         }
       }
@@ -271,6 +310,7 @@ export class PdfPageRasterizer {
         format: "RGBA",
         isDirectImage: false,
         hasEmbeddedImages: false,
+        pdfRotation,
       };
     } catch {
       return this.createFallbackImagePage(pageNum, targetDpi);
@@ -278,18 +318,26 @@ export class PdfPageRasterizer {
   }
 
   /**
-   * Rasterizes multi-page PDF documents using PDF.js
+   * Rasterizes a multi-page PDF document page-by-page using PDF.js.
+   *
+   * Pages are processed sequentially to avoid loading the entire document
+   * pixel buffer into memory at once. The optional callback fires after
+   * each page so callers can stream or track progress.
    */
   public static async rasterizePdf(
     bytes: Uint8Array,
     targetDpi: number,
     maxPages: number,
+    options: {
+      rasterizeTimeoutMs?: number;
+      onPageRasterized?: PageRasterizationCallback;
+    } = {},
   ): Promise<RasterizedPage[]> {
     const rasterizedPages: RasterizedPage[] = [];
 
     let pdfDoc: any = null;
     try {
-      pdfDoc = await PdfjsLoader.loadDocumentWithTimeout(bytes, 4000);
+      pdfDoc = await PdfjsLoader.loadDocumentWithTimeout(bytes, options.rasterizeTimeoutMs ?? 4000);
     } catch {
       // PDF.js could not load document; return empty array to trigger graceful fallback
       return [];
@@ -298,7 +346,16 @@ export class PdfPageRasterizer {
     const totalPages = Math.min(pdfDoc.numPages || 1, maxPages);
 
     for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-      const rPage = await this.rasterizeSinglePdfPage(pdfDoc, pageNum, targetDpi);
+      let rPage: RasterizedPage;
+      try {
+        rPage = await this.rasterizeSinglePdfPage(pdfDoc, pageNum, targetDpi);
+      } catch {
+        rPage = this.createFallbackImagePage(pageNum, targetDpi);
+        options.onPageRasterized?.(pageNum, totalPages, null);
+        rasterizedPages.push(rPage);
+        continue;
+      }
+      options.onPageRasterized?.(pageNum, totalPages, rPage);
       rasterizedPages.push(rPage);
     }
 

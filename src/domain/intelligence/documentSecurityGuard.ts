@@ -38,22 +38,86 @@ import type {
 export class DocumentSecurityGuard {
   // Prohibited system reserved basenames (Windows devices)
   private static readonly WINDOWS_RESERVED_NAMES = new Set([
-    "con", "prn", "aux", "nul",
-    "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9",
-    "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9",
+    "con",
+    "prn",
+    "aux",
+    "nul",
+    "com1",
+    "com2",
+    "com3",
+    "com4",
+    "com5",
+    "com6",
+    "com7",
+    "com8",
+    "com9",
+    "lpt1",
+    "lpt2",
+    "lpt3",
+    "lpt4",
+    "lpt5",
+    "lpt6",
+    "lpt7",
+    "lpt8",
+    "lpt9",
   ]);
 
   // Prohibited dangerous executable and active script extensions
   public static readonly BLACKLISTED_EXTENSIONS = new Set([
-    "exe", "bat", "cmd", "sh", "bash", "ps1", "vbs", "js", "mjs", "cjs", "ts",
-    "py", "php", "phtml", "phar", "pl", "cgi", "jar", "war", "dll", "so",
-    "dylib", "html", "htm", "svg", "swf", "msi", "app", "reg", "vbe", "wsf",
-    "wsh", "scr", "pif", "hta", "cpl", "msc", "asp", "aspx", "jsp",
+    "exe",
+    "bat",
+    "cmd",
+    "sh",
+    "bash",
+    "ps1",
+    "vbs",
+    "js",
+    "mjs",
+    "cjs",
+    "ts",
+    "py",
+    "php",
+    "phtml",
+    "phar",
+    "pl",
+    "cgi",
+    "jar",
+    "war",
+    "dll",
+    "so",
+    "dylib",
+    "html",
+    "htm",
+    "svg",
+    "swf",
+    "msi",
+    "app",
+    "reg",
+    "vbe",
+    "wsf",
+    "wsh",
+    "scr",
+    "pif",
+    "hta",
+    "cpl",
+    "msc",
+    "asp",
+    "aspx",
+    "jsp",
   ]);
 
   // Allowed document extensions
   public static readonly ALLOWED_EXTENSIONS = new Set([
-    "pdf", "csv", "xlsx", "xls", "txt", "tsv", "json", "png", "jpg", "jpeg",
+    "pdf",
+    "csv",
+    "xlsx",
+    "xls",
+    "txt",
+    "tsv",
+    "json",
+    "png",
+    "jpg",
+    "jpeg",
   ]);
 
   // =========================================================================
@@ -67,13 +131,22 @@ export class DocumentSecurityGuard {
   public static assertAuthenticated(
     context?: UserSecurityContext | null,
   ): asserts context is UserSecurityContext {
-    if (!context || !context.userId || typeof context.userId !== "string" || context.userId.trim() === "") {
+    if (
+      !context ||
+      !context.userId ||
+      typeof context.userId !== "string" ||
+      context.userId.trim() === ""
+    ) {
       throw new AuthenticationRequiredError(
         "Authentication required: Access denied. Missing or invalid user authentication context.",
       );
     }
 
-    if (!context.organisationId || typeof context.organisationId !== "string" || context.organisationId.trim() === "") {
+    if (
+      !context.organisationId ||
+      typeof context.organisationId !== "string" ||
+      context.organisationId.trim() === ""
+    ) {
       throw new AuthenticationRequiredError(
         "Authentication required: Security context lacks valid organisation/tenant attribution.",
       );
@@ -119,7 +192,12 @@ export class DocumentSecurityGuard {
    */
   public static assertDocumentAccess(
     context: UserSecurityContext,
-    document: { organisationId: string; uploadedBy?: string | null; id?: string; documentId?: string },
+    document: {
+      organisationId: string;
+      uploadedBy?: string | null;
+      id?: string;
+      documentId?: string;
+    },
     action: DocumentAccessAction = "READ",
   ): void {
     this.assertAuthenticated(context);
@@ -229,7 +307,11 @@ export class DocumentSecurityGuard {
     }
 
     // Check for null bytes (truncation attack)
-    if (rawFilename.includes("\0") || rawFilename.includes("%00") || decodedFilename.includes("\0")) {
+    if (
+      rawFilename.includes("\0") ||
+      rawFilename.includes("%00") ||
+      decodedFilename.includes("\0")
+    ) {
       errors.push("Malicious null byte injection detected in filename");
       isTraversalAttempt = true;
     }
@@ -335,10 +417,14 @@ export class DocumentSecurityGuard {
     const safeFilename = this.sanitizeUploadedFilename(rawFilename).sanitizedFilename;
 
     if (!cleanOrg) {
-      throw new PathTraversalSecurityError("Cannot build secure storage path without valid organisationId");
+      throw new PathTraversalSecurityError(
+        "Cannot build secure storage path without valid organisationId",
+      );
     }
     if (!cleanDoc) {
-      throw new PathTraversalSecurityError("Cannot build secure storage path without valid documentId");
+      throw new PathTraversalSecurityError(
+        "Cannot build secure storage path without valid documentId",
+      );
     }
 
     return `tenants/${cleanOrg}/documents/${cleanDoc}/${safeFilename}`;
@@ -362,11 +448,17 @@ export class DocumentSecurityGuard {
       storagePath.includes("\0") ||
       storagePath.startsWith("/")
     ) {
-      return { isValid: false, reason: "Malicious path traversal sequence detected in storage path" };
+      return {
+        isValid: false,
+        reason: "Malicious path traversal sequence detected in storage path",
+      };
     }
 
     if (!storagePath.startsWith("tenants/")) {
-      return { isValid: false, reason: "Storage path must be prefixed with 'tenants/' for tenant isolation" };
+      return {
+        isValid: false,
+        reason: "Storage path must be prefixed with 'tenants/' for tenant isolation",
+      };
     }
 
     const segments = storagePath.split("/").filter(Boolean);
@@ -603,10 +695,9 @@ export class DocumentSecurityGuard {
         );
       }
 
-      throw new FileSignatureMismatchError(
-        `Invalid file signature: ${result.errors.join("; ")}`,
-        { detectedSignature: result.signatureDescription },
-      );
+      throw new FileSignatureMismatchError(`Invalid file signature: ${result.errors.join("; ")}`, {
+        detectedSignature: result.signatureDescription,
+      });
     }
     return result;
   }
@@ -653,7 +744,9 @@ export class DocumentSecurityGuard {
         }
         for (const pattern of sensitivePatterns) {
           if (pattern.test(key) && typeof val === "string" && val.length > 0) {
-            violations.push(`Client-accessible environment variable exposes sensitive pattern: ${key}`);
+            violations.push(
+              `Client-accessible environment variable exposes sensitive pattern: ${key}`,
+            );
           }
         }
       }
@@ -679,7 +772,9 @@ export class DocumentSecurityGuard {
             }
             // Check for raw Postgres connection string with password
             if (/postgres(ql)?:\/\/[^:]+:[^@]+@/i.test(v)) {
-              violations.push(`Postgres connection string with embedded password detected at ${currentPath}`);
+              violations.push(
+                `Postgres connection string with embedded password detected at ${currentPath}`,
+              );
             }
           } else if (typeof v === "object") {
             inspectObject(v, currentPath);

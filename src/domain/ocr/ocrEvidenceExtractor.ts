@@ -26,8 +26,15 @@ import type {
   OcrExtractedTariffDeterminants,
   OcrExtractedMeterDeterminants,
   OcrBoundingBox,
+  CoordinateSystem,
+  OcrElementBoundingBox,
+  OcrEvidenceLocationReport,
+  NumericFieldCategory,
 } from "./types";
 import { OcrConfidenceScorer } from "./ocrConfidenceScorer";
+import { NumericProtectionEngine } from "./numericProtectionEngine";
+import { ProvenanceGuard } from "../intelligence/provenanceGuard";
+import type { ProvenancedField, BoundingBox } from "../intelligence/types";
 
 export class OcrEvidenceExtractor {
   /**
@@ -326,6 +333,12 @@ export class OcrEvidenceExtractor {
                     boundingBox: table.boundingBox,
                     confidenceScore: table.confidence,
                     confidenceTier: table.confidence >= 85 ? "HIGH" : "MEDIUM",
+                    x: table.x,
+                    y: table.y,
+                    width: table.width,
+                    height: table.height,
+                    coordinateSystem: table.coordinateSystem,
+                    detailedBoundingBox: table.detailedBoundingBox,
                   },
                 });
               }
@@ -682,6 +695,12 @@ export class OcrEvidenceExtractor {
               contextSnippet: line.text,
               confidenceScore: line.confidence,
               confidenceTier: line.confidence >= 85 ? "HIGH" : "MEDIUM",
+              x: line.x,
+              y: line.y,
+              width: line.width,
+              height: line.height,
+              coordinateSystem: line.coordinateSystem,
+              detailedBoundingBox: line.detailedBoundingBox,
             },
           });
         }
@@ -702,6 +721,12 @@ export class OcrEvidenceExtractor {
               contextSnippet: line.text,
               confidenceScore: line.confidence,
               confidenceTier: line.confidence >= 85 ? "HIGH" : "MEDIUM",
+              x: line.x,
+              y: line.y,
+              width: line.width,
+              height: line.height,
+              coordinateSystem: line.coordinateSystem,
+              detailedBoundingBox: line.detailedBoundingBox,
             },
           });
         }
@@ -722,6 +747,12 @@ export class OcrEvidenceExtractor {
               contextSnippet: line.text,
               confidenceScore: line.confidence,
               confidenceTier: line.confidence >= 85 ? "HIGH" : "MEDIUM",
+              x: line.x,
+              y: line.y,
+              width: line.width,
+              height: line.height,
+              coordinateSystem: line.coordinateSystem,
+              detailedBoundingBox: line.detailedBoundingBox,
             },
           });
         }
@@ -788,6 +819,12 @@ export class OcrEvidenceExtractor {
             contextSnippet: `${matchedKv.keyText}: ${matchedKv.valueText}`,
             confidenceScore: matchedKv.confidence,
             confidenceTier: matchedKv.confidence >= 85 ? "HIGH" : "MEDIUM",
+            x: matchedKv.x,
+            y: matchedKv.y,
+            width: matchedKv.width,
+            height: matchedKv.height,
+            coordinateSystem: matchedKv.coordinateSystem,
+            detailedBoundingBox: matchedKv.detailedBoundingBox,
           },
         };
       }
@@ -813,6 +850,12 @@ export class OcrEvidenceExtractor {
                 contextSnippet: line.text,
                 confidenceScore: line.confidence,
                 confidenceTier: line.confidence >= 85 ? "HIGH" : "MEDIUM",
+                x: line.x,
+                y: line.y,
+                width: line.width,
+                height: line.height,
+                coordinateSystem: line.coordinateSystem,
+                detailedBoundingBox: line.detailedBoundingBox,
               },
             };
           }
@@ -830,6 +873,25 @@ export class OcrEvidenceExtractor {
     };
   }
 
+  private static mapFieldKeyToCategory(fieldKey: string): NumericFieldCategory {
+    const lower = fieldKey.toLowerCase();
+    if (lower.includes("account")) return "ACCOUNT_NUMBER";
+    if (lower.includes("meter")) return "METER_NUMBER";
+    if (lower.includes("invoice")) return "INVOICE_NUMBER";
+    if (lower.includes("date")) return "DATE";
+    if (lower.includes("kwh") || lower.includes("consumption") || lower.includes("activeenergy")) return "KWH";
+    if (lower.includes("kva") && !lower.includes("kvah") && !lower.includes("kvarh")) return "KVA";
+    if (lower.includes("kvah")) return "KVAH";
+    if (lower.includes("kvarh") || lower.includes("reactive")) return "KVARH";
+    if (lower.includes("demand")) return "DEMAND";
+    if (lower.includes("powerfactor") || lower.includes("pf")) return "POWER_FACTOR";
+    if (lower.includes("vat")) return "VAT";
+    if (lower.includes("total") || lower.includes("balance")) return "TOTAL";
+    if (lower.includes("tariff")) return "TARIFF";
+    if (lower.includes("rate")) return "RATE";
+    return "AMOUNT";
+  }
+
   private static findNumericFieldByPattern(
     pages: OcrPageResult[],
     documentId: string,
@@ -837,19 +899,25 @@ export class OcrEvidenceExtractor {
     fieldLabel: string,
     patterns: RegExp[],
   ): OcrDeterminantField<number | null> {
+    const category = this.mapFieldKeyToCategory(fieldKey);
+
     for (const page of pages) {
       for (const line of page.lines) {
         for (const pattern of patterns) {
           const match = line.text.match(pattern);
           if (match && match[1]) {
-            const raw = match[1].replace(/,/g, "").trim();
-            const num = parseFloat(raw);
-            if (!isNaN(num)) {
+            const raw = match[1];
+            const protectedField = NumericProtectionEngine.parseAndProtectNumeric(raw, category, {
+              pageNumber: page.pageNumber,
+              baseConfidence: line.confidence,
+            });
+
+            if (protectedField.numericValue !== null) {
               return {
                 fieldKey,
                 fieldLabel,
-                value: num,
-                rawValue: match[1],
+                value: protectedField.numericValue,
+                rawValue: raw, // Preserved strictly without silent mutation!
                 provenance: {
                   documentId,
                   pageNumber: page.pageNumber,
@@ -857,8 +925,14 @@ export class OcrEvidenceExtractor {
                   boundingBox: line.boundingBox,
                   hasExactBoundingBox: true,
                   contextSnippet: line.text,
-                  confidenceScore: line.confidence,
-                  confidenceTier: line.confidence >= 85 ? "HIGH" : "MEDIUM",
+                  confidenceScore: protectedField.confidenceScore,
+                  confidenceTier: protectedField.confidenceTier,
+                  x: line.x,
+                  y: line.y,
+                  width: line.width,
+                  height: line.height,
+                  coordinateSystem: line.coordinateSystem,
+                  detailedBoundingBox: line.detailedBoundingBox,
                 },
               };
             }
@@ -917,5 +991,186 @@ export class OcrEvidenceExtractor {
       confidenceScore: 0,
       confidenceTier: "LOW",
     };
+  }
+
+  /**
+   * Answers the authoritative audit question:
+   * "Where exactly on the invoice did this value come from?"
+   *
+   * Traces the complete provenance chain down to the exact page, spatial coordinates,
+   * coordinate system, extraction method, surrounding context snippet, and confidence.
+   * Integrates seamlessly with the Document Intelligence evidence model.
+   */
+  public static answerEvidenceLocation(field: OcrDeterminantField<any>): OcrEvidenceLocationReport {
+    const prov = field.provenance;
+    const isGrounded =
+      prov.hasExactBoundingBox &&
+      prov.pageNumber > 0 &&
+      field.value !== null &&
+      field.value !== undefined;
+
+    const coords =
+      isGrounded && prov.x !== undefined && prov.y !== undefined
+        ? {
+            x: prov.x,
+            y: prov.y,
+            width: prov.width ?? 0,
+            height: prov.height ?? 0,
+            coordinateSystem: prov.coordinateSystem || "NORMALIZED_0_1",
+          }
+        : prov.boundingBox
+          ? {
+              x: prov.boundingBox[0],
+              y: prov.boundingBox[1],
+              width: prov.boundingBox[2],
+              height: prov.boundingBox[3],
+              coordinateSystem: prov.coordinateSystem || "NORMALIZED_0_1",
+            }
+          : null;
+
+    const coordStr = coords
+      ? `[x=${coords.x}, y=${coords.y}, w=${coords.width}, h=${coords.height} (${coords.coordinateSystem})]`
+      : "[unmapped]";
+
+    const evidenceChain = isGrounded
+      ? `Document ${prov.documentId} -> Page ${prov.pageNumber} -> Region ${coordStr} -> Snippet '${prov.contextSnippet || field.rawValue}' -> Method ${prov.extractionMethod} -> Confidence ${prov.confidenceScore}% (${prov.confidenceTier})`
+      : `Document ${prov.documentId} -> Unobserved / Not Grounded`;
+
+    const found = isGrounded && coords !== null;
+    const groundingText = prov.contextSnippet || field.rawValue || "";
+    const explanation = found
+      ? `Field '${field.fieldLabel || field.fieldKey}' (${field.value}) was located on page ${prov.pageNumber} at coordinates (x: ${coords.x}, y: ${coords.y}, w: ${coords.width}, h: ${coords.height}) using ${coords.coordinateSystem} with ${prov.confidenceScore}% confidence. Original snippet: '${groundingText}'.`
+      : `Field '${field.fieldLabel || field.fieldKey}' was not located or unobserved in document ${prov.documentId}.`;
+
+    return {
+      question: "Where exactly on the invoice did this value come from?",
+      found,
+      isGrounded,
+      fieldKey: field.fieldKey,
+      fieldLabel: field.fieldLabel,
+      value: field.value,
+      documentId: prov.documentId,
+      pageNumber: prov.pageNumber,
+      boundingBox: prov.boundingBox || null,
+      x: coords?.x ?? null,
+      y: coords?.y ?? null,
+      width: coords?.width ?? null,
+      height: coords?.height ?? null,
+      coordinateSystem: coords?.coordinateSystem ?? null,
+      coordinates: coords,
+      groundingText,
+      contextSnippet: prov.contextSnippet || "",
+      extractionMethod: prov.extractionMethod,
+      confidence: prov.confidenceScore,
+      confidenceTier: prov.confidenceTier,
+      explanation,
+      evidenceChain,
+    };
+  }
+
+  /**
+   * Converts an OCR determinant field into a canonical Document Intelligence ProvenancedField,
+   * guaranteeing complete compatibility with DocumentEvidenceService and the 12-node evidence ledger.
+   */
+  public static toProvenancedField<T = string | number | null>(
+    field: OcrDeterminantField<T>,
+    documentId: string,
+  ): ProvenancedField<T> {
+    const prov = field.provenance;
+    const region: BoundingBox = prov.boundingBox
+      ? [prov.boundingBox[0], prov.boundingBox[1], prov.boundingBox[2], prov.boundingBox[3]]
+      : [0, 0, 0, 0];
+
+    const confScore =
+      prov.confidenceScore > 1
+        ? Number((prov.confidenceScore / 100).toFixed(4))
+        : prov.confidenceScore;
+
+    return ProvenanceGuard.createProvenancedField({
+      fieldKey: field.fieldKey,
+      fieldLabel: field.fieldLabel,
+      value: field.value,
+      rawValue: field.rawValue,
+      documentId: prov.documentId || documentId,
+      pageNumber: Math.max(1, prov.pageNumber),
+      region,
+      regionText: field.rawValue || String(field.value ?? ""),
+      contextSnippet: prov.contextSnippet,
+      extractionMethod:
+        prov.extractionMethod === "OCR_KEY_VALUE"
+          ? "KEY_VALUE_PAIR"
+          : prov.extractionMethod === "OCR_LAYOUT_TABLE"
+            ? "LAYOUT_TABLE_CELL"
+            : "TESSERACT_OCR",
+      confidenceScore: Math.min(1.0, Math.max(0.0, confScore)),
+      confidenceLevel:
+        prov.confidenceTier === "HIGH"
+          ? "HIGH"
+          : prov.confidenceTier === "MEDIUM"
+            ? "MEDIUM"
+            : "LOW",
+      coordinateSystem: prov.coordinateSystem,
+      detailedBoundingBox: prov.detailedBoundingBox
+        ? {
+            pageNumber: prov.detailedBoundingBox.pageNumber,
+            x: prov.detailedBoundingBox.x,
+            y: prov.detailedBoundingBox.y,
+            width: prov.detailedBoundingBox.width,
+            height: prov.detailedBoundingBox.height,
+            coordinateSystem: prov.detailedBoundingBox.coordinateSystem,
+            confidence: prov.detailedBoundingBox.confidence,
+          }
+        : undefined,
+    });
+  }
+
+  /**
+   * Compiles all grounded invoice determinants into a dictionary of ProvenancedField records
+   * ready for DocumentEvidenceService registration.
+   */
+  public static compileDocumentEvidence(
+    determinants: OcrExtractedInvoiceDeterminants,
+    documentId: string,
+  ): Record<string, ProvenancedField> {
+    const evidence: Record<string, ProvenancedField> = {};
+
+    const candidateFields: Array<OcrDeterminantField<any> | undefined> = [
+      determinants.accountNumber,
+      determinants.invoiceNumber,
+      determinants.taxInvoiceNumber,
+      determinants.customerName,
+      determinants.customerAddress,
+      determinants.vatRegistrationNumber,
+      determinants.billingPeriodStart,
+      determinants.billingPeriodEnd,
+      determinants.invoiceDate,
+      determinants.paymentDueDate,
+      determinants.tariffCode,
+      determinants.tariffName,
+      determinants.meterNumber,
+      determinants.notifiedMaximumDemandKva,
+      determinants.maximumDemandKva,
+      determinants.activeEnergyTotalKwh,
+      determinants.activeEnergyPeakKwh,
+      determinants.activeEnergyStandardKwh,
+      determinants.activeEnergyOffPeakKwh,
+      determinants.reactiveEnergyKvarh,
+      determinants.powerFactor,
+      determinants.subtotalAmount,
+      determinants.vatAmount,
+      determinants.totalAmountDue,
+    ];
+
+    for (const f of candidateFields) {
+      if (f && f.value !== null && f.value !== undefined && f.provenance.hasExactBoundingBox) {
+        try {
+          evidence[f.fieldKey] = this.toProvenancedField(f, documentId);
+        } catch {
+          // Skip non-grounded / unprovenanced entries
+        }
+      }
+    }
+
+    return evidence;
   }
 }

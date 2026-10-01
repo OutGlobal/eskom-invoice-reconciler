@@ -9,6 +9,19 @@
 
 export type BoundingBox = [x: number, y: number, width: number, height: number];
 
+export type CoordinateSystem =
+  "PIXEL_SPACE" | "NORMALIZED_0_1" | "NORMALIZED_PERCENT" | "PDF_POINTS";
+
+export interface DetailedElementBoundingBox {
+  pageNumber: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  coordinateSystem: CoordinateSystem;
+  confidence: number;
+}
+
 export type DocumentProcessingStage =
   | "UPLOAD"
   | "STORAGE"
@@ -776,6 +789,10 @@ export interface FieldProvenanceRef {
   runId?: string;
   /** Extraction logic version that captured this evidence item */
   extractionVersion?: string;
+  /** Coordinate system of spatial bounds */
+  coordinateSystem?: CoordinateSystem;
+  /** Explicit element bounding box including page, coordinates, and coordinate system */
+  detailedBoundingBox?: DetailedElementBoundingBox;
 }
 
 export interface ProvenancedField<T = string | number | null> {

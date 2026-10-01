@@ -42,6 +42,32 @@
  */
 export type OcrBoundingBox = [number, number, number, number];
 
+/**
+ * Coordinate system identifier for spatial bounding boxes:
+ * - "PIXEL_SPACE": Absolute pixel coordinates (e.g. raster canvas / scanned page pixels)
+ * - "NORMALIZED_0_1": Normalized ratio (0.0 to 1.0) relative to page width and height
+ * - "NORMALIZED_PERCENT": Percentage (0.0 to 100.0) relative to page width and height
+ * - "PDF_POINTS": Standard 72 DPI PDF coordinate space
+ */
+export type CoordinateSystem =
+  "PIXEL_SPACE" | "NORMALIZED_0_1" | "NORMALIZED_PERCENT" | "PDF_POINTS";
+
+/**
+ * Authoritative spatial bounding box metadata for any OCR element.
+ * Preserves the 7 required properties for deep provenance tracking:
+ * pageNumber, x, y, width, height, coordinateSystem, confidence.
+ */
+export interface OcrElementBoundingBox {
+  pageNumber: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  coordinateSystem: CoordinateSystem;
+  confidence: number;
+  confidenceTier?: OcrConfidenceTier;
+}
+
 export type OcrDocumentCategory =
   | "INVOICE"
   | "STATEMENT"
@@ -53,12 +79,20 @@ export type OcrDocumentCategory =
 
 export type OcrConfidenceTier = "HIGH" | "MEDIUM" | "LOW";
 
+export type DocumentOrientation = "PORTRAIT" | "LANDSCAPE";
+
+export type RotationDegrees = 0 | 90 | 180 | 270;
+
 export interface OcrImageGeometry {
   width: number;
   height: number;
   dpi: number;
   aspectRatio: number;
-  rotation: 0 | 90 | 180 | 270;
+  rotation: RotationDegrees;
+  orientation?: DocumentOrientation;
+  detectedRotation?: RotationDegrees;
+  appliedRotation?: RotationDegrees;
+  wasOrientationCorrected?: boolean;
 }
 
 export interface OcrPreprocessedImage {
@@ -72,6 +106,8 @@ export interface OcrPreprocessedImage {
   imageData?: Uint8ClampedArray;
   dataUrl?: string;
   sourceType: "EMBEDDED_RASTER" | "RENDERED_PAGE" | "DIRECT_IMAGE";
+  /** Audit record of which transforms were applied and why. Populated by ImagePreprocessingEngine. */
+  preprocessingDecision?: PreprocessingDecision;
 }
 
 export interface OcrWordToken {
@@ -79,8 +115,19 @@ export interface OcrWordToken {
   text: string;
   sanitizedText: string;
   confidence: number; // 0..100
+  confidenceNormalized?: number; // 0.0 .. 1.0
+  confidenceTier?: OcrConfidenceTier; // Requirement 13: word-level confidence tier (HIGH | MEDIUM | LOW)
   boundingBox: OcrBoundingBox;
   pageNumber: number;
+
+  // Spatial coordinates & coordinate system (Requirements 11 & 12)
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  coordinateSystem: CoordinateSystem;
+  detailedBoundingBox?: OcrElementBoundingBox;
+
   fontAttributes?: {
     isBold?: boolean;
     isItalic?: boolean;
@@ -94,7 +141,18 @@ export interface OcrLineBlock {
   pageNumber: number;
   text: string;
   confidence: number; // 0..100
+  confidenceNormalized?: number;
+  confidenceTier?: OcrConfidenceTier; // Requirement 13: line-level confidence tier (HIGH | MEDIUM | LOW)
   boundingBox: OcrBoundingBox;
+
+  // Spatial coordinates & coordinate system (Requirements 11 & 12)
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  coordinateSystem: CoordinateSystem;
+  detailedBoundingBox?: OcrElementBoundingBox;
+
   words: OcrWordToken[];
   baselineY: number;
 }
@@ -104,9 +162,20 @@ export interface OcrLayoutBlock {
   pageNumber: number;
   type: "PARAGRAPH" | "HEADING" | "TABLE" | "KEY_VALUE" | "LINE_ITEM_ROW" | "FOOTER";
   boundingBox: OcrBoundingBox;
+
+  // Spatial coordinates & coordinate system (Requirements 11 & 12)
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  coordinateSystem: CoordinateSystem;
+  detailedBoundingBox?: OcrElementBoundingBox;
+
   text: string;
   lines: OcrLineBlock[];
   confidence: number;
+  confidenceNormalized?: number;
+  confidenceTier?: OcrConfidenceTier; // Requirement 13: block-level confidence tier (HIGH | MEDIUM | LOW)
 }
 
 export interface OcrTableCell {
@@ -119,7 +188,18 @@ export interface OcrTableCell {
   rawValue: string;
   numericValue: number | null;
   boundingBox: OcrBoundingBox;
+
+  // Spatial coordinates & coordinate system (Requirements 11 & 12)
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  coordinateSystem: CoordinateSystem;
+  detailedBoundingBox?: OcrElementBoundingBox;
+
   confidence: number;
+  confidenceNormalized?: number;
+  confidenceTier?: OcrConfidenceTier;
 }
 
 export interface OcrTableStructure {
@@ -133,7 +213,18 @@ export interface OcrTableStructure {
   rowCount: number;
   columnCount: number;
   boundingBox: OcrBoundingBox;
+
+  // Spatial coordinates & coordinate system (Requirements 11 & 12)
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  coordinateSystem: CoordinateSystem;
+  detailedBoundingBox?: OcrElementBoundingBox;
+
   confidence: number;
+  confidenceNormalized?: number;
+  confidenceTier?: OcrConfidenceTier;
 }
 
 export interface OcrKeyValuePair {
@@ -145,7 +236,18 @@ export interface OcrKeyValuePair {
   valueText: string;
   valueNormalized: string | number | null;
   valueBoundingBox: OcrBoundingBox;
+
+  // Spatial coordinates & coordinate system (Requirements 11 & 12)
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  coordinateSystem: CoordinateSystem;
+  detailedBoundingBox?: OcrElementBoundingBox;
+
   confidence: number;
+  confidenceNormalized?: number;
+  confidenceTier?: OcrConfidenceTier;
   orientation: "HORIZONTAL_RIGHT" | "VERTICAL_BELOW";
 }
 
@@ -160,10 +262,18 @@ export interface OcrPageResult {
   keyValuePairs: OcrKeyValuePair[];
   averageConfidence: number;
   minConfidence: number;
+  confidenceTier?: OcrConfidenceTier; // Requirement 13: page-level confidence tier (HIGH | MEDIUM | LOW)
+  isReliable?: boolean; // Requirement 13: explicitly false for low-confidence
+  detectedErrors?: OcrDetectedError[]; // Requirement 14: detected OCR errors on page
   characterCount: number;
   isNativeDigital: boolean;
   isScannedRaster: boolean;
   processingDurationMs: number;
+  detectedOrientation?: DocumentOrientation;
+  detectedRotation?: RotationDegrees;
+  appliedRotation?: RotationDegrees;
+  wasOrientationCorrected?: boolean;
+  languageUsed?: string;
 }
 
 /**
@@ -179,6 +289,50 @@ export interface OcrFieldProvenance {
   contextSnippet?: string;
   confidenceScore: number;
   confidenceTier: OcrConfidenceTier;
+
+  // Requirements 11 & 12: Detailed spatial coordinates and coordinate system
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  coordinateSystem?: CoordinateSystem;
+  detailedBoundingBox?: OcrElementBoundingBox;
+}
+
+/**
+ * Authoritative response to the question:
+ * "Where exactly on the invoice did this value come from?"
+ * Bridges the OCR layer to the Document Intelligence evidence model.
+ */
+export interface OcrEvidenceLocationReport {
+  question: "Where exactly on the invoice did this value come from?";
+  found: boolean;
+  isGrounded: boolean;
+  fieldKey: string;
+  fieldLabel: string;
+  value: string | number | null;
+  documentId: string;
+  pageNumber: number;
+  boundingBox: OcrBoundingBox | null;
+  x: number | null;
+  y: number | null;
+  width: number | null;
+  height: number | null;
+  coordinateSystem: CoordinateSystem | null;
+  coordinates: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    coordinateSystem: CoordinateSystem;
+  } | null;
+  groundingText: string;
+  contextSnippet: string;
+  extractionMethod: string;
+  confidence: number;
+  confidenceTier: OcrConfidenceTier;
+  explanation: string;
+  evidenceChain: string;
 }
 
 export interface OcrDeterminantField<T = string | number | null> {
@@ -319,8 +473,10 @@ export interface OcrDocumentResult {
   pages: OcrPageResult[];
   overallConfidence: number; // 0..100
   confidenceTier: OcrConfidenceTier;
+  isReliable: boolean; // Requirement 13: strictly false for low-confidence (<70%) or critical error state
   reviewRequired: boolean;
   reviewReasons: string[];
+  detectedErrors?: OcrDetectedError[]; // Requirement 14: all detected OCR issues
   tables: OcrTableStructure[];
   rawFullText: string;
 
@@ -337,4 +493,297 @@ export interface OcrDocumentResult {
   startedAt: string;
   completedAt: string;
   durationMs: number;
+
+  // Per-page status tracking (populated during background processing)
+  pageStatuses?: PageProcessingStatus[];
+
+  // Language configuration and audit trail for this OCR run
+  ocrLanguageConfig?: OcrRunLanguageConfig;
 }
+
+// ---------------------------------------------------------------------------
+// OCR Error Detection & Audit Types (Requirement 14)
+// ---------------------------------------------------------------------------
+
+export type OcrErrorType =
+  | "SUBSTITUTION_O_0"
+  | "SUBSTITUTION_I_1"
+  | "SUBSTITUTION_L_1"
+  | "SUBSTITUTION_S_5"
+  | "SUBSTITUTION_B_8"
+  | "SUBSTITUTION_G_6"
+  | "SUBSTITUTION_Z_2"
+  | "COMMA_DECIMAL_AMBIGUITY"
+  | "DECIMAL_POINT_MISSING"
+  | "CURRENCY_SYMBOL_CORRUPTION"
+  | "DATE_CORRUPTION"
+  | "ACCOUNT_NUMBER_CORRUPTION"
+  | "METER_NUMBER_CORRUPTION"
+  | "SCALE_SHIFT_DROPPED_DECIMAL"
+  | "THOUSANDS_SEPARATOR_CORRUPTION"
+  | "POWER_FACTOR_OUT_OF_BOUNDS"
+  | "PERCENTAGE_OUT_OF_BOUNDS"
+  | "INVALID_UNIT_SPECIFICATION"
+  | "NEGATIVE_FORMAT_AMBIGUITY";
+
+export interface OcrDetectedError {
+  errorId: string;
+  errorType: OcrErrorType;
+  /** Exact original text read by OCR. MUST NEVER BE SILENTLY MUTATED! */
+  originalOcrValue: string;
+  /** Field key if associated with a determinant (e.g. "totalAmountDue", "accountNumber") */
+  fieldKey?: string;
+  fieldLabel?: string;
+  pageNumber: number;
+  boundingBox?: OcrBoundingBox;
+  coordinates?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    coordinateSystem: CoordinateSystem;
+  };
+  /** Explanation of the potential error detected */
+  potentialError: string;
+  /** Result of validation step: why this failed or requires scrutiny */
+  validationResult: string;
+  /** Unapplied candidate interpretation for human review display only. NEVER silently applied! */
+  suggestedCandidate?: string;
+  /** Confidence score penalty applied to the extraction (e.g., 25 points) */
+  confidencePenalty: number;
+  /** Severity level of the issue */
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+  /** Whether this issue requires human review */
+  reviewRequired: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Page Processing Status
+// ---------------------------------------------------------------------------
+
+/**
+ * Per-page processing lifecycle state.
+ *
+ * Populated by `PdfPageRasterizer` and threaded through `HybridDocumentProcessor`
+ * so callers can track progress without loading all pages at once.
+ *
+ * Stored alongside OCR results so the UI can show real-time progress and
+ * distinguish failed pages from unprocessed pages.
+ */
+export type PageProcessingState =
+  "PENDING" | "RASTERIZING" | "PREPROCESSING" | "OCR" | "DONE" | "FAILED";
+
+export interface PageProcessingStatus {
+  /** 1-based page number within the source document. */
+  pageNumber: number;
+  /** Current processing lifecycle state. */
+  state: PageProcessingState;
+  /** ISO 8601 timestamp when this page entered the current state. */
+  stateEnteredAt: string;
+  /** Whether this page required OCR (vs. native digital extraction). */
+  requiredOcr: boolean | null;
+  /** OCR confidence for this page once DONE, or null while pending. */
+  ocrConfidence: number | null;
+  /** Error message if state === "FAILED". Null otherwise. */
+  errorMessage: string | null;
+  /** Preprocessing decisions made for this page (populated after PREPROCESSING). */
+  preprocessingDecision?: PreprocessingDecision;
+}
+
+// ---------------------------------------------------------------------------
+// Preprocessing Decision Record
+// ---------------------------------------------------------------------------
+
+/**
+ * Audit record of which preprocessing transforms were applied to a page image,
+ * and why. Captured once per scanned page and stored alongside OCR evidence.
+ *
+ * The design principle: transforms are NOT applied blindly. Each is gated on
+ * image metrics. This record makes the decision transparent and auditable.
+ */
+export interface PreprocessingDecision {
+  /** Was the image resolution sufficient for OCR without upscaling? */
+  resolutionSufficient: boolean;
+  /** Input DPI as determined from page geometry. */
+  inputDpi: number;
+  /** Effective DPI after any resolution normalisation. */
+  effectiveDpi: number;
+  /** Was grayscale conversion applied? Always true for rasterized pages. */
+  grayscaleApplied: boolean;
+  /** Was the image detected as inverted (light text on dark background)? */
+  inversionDetected: boolean;
+  /** Was contrast enhancement applied? (Skipped when contrastRatio >= 0.7) */
+  contrastEnhancementApplied: boolean;
+  /** Measured contrast ratio before enhancement (Michelson, 0..1). */
+  contrastRatioBefore: number;
+  /** Was noise reduction applied? (Skipped when image is already clean). */
+  noiseReductionApplied: boolean;
+  /** Was border cleanup applied? */
+  borderCleanupApplied: boolean;
+  /** Estimated skew angle in degrees. */
+  estimatedSkewDegrees: number;
+  /** Was deskew correction applied? (Skipped when |angle| < 0.3°) */
+  deskewApplied: boolean;
+  /** Was Otsu binarization applied? (Skipped for high-quality digital renders). */
+  binarizationApplied: boolean;
+  /** Reason binarization was skipped, if applicable. */
+  binarizationSkippedReason?: string;
+  /** Detected orientation: PORTRAIT or LANDSCAPE */
+  orientation: DocumentOrientation;
+  /** Detected rotation angle (0, 90, 180, or 270 degrees). */
+  detectedRotationDegrees: RotationDegrees;
+  /** Applied correction rotation angle (0, 90, 180, or 270 degrees). */
+  appliedRotationDegrees: RotationDegrees;
+  /** Whether orientation was corrected prior to OCR recognition. */
+  orientationCorrectionApplied: boolean;
+  /** Confidence in orientation detection (0..100). */
+  orientationConfidence?: number;
+}
+
+// ---------------------------------------------------------------------------
+// OCR Run Language Configuration
+// ---------------------------------------------------------------------------
+
+/**
+ * Audit record of the language configuration used for an OCR execution run.
+ * Preserved alongside document results to prevent unverified assumptions.
+ */
+export interface OcrRunLanguageConfig {
+  /** Language requested by caller, if any. */
+  requestedLanguage?: string;
+  /** Language detected by automatic language detection, if executed. */
+  detectedLanguage?: string;
+  /** Confidence score (0..100) of language detection. */
+  languageDetectionConfidence?: number;
+  /** Actual BCP-47 / ISO 639-2 language code supplied to OCR engine. */
+  actualLanguageUsed: string;
+  /** Fallback language used when detection is ambiguous or low confidence. */
+  fallbackLanguage: string;
+  /** Flag indicating whether the fallback language was chosen over detection. */
+  isFallbackUsed: boolean;
+  /** Human-readable explanation of why this language was selected. */
+  selectionReason: string;
+  /** List of languages supported in this environment. */
+  supportedLanguages: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Numeric Protection & Decimal Validation Types (Requirements 15 & 16)
+// ---------------------------------------------------------------------------
+
+export type NumericFieldCategory =
+  | "ACCOUNT_NUMBER"
+  | "METER_NUMBER"
+  | "INVOICE_NUMBER"
+  | "DATE"
+  | "KWH"
+  | "KVA"
+  | "KVAH"
+  | "KVARH"
+  | "DEMAND"
+  | "POWER_FACTOR"
+  | "TARIFF"
+  | "RATE"
+  | "AMOUNT"
+  | "VAT"
+  | "TOTAL";
+
+export type DecimalSeparatorType = "DOT" | "COMMA" | "NONE" | "AMBIGUOUS";
+
+export type ThousandsSeparatorType =
+  | "SPACE"
+  | "COMMA"
+  | "DOT"
+  | "APOSTROPHE"
+  | "NONE"
+  | "MIXED";
+
+export type NegativeNumberFormat =
+  | "LEADING_MINUS"
+  | "TRAILING_MINUS"
+  | "PARENTHESES"
+  | "CREDIT_SUFFIX"
+  | "DEBIT_SUFFIX"
+  | "NONE";
+
+export interface ScaleShiftDetection {
+  detected: boolean;
+  shiftFactor?: number; // e.g. 10, 100, 1000, 10000
+  originalOcrValue: string;
+  candidateCorrectedValue?: string;
+  reason: string;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+}
+
+export interface DocumentLocaleProfile {
+  name: string; // "SOUTH_AFRICA_DEFAULT" | "INTERNATIONAL_ANGLO" | "INTERNATIONAL_CONTINENTAL" | "AUTO_DETECT"
+  currencySymbols: string[];
+  decimalSeparators: Array<"." | ",">;
+  thousandsSeparators: Array<" " | "," | "." | "'">;
+  standardVatPercentage?: number;
+  dateFormatOrder: "YMD" | "DMY" | "MDY" | "AUTO";
+}
+
+export interface ParsedNumericField {
+  category: NumericFieldCategory;
+  /** Exact original string extracted by OCR (NEVER silently mutated!) */
+  originalRaw: string;
+  /** Cleaned text representation preserving structure */
+  normalizedText: string;
+  /** Computed numeric value or null if unparseable/unobserved */
+  numericValue: number | null;
+  /** Is this a negative number or credit value */
+  isNegative: boolean;
+  /** The specific negative notation detected */
+  negativeFormat: NegativeNumberFormat;
+  /** Whether the field specifies a percentage */
+  isPercentage: boolean;
+  /** Parsed percentage value (e.g. 15 for 15%) */
+  percentageValue?: number;
+  /** Currency symbol if present (e.g. "R", "ZAR", "$", "€", "£", "c") */
+  currencySymbol?: string;
+  /** Standard currency ISO code (e.g. "ZAR", "USD", "EUR", "GBP") */
+  currencyIsoCode?: string;
+  /** Unit of measurement (e.g. "kWh", "kVA", "kVAh", "kVArh", "kW", "c/kWh", "R/kVA", "PF") */
+  unit?: string;
+  /** Detected decimal separator */
+  decimalSeparator: DecimalSeparatorType;
+  /** Detected thousands separator */
+  thousandsSeparator: ThousandsSeparatorType;
+  /** Scale shift detection details */
+  scaleShift: ScaleShiftDetection;
+  /** Validation errors detected during analysis */
+  validationErrors: OcrDetectedError[];
+  /** Overall validity flag */
+  isValid: boolean;
+  /** Confidence score (0..100) after any validation penalties */
+  confidenceScore: number;
+  /** Confidence tier */
+  confidenceTier: OcrConfidenceTier;
+  /** Whether this numeric field requires human audit review */
+  reviewRequired: boolean;
+  /** Specific audit review reasons */
+  reviewReasons: string[];
+  /** Candidate correction suggestions for human inspection ONLY */
+  suggestedCandidate?: string;
+}
+
+export interface ValidatedDateField {
+  /** Exact original string from OCR (NEVER mutated!) */
+  originalRaw: string;
+  /** Normalized ISO 8601 date string (YYYY-MM-DD) or null if invalid */
+  isoDate: string | null;
+  /** Detected format pattern (e.g. "YYYY-MM-DD", "DD/MM/YYYY", "DD MMM YYYY") */
+  formatDetected: string;
+  /** Regional pattern classification */
+  localePattern: "SOUTH_AFRICAN" | "INTERNATIONAL" | "UNKNOWN";
+  /** Whether date is calendar-valid (month 1-12, valid days in month, leap years) */
+  isValidDate: boolean;
+  /** Validation errors */
+  validationErrors: OcrDetectedError[];
+  /** Whether review is required */
+  reviewRequired: boolean;
+  /** Suggested candidate for human review */
+  suggestedCandidate?: string;
+}
+

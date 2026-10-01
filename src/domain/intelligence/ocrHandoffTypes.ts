@@ -47,12 +47,7 @@ export const PIPELINE_STAGE_SEQUENCE: readonly PipelineStage[] = [
 ] as const;
 
 export type PipelineStageStatus =
-  | "PENDING"
-  | "IN_PROGRESS"
-  | "COMPLETED"
-  | "FAILED"
-  | "SKIPPED"
-  | "REQUIRES_REVIEW";
+  "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED" | "SKIPPED" | "REQUIRES_REVIEW";
 
 /**
  * 2D normalized coordinate box: [minX, minY, width, height]

@@ -227,8 +227,10 @@ export class OcrPersistenceService {
             pages,
             overallConfidence: Number(runData.overall_confidence),
             confidenceTier: runData.confidence_tier,
+            isReliable: Boolean(runData.is_reliable ?? (runData.confidence_tier === "HIGH")),
             reviewRequired: Boolean(runData.review_required),
             reviewReasons: runData.review_reasons || [],
+            detectedErrors: runData.detected_errors_payload || [],
             tables: runData.tables_payload || [],
             rawFullText: runData.raw_full_text || "",
             invoiceDeterminants:

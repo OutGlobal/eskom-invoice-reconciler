@@ -10,15 +10,9 @@ export { TextExtractionEngine } from "./textExtractionEngine";
 export { LayoutAnalysisEngine } from "./layoutAnalysisEngine";
 export { DocumentClassifier } from "./documentClassifier";
 export { EvidenceRegistryEngine } from "./evidenceRegistryEngine";
-export {
-  ProvenanceGuard,
-  UnprovenancedExtractionError,
-} from "./provenanceGuard";
+export { ProvenanceGuard, UnprovenancedExtractionError } from "./provenanceGuard";
 export { DocumentEvidenceService } from "./documentEvidenceService";
-export {
-  DocumentExtractionRunManager,
-  ExtractionRunService,
-} from "./documentExtractionRunManager";
+export { DocumentExtractionRunManager, ExtractionRunService } from "./documentExtractionRunManager";
 export {
   DocumentLifecycleManager,
   DocumentLifecycleTransitionError,
@@ -51,4 +45,3 @@ export { DocumentSecurityGuard } from "./documentSecurityGuard";
 export { DocumentIntelligencePipeline } from "./documentIntelligencePipeline";
 export * from "./frontendDocumentTypes";
 export * from "./documentViewerTypes";
-

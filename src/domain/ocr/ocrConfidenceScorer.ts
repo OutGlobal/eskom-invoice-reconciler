@@ -1,39 +1,136 @@
 /**
  * ENERA PRODUCTION OCR ENGINE — CONFIDENCE & AUDIT SCORER
  * ========================================================
- * Evaluates extraction confidence across tokens, fields, and documents:
+ * Evaluates extraction confidence across all structural levels:
  *
- *   OCR Tokens & BBoxes
+ *   Document Level (overallScore, confidenceTier: HIGH | MEDIUM | LOW, isReliable)
  *           ↓
- *   Character Confusion Checks ('0' vs 'O', '1' vs 'I')
+ *   Page Level (averageConfidence, minConfidence, confidenceTier, isReliable)
  *           ↓
- *   Field-Level Pattern Verification (Regex & Mathematical)
+ *   Block Level (confidence, confidenceNormalized, confidenceTier)
  *           ↓
- *   Weighted Document Confidence
+ *   Line Level (confidence, confidenceNormalized, confidenceTier)
  *           ↓
- *   Confidence Tier Assignment (HIGH / MEDIUM / LOW)
- *           ↓
- *   Human Review Routing (<0.85 Threshold)
+ *   Word Level (confidence, confidenceNormalized, confidenceTier)
+ *
+ * REQUIREMENT 13:
+ * Meaningful statuses: HIGH (>=85%), MEDIUM (70%..84.99%), LOW (<70%).
+ * "Do not pretend a low-confidence OCR result is reliable."
+ * Low-confidence OCR results are explicitly flagged as isReliable = false.
+ *
+ * REQUIREMENT 14:
+ * Detects common utility document OCR problems and executes:
+ * OCR VALUE → POTENTIAL ERROR → VALIDATION → CONFIDENCE → REVIEW IF NECESSARY
+ * Never silently rewrites financial or billing values.
  */
 
 import type {
   OcrConfidenceTier,
-  OcrPageResult,
-  OcrDeterminantField,
+  OcrDetectedError,
   OcrExtractedInvoiceDeterminants,
+  OcrPageResult,
 } from "./types";
+import { OcrErrorDetector } from "./ocrErrorDetector";
 
 export interface ConfidenceEvaluation {
   overallScore: number; // 0..100
   tier: OcrConfidenceTier;
+  isReliable: boolean; // Strictly false for low confidence (<70%) or critical validation failure
   reviewRequired: boolean;
   reviewReasons: string[];
   fieldScores: Record<string, number>;
+  detectedErrors: OcrDetectedError[];
 }
 
 export class OcrConfidenceScorer {
   public static readonly HIGH_CONFIDENCE_THRESHOLD = 85.0;
   public static readonly MEDIUM_CONFIDENCE_THRESHOLD = 70.0;
+
+  /**
+   * Helper to map numerical score (0..100) to meaningful confidence tier
+   */
+  public static getConfidenceTier(score: number): OcrConfidenceTier {
+    if (score >= this.HIGH_CONFIDENCE_THRESHOLD) return "HIGH";
+    if (score >= this.MEDIUM_CONFIDENCE_THRESHOLD) return "MEDIUM";
+    return "LOW";
+  }
+
+  /**
+   * Evaluates if a given score or tier is reliable.
+   * Strictly returns false for LOW tier (<70%).
+   * "Do not pretend a low-confidence OCR result is reliable."
+   */
+  public static isReliable(scoreOrTier: number | OcrConfidenceTier): boolean {
+    if (typeof scoreOrTier === "string") {
+      return scoreOrTier === "HIGH";
+    }
+    return scoreOrTier >= this.HIGH_CONFIDENCE_THRESHOLD;
+  }
+
+  /**
+   * Enriches all structural elements on a page (blocks, lines, words, tables, cells)
+   * with explicit confidence tiers.
+   */
+  public static assignTiersToPage(page: OcrPageResult): OcrPageResult {
+    // 1. Word level
+    if (page.words) {
+      page.words.forEach((w) => {
+        w.confidenceTier = this.getConfidenceTier(w.confidence);
+        if (w.detailedBoundingBox) {
+          w.detailedBoundingBox.confidenceTier = w.confidenceTier;
+        }
+      });
+    }
+
+    // 2. Line level
+    if (page.lines) {
+      page.lines.forEach((l) => {
+        l.confidenceTier = this.getConfidenceTier(l.confidence);
+        if (l.detailedBoundingBox) {
+          l.detailedBoundingBox.confidenceTier = l.confidenceTier;
+        }
+        l.words?.forEach((w) => {
+          if (!w.confidenceTier) w.confidenceTier = this.getConfidenceTier(w.confidence);
+        });
+      });
+    }
+
+    // 3. Block level
+    if (page.blocks) {
+      page.blocks.forEach((b) => {
+        b.confidenceTier = this.getConfidenceTier(b.confidence);
+        if (b.detailedBoundingBox) {
+          b.detailedBoundingBox.confidenceTier = b.confidenceTier;
+        }
+        b.lines?.forEach((l) => {
+          if (!l.confidenceTier) l.confidenceTier = this.getConfidenceTier(l.confidence);
+        });
+      });
+    }
+
+    // 4. Tables and cells
+    if (page.tables) {
+      page.tables.forEach((t) => {
+        t.confidenceTier = this.getConfidenceTier(t.confidence);
+        t.cells?.forEach((c) => {
+          c.confidenceTier = this.getConfidenceTier(c.confidence);
+        });
+      });
+    }
+
+    // 5. Key-value pairs
+    if (page.keyValuePairs) {
+      page.keyValuePairs.forEach((kv) => {
+        kv.confidenceTier = this.getConfidenceTier(kv.confidence);
+      });
+    }
+
+    // 6. Page level
+    page.confidenceTier = this.getConfidenceTier(page.averageConfidence);
+    page.isReliable = this.isReliable(page.confidenceTier);
+
+    return page;
+  }
 
   /**
    * Evaluates overall document confidence and determines review requirements
@@ -49,31 +146,36 @@ export class OcrConfidenceScorer {
       return {
         overallScore: 0.0,
         tier: "LOW",
+        isReliable: false,
         reviewRequired: true,
         reviewReasons: ["No pages recognized in document."],
         fieldScores,
+        detectedErrors: [],
       };
     }
 
-    // 1. Page-level confidence weighting
+    // 1. Assign confidence tiers across all structural levels for each page
+    pages.forEach((page) => this.assignTiersToPage(page));
+
+    // 2. Page-level confidence weighting
     let totalPageConf = 0;
     for (const page of pages) {
       totalPageConf += page.averageConfidence;
-      if (page.averageConfidence < 60) {
+      if (page.averageConfidence < this.MEDIUM_CONFIDENCE_THRESHOLD) {
         reviewReasons.push(
-          `Page ${page.pageNumber} OCR confidence is severely degraded (${page.averageConfidence}%).`,
+          `Page ${page.pageNumber} OCR confidence is degraded (${page.averageConfidence}%, tier: ${page.confidenceTier || "LOW"}). Low-confidence results are not reliable.`,
         );
       }
     }
     const avgPageConf = Number((totalPageConf / pages.length).toFixed(2));
 
-    // 2. Field-level determinant validation
+    // 3. Field-level determinant validation
     let determinantSum = 0;
     let determinantCount = 0;
 
     if (determinants) {
       // Evaluate Account Number
-      if (determinants.accountNumber) {
+      if (determinants.accountNumber && determinants.accountNumber.value !== null) {
         const score = this.scoreAccountNumber(determinants.accountNumber.value);
         fieldScores["accountNumber"] = score;
         determinantSum += score;
@@ -88,7 +190,7 @@ export class OcrConfidenceScorer {
       }
 
       // Evaluate Total Due
-      if (determinants.totalAmountDue) {
+      if (determinants.totalAmountDue && determinants.totalAmountDue.value !== null) {
         const score = this.scoreCurrencyAmount(determinants.totalAmountDue.value);
         fieldScores["totalAmountDue"] = score;
         determinantSum += score;
@@ -102,16 +204,16 @@ export class OcrConfidenceScorer {
         reviewReasons.push("Mandatory determinant 'totalAmountDue' is missing.");
       }
 
-      // Evaluate Active Energy Total kWh
-      if (determinants.activeEnergyTotalKwh) {
+      // Evaluate Active Energy Total kWh (if observed)
+      if (determinants.activeEnergyTotalKwh && determinants.activeEnergyTotalKwh.value !== null) {
         const score = this.scoreEnergyConsumption(determinants.activeEnergyTotalKwh.value);
         fieldScores["activeEnergyTotalKwh"] = score;
         determinantSum += score;
         determinantCount++;
       }
 
-      // Evaluate Invoice Date
-      if (determinants.invoiceDate) {
+      // Evaluate Invoice Date (if observed)
+      if (determinants.invoiceDate && determinants.invoiceDate.value !== null) {
         const score = this.scoreDate(determinants.invoiceDate.value);
         fieldScores["invoiceDate"] = score;
         determinantSum += score;
@@ -119,39 +221,60 @@ export class OcrConfidenceScorer {
       }
     }
 
-    // 3. Composite score calculation (60% page OCR tokens, 40% key determinant validity)
+    // 4. Run Requirement 14 OCR Error Detection Pipeline
+    const detectedErrors = OcrErrorDetector.detectAllDocumentErrors(pages, determinants as any);
+    for (const err of detectedErrors) {
+      if (err.reviewRequired && !reviewReasons.some((r) => r.includes(err.potentialError))) {
+        reviewReasons.push(`OCR Anomaly [${err.errorType}]: ${err.potentialError}`);
+      }
+    }
+
+    // 5. Composite score calculation (60% page OCR tokens, 40% key determinant validity)
     let overallScore = avgPageConf;
     if (determinantCount > 0) {
       const avgDeterminantScore = determinantSum / determinantCount;
       overallScore = Number((0.6 * avgPageConf + 0.4 * avgDeterminantScore).toFixed(2));
     }
 
-    // 4. Assign confidence tier
-    let tier: OcrConfidenceTier = "LOW";
-    if (overallScore >= this.HIGH_CONFIDENCE_THRESHOLD) {
-      tier = "HIGH";
-    } else if (overallScore >= this.MEDIUM_CONFIDENCE_THRESHOLD) {
-      tier = "MEDIUM";
-    } else {
-      tier = "LOW";
+    // Deduct penalties for critical errors
+    const criticalErrors = detectedErrors.filter((e) => e.severity === "CRITICAL");
+    if (criticalErrors.length > 0) {
+      overallScore = Math.max(0, Number((overallScore - criticalErrors.length * 15).toFixed(2)));
     }
 
-    // Review is mandatory if score < 85 or any critical reason was flagged
-    if (overallScore < this.HIGH_CONFIDENCE_THRESHOLD) {
+    // 6. Assign document confidence tier: HIGH, MEDIUM, LOW
+    const tier: OcrConfidenceTier = this.getConfidenceTier(overallScore);
+
+    // 7. Enforce: "Do not pretend a low-confidence OCR result is reliable"
+    // Low confidence is never reliable. Medium confidence requires review. Only HIGH without critical errors is reliable.
+    const isReliable =
+      tier === "HIGH" &&
+      criticalErrors.length === 0 &&
+      overallScore >= this.HIGH_CONFIDENCE_THRESHOLD;
+
+    if (tier === "LOW") {
+      reviewReasons.push(
+        `Overall OCR confidence score (${overallScore}%) is classified as LOW tier. Low-confidence OCR result is strictly UNRELIABLE.`,
+      );
+    } else if (overallScore < this.HIGH_CONFIDENCE_THRESHOLD) {
       reviewReasons.push(
         `Overall OCR confidence score (${overallScore}%) is below the high confidence threshold (${this.HIGH_CONFIDENCE_THRESHOLD}%). Human review required.`,
       );
     }
 
     const reviewRequired =
-      overallScore < this.HIGH_CONFIDENCE_THRESHOLD || reviewReasons.length > 0;
+      overallScore < this.HIGH_CONFIDENCE_THRESHOLD ||
+      reviewReasons.length > 0 ||
+      detectedErrors.some((e) => e.reviewRequired);
 
     return {
       overallScore,
       tier,
+      isReliable,
       reviewRequired,
       reviewReasons,
       fieldScores,
+      detectedErrors,
     };
   }
 
@@ -228,7 +351,8 @@ export class OcrConfidenceScorer {
   }
 
   /**
-   * Resolves common optical character ambiguities when supported by structural context
+   * Resolves common optical character ambiguities when supported by structural context.
+   * NOTE: For candidate review suggestions only. Never silently rewrite financial values!
    */
   public static disambiguateNumericString(text: string): string {
     return text

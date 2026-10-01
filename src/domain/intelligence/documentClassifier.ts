@@ -539,7 +539,11 @@ export class DocumentClassifier {
 
     // Tariff detection
     let tariffName = "UNKNOWN";
-    let subCategory = isEskom ? "ESKOM_STANDARD" : isMunicipal ? "MUNICIPAL_COMMERCIAL" : "STANDARD_UTILITY";
+    let subCategory = isEskom
+      ? "ESKOM_STANDARD"
+      : isMunicipal
+        ? "MUNICIPAL_COMMERCIAL"
+        : "STANDARD_UTILITY";
 
     if (/\bmegaflex\b/i.test(text)) {
       tariffName = "Megaflex";
@@ -596,7 +600,9 @@ export class DocumentClassifier {
     // Match decision based on strong deterministic combinations
     const hasDistributor = isEskom || isMunicipal;
     const matched =
-      (hasTaxInvoice && (hasEnergyDeterminants || hasRateUnits) && (hasFinancialSummary || hasDistributor)) ||
+      (hasTaxInvoice &&
+        (hasEnergyDeterminants || hasRateUnits) &&
+        (hasFinancialSummary || hasDistributor)) ||
       (hasDistributor && hasTaxInvoice && (hasIdentifiers || hasFinancialSummary)) ||
       (hasTaxInvoice && (hasEnergyDeterminants || hasRateUnits || hasDistributor)) ||
       (hasDistributor && hasEnergyDeterminants && hasRateUnits) ||
@@ -604,7 +610,13 @@ export class DocumentClassifier {
 
     let confidence = 0.2;
     if (matched) {
-      if (hasDistributor && hasTaxInvoice && hasEnergyDeterminants && hasFinancialSummary && hasIdentifiers) {
+      if (
+        hasDistributor &&
+        hasTaxInvoice &&
+        hasEnergyDeterminants &&
+        hasFinancialSummary &&
+        hasIdentifiers
+      ) {
         confidence = 0.98;
       } else if (hasTaxInvoice && hasEnergyDeterminants && hasFinancialSummary) {
         confidence = 0.92;

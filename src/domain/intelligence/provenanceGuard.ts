@@ -26,6 +26,8 @@
 import type {
   BoundingBox,
   ClassificationConfidenceLevel,
+  CoordinateSystem,
+  DetailedElementBoundingBox,
   FieldProvenanceRef,
   ProvenanceConfidenceTier,
   ProvenanceEnforcementResult,
@@ -66,11 +68,21 @@ export class ProvenanceGuard {
     confidenceScore?: number;
     confidenceLevel?: ProvenanceConfidenceTier;
     isVerified?: boolean;
+    coordinateSystem?: CoordinateSystem;
+    detailedBoundingBox?: DetailedElementBoundingBox;
   }): ProvenancedField<T> {
-    if (params.confidenceScore !== undefined && (params.confidenceScore < 0 || params.confidenceScore > 1)) {
+    if (
+      params.confidenceScore !== undefined &&
+      (params.confidenceScore < 0 || params.confidenceScore > 1)
+    ) {
       throw new UnprovenancedExtractionError(
         `Failed to create provenanced field '${params.fieldKey}': Confidence link broken: confidenceScore must be a number between 0 and 1`,
-        [{ fieldKey: params.fieldKey, reason: "Confidence link broken: confidenceScore must be a number between 0 and 1" }],
+        [
+          {
+            fieldKey: params.fieldKey,
+            reason: "Confidence link broken: confidenceScore must be a number between 0 and 1",
+          },
+        ],
       );
     }
 
@@ -83,7 +95,11 @@ export class ProvenanceGuard {
     let methodLabel = params.extractionMethodLabel;
     if (!methodLabel) {
       const methodStr = String(method);
-      if (methodStr === "NATIVE_PDF_TEXT" || methodStr === "PDF_TEXT_STREAM" || methodStr === "PDFJS_VIEWPORT") {
+      if (
+        methodStr === "NATIVE_PDF_TEXT" ||
+        methodStr === "PDF_TEXT_STREAM" ||
+        methodStr === "PDFJS_VIEWPORT"
+      ) {
         methodLabel = "Native PDF text";
       } else if (methodStr === "KEY_VALUE_INSPECTION" || methodStr === "KEY_VALUE_PAIR") {
         methodLabel = "Key-value pair";
@@ -107,6 +123,20 @@ export class ProvenanceGuard {
       confidenceScore: score,
       confidenceLevel: tier,
       extractedAt: new Date().toISOString(),
+      coordinateSystem: params.coordinateSystem,
+      detailedBoundingBox:
+        params.detailedBoundingBox ||
+        (params.region
+          ? {
+              pageNumber: params.pageNumber,
+              x: params.region[0],
+              y: params.region[1],
+              width: params.region[2],
+              height: params.region[3],
+              coordinateSystem: params.coordinateSystem || "PIXEL_SPACE",
+              confidence: score,
+            }
+          : undefined),
     };
 
     const field: ProvenancedField<T> = {
@@ -172,18 +202,32 @@ export class ProvenanceGuard {
 
     // 2. Page Link
     const pageNumber = candidate.page ?? candidate.provenance?.pageNumber;
-    if (pageNumber === undefined || typeof pageNumber !== "number" || pageNumber < 1 || !Number.isInteger(pageNumber)) {
+    if (
+      pageNumber === undefined ||
+      typeof pageNumber !== "number" ||
+      pageNumber < 1 ||
+      !Number.isInteger(pageNumber)
+    ) {
       errors.push("Page link broken: page number must be an integer >= 1");
     }
 
     // 3. Region / Text Link
     const region = candidate.provenance?.region;
     if (!region || !Array.isArray(region) || region.length !== 4) {
-      errors.push("Region/Text link broken: Missing spatial region reference link (BoundingBox [minX, minY, width, height] required)");
+      errors.push(
+        "Region/Text link broken: Missing spatial region reference link (BoundingBox [minX, minY, width, height] required)",
+      );
     } else {
       const [minX, minY, width, height] = region;
-      if (typeof minX !== "number" || typeof minY !== "number" || typeof width !== "number" || typeof height !== "number") {
-        errors.push("Region/Text link broken: Spatial bounding box coordinates must be numeric values");
+      if (
+        typeof minX !== "number" ||
+        typeof minY !== "number" ||
+        typeof width !== "number" ||
+        typeof height !== "number"
+      ) {
+        errors.push(
+          "Region/Text link broken: Spatial bounding box coordinates must be numeric values",
+        );
       }
       if (width <= 0 || height <= 0) {
         warnings.push("Bounding box width and height should be positive non-zero dimensions");
@@ -192,27 +236,45 @@ export class ProvenanceGuard {
 
     const regionText = candidate.provenance?.regionText;
     if (!regionText || typeof regionText !== "string" || regionText.trim().length === 0) {
-      errors.push("Region/Text link broken: Missing region text evidence link (source text extracted in bounding box required)");
+      errors.push(
+        "Region/Text link broken: Missing region text evidence link (source text extracted in bounding box required)",
+      );
     }
 
     // 4. Extraction Method Link
-    const extractionMethod = candidate.extraction || candidate.provenance?.extractionMethodLabel || candidate.provenance?.extractionMethod;
-    if (!extractionMethod || typeof extractionMethod !== "string" || extractionMethod.trim().length === 0) {
-      errors.push("Extraction Method link broken: Missing extraction method link (e.g. 'Native PDF text', 'Tesseract OCR')");
+    const extractionMethod =
+      candidate.extraction ||
+      candidate.provenance?.extractionMethodLabel ||
+      candidate.provenance?.extractionMethod;
+    if (
+      !extractionMethod ||
+      typeof extractionMethod !== "string" ||
+      extractionMethod.trim().length === 0
+    ) {
+      errors.push(
+        "Extraction Method link broken: Missing extraction method link (e.g. 'Native PDF text', 'Tesseract OCR')",
+      );
     }
 
     // 5. Extracted Value Link
     if (candidate.value === undefined && !candidate.rawValue) {
-      errors.push("Value link broken: Missing extracted value link (field value or rawValue required)");
+      errors.push(
+        "Value link broken: Missing extracted value link (field value or rawValue required)",
+      );
     }
 
     // 6. Confidence Link
     const confidence = candidate.confidence || candidate.provenance?.confidenceLevel;
     if (!confidence) {
-      errors.push("Confidence link broken: Missing confidence tier link (HIGH, MEDIUM, LOW, or UNKNOWN required)");
+      errors.push(
+        "Confidence link broken: Missing confidence tier link (HIGH, MEDIUM, LOW, or UNKNOWN required)",
+      );
     }
     const score = candidate.provenance?.confidenceScore;
-    if (score !== undefined && (typeof score !== "number" || isNaN(score) || score < 0 || score > 1)) {
+    if (
+      score !== undefined &&
+      (typeof score !== "number" || isNaN(score) || score < 0 || score > 1)
+    ) {
       errors.push("Confidence link broken: confidenceScore must be a number between 0 and 1");
     }
 
@@ -279,9 +341,14 @@ export class ProvenanceGuard {
     for (const [key, val] of Object.entries(targetFields)) {
       // Ignore top-level metadata keys if examining an envelope
       if (
-        ["documentId", "organisationId", "totalFieldsCount", "overallConfidence", "compiledAt", "status"].includes(
-          key,
-        )
+        [
+          "documentId",
+          "organisationId",
+          "totalFieldsCount",
+          "overallConfidence",
+          "compiledAt",
+          "status",
+        ].includes(key)
       ) {
         continue;
       }

@@ -32,6 +32,8 @@
 import { PdfPageRasterizer, type RasterizedPage } from "./pdfPageRasterizer";
 import { ImagePreprocessingEngine } from "./imagePreprocessingEngine";
 import { getOcrEngine } from "./ocrEngineRegistry";
+import { getOcrProviderConfig } from "./ocrProviderConfig";
+import { SouthAfricanLanguageManager } from "./southAfricanOcrLanguage";
 import { OcrLayoutStructureEngine } from "./ocrLayoutStructureEngine";
 import { OcrConfidenceScorer } from "./ocrConfidenceScorer";
 import { OcrEvidenceExtractor } from "./ocrEvidenceExtractor";
@@ -44,6 +46,9 @@ import type {
   OcrLineBlock,
   OcrBoundingBox,
   OcrImageGeometry,
+  PageProcessingStatus,
+  PageProcessingState,
+  OcrRunLanguageConfig,
 } from "./types";
 
 export interface ProcessDocumentOptions {
@@ -97,6 +102,32 @@ export class HybridDocumentProcessor {
 
     const isPdf = filename.toLowerCase().endsWith(".pdf") || mimeType.includes("pdf");
     const pageResults: OcrPageResult[] = [];
+    const pageStatuses: PageProcessingStatus[] = [];
+
+    /** Convenience: creates/updates a PageProcessingStatus entry. */
+    const setPageStatus = (
+      pageNumber: number,
+      state: PageProcessingState,
+      patch: Partial<Omit<PageProcessingStatus, "pageNumber" | "state" | "stateEnteredAt">> = {},
+    ) => {
+      const now = new Date().toISOString();
+      const existing = pageStatuses.find((s) => s.pageNumber === pageNumber);
+      if (existing) {
+        existing.state = state;
+        existing.stateEnteredAt = now;
+        Object.assign(existing, patch);
+      } else {
+        pageStatuses.push({
+          pageNumber,
+          state,
+          stateEnteredAt: now,
+          requiredOcr: null,
+          ocrConfidence: null,
+          errorMessage: null,
+          ...patch,
+        });
+      }
+    };
 
     if (isPdf) {
       // 2. Extract native digital text streams per page
@@ -115,10 +146,21 @@ export class HybridDocumentProcessor {
       const totalPages = pdfDoc?.numPages || nativeTextMap.size || 1;
       const pagesToProcess = Math.min(totalPages, maxPages);
 
+      // Resolve South African language configuration with safe fallback
+      const sampleText = nativeTextMap.get(1)?.text || "";
+      const ocrLanguageConfig = SouthAfricanLanguageManager.resolveExecutionLanguage({
+        requestedLanguage: options.language,
+        sampleText,
+        providerConfigLanguage: getOcrProviderConfig().language,
+      });
+      const executionLanguage = ocrLanguageConfig.actualLanguageUsed;
+
       // 3. Intelligently determine per-page whether OCR is necessary:
       // IF reliable embedded text exists -> use native PDF extraction
       // ELSE -> render page & OCR page
       for (let pageNum = 1; pageNum <= pagesToProcess; pageNum++) {
+        setPageStatus(pageNum, "PENDING", { requiredOcr: null });
+
         const nativeStream = nativeTextMap.get(pageNum);
         const hasReliableText = Boolean(
           !options.forceOcr &&
@@ -130,35 +172,93 @@ export class HybridDocumentProcessor {
 
         if (hasReliableText && nativeStream) {
           // Pure digital vector processing path — ZERO RASTERIZATION, ZERO OCR
-          pageResult = this.processDigitalVectorPage(pageNum, nativeStream, {
-            width: nativeStream.width,
-            height: nativeStream.height,
-            dpi: targetDpi,
+          setPageStatus(pageNum, "PREPROCESSING", { requiredOcr: false });
+          pageResult = this.processDigitalVectorPage(
+            pageNum,
+            nativeStream,
+            {
+              width: nativeStream.width,
+              height: nativeStream.height,
+              dpi: targetDpi,
+            },
+            executionLanguage,
+          );
+          setPageStatus(pageNum, "DONE", {
+            requiredOcr: false,
+            ocrConfidence: pageResult.averageConfidence,
           });
         } else {
           // Scanned raster / photographed / poor-scan OCR processing path:
           // RENDER ONLY THIS SPECIFIC PAGE
+          setPageStatus(pageNum, "RASTERIZING", { requiredOcr: true });
           const rasterPage = await PdfPageRasterizer.rasterizeSinglePdfPage(
             pdfDoc || bytes,
             pageNum,
             targetDpi,
           );
-          pageResult = await this.processScannedRasterPage(rasterPage, options);
+          setPageStatus(pageNum, "PREPROCESSING");
+          try {
+            pageResult = await this.processScannedRasterPage(
+              rasterPage,
+              options,
+              executionLanguage,
+            );
+            setPageStatus(pageNum, "DONE", {
+              requiredOcr: true,
+              ocrConfidence: pageResult.averageConfidence,
+              preprocessingDecision: (pageResult as any)._preprocessingDecision,
+            });
+          } catch (err) {
+            setPageStatus(pageNum, "FAILED", {
+              errorMessage: err instanceof Error ? err.message : String(err),
+            });
+            // Continue to next page rather than aborting the document
+            continue;
+          }
         }
 
         pageResults.push(pageResult);
       }
     } else {
       // Non-PDF (PNG, JPEG, TIFF): direct image decoding & OCR
+      const ocrLanguageConfig = SouthAfricanLanguageManager.resolveExecutionLanguage({
+        requestedLanguage: options.language,
+        providerConfigLanguage: getOcrProviderConfig().language,
+      });
+      const executionLanguage = ocrLanguageConfig.actualLanguageUsed;
+
       const rasterizedPages = await PdfPageRasterizer.rasterizeDocument(bytes, filename, {
         targetDpi,
         maxPages,
+        onPageRasterized: (pageNum, total, page) => {
+          if (page) {
+            setPageStatus(pageNum, "PREPROCESSING", { requiredOcr: true });
+          } else {
+            setPageStatus(pageNum, "FAILED", { errorMessage: "Rasterization failed" });
+          }
+        },
       });
 
       for (let pIdx = 0; pIdx < rasterizedPages.length; pIdx++) {
         const rasterPage = rasterizedPages[pIdx];
-        const pageResult = await this.processScannedRasterPage(rasterPage, options);
-        pageResults.push(pageResult);
+        setPageStatus(rasterPage.pageNumber, "OCR");
+        try {
+          const pageResult = await this.processScannedRasterPage(
+            rasterPage,
+            options,
+            executionLanguage,
+          );
+          setPageStatus(rasterPage.pageNumber, "DONE", {
+            requiredOcr: true,
+            ocrConfidence: pageResult.averageConfidence,
+            preprocessingDecision: (pageResult as any)._preprocessingDecision,
+          });
+          pageResults.push(pageResult);
+        } catch (err) {
+          setPageStatus(rasterPage.pageNumber, "FAILED", {
+            errorMessage: err instanceof Error ? err.message : String(err),
+          });
+        }
       }
     }
 
@@ -236,6 +336,14 @@ export class HybridDocumentProcessor {
           ? "TESSERACT_PURE"
           : "DIGITAL_FALLBACK";
 
+    // Ensure all pages have detected errors matched by pageNumber and confidence tiers set
+    for (const page of pageResults) {
+      OcrConfidenceScorer.assignTiersToPage(page);
+      page.detectedErrors = confidenceEval.detectedErrors.filter(
+        (err) => err.pageNumber === page.pageNumber,
+      );
+    }
+
     const completedAt = new Date().toISOString();
     const durationMs = Date.now() - startTime;
 
@@ -250,8 +358,10 @@ export class HybridDocumentProcessor {
       pages: pageResults,
       overallConfidence: confidenceEval.overallScore,
       confidenceTier: confidenceEval.tier,
+      isReliable: confidenceEval.isReliable,
       reviewRequired: confidenceEval.reviewRequired,
       reviewReasons: confidenceEval.reviewReasons,
+      detectedErrors: confidenceEval.detectedErrors,
       tables: allTables,
       rawFullText,
       invoiceDeterminants,
@@ -264,6 +374,15 @@ export class HybridDocumentProcessor {
       startedAt,
       completedAt,
       durationMs,
+      pageStatuses,
+      ocrLanguageConfig:
+        pageResults[0]?.languageUsed !== undefined
+          ? SouthAfricanLanguageManager.resolveExecutionLanguage({
+              requestedLanguage: options.language,
+              providerConfigLanguage: getOcrProviderConfig().language,
+              sampleText: pageResults[0]?.fullText || "",
+            })
+          : undefined,
     };
   }
 
@@ -273,10 +392,11 @@ export class HybridDocumentProcessor {
   private static async processScannedRasterPage(
     rasterPage: RasterizedPage,
     options: ProcessDocumentOptions,
+    executionLanguage: string = "eng",
   ): Promise<OcrPageResult> {
     const pageStartTime = Date.now();
 
-    // Step A: Image Preprocessing (grayscale, contrast, binarize, deskew)
+    // Step A: Image Preprocessing (adaptive — only applies transforms that are beneficial)
     const preprocessed = ImagePreprocessingEngine.preprocess(
       rasterPage.pixelBuffer,
       rasterPage.width,
@@ -286,28 +406,36 @@ export class HybridDocumentProcessor {
         enableDeskew: options.enableDeskew ?? true,
         enableBinarization: options.enableBinarization ?? true,
         enableContrastEnhance: true,
+        enableNoiseReduction: true,
+        enableBorderCleanup: true,
+        enableOrientationCorrection: true,
+        pdfRotation: rasterPage.pdfRotation,
         targetDpi: rasterPage.dpi,
       },
     );
 
+    // Pass the preprocessed image dimensions (which may be rotated upright!) to OCR:
+    const activeWidth = preprocessed.preprocessedGeometry.width;
+    const activeHeight = preprocessed.preprocessedGeometry.height;
+
     // Step B: OCR Recognition — dispatched through provider-agnostic registry
     const ocrRaw = await getOcrEngine().recognizePage({
       imageData: preprocessed.imageData || rasterPage.pixelBuffer,
-      width: rasterPage.width,
-      height: rasterPage.height,
+      width: activeWidth,
+      height: activeHeight,
       pageNumber: rasterPage.pageNumber,
-      language: options.language || "eng",
+      language: executionLanguage,
     });
 
     // Step C: Reconstruct Layout Structure (Reading order, blocks, tables, KV)
-    const layout = OcrLayoutStructureEngine.analyzePageLayout(ocrRaw.lines, rasterPage.pageNumber);
+    const layout = OcrLayoutStructureEngine.analyzePageLayout(
+      ocrRaw.lines,
+      rasterPage.pageNumber,
+      ocrRaw.blocks,
+    );
 
     const geometry: OcrImageGeometry = {
-      width: rasterPage.width,
-      height: rasterPage.height,
-      dpi: rasterPage.dpi,
-      aspectRatio: Number((rasterPage.width / rasterPage.height).toFixed(4)),
-      rotation: 0,
+      ...preprocessed.originalGeometry,
     };
 
     let minConfidence = 100;
@@ -318,7 +446,7 @@ export class HybridDocumentProcessor {
     }
     if (ocrRaw.words.length === 0) minConfidence = 0;
 
-    return {
+    const result: OcrPageResult & { _preprocessingDecision?: unknown } = {
       pageNumber: rasterPage.pageNumber,
       fullText: ocrRaw.fullText,
       geometry,
@@ -333,7 +461,21 @@ export class HybridDocumentProcessor {
       isNativeDigital: false,
       isScannedRaster: true,
       processingDurationMs: Date.now() - pageStartTime,
+      detectedOrientation: preprocessed.originalGeometry.orientation,
+      detectedRotation: preprocessed.originalGeometry.detectedRotation,
+      appliedRotation: preprocessed.preprocessingDecision?.appliedRotationDegrees ?? 0,
+      wasOrientationCorrected:
+        preprocessed.preprocessingDecision?.orientationCorrectionApplied ?? false,
+      languageUsed: executionLanguage,
     };
+
+    // Attach preprocessing decision as a non-enumerable staging field
+    // so the status tracker can read it without polluting the public type.
+    if (preprocessed.preprocessingDecision) {
+      result._preprocessingDecision = preprocessed.preprocessingDecision;
+    }
+
+    return OcrConfidenceScorer.assignTiersToPage(result);
   }
 
   /**
@@ -364,6 +506,7 @@ export class HybridDocumentProcessor {
     pageIdentifier: number | RasterizedPage,
     nativeStream: { text: string; words: OcrWordToken[]; lines: OcrLineBlock[] },
     dimensions?: { width: number; height: number; dpi?: number },
+    executionLanguage: string = "eng",
   ): OcrPageResult {
     const pageNum = typeof pageIdentifier === "number" ? pageIdentifier : pageIdentifier.pageNumber;
     const width =
@@ -383,9 +526,13 @@ export class HybridDocumentProcessor {
       dpi,
       aspectRatio: Number((safeWidth / safeHeight).toFixed(4)),
       rotation: 0,
+      orientation: safeWidth >= safeHeight ? "LANDSCAPE" : "PORTRAIT",
+      detectedRotation: 0,
+      appliedRotation: 0,
+      wasOrientationCorrected: false,
     };
 
-    return {
+    return OcrConfidenceScorer.assignTiersToPage({
       pageNumber: pageNum,
       fullText: nativeStream.text,
       geometry,
@@ -400,7 +547,12 @@ export class HybridDocumentProcessor {
       isNativeDigital: true,
       isScannedRaster: false,
       processingDurationMs: 15,
-    };
+      detectedOrientation: geometry.orientation,
+      detectedRotation: 0,
+      appliedRotation: 0,
+      wasOrientationCorrected: false,
+      languageUsed: executionLanguage,
+    });
   }
 
   /**
@@ -457,13 +609,33 @@ export class HybridDocumentProcessor {
             Number((itemHeight / viewport.height).toFixed(4)),
           ];
 
+          const roundedX = Math.round(x);
+          const roundedY = Math.round(y);
+          const roundedW = Math.round(itemWidth);
+          const roundedH = Math.round(itemHeight);
+
           const token: OcrWordToken = {
             wordId: `dig-p${i}-w${words.length}`,
             text: str,
             sanitizedText: str,
             confidence: 99.0,
+            confidenceNormalized: 0.99,
             boundingBox: box,
             pageNumber: i,
+            x: roundedX,
+            y: roundedY,
+            width: roundedW,
+            height: roundedH,
+            coordinateSystem: "PDF_POINTS",
+            detailedBoundingBox: {
+              pageNumber: i,
+              x: roundedX,
+              y: roundedY,
+              width: roundedW,
+              height: roundedH,
+              coordinateSystem: "PDF_POINTS",
+              confidence: 0.99,
+            },
           };
           words.push(token);
 
@@ -496,15 +668,35 @@ export class HybridDocumentProcessor {
           const maxX = Math.max(...lWords.map((w) => w.boundingBox[0] + w.boundingBox[2]));
           const maxY = Math.max(...lWords.map((w) => w.boundingBox[1] + w.boundingBox[3]));
 
+          const minPixelX = Math.min(...lWords.map((w) => w.x ?? 0));
+          const minPixelY = Math.min(...lWords.map((w) => w.y ?? 0));
+          const maxPixelX = Math.max(...lWords.map((w) => (w.x ?? 0) + (w.width ?? 0)));
+          const maxPixelY = Math.max(...lWords.map((w) => (w.y ?? 0) + (w.height ?? 0)));
+
           lines.push({
             lineId: `dig-line-p${i}-${lineIdx++}`,
             lineIndex: lines.length,
             pageNumber: i,
             text: lineText,
             confidence: 99.0,
+            confidenceNormalized: 0.99,
             boundingBox: [minX, minY, Math.max(0.01, maxX - minX), Math.max(0.01, maxY - minY)],
             words: lWords,
             baselineY: maxY,
+            x: minPixelX,
+            y: minPixelY,
+            width: Math.max(1, maxPixelX - minPixelX),
+            height: Math.max(1, maxPixelY - minPixelY),
+            coordinateSystem: "PDF_POINTS",
+            detailedBoundingBox: {
+              pageNumber: i,
+              x: minPixelX,
+              y: minPixelY,
+              width: Math.max(1, maxPixelX - minPixelX),
+              height: Math.max(1, maxPixelY - minPixelY),
+              coordinateSystem: "PDF_POINTS",
+              confidence: 0.99,
+            },
           });
         }
 

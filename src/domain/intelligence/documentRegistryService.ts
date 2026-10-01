@@ -210,8 +210,7 @@ export class DocumentRegistryService {
       isDuplicate: Boolean(
         row.is_duplicate != null ? row.is_duplicate : row.metadata?.isDuplicate || false,
       ),
-      duplicateOfDocumentId:
-        row.duplicate_of_id || row.metadata?.duplicateOfDocumentId || null,
+      duplicateOfDocumentId: row.duplicate_of_id || row.metadata?.duplicateOfDocumentId || null,
       createdAt: createdTimestamp,
       updatedAt: updatedTimestamp,
       metadata: typeof row.metadata === "object" ? row.metadata : {},
@@ -459,7 +458,8 @@ export class DocumentRegistryService {
         updates.errorMessage !== undefined ? updates.errorMessage : existing.errorMessage,
       errorCode: updates.errorCode !== undefined ? (updates.errorCode as any) : existing.errorCode,
       userMessage: updates.userMessage !== undefined ? updates.userMessage : existing.userMessage,
-      errorDetails: updates.errorDetails !== undefined ? updates.errorDetails : existing.errorDetails,
+      errorDetails:
+        updates.errorDetails !== undefined ? updates.errorDetails : existing.errorDetails,
       currentStage: updates.currentStage ?? existing.currentStage,
       stageProgressPct: updates.stageProgressPct ?? existing.stageProgressPct,
       failureReason: updates.failureReason ?? existing.failureReason,
