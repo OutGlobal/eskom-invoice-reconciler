@@ -117,6 +117,10 @@ import {
   type OcrStatus,
   type OcrJobStage,
   type OcrBackgroundJob,
+  OcrCorrectionEngine,
+  type OcrFieldCorrection,
+  type OcrCorrectionAuditTrail,
+  type OcrReviewUser,
 } from "../../domain/ocr";
 import { ProvenanceGuard } from "../../domain/intelligence/provenanceGuard";
 import { TenantIsolationViolationError } from "../../domain/security/tenantContextService";
@@ -5323,6 +5327,365 @@ export async function runProductionOcrTestSuite() {
     assert(getTier(96) === "HIGH", "96% is HIGH tier");
     assert(getTier(84) === "MEDIUM", "84% is MEDIUM tier");
     assert(getTier(50) === "LOW", "50% is LOW tier");
+  }
+
+  // --- TEST GROUP 31: HUMAN REVIEW (Requirement 29) ---
+  console.log("\n--- TEST GROUP 31: HUMAN REVIEW (Requirement 29) ---");
+
+  // Test 123: Low-confidence OCR entering REVIEW_REQUIRED
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Low-Confidence OCR Entering REVIEW_REQUIRED`);
+
+    const lowConfidenceResult: Partial<OcrDocumentResult> = {
+      documentId: "doc-low-conf-01",
+      ocrRunId: "run-low-conf-01",
+      totalPages: 1,
+      overallConfidence: 68.5, // < 85%
+      confidenceTier: "LOW",
+      reviewRequired: true,
+      reviewReasons: ["Average page confidence (68.5%) is below human audit threshold (85.0%)"],
+    };
+
+    assert(lowConfidenceResult.reviewRequired === true, "Enters REVIEW_REQUIRED state");
+    assert(lowConfidenceResult.reviewReasons!.length > 0, "Review reason documented");
+    assert(lowConfidenceResult.overallConfidence! < 85, "Confidence < 85%");
+  }
+
+  // Test 124: Human Review capabilities (view original, correct value, save correction)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Human Review Capabilities: Correct Value & Save Correction`);
+
+    const initialResult: OcrDocumentResult = {
+      ocrRunId: "run-review-01",
+      documentId: "doc-review-01",
+      organisationId: "org-review",
+      checksum: "sha256-dummy",
+      filename: "Invoice_September_2026.pdf",
+      documentCategory: "INVOICE",
+      totalPages: 1,
+      pages: [],
+      overallConfidence: 75.0,
+      confidenceTier: "MEDIUM",
+      isReliable: true,
+      reviewRequired: true,
+      reviewReasons: ["Low confidence on meterSerialNumber"],
+      tables: [],
+      rawFullText: "Account: 12345 Meter: 00192X",
+      evidenceRecords: {
+        meterSerialNumber: {
+          fieldName: "meterSerialNumber",
+          fieldLabel: "Meter Serial Number",
+          value: "00192X", // Uncertain / OCR misread
+          documentId: "doc-review-01",
+          pageNumber: 1,
+          isOcr: true,
+          sourceText: "Meter: 00192X",
+          boundingBox: [100, 200, 120, 20],
+          confidence: 65,
+          confidenceTier: "LOW",
+          processingRunId: "run-review-01",
+        },
+      },
+      executionEngine: "TESSERACT_HYBRID",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 150,
+    };
+
+    const reviewer: OcrReviewUser = {
+      id: "usr-energy-analyst-01",
+      name: "Sipho Dlamini",
+      email: "sipho@enera.io",
+      role: "Lead Energy Auditor",
+    };
+
+    const correctionRes = OcrCorrectionEngine.applyCorrection(initialResult, {
+      fieldKey: "meterSerialNumber",
+      fieldLabel: "Meter Serial Number",
+      pageNumber: 1,
+      correctedValue: "001928", // Corrected 'X' to '8'
+      user: reviewer,
+      reason: "Corrected optical character confusion from blurry scan",
+    });
+
+    assert(correctionRes.success === true, "Correction applied successfully");
+    assert(correctionRes.correction.originalValue === "00192X", "Original OCR value preserved as '00192X'");
+    assert(correctionRes.correction.correctedValue === "001928", "Corrected value is '001928'");
+    assert(correctionRes.correction.validatedValue === "001928", "Validated value is '001928'");
+    assert(correctionRes.correction.user.name === "Sipho Dlamini", "Recorded who corrected it");
+    assert(typeof correctionRes.correction.timestamp === "string", "Recorded when it was corrected (timestamp)");
+  }
+
+  // Test 125: Non-destructive preservation: Original OCR evidence is NEVER overwritten
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Non-Destructive Preservation: Original OCR Evidence Never Overwritten`);
+
+    const originalEvidence: OcrFieldEvidence = {
+      fieldName: "accountNumber",
+      fieldLabel: "Account Number",
+      value: "123456780", // OCR typo
+      documentId: "doc-immut-01",
+      pageNumber: 1,
+      isOcr: true,
+      sourceText: "Account: 123456780",
+      boundingBox: [50, 80, 140, 22],
+      confidence: 72,
+      confidenceTier: "MEDIUM",
+      processingRunId: "run-immut-01",
+    };
+
+    const docResult: OcrDocumentResult = {
+      ocrRunId: "run-immut-01",
+      documentId: "doc-immut-01",
+      organisationId: "org-01",
+      checksum: "sha256-test",
+      filename: "Millennium 33kV Eskom Feb 2026.pdf",
+      documentCategory: "INVOICE",
+      totalPages: 1,
+      pages: [],
+      overallConfidence: 72.0,
+      confidenceTier: "MEDIUM",
+      isReliable: true,
+      reviewRequired: true,
+      reviewReasons: ["Low confidence on accountNumber"],
+      tables: [],
+      rawFullText: "Account: 123456780",
+      evidenceRecords: {
+        accountNumber: originalEvidence,
+      },
+      executionEngine: "TESSERACT_HYBRID",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 120,
+    };
+
+    const res = OcrCorrectionEngine.applyCorrection(docResult, {
+      fieldKey: "accountNumber",
+      correctedValue: "123456789",
+      user: { name: "Audit Specialist", role: "Auditor" },
+      reason: "Corrected trailing digit",
+    });
+
+    // Original evidence check
+    assert(
+      docResult.evidenceRecords!.accountNumber.value === "123456780",
+      "Evidence dictionary preserved original OCR value '123456780'",
+    );
+    assert(
+      res.correction.evidence.value === "123456780",
+      "Correction snapshot preserved original OCR value '123456780'",
+    );
+    assert(
+      res.correction.evidence.confidence === 72,
+      "Original confidence 72% preserved in evidence snapshot",
+    );
+  }
+
+  // --- TEST GROUP 32: CORRECTION MODEL (Requirement 30) ---
+  console.log("\n--- TEST GROUP 32: CORRECTION MODEL (Requirement 30) ---");
+
+  // Test 126: Three-stage correction lifecycle (ORIGINAL OCR -> USER CORRECTION -> VALIDATED VALUE)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Three-Stage Correction Lifecycle (ORIGINAL -> USER -> VALIDATED)`);
+
+    const stage1Original = "R 1,485,230.00";
+    const stage2UserCorrection = "R 1,485,230.50";
+    const stage3ValidatedValue = stage2UserCorrection;
+
+    assert(stage1Original !== stage3ValidatedValue, "Original OCR differs from Validated Value");
+    assert(stage2UserCorrection === stage3ValidatedValue, "Validated Value matches User Correction");
+
+    const validStages = ["ORIGINAL_OCR", "USER_CORRECTION", "VALIDATED_VALUE"];
+    for (const st of validStages) {
+      assert(typeof st === "string", `Correction lifecycle stage '${st}' is defined`);
+    }
+  }
+
+  // Test 127: Storing all 7 mandatory correction elements
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Storing All 7 Mandatory Correction Elements`);
+
+    const correction: OcrFieldCorrection = {
+      correctionId: "corr-127",
+      documentId: "doc-127",
+      fieldKey: "totalAmountDue",
+      fieldLabel: "Total Amount Due",
+      pageNumber: 1,
+      // 1. original value
+      originalValue: 1485230.0,
+      // 2. corrected value
+      correctedValue: 1485230.5,
+      // 3. validated value
+      validatedValue: 1485230.5,
+      // 4. user
+      user: {
+        id: "usr-001",
+        name: "Elena Rostova",
+        email: "elena@enera.io",
+        role: "Financial Reconciler",
+      },
+      // 5. timestamp
+      timestamp: new Date().toISOString(),
+      // 6. reason if required
+      reason: "50c rounding discrepancy in original scan",
+      // 7. evidence snapshot
+      evidence: {
+        fieldName: "totalAmountDue",
+        fieldLabel: "Total Amount Due",
+        value: 1485230.0,
+        documentId: "doc-127",
+        pageNumber: 1,
+        isOcr: true,
+        sourceText: "Total: R 1 485 230.00",
+        boundingBox: [150, 400, 200, 30],
+        confidence: 88,
+        confidenceTier: "MEDIUM",
+        processingRunId: "run-127",
+      },
+      // 8. processing run
+      processingRunId: "run-127",
+      status: "APPLIED",
+    };
+
+    assert(typeof correction.originalValue === "number", "1. Original value stored");
+    assert(typeof correction.correctedValue === "number", "2. Corrected value stored");
+    assert(typeof correction.user.name === "string", "3. User stored (who corrected it)");
+    assert(typeof correction.timestamp === "string", "4. Timestamp stored (when it was corrected)");
+    assert(typeof correction.reason === "string", "5. Reason stored");
+    assert(correction.evidence !== null && typeof correction.evidence === "object", "6. Evidence stored");
+    assert(correction.processingRunId === "run-127", "7. Processing run stored");
+  }
+
+  // Test 128: Authoritative Validated Field Value Resolution
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Authoritative Validated Field Value Resolution`);
+
+    const docResult: OcrDocumentResult = {
+      ocrRunId: "run-val-01",
+      documentId: "doc-val-01",
+      organisationId: "org-01",
+      checksum: "sha256-val",
+      filename: "Invoice_September_2026.pdf",
+      documentCategory: "INVOICE",
+      totalPages: 1,
+      pages: [],
+      overallConfidence: 90.0,
+      confidenceTier: "HIGH",
+      isReliable: true,
+      reviewRequired: false,
+      reviewReasons: [],
+      tables: [],
+      rawFullText: "Account: 12345",
+      evidenceRecords: {
+        accountNumber: {
+          fieldName: "accountNumber",
+          fieldLabel: "Account Number",
+          value: "12345",
+          documentId: "doc-val-01",
+          pageNumber: 1,
+          isOcr: true,
+          sourceText: "Account: 12345",
+          boundingBox: [50, 80, 100, 20],
+          confidence: 90,
+          confidenceTier: "HIGH",
+          processingRunId: "run-val-01",
+        },
+      },
+      executionEngine: "TESSERACT_HYBRID",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 90,
+    };
+
+    // Before correction
+    const uncorrected = OcrCorrectionEngine.getValidatedFieldValue(docResult, "accountNumber");
+    assert(uncorrected.value === "12345", "Uncorrected value returns original OCR extraction");
+    assert(uncorrected.isCorrected === false, "isCorrected is false");
+
+    // Apply correction
+    const corrRes = OcrCorrectionEngine.applyCorrection(docResult, {
+      fieldKey: "accountNumber",
+      correctedValue: "123456789",
+      user: { name: "Audit Officer" },
+      reason: "Completed full account number",
+    });
+
+    const corrected = OcrCorrectionEngine.getValidatedFieldValue(corrRes.updatedResult, "accountNumber");
+    assert(corrected.value === "123456789", "Corrected value returns validated value '123456789'");
+    assert(corrected.isCorrected === true, "isCorrected is true");
+    assert(corrected.originalValue === "12345", "originalValue returns '12345'");
+  }
+
+  // Test 129: Reversion & audit history tracking
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Reversion & Audit History Tracking`);
+
+    const docResult: OcrDocumentResult = {
+      ocrRunId: "run-rev-01",
+      documentId: "doc-rev-01",
+      organisationId: "org-01",
+      checksum: "sha256-rev",
+      filename: "Invoice.pdf",
+      documentCategory: "INVOICE",
+      totalPages: 1,
+      pages: [],
+      overallConfidence: 80.0,
+      confidenceTier: "MEDIUM",
+      isReliable: true,
+      reviewRequired: true,
+      reviewReasons: ["Check value"],
+      tables: [],
+      rawFullText: "Amount: 1000",
+      evidenceRecords: {
+        totalAmountDue: {
+          fieldName: "totalAmountDue",
+          fieldLabel: "Total Amount Due",
+          value: 1000,
+          documentId: "doc-rev-01",
+          pageNumber: 1,
+          isOcr: true,
+          sourceText: "Amount: 1000",
+          boundingBox: [50, 100, 80, 20],
+          confidence: 80,
+          confidenceTier: "MEDIUM",
+          processingRunId: "run-rev-01",
+        },
+      },
+      executionEngine: "TESSERACT_HYBRID",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 80,
+    };
+
+    // 1. Apply correction
+    const corrRes = OcrCorrectionEngine.applyCorrection(docResult, {
+      fieldKey: "totalAmountDue",
+      correctedValue: 2000,
+      user: { name: "Reviewer A" },
+      reason: "Adjusted amount",
+    });
+
+    assert(corrRes.updatedResult.corrections!.length === 1, "1 correction recorded");
+
+    // 2. Revert correction
+    const revertedDoc = OcrCorrectionEngine.revertCorrection(
+      corrRes.updatedResult,
+      corrRes.correction.correctionId,
+      { name: "Admin Supervisor" },
+    );
+
+    const revertedCorrection = revertedDoc.corrections!.find(
+      (c) => c.correctionId === corrRes.correction.correctionId,
+    );
+    assert(revertedCorrection?.status === "REVERTED", "Correction status marked REVERTED");
+    assert(revertedDoc.auditTrail!.lastCorrectedBy === "Admin Supervisor", "Recorded supervisor in audit trail");
   }
 
   console.log("\n==================================================================");

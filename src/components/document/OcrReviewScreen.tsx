@@ -44,13 +44,19 @@ import {
   MapPin,
   ExternalLink,
   Info,
+  Edit3,
+  Save,
+  History,
+  RotateCcw,
 } from "lucide-react";
 import type {
   OcrDocumentResult,
   OcrPageResult,
   OcrFieldEvidence,
+  OcrFieldCorrection,
 } from "@/domain/ocr/types";
 import { hasValidBoundingBox, type BoundingBox } from "@/domain/intelligence/documentViewerTypes";
+import { OcrCorrectionEngine } from "@/domain/ocr/ocrCorrectionEngine";
 
 export interface OcrReviewFieldItem {
   id: string;
@@ -84,7 +90,7 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
   documentId = "DOC-001",
   filename = "Invoice_September_2026.pdf",
   totalPages: propTotalPages,
-  ocrResult = null,
+  ocrResult: propOcrResult = null,
   fields: propFields,
   initialPage = 1,
   initialSelectedFieldId = null,
@@ -95,6 +101,51 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(initialSelectedFieldId);
   const [searchQuery, setSearchQuery] = useState("");
   const [zoomLevel, setZoomLevel] = useState(100);
+  const [currentOcrResult, setCurrentOcrResult] = useState<OcrDocumentResult | null>(propOcrResult);
+
+  // Human Review & Correction State
+  const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState<string>("");
+  const [reviewerName, setReviewerName] = useState<string>("Energy Analyst");
+  const [editReason, setEditReason] = useState<string>("");
+  const [localOverrides, setLocalOverrides] = useState<Record<string, { value: any; reason: string; by: string; at: string }>>({});
+
+  const ocrResult = currentOcrResult || propOcrResult;
+
+  const handleSaveCorrection = (field: OcrReviewFieldItem) => {
+    const trimmedVal = editValue.trim();
+    if (!trimmedVal) return;
+
+    const now = new Date().toISOString();
+    setLocalOverrides((prev) => ({
+      ...prev,
+      [field.fieldKey]: {
+        value: trimmedVal,
+        reason: editReason || "Manual human verification",
+        by: reviewerName,
+        at: now,
+      },
+    }));
+
+    if (ocrResult) {
+      try {
+        const res = OcrCorrectionEngine.applyCorrection(ocrResult, {
+          documentId,
+          fieldKey: field.fieldKey,
+          fieldLabel: field.fieldLabel,
+          pageNumber: field.pageNumber,
+          correctedValue: trimmedVal,
+          user: { name: reviewerName, role: "Reviewer" },
+          reason: editReason || "Manual human review correction",
+        });
+        setCurrentOcrResult(res.updatedResult);
+      } catch {
+        // Fallback in-memory
+      }
+    }
+
+    setEditingFieldKey(null);
+  };
 
   // Derive total pages from ocrResult or prop
   const totalPages = useMemo(() => {
@@ -604,13 +655,130 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
                         </span>
                       </div>
 
-                      {/* Middle: Extracted Value */}
-                      <div
-                        data-testid={`ocr-field-value-${field.fieldKey}`}
-                        className="mt-1.5 text-sm font-semibold text-foreground font-mono"
-                      >
-                        {String(field.value ?? "—")}
+                      {/* Middle: Extracted / Validated Value */}
+                      <div className="mt-1.5 flex items-center justify-between gap-2">
+                        <div
+                          data-testid={`ocr-field-value-${field.fieldKey}`}
+                          className="text-sm font-semibold text-foreground font-mono flex items-center gap-1.5"
+                        >
+                          <span>{String(field.value ?? "—")}</span>
+                          {field.category === "CORRECTED" && (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-primary/20 text-primary border border-primary/30 font-bold uppercase">
+                              Corrected
+                            </span>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          data-testid={`ocr-edit-button-${field.fieldKey}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectField(field);
+                            setEditingFieldKey(field.fieldKey);
+                            setEditValue(String(field.value ?? ""));
+                            setEditReason("");
+                          }}
+                          className="px-2 py-0.5 rounded-lg border border-border/60 hover:bg-muted text-[10px] font-medium text-muted-foreground hover:text-foreground transition-all flex items-center gap-1"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          <span>Correct</span>
+                        </button>
                       </div>
+
+                      {/* Inline Correction Form when actively editing this field */}
+                      {editingFieldKey === field.fieldKey && (
+                        <div
+                          data-testid={`ocr-correction-form-${field.fieldKey}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-3 p-3 rounded-xl bg-muted/40 border border-primary/40 space-y-2.5 animate-in fade-in duration-150"
+                        >
+                          <div className="flex items-center justify-between text-[11px] font-bold text-foreground">
+                            <span className="flex items-center gap-1 text-primary">
+                              <History className="w-3.5 h-3.5" />
+                              Human Review Correction (Req 29 & 30)
+                            </span>
+                            <span className="text-[9px] text-muted-foreground font-mono">
+                              Original OCR Preserved
+                            </span>
+                          </div>
+
+                          {/* 3-Tier Lifecycle Visualization */}
+                          <div className="text-[10px] font-mono p-2 rounded-lg bg-background/80 border border-border/40 space-y-1">
+                            <div className="text-muted-foreground">
+                              1. ORIGINAL OCR: <span className="text-foreground font-bold">{String(field.sourceText || field.value || "—")}</span> ({field.confidence}%)
+                            </div>
+                            <div className="text-primary">
+                              2. USER CORRECTION: <span className="font-bold">{editValue || "Enter value..."}</span>
+                            </div>
+                            <div className="text-emerald-400">
+                              3. VALIDATED VALUE: <span className="font-bold">{editValue || String(field.value ?? "—")}</span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-semibold text-muted-foreground">
+                              Corrected Value:
+                            </label>
+                            <input
+                              type="text"
+                              data-testid={`ocr-correction-input-${field.fieldKey}`}
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="w-full px-2.5 py-1 text-xs rounded-lg border border-border/60 bg-card text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+                              placeholder="Enter corrected value"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-semibold text-muted-foreground">
+                                Reviewer Name:
+                              </label>
+                              <input
+                                type="text"
+                                data-testid={`ocr-reviewer-input-${field.fieldKey}`}
+                                value={reviewerName}
+                                onChange={(e) => setReviewerName(e.target.value)}
+                                className="w-full px-2.5 py-1 text-xs rounded-lg border border-border/60 bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                                placeholder="Your name"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-semibold text-muted-foreground">
+                                Reason for Audit:
+                              </label>
+                              <input
+                                type="text"
+                                data-testid={`ocr-reason-input-${field.fieldKey}`}
+                                value={editReason}
+                                onChange={(e) => setEditReason(e.target.value)}
+                                className="w-full px-2.5 py-1 text-xs rounded-lg border border-border/60 bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                                placeholder="Audit note / reason"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-end gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => setEditingFieldKey(null)}
+                              className="px-2.5 py-1 rounded-lg border border-border/60 text-[10px] text-muted-foreground hover:text-foreground"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              data-testid={`ocr-save-correction-${field.fieldKey}`}
+                              onClick={() => handleSaveCorrection(field)}
+                              className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold shadow transition-all flex items-center gap-1"
+                            >
+                              <Save className="w-3 h-3" />
+                              <span>Save Correction</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Bottom Evidence Meta */}
                       <div className="mt-2 pt-2 border-t border-border/30 flex items-center justify-between text-[10px] text-muted-foreground font-mono">

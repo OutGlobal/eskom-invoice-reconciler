@@ -555,6 +555,8 @@ export interface OcrBackgroundJob {
   createdAt: string;
   updatedAt: string;
   metadata?: Record<string, any>;
+  corrections?: OcrFieldCorrection[];
+  auditTrail?: OcrCorrectionAuditTrail;
 }
 
 /**
@@ -955,6 +957,10 @@ export interface OcrDocumentResult {
 
   // Language configuration and audit trail for this OCR run
   ocrLanguageConfig?: OcrRunLanguageConfig;
+
+  // Requirements 29 & 30: Human Review & Corrections Audit Log
+  corrections?: OcrFieldCorrection[];
+  auditTrail?: OcrCorrectionAuditTrail;
 }
 
 // ---------------------------------------------------------------------------
@@ -1308,3 +1314,53 @@ export interface DocumentStructureAnalysis {
   totalSection?: OcrDocumentSection;
   readingOrderSections: OcrDocumentSection[];
 }
+
+// ---------------------------------------------------------------------------
+// Human Review & Correction Model (Requirements 29 & 30)
+// ---------------------------------------------------------------------------
+
+/**
+ * Three-tier Correction Lifecycle:
+ *
+ *   ORIGINAL OCR
+ *        ↓
+ *   USER CORRECTION
+ *        ↓
+ *   VALIDATED VALUE
+ */
+export type OcrCorrectionStage = "ORIGINAL_OCR" | "USER_CORRECTION" | "VALIDATED_VALUE";
+
+export interface OcrReviewUser {
+  id?: string;
+  name: string;
+  email?: string;
+  role?: string;
+}
+
+export interface OcrFieldCorrection<T = string | number | null> {
+  correctionId: string;
+  documentId: string;
+  fieldKey: string;
+  fieldLabel: string;
+  pageNumber: number;
+  originalValue: T;
+  correctedValue: T;
+  validatedValue: T;
+  user: OcrReviewUser;
+  timestamp: string;
+  reason?: string;
+  evidence: OcrFieldEvidence;
+  processingRunId: string;
+  status: "APPLIED" | "PENDING_APPROVAL" | "REVERTED";
+  previousCorrectionId?: string;
+}
+
+export interface OcrCorrectionAuditTrail {
+  documentId: string;
+  ocrRunId: string;
+  corrections: OcrFieldCorrection[];
+  totalCorrections: number;
+  lastCorrectedAt?: string;
+  lastCorrectedBy?: string;
+}
+
