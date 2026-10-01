@@ -235,7 +235,10 @@
     "Dlamini",
     "immut",
     "Rostova",
-    "plpgsql"
+    "plpgsql",
+    "telem",
+    "REQS",
+    "webp"
   ],
   "ignorePaths": ["node_modules/**", "dist/**", ".tanstack/**", "package-lock.json", "bun.lock"]
 }

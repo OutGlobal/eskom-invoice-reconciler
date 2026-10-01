@@ -122,6 +122,8 @@ import {
   type OcrFieldCorrection,
   type OcrCorrectionAuditTrail,
   type OcrReviewUser,
+  OcrSecurityGuard,
+  OcrObservabilityService,
 } from "../../domain/ocr";
 import { UnifiedDocumentBridge, AiValidationInputBuilder } from "../../domain/intelligence";
 import { PipelineLayerGuard } from "../../domain/pipeline/pipelineLayerBoundaries";
@@ -6678,6 +6680,306 @@ export async function runProductionOcrTestSuite() {
       accessBlocked,
       "Cross-tenant access attempt was immediately blocked with TenantIsolationViolationError",
     );
+  }
+
+  // =========================================================================
+  // TEST GROUP 37: OCR SECURITY CONTROLS & CREDENTIAL EMBARGO (REQ 35)
+  // =========================================================================
+  console.log("\n--- TEST GROUP 37: OCR SECURITY CONTROLS (REQ 35) ---");
+
+  // Test 146: Private Bucket Protection & Tenant-Isolated Storage Paths
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Enforces private bucket status and tenant-isolated storage path mapping`,
+    );
+    const context = {
+      userId: "user-alpha",
+      email: "alpha@corp.co.za",
+      organisationId: "ORG-ALPHA",
+      role: "ANALYST" as const,
+    };
+
+    const authCheck = OcrSecurityGuard.validateAccess("ORG-ALPHA", context);
+    assert(authCheck.isAuthorized, "Authorized access granted for matching tenant");
+
+    let blocked = false;
+    try {
+      OcrSecurityGuard.validateAccess("ORG-BRAVO", context);
+    } catch (err: any) {
+      if (err instanceof TenantIsolationViolationError) {
+        blocked = true;
+      }
+    }
+    assert(blocked, "Cross-tenant access blocked by OcrSecurityGuard");
+  }
+
+  // Test 147: Time-Limited Cryptographic Signed URLs for Private Raster Inspection
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Generates time-limited cryptographic signed URLs with tenant checks and expiring tokens`,
+    );
+    const context = {
+      userId: "user-alpha",
+      email: "alpha@corp.co.za",
+      organisationId: "ORG-ALPHA",
+      role: "ANALYST" as const,
+    };
+
+    const signedResult = OcrSecurityGuard.generateSignedRasterPreviewUrl(
+      "doc-147-megaflex",
+      1,
+      "ORG-ALPHA",
+      context,
+      600, // 10 minutes TTL
+    );
+
+    assert(signedResult.success, "Signed URL generated successfully");
+    assert(
+      signedResult.signedUrl?.includes("ocr_raster_cache"),
+      "Points to private ocr_raster_cache bucket",
+    );
+    assert(
+      signedResult.signedUrl?.includes("tenants/ORG-ALPHA/ocr_rasters/doc-147-megaflex/page_1.png"),
+      "Enforces tenant-isolated storage path in signed URL",
+    );
+    assert(
+      signedResult.signedUrl?.includes("signature="),
+      "Includes cryptographic signature token",
+    );
+    assert(signedResult.expiresInSeconds === 600, "Preserves specified TTL of 600 seconds");
+  }
+
+  // Test 148: Ephemeral Buffer Memory Wiping & Canvas Disposal
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Zero-fills pixel buffers and disposes canvas contexts to prevent memory leaks and data retention`,
+    );
+    const pixelBuffer = new Uint8ClampedArray([255, 128, 64, 32, 16, 8, 4, 2]);
+    const mockCanvas = {
+      width: 800,
+      height: 600,
+      getContext: () => ({ clearRect: () => {} }),
+    };
+
+    const cleanupReport = OcrSecurityGuard.cleanupTemporaryProcessingBuffers(
+      [pixelBuffer],
+      mockCanvas,
+      ["blob:http://localhost/mock-blob-uuid"],
+    );
+
+    assert(cleanupReport.cleanedBufferCount === 1, "Cleaned 1 pixel buffer");
+    assert(cleanupReport.bytesReleased === 8, "Released 8 bytes from buffer");
+    assert(cleanupReport.canvasDisposed === true, "Disposed mock canvas element");
+    assert(pixelBuffer[0] === 0 && pixelBuffer[1] === 0, "Buffer values zeroized in memory");
+  }
+
+  // Test 149: Level 3 Zero-Exposure Credential Embargo & Sensitive Financial PII Redaction
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Validates credential embargo and redacts sensitive financial figures from logs`,
+    );
+    const safeConfig = { oem: 1, psm: 3, dpi: 300, lang: "eng+afr" };
+    const safeCheck = OcrSecurityGuard.verifyCredentialEmbargo(safeConfig);
+    assert(safeCheck.isSecure, "Clean OCR config passes credential embargo");
+
+    const dangerousConfig = {
+      oem: 1,
+      psm: 3,
+      SUPABASE_SERVICE_ROLE_KEY: "secret-token-12345",
+      DATABASE_URL: "postgres://admin:pass@host/db",
+    };
+    const dangerousCheck = OcrSecurityGuard.verifyCredentialEmbargo(dangerousConfig);
+    assert(!dangerousCheck.isSecure, "Embargo blocks exposure of secret service keys");
+    assert(dangerousCheck.violations.length >= 2, "Identifies both exposed secrets");
+
+    // Redaction test
+    const rawInvoiceLog = {
+      documentId: "doc-149",
+      ocrRunId: "run-149",
+      totalAmountDue: "R 2,450,123.89",
+      bankAccount: "620011223344",
+      customerName: "Sasol Synfuels Ltd",
+      durationMs: 350,
+      status: "COMPLETED",
+    };
+
+    const sanitizedLog = OcrSecurityGuard.sanitizeLogPayload(rawInvoiceLog);
+    assert(sanitizedLog.documentId === "doc-149", "Preserves document ID for debugging");
+    assert(sanitizedLog.ocrRunId === "run-149", "Preserves OCR run ID for debugging");
+    assert(sanitizedLog.status === "COMPLETED", "Preserves status for debugging");
+    assert(
+      sanitizedLog.totalAmountDue === "[REDACTED_FINANCIAL_PII]",
+      "Redacts totalAmountDue financial figure",
+    );
+    assert(sanitizedLog.bankAccount === "[REDACTED_FINANCIAL_PII]", "Redacts bankAccount number");
+    assert(sanitizedLog.customerName === "[REDACTED_FINANCIAL_PII]", "Redacts customerName PII");
+  }
+
+  // =========================================================================
+  // TEST GROUP 38: OCR OPERATIONAL OBSERVABILITY & TELEMETRY (REQ 36)
+  // =========================================================================
+  console.log("\n--- TEST GROUP 38: OCR OPERATIONAL OBSERVABILITY (REQ 36) ---");
+
+  // Test 150: Operational Telemetry Event Recording
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Records structured operational telemetry with all 8 mandatory fields`,
+    );
+    OcrObservabilityService.clearLogs();
+
+    const secContext = {
+      userId: "user-alpha",
+      email: "alpha@corp.co.za",
+      organisationId: "ORG-ALPHA",
+      role: "ANALYST" as const,
+    };
+
+    const event = await OcrObservabilityService.recordTelemetry(
+      {
+        documentId: "doc-150-megaflex",
+        ocrRunId: "run-150-tess",
+        pageId: "page-1",
+        organisationId: "ORG-ALPHA",
+        provider: "Tesseract.js",
+        processingTimeMs: 420,
+        status: "COMPLETED",
+        errorCode: null,
+        retryCount: 0,
+      },
+      secContext,
+    );
+
+    assert(event.telemetryId !== undefined, "Generated unique telemetry ID");
+    assert(event.documentId === "doc-150-megaflex", "Recorded document_id");
+    assert(event.ocrRunId === "run-150-tess", "Recorded ocr_run_id");
+    assert(event.pageId === "page-1", "Recorded page_id");
+    assert(event.provider === "Tesseract.js", "Recorded provider");
+    assert(event.processingTimeMs === 420, "Recorded processing_time (duration_ms)");
+    assert(event.status === "COMPLETED", "Recorded status");
+    assert(event.errorCode === null, "Recorded error_code (null for success)");
+    assert(event.retryCount === 0, "Recorded retry_count");
+  }
+
+  // Test 151: Strict Data Minimization Invariant (Zero Logging of Entire Invoices or Financial Amounts)
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Enforces zero logging of raw invoice financial amounts in operational telemetry`,
+    );
+    const secContext = {
+      userId: "user-alpha",
+      email: "alpha@corp.co.za",
+      organisationId: "ORG-ALPHA",
+      role: "ANALYST" as const,
+    };
+
+    const eventWithMetadata = await OcrObservabilityService.recordTelemetry(
+      {
+        documentId: "doc-151-invoice",
+        ocrRunId: "run-151-ocr",
+        organisationId: "ORG-ALPHA",
+        provider: "CloudVisionOcr",
+        processingTimeMs: 850,
+        status: "FAILED",
+        errorCode: "TIMEOUT_ERROR",
+        retryCount: 1,
+        sanitizedMetadata: {
+          totalAmountDue: 1850000.5,
+          subtotal: 1608696.08,
+          customerVatNumber: "4120112233",
+          attemptNumber: 1,
+        },
+      },
+      secContext,
+    );
+
+    assert(eventWithMetadata.status === "FAILED", "Preserves operational status FAILED");
+    assert(eventWithMetadata.errorCode === "TIMEOUT_ERROR", "Preserves operational error code");
+    assert(eventWithMetadata.retryCount === 1, "Preserves retry_count");
+    assert(
+      eventWithMetadata.sanitizedMetadata?.totalAmountDue === "[REDACTED_FINANCIAL_PII]",
+      "Redacts totalAmountDue from telemetry metadata",
+    );
+    assert(
+      eventWithMetadata.sanitizedMetadata?.subtotal === "[REDACTED_FINANCIAL_PII]",
+      "Redacts subtotal from telemetry metadata",
+    );
+    assert(
+      eventWithMetadata.sanitizedMetadata?.attemptNumber === 1,
+      "Preserves non-sensitive operational attemptNumber",
+    );
+  }
+
+  // Test 152: Real-Time Aggregate Operational Health Metrics
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Computes operational metric aggregates (average duration, provider distribution, failure rates)`,
+    );
+    // Add a review_required event
+    await OcrObservabilityService.recordTelemetry({
+      documentId: "doc-152-review",
+      ocrRunId: "run-152-ocr",
+      organisationId: "ORG-ALPHA",
+      provider: "Tesseract.js",
+      processingTimeMs: 280,
+      status: "REVIEW_REQUIRED",
+      errorCode: "LOW_CONFIDENCE",
+      retryCount: 0,
+    });
+
+    const aggregates = OcrObservabilityService.getAggregateMetrics("ORG-ALPHA");
+    assert(aggregates.totalEvents === 3, "Aggregated 3 total operational events");
+    assert(aggregates.completedCount === 1, "Counted 1 completed event");
+    assert(aggregates.failedCount === 1, "Counted 1 failed event");
+    assert(aggregates.reviewRequiredCount === 1, "Counted 1 review_required event");
+    assert(aggregates.averageProcessingTimeMs > 0, "Calculated non-zero average processing time");
+    assert(aggregates.providerBreakdown["Tesseract.js"] === 2, "Tracked Tesseract.js usage count");
+    assert(
+      aggregates.providerBreakdown["CloudVisionOcr"] === 1,
+      "Tracked CloudVisionOcr usage count",
+    );
+  }
+
+  // Test 153: Protected Multi-Tenant Telemetry Retrieval & Isolation
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Enforces tenant isolation on operational telemetry retrieval`);
+    const tenantAContext = {
+      userId: "user-alpha",
+      email: "alpha@corp.co.za",
+      organisationId: "ORG-ALPHA",
+      role: "ANALYST" as const,
+    };
+
+    const tenantBContext = {
+      userId: "user-beta",
+      email: "beta@corp.co.za",
+      organisationId: "ORG-BETA",
+      role: "ANALYST" as const,
+    };
+
+    const docsA = await OcrObservabilityService.getTelemetryForDocument(
+      "doc-150-megaflex",
+      tenantAContext,
+    );
+    assert(docsA.length === 1, "Tenant Alpha retrieves their document telemetry");
+
+    let blocked = false;
+    try {
+      await OcrObservabilityService.getTelemetryForDocument("doc-150-megaflex", tenantBContext);
+    } catch (err: any) {
+      if (err instanceof TenantIsolationViolationError) {
+        blocked = true;
+      }
+    }
+
+    assert(blocked, "Cross-tenant operational telemetry retrieval was blocked");
   }
 
   console.log("\n==================================================================");
