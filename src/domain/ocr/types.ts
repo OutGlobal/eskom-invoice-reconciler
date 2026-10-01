@@ -473,19 +473,89 @@ export interface OcrFieldEvidence<T = string | number | null> {
 }
 
 // ---------------------------------------------------------------------------
-// OCR Processing Run Record (Requirement 22, 23 & 24)
+// OCR Status Model & Background Processing Records (Requirements 22, 23, 24, 25 & 26)
 // ---------------------------------------------------------------------------
 
-export type OcrProcessingRunStatus =
+/**
+ * Authoritative Persistent OCR Status Model (Requirement 26)
+ *
+ * Persistent statuses:
+ * - NOT_REQUIRED: Native vector text reliably available; OCR skipped
+ * - PENDING: Upload accepted & job created, queued for background worker
+ * - PROCESSING: Background worker actively processing document/chunks
+ * - COMPLETED: All pages processed successfully with valid confidence
+ * - PARTIALLY_COMPLETED: Subset of pages completed while some failed/skipped
+ * - FAILED: Unrecoverable processing or rasterization error
+ * - REVIEW_REQUIRED: Low confidence (<85%) or exhausted retries needing audit
+ */
+export type OcrStatus =
+  | "NOT_REQUIRED"
   | "PENDING"
-  | "RUNNING"
+  | "PROCESSING"
   | "COMPLETED"
+  | "PARTIALLY_COMPLETED"
   | "FAILED"
-  | "RETRY_1"
-  | "RETRY_2"
-  | "RETRYING"
-  | "REVIEW_REQUIRED"
-  | "PARTIAL";
+  | "REVIEW_REQUIRED";
+
+export type OcrProcessingRunStatus =
+  OcrStatus | "RUNNING" | "RETRY_1" | "RETRY_2" | "RETRYING" | "PARTIAL";
+
+/**
+ * Lifecycle stages of non-blocking background OCR execution (Requirement 25)
+ *
+ *   UPLOAD
+ *     ↓
+ *   JOB CREATED
+ *     ↓
+ *   BACKGROUND PROCESSING
+ *     ↓
+ *   OCR
+ *     ↓
+ *   DATABASE
+ *     ↓
+ *   STATUS UPDATE
+ *     ↓
+ *   FRONTEND REFRESH
+ */
+export type OcrJobStage =
+  | "UPLOAD"
+  | "JOB_CREATED"
+  | "BACKGROUND_PROCESSING"
+  | "OCR"
+  | "DATABASE"
+  | "STATUS_UPDATE"
+  | "FRONTEND_REFRESH"
+  | "COMPLETED";
+
+/**
+ * Persistent Background OCR Job Definition (Requirement 25 & 26)
+ */
+export interface OcrBackgroundJob {
+  jobId: string;
+  ocrRunId: string;
+  documentId: string;
+  organisationId: string;
+  filename: string;
+  mimeType: string;
+  fileSizeBytes: number;
+  status: OcrStatus;
+  currentStage: OcrJobStage;
+  stageMessage: string;
+  progressPercentage: number;
+  totalPages?: number;
+  processedPages?: number;
+  completedPages?: number;
+  failedPages?: number;
+  chunks?: OcrPageChunk[];
+  documentProgress?: OcrDocumentProgress;
+  result?: OcrDocumentResult | null;
+  error?: string | { code?: string; message: string; stack?: string } | null;
+  startedAt?: string;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  metadata?: Record<string, any>;
+}
 
 /**
  * Historical audit log of retry attempts for an OCR run or chunk (Requirement 23)

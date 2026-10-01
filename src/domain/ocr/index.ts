@@ -44,3 +44,5 @@ export * from "./ocrEvidenceModel";
 export * from "./ocrProcessingRunEngine";
 export * from "./ocrRetryEngine";
 export * from "./ocrLargeDocumentChunkEngine";
+export * from "./ocrBackgroundJobManager";
+export * from "./useOcrJob";

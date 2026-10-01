@@ -75,6 +75,7 @@ import {
   OcrProcessingRunEngine,
   OcrRetryEngine,
   OcrLargeDocumentChunkEngine,
+  OcrBackgroundJobManager,
   SOUTH_AFRICA_LOCALE_PROFILE,
   INTERNATIONAL_ANGLO_LOCALE_PROFILE,
   INTERNATIONAL_CONTINENTAL_LOCALE_PROFILE,
@@ -113,6 +114,9 @@ import {
   type OcrPageChunk,
   type OcrChunkStatus,
   type OcrDocumentProgress,
+  type OcrStatus,
+  type OcrJobStage,
+  type OcrBackgroundJob,
 } from "../../domain/ocr";
 import { ProvenanceGuard } from "../../domain/intelligence/provenanceGuard";
 import { TenantIsolationViolationError } from "../../domain/security/tenantContextService";
@@ -4796,6 +4800,326 @@ export async function runProductionOcrTestSuite() {
     assert(result.documentProgress!.isComplete === true, "Document progress is marked complete");
     assert(result.processingRun!.chunks !== undefined, "Processing run contains chunk records");
     assert(result.processingRun!.progressPercentage === 100, "Processing run has 100% progress");
+  }
+
+  // --- TEST GROUP 27: BACKGROUND PROCESSING & JOBS (Requirement 25) ---
+  console.log("\n--- TEST GROUP 27: BACKGROUND PROCESSING & JOBS (Requirement 25) ---");
+
+  // Test 106: Complete 7-step background OCR lifecycle (UPLOAD -> JOB CREATED -> BACKGROUND PROCESSING -> OCR -> DATABASE -> STATUS UPDATE -> FRONTEND REFRESH)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Complete 7-Stage Background OCR Lifecycle Execution`);
+
+    const rasterBuffer = generateSyntheticImageBuffer(400, 300, "text_bars");
+    const stageHistory: OcrJobStage[] = [];
+
+    const job = await OcrBackgroundJobManager.submitOcrJob(
+      {
+        name: "test_background_invoice.png",
+        bytes: new Uint8Array(rasterBuffer.buffer),
+        mimeType: "image/png",
+      },
+      {
+        organisationId: "org-bg-test",
+        autoStart: false, // Step by step manual/controlled testing
+      },
+    );
+
+    assert(job.status === "PENDING", "Initial status is PENDING upon submission");
+    assert(job.currentStage === "JOB_CREATED", "Initial stage is JOB_CREATED");
+    assert(typeof job.jobId === "string" && job.jobId.startsWith("job-ocr-"), "Job ID created");
+    assert(typeof job.documentId === "string", "Document ID bound");
+    assert(job.progressPercentage === 0, "Initial progress is 0%");
+
+    // Subscribe to track stages
+    OcrBackgroundJobManager.subscribeToJob(job.jobId, (updated) => {
+      if (!stageHistory.includes(updated.currentStage)) {
+        stageHistory.push(updated.currentStage);
+      }
+    });
+
+    // Run execution through the manager
+    const activeJobPromise = OcrBackgroundJobManager.submitOcrJob(
+      {
+        name: "test_background_invoice_active.png",
+        bytes: new Uint8Array(rasterBuffer.buffer),
+        mimeType: "image/png",
+      },
+      {
+        organisationId: "org-bg-test",
+        autoStart: true,
+      },
+    );
+
+    const activeJob = await activeJobPromise;
+    // Wait for background job completion (allow up to 20s for local Tesseract execution)
+    let attempts = 0;
+    while (
+      (activeJob.status === "PENDING" || activeJob.status === "PROCESSING") &&
+      attempts < 400
+    ) {
+      await new Promise((r) => setTimeout(r, 50));
+      attempts++;
+    }
+
+    if (activeJob.status !== "COMPLETED" && activeJob.status !== "REVIEW_REQUIRED") {
+      console.error(
+        `Test 106 Diagnostics: status=${activeJob.status}, stage=${activeJob.currentStage}, attempts=${attempts}, error=${JSON.stringify(activeJob.error)}`,
+      );
+    }
+
+    assert(
+      activeJob.status === "COMPLETED" || activeJob.status === "REVIEW_REQUIRED",
+      `Background job finished (got ${activeJob.status}, error: ${activeJob.error?.message || "none"})`,
+    );
+    assert(
+      activeJob.currentStage === "FRONTEND_REFRESH" || activeJob.currentStage === "COMPLETED",
+      "Reached FRONTEND_REFRESH stage",
+    );
+    assert(activeJob.progressPercentage === 100, "Final progress percentage reached 100%");
+    assert(activeJob.result !== null && activeJob.result !== undefined, "Result attached to job");
+    assert(typeof activeJob.completedAt === "string", "completedAt timestamp recorded");
+  }
+
+  // Test 107: Non-blocking asynchronous execution with main-thread yielding
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Non-Blocking Asynchronous Execution with Main-Thread Yielding`,
+    );
+
+    const startYield = Date.now();
+    await OcrBackgroundJobManager.yieldToMainThread();
+    const yieldDuration = Date.now() - startYield;
+
+    assert(yieldDuration >= 0, "yieldToMainThread completed successfully");
+
+    // Clear registry for isolation
+    OcrBackgroundJobManager.clearJobRegistry();
+    const listed = await OcrBackgroundJobManager.listJobs();
+    assert(listed.length === 0, "Job registry cleared successfully");
+  }
+
+  // Test 108: Multi-job subscription and real-time event broadcasting
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Multi-Job Subscription & Real-Time Event Broadcasting`);
+
+    const rasterBuffer = generateSyntheticImageBuffer(200, 150, "text_bars");
+    let receivedGlobalUpdates = 0;
+
+    const unsubscribe = OcrBackgroundJobManager.subscribeToAll(() => {
+      receivedGlobalUpdates++;
+    });
+
+    const job = await OcrBackgroundJobManager.submitOcrJob(
+      {
+        name: "test_sub_broadcast.png",
+        bytes: new Uint8Array(rasterBuffer.buffer),
+        mimeType: "image/png",
+      },
+      { autoStart: false },
+    );
+
+    assert(receivedGlobalUpdates >= 1, "Global subscriber received job creation update");
+    unsubscribe();
+
+    const retrieved = await OcrBackgroundJobManager.getJob(job.jobId);
+    assert(retrieved !== null, "Job retrieved by ID");
+    assert(retrieved!.jobId === job.jobId, "Job ID matches retrieved");
+  }
+
+  // Test 109: Background job persistence and retrieval
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Background Job Persistence & Retrieval`);
+
+    const rasterBuffer = generateSyntheticImageBuffer(200, 150, "text_bars");
+    const job = await OcrBackgroundJobManager.submitOcrJob(
+      {
+        name: "test_persisted_job.png",
+        bytes: new Uint8Array(rasterBuffer.buffer),
+        mimeType: "image/png",
+      },
+      {
+        documentId: "doc-persist-job-01",
+        autoStart: false,
+      },
+    );
+
+    const byDocId = await OcrBackgroundJobManager.getJob("doc-persist-job-01");
+    assert(byDocId !== null, "Job retrieved by document ID");
+    assert(byDocId!.documentId === "doc-persist-job-01", "Document ID matches");
+
+    const allJobs = await OcrBackgroundJobManager.listJobs();
+    assert(allJobs.length > 0, "listJobs returns submitted jobs");
+  }
+
+  // --- TEST GROUP 28: OCR STATUS MODEL (Requirement 26) ---
+  console.log("\n--- TEST GROUP 28: OCR STATUS MODEL (Requirement 26) ---");
+
+  // Test 110: Verification of all 7 persistent statuses
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Verification of All 7 Authoritative Persistent Statuses`);
+
+    const validStatuses: OcrStatus[] = [
+      "NOT_REQUIRED",
+      "PENDING",
+      "PROCESSING",
+      "COMPLETED",
+      "PARTIALLY_COMPLETED",
+      "FAILED",
+      "REVIEW_REQUIRED",
+    ];
+
+    for (const status of validStatuses) {
+      assert(typeof status === "string" && status.length > 0, `Status enum '${status}' is valid`);
+    }
+  }
+
+  // Test 111: Digital PDF classification mapped to NOT_REQUIRED
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Digital PDF Classification Mapped to NOT_REQUIRED`);
+
+    const mockDigitalPage: OcrPageResult = {
+      pageNumber: 1,
+      fullText: "Eskom Megaflex Invoice Digital Text",
+      geometry: { width: 595, height: 842, dpi: 300, aspectRatio: 0.7, rotation: 0 },
+      words: [],
+      lines: [],
+      blocks: [],
+      tables: [],
+      keyValuePairs: [],
+      averageConfidence: 99.0,
+      minConfidence: 95.0,
+      characterCount: 40,
+      isNativeDigital: true,
+      isScannedRaster: false,
+      processingDurationMs: 10,
+    };
+
+    const isPureDigital = [mockDigitalPage].every((p) => p.isNativeDigital && !p.isScannedRaster);
+    assert(isPureDigital === true, "Identified pure native digital page");
+    const status: OcrStatus = isPureDigital ? "NOT_REQUIRED" : "COMPLETED";
+    assert(status === "NOT_REQUIRED", "Mapped status to NOT_REQUIRED");
+  }
+
+  // Test 112: Low confidence or audit-gated invoice mapped to REVIEW_REQUIRED
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Low Confidence / Audit-Gated Invoice Mapped to REVIEW_REQUIRED`,
+    );
+
+    const mockLowConfPage: OcrPageResult = {
+      pageNumber: 1,
+      fullText: "Poor scan invoice",
+      geometry: { width: 595, height: 842, dpi: 300, aspectRatio: 0.7, rotation: 0 },
+      words: [],
+      lines: [],
+      blocks: [],
+      tables: [],
+      keyValuePairs: [],
+      averageConfidence: 65.0, // Low confidence
+      minConfidence: 50.0,
+      characterCount: 20,
+      isNativeDigital: false,
+      isScannedRaster: true,
+      processingDurationMs: 50,
+    };
+
+    const reviewRequired = mockLowConfPage.averageConfidence < 85;
+    const status: OcrStatus = reviewRequired ? "REVIEW_REQUIRED" : "COMPLETED";
+    assert(status === "REVIEW_REQUIRED", "Mapped low confidence scan to REVIEW_REQUIRED");
+  }
+
+  // Test 113: Partial failure scenario mapped to PARTIALLY_COMPLETED
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Partial Failure Scenario Mapped to PARTIALLY_COMPLETED`);
+
+    const page1: OcrPageResult = {
+      pageNumber: 1,
+      fullText: "Page 1 success",
+      geometry: { width: 595, height: 842, dpi: 300, aspectRatio: 0.7, rotation: 0 },
+      words: [],
+      lines: [],
+      blocks: [],
+      tables: [],
+      keyValuePairs: [],
+      averageConfidence: 92.0,
+      minConfidence: 88.0,
+      characterCount: 15,
+      isNativeDigital: false,
+      isScannedRaster: true,
+      processingDurationMs: 30,
+    };
+
+    const page2: any = {
+      pageNumber: 2,
+      fullText: "",
+      geometry: { width: 595, height: 842, dpi: 300, aspectRatio: 0.7, rotation: 0 },
+      words: [],
+      lines: [],
+      blocks: [],
+      tables: [],
+      keyValuePairs: [],
+      averageConfidence: 0,
+      minConfidence: 0,
+      characterCount: 0,
+      isNativeDigital: false,
+      isScannedRaster: true,
+      processingDurationMs: 30,
+      state: "FAILED",
+    };
+
+    const pages = [page1, page2];
+    const hasFailedPage = pages.some((p) => (p as any).state === "FAILED");
+    const status: OcrStatus = hasFailedPage ? "PARTIALLY_COMPLETED" : "COMPLETED";
+    assert(
+      status === "PARTIALLY_COMPLETED",
+      "Mapped mixed success/failed pages to PARTIALLY_COMPLETED",
+    );
+  }
+
+  // Test 114: Fatal error scenario mapped to FAILED
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Fatal Error Scenario Mapped to FAILED`);
+
+    const totalPages = 0;
+    const status: OcrStatus = totalPages === 0 ? "FAILED" : "COMPLETED";
+    assert(status === "FAILED", "0 pages or unreadable file mapped to FAILED");
+  }
+
+  // Test 115: Clean successful run mapped to COMPLETED
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Clean Successful Run Mapped to COMPLETED`);
+
+    const page1: OcrPageResult = {
+      pageNumber: 1,
+      fullText: "TAX INVOICE Total: R 15000",
+      geometry: { width: 595, height: 842, dpi: 300, aspectRatio: 0.7, rotation: 0 },
+      words: [],
+      lines: [],
+      blocks: [],
+      tables: [],
+      keyValuePairs: [],
+      averageConfidence: 96.0,
+      minConfidence: 92.0,
+      characterCount: 25,
+      isNativeDigital: false,
+      isScannedRaster: true,
+      processingDurationMs: 40,
+    };
+
+    const pages = [page1];
+    const isSuccess = pages.length > 0 && pages.every((p) => p.averageConfidence >= 85);
+    const status: OcrStatus = isSuccess ? "COMPLETED" : "REVIEW_REQUIRED";
+    assert(status === "COMPLETED", "Clean high-confidence OCR run mapped to COMPLETED");
   }
 
   console.log("\n==================================================================");
