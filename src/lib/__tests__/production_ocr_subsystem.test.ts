@@ -68,11 +68,19 @@ import {
   SouthAfricanLanguageManager,
   OcrErrorDetector,
   NumericProtectionEngine,
+  DateRecognitionEngine,
+  TableReconstructionEngine,
   SOUTH_AFRICA_LOCALE_PROFILE,
   INTERNATIONAL_ANGLO_LOCALE_PROFILE,
   INTERNATIONAL_CONTINENTAL_LOCALE_PROFILE,
   INTERNATIONAL_SWISS_LOCALE_PROFILE,
   AUTO_DETECT_LOCALE_PROFILE,
+  type CandidateDateRecognition,
+  type OcrTableRow,
+  type OcrTableColumn,
+  type OcrMergedCell,
+  type OcrTableTotalSummary,
+  type OcrTableStructure,
   type OcrLineBlock,
   type OcrWordToken,
   type OcrPageResult,
@@ -2427,6 +2435,393 @@ export async function runProductionOcrTestSuite() {
     assert(swissDocTotal.numericValue === 14520.5, "Swiss invoice total parses cleanly (14520.50)");
     assert(swissDocTotal.thousandsSeparator === "APOSTROPHE", "Apostrophe thousands separator handled cleanly");
     assert(swissDocTotal.isValid === true, "Valid Swiss document passes without bias failure");
+  }
+
+  // -------------------------------------------------------------------------
+  // TEST GROUP 19: DATE RECOGNITION (REQUIREMENT 17)
+  // -------------------------------------------------------------------------
+  console.log("\n==================================================================");
+  console.log("TEST GROUP 19: Candidate Date Recognition (Requirement 17)");
+  console.log("==================================================================");
+
+  // Test 19.1: Identification of all user candidate date formats
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Candidate date pattern identification across required formats`);
+
+    // Format 1: 01/09/2026 (DD/MM/YYYY)
+    const text1 = "Invoice Tax Date: 01/09/2026 for electricity supply";
+    const res1 = DateRecognitionEngine.recognizeCandidateDatesInText(text1);
+    assert(res1.length >= 1, "Identifies candidate date in 01/09/2026 text");
+    const d1 = res1.find((c) => c.originalRaw === "01/09/2026");
+    assert(d1 !== undefined, "Extracts exact candidate '01/09/2026'");
+    assert(d1!.originalRaw === "01/09/2026", "Preserves original OCR text '01/09/2026'");
+    assert(d1!.normalizedIsoDate === "2026-09-01", "Normalizes 01/09/2026 to ISO '2026-09-01'");
+    assert(d1!.detectedFormat === "DD/MM/YYYY", "Identifies DD/MM/YYYY format");
+
+    // Format 2: 2026-09-01 (ISO YYYY-MM-DD)
+    const text2 = "Reading Recorded: 2026-09-01 on bulk meter";
+    const res2 = DateRecognitionEngine.recognizeCandidateDatesInText(text2);
+    const d2 = res2.find((c) => c.originalRaw === "2026-09-01");
+    assert(d2 !== undefined, "Extracts exact candidate '2026-09-01'");
+    assert(d2!.originalRaw === "2026-09-01", "Preserves original OCR text '2026-09-01'");
+    assert(d2!.normalizedIsoDate === "2026-09-01", "Normalizes 2026-09-01 to ISO '2026-09-01'");
+
+    // Format 3: 01 Sep 2026 (DD MMM YYYY)
+    const text3 = "Billing Period Due: 01 Sep 2026 payable immediately";
+    const res3 = DateRecognitionEngine.recognizeCandidateDatesInText(text3);
+    const d3 = res3.find((c) => c.originalRaw === "01 Sep 2026");
+    assert(d3 !== undefined, "Extracts exact candidate '01 Sep 2026'");
+    assert(d3!.originalRaw === "01 Sep 2026", "Preserves original OCR text '01 Sep 2026'");
+    assert(d3!.normalizedIsoDate === "2026-09-01", "Normalizes 01 Sep 2026 to ISO '2026-09-01'");
+    assert(d3!.detectedFormat === "DD MMM YYYY", "Identifies DD MMM YYYY format");
+
+    // Format 4: September 1, 2026 (Month D, YYYY)
+    const text4 = "Statement Date: September 1, 2026 at Johannesburg office";
+    const res4 = DateRecognitionEngine.recognizeCandidateDatesInText(text4);
+    const d4 = res4.find((c) => c.originalRaw.startsWith("September 1"));
+    assert(d4 !== undefined, "Extracts exact candidate 'September 1, 2026'");
+    assert(d4!.originalRaw.includes("September 1"), "Preserves original OCR text 'September 1, 2026'");
+    assert(d4!.normalizedIsoDate === "2026-09-01", "Normalizes September 1, 2026 to ISO '2026-09-01'");
+    assert(d4!.detectedFormat === "MMMM D, YYYY", "Identifies MMMM D, YYYY format");
+  }
+
+  // Test 19.2: Strict evidence preservation principle (Never destroy original text)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Strict evidence preservation: originalRaw vs normalizedIsoDate separation`);
+
+    const rawLine = "Payment Cut-off: 01/09/2026 (Strict Due Date)";
+    const candidates = DateRecognitionEngine.recognizeCandidateDatesInText(rawLine);
+    assert(candidates.length === 1, "Discovers single date in line");
+    const candidate = candidates[0];
+
+    // Verify originalRaw is intact
+    assert(candidate.originalRaw === "01/09/2026", "Original OCR text is strictly preserved immutably");
+    assert(candidate.normalizedIsoDate === "2026-09-01", "Normalized date exists in separate field");
+    assert(candidate.originalRaw !== candidate.normalizedIsoDate, "Original text and normalized date remain separate");
+    assert(candidate.contextSnippet === rawLine, "Preserves surrounding context line snippet for provenance");
+  }
+
+  // Test 19.3: Calendar validity, leap year and boundary protection
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Calendar validity: leap years, month boundaries & non-existent dates`);
+
+    // Leap Year: 2024-02-29 is valid
+    const leapDate = DateRecognitionEngine.recognizeCandidateDatesInText("Period End: 2024-02-29")[0];
+    assert(leapDate.isCalendarValid === true, "2024-02-29 is recognized as valid leap year date");
+    assert(leapDate.normalizedIsoDate === "2024-02-29", "Normalizes valid leap day to ISO");
+
+    // Non-Leap Year: 2026-02-29 is invalid
+    const nonLeapDate = DateRecognitionEngine.recognizeCandidateDatesInText("Period End: 2026-02-29")[0];
+    assert(nonLeapDate.isCalendarValid === false, "2026-02-29 is flagged as invalid calendar date");
+    assert(nonLeapDate.normalizedIsoDate === null, "Invalid date has null normalizedIsoDate");
+    assert(nonLeapDate.originalRaw === "2026-02-29", "CRITICAL: Original raw evidence '2026-02-29' is preserved!");
+
+    // Non-existent February 30th: 30/02/2026
+    const feb30 = DateRecognitionEngine.recognizeCandidateDatesInText("Date: 30/02/2026")[0];
+    assert(feb30.isCalendarValid === false, "30/02/2026 is flagged as invalid calendar date");
+    assert(feb30.normalizedIsoDate === null, "Normalized ISO date is null for February 30th");
+    assert(feb30.originalRaw === "30/02/2026", "Preserves raw evidence '30/02/2026'");
+
+    // Non-existent April 31st: 31/04/2026
+    const apr31 = DateRecognitionEngine.recognizeCandidateDatesInText("Date: 31/04/2026")[0];
+    assert(apr31.isCalendarValid === false, "31/04/2026 is flagged as invalid calendar date (April has 30 days)");
+    assert(apr31.normalizedIsoDate === null, "Normalized ISO date is null for April 31st");
+    assert(apr31.originalRaw === "31/04/2026", "Preserves raw evidence '31/04/2026'");
+  }
+
+  // Test 19.4: Page-level spatial grounding & coordinates preservation
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Page-level spatial grounding and bounding box linkage`);
+
+    const mockLine = buildLine(1, 0, "Account Tax Date: 01 Sep 2026", 0.25, 96.5);
+    const mockPage: OcrPageResult = {
+      pageNumber: 1,
+      fullText: "Account Tax Date: 01 Sep 2026",
+      geometry: {
+        width: 1000,
+        height: 1400,
+        dpi: 300,
+        aspectRatio: 0.714,
+        rotation: 0,
+        orientation: "PORTRAIT",
+        detectedRotation: 0,
+        appliedRotation: 0,
+        wasOrientationCorrected: false,
+      },
+      words: mockLine.words,
+      lines: [mockLine],
+      blocks: [],
+      tables: [],
+      keyValuePairs: [],
+      averageConfidence: 96.5,
+      minConfidence: 96.5,
+      characterCount: 30,
+      isNativeDigital: true,
+      isScannedRaster: false,
+      processingDurationMs: 12,
+    };
+
+    const dates = DateRecognitionEngine.recognizeDatesInPage(mockPage);
+    assert(dates.length === 1, "Page scan finds candidate date");
+    const d = dates[0];
+    assert(d.originalRaw === "01 Sep 2026", "Original raw preserved on page level");
+    assert(d.normalizedIsoDate === "2026-09-01", "Normalized ISO date on page level");
+    assert(d.pageNumber === 1, "Candidate date records pageNumber 1");
+    assert(d.boundingBox !== undefined, "Candidate date preserves line bounding box");
+    assert(d.coordinates !== undefined, "Candidate date preserves spatial coordinates");
+    assert(d.coordinates!.x === mockLine.x, "Coordinates match line X position");
+    assert(d.confidence === 96.5, "Inherits line confidence score");
+    assert(d.confidenceTier === "HIGH", "Maps >=85% confidence to HIGH tier");
+  }
+
+  // Test 19.5: South African and Afrikaans month recognition
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] South African Afrikaans month name support`);
+
+    const afrText = "Datum: 1 September 2026 en meterlesing op 14 Maart 2026";
+    const afrDates = DateRecognitionEngine.recognizeCandidateDatesInText(afrText);
+    assert(afrDates.length >= 2, "Discovers both Afrikaans candidate dates");
+
+    const sepDate = afrDates.find((d) => d.originalRaw.includes("September"));
+    assert(sepDate !== undefined, "Extracts '1 September 2026'");
+    assert(sepDate!.normalizedIsoDate === "2026-09-01", "Normalizes '1 September 2026' -> '2026-09-01'");
+
+    const maartDate = afrDates.find((d) => d.originalRaw.includes("Maart"));
+    assert(maartDate !== undefined, "Extracts Afrikaans '14 Maart 2026'");
+    assert(maartDate!.normalizedIsoDate === "2026-03-14", "Normalizes '14 Maart 2026' -> '2026-03-14'");
+  }
+
+  // -------------------------------------------------------------------------
+  // TEST GROUP 20: TABLE RECONSTRUCTION (REQUIREMENT 18)
+  // -------------------------------------------------------------------------
+  console.log("\n==================================================================");
+  console.log("TEST GROUP 20: Table Reconstruction & Hierarchy (Requirement 18)");
+  console.log("==================================================================");
+
+  // Helper lines builder for user example table
+  const tableLinesUserExample: OcrLineBlock[] = [
+    buildLine(1, 0, "TIME      ENERGY      RATE       AMOUNT", 0.20, 95.0),
+    buildLine(1, 1, "Peak      12,500      2.45       30,625", 0.25, 96.0),
+    buildLine(1, 2, "Standard  18,200      1.75       31,850", 0.30, 95.5),
+    buildLine(1, 3, "OffPeak   25,000      0.90       22,500", 0.35, 97.0),
+    buildLine(1, 4, "Total     55,700                 84,975", 0.40, 98.0),
+  ];
+
+  // Test 20.1: Prompt Example Table: TABLE → ROW → COLUMN → CELL Hierarchy
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] User example table: TABLE → ROW → COLUMN → CELL hierarchy`);
+
+    const table = TableReconstructionEngine.reconstructTable(tableLinesUserExample, 1, {
+      tableId: "user-example-table-1",
+    });
+
+    // TABLE level
+    assert(table.tableId === "user-example-table-1", "Table has unique table ID");
+    assert(table.pageNumber === 1, "Table preserves page number 1");
+    assert(table.rowCount === 4, "Table detects exactly 4 data/total rows (3 data, 1 total)");
+    assert(table.columnCount === 4, "Table detects exactly 4 columns (TIME, ENERGY, RATE, AMOUNT)");
+
+    // ROW level
+    assert(table.tableRows.length === 5, "Preserves 5 structured OcrTableRow objects");
+    const headerRow = table.tableRows[0];
+    assert(headerRow.rowType === "HEADER", "Row 0 is classified as HEADER");
+    assert(headerRow.isHeaderRow === true, "Row 0 has isHeaderRow = true");
+
+    const peakRow = table.tableRows[1];
+    assert(peakRow.rowType === "DATA", "Row 1 (Peak) is classified as DATA");
+    assert(peakRow.isHeaderRow === false, "Row 1 is not a header");
+
+    const totalRow = table.tableRows[4];
+    assert(totalRow.rowType === "TOTAL", "Row 4 (Total) is classified as TOTAL");
+    assert(totalRow.isTotalRow === true, "Row 4 has isTotalRow = true");
+
+    // COLUMN level
+    assert(table.tableColumns.length === 4, "Constructs 4 structured OcrTableColumn objects");
+    assert(table.tableColumns[0].headerText === "TIME", "Column 0 header is TIME");
+    assert(table.tableColumns[1].headerText === "ENERGY", "Column 1 header is ENERGY");
+    assert(table.tableColumns[2].headerText === "RATE", "Column 2 header is RATE");
+    assert(table.tableColumns[3].headerText === "AMOUNT", "Column 3 header is AMOUNT");
+
+    // CELL level
+    assert(peakRow.cells.length === 4, "Peak row has 4 constituent cells");
+    assert(peakRow.cells[0].text === "Peak", "Cell (1,0) text is 'Peak'");
+    assert(peakRow.cells[1].numericValue === 12500, "Cell (1,1) parsed numeric energy 12500");
+    assert(peakRow.cells[2].numericValue === 2.45, "Cell (1,2) parsed numeric rate 2.45");
+    assert(peakRow.cells[3].numericValue === 30625, "Cell (1,3) parsed numeric amount 30625");
+
+    // Check spatial bounding box on cells
+    assert(peakRow.cells[0].boundingBox !== undefined, "Cell preserves bounding box");
+    assert(peakRow.cells[0].detailedBoundingBox !== undefined, "Cell preserves detailedBoundingBox");
+  }
+
+  // Test 20.2: Column Type Inference & Alignment
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Column data type inference (TEXT, NUMERIC, CURRENCY)`);
+
+    const table = TableReconstructionEngine.reconstructTable(tableLinesUserExample, 1);
+    const cols = table.tableColumns;
+
+    assert(cols[0].inferredDataType === "TEXT", "TIME column inferred as TEXT");
+    assert(cols[0].alignment === "LEFT", "TEXT column aligned LEFT");
+
+    assert(cols[1].inferredDataType === "NUMERIC", "ENERGY column inferred as NUMERIC");
+    assert(cols[1].alignment === "RIGHT", "NUMERIC column aligned RIGHT");
+
+    assert(cols[2].inferredDataType === "NUMERIC", "RATE column inferred as NUMERIC");
+    assert(cols[2].alignment === "RIGHT", "RATE column aligned RIGHT");
+
+    assert(cols[3].inferredDataType === "CURRENCY", "AMOUNT column inferred as CURRENCY");
+    assert(cols[3].alignment === "RIGHT", "CURRENCY column aligned RIGHT");
+  }
+
+  // Test 20.3: Totals Detection & Column Arithmetic Verification
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Column sum verification and arithmetic consistency checks`);
+
+    const table = TableReconstructionEngine.reconstructTable(tableLinesUserExample, 1);
+    assert(table.totalRows.length === 1, "Detects 1 total row");
+    assert(table.detectedTotals.length >= 2, "Identified column totals for ENERGY and AMOUNT");
+
+    // Check ENERGY column sum: 12500 + 18200 + 25000 = 55700
+    const energyTotal = table.detectedTotals.find((t) => t.columnIndex === 1);
+    assert(energyTotal !== undefined, "Found ENERGY column total summary");
+    assert(energyTotal!.amount === 55700, "Stated ENERGY total is 55700");
+    assert(energyTotal!.calculatedColumnSum === 55700, "Calculated sum of data rows is exactly 55700");
+    assert(energyTotal!.arithmeticMatches === true, "Arithmetic consistency verified for ENERGY sum");
+    assert(energyTotal!.discrepancy === 0, "Discrepancy is 0");
+
+    // Check AMOUNT column sum: 30625 + 31850 + 22500 = 84975
+    const amountTotal = table.detectedTotals.find((t) => t.columnIndex === 3);
+    assert(amountTotal !== undefined, "Found AMOUNT column total summary");
+    assert(amountTotal!.amount === 84975, "Stated AMOUNT total is 84975");
+    assert(amountTotal!.calculatedColumnSum === 84975, "Calculated sum of data rows is exactly 84975");
+    assert(amountTotal!.arithmeticMatches === true, "Arithmetic consistency verified for AMOUNT sum");
+    assert(amountTotal!.discrepancy === 0, "Discrepancy is 0");
+  }
+
+  // Test 20.4: Merged Cells Detection (colSpan & Subheaders)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Merged cell detection (colSpan category subheaders)`);
+
+    const tableWithSubheader: OcrLineBlock[] = [
+      buildLine(1, 0, "TIME      ENERGY      RATE       AMOUNT", 0.20),
+      buildLine(1, 1, "--- HIGH DEMAND SEASON TOU CHARGES ---", 0.24), // Spanning subheader
+      buildLine(1, 2, "Peak      12,500      2.45       30,625", 0.28),
+      buildLine(1, 3, "Standard  18,200      1.75       31,850", 0.32),
+      buildLine(1, 4, "OffPeak   25,000      0.90       22,500", 0.36),
+    ];
+
+    const table = TableReconstructionEngine.reconstructTable(tableWithSubheader, 1);
+    assert(table.hasMergedCells === true, "Detects merged cells in table");
+    assert(table.mergedCells.length >= 1, "mergedCells array contains spanning entry");
+
+    const subheaderRow = table.tableRows.find((r) => r.rowType === "SUBHEADER");
+    assert(subheaderRow !== undefined, "Found SUBHEADER row");
+    assert(subheaderRow!.cells.length === 1, "Spanning row has single merged cell");
+    assert(subheaderRow!.cells[0].colSpan === 4, "Merged cell spans all 4 columns (colSpan = 4)");
+  }
+
+  // Test 20.5: Repeated Headers Detection (Mid-table section breaks)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Repeated headers detection in section breaks`);
+
+    const tableWithRepeatedHeader: OcrLineBlock[] = [
+      buildLine(1, 0, "TIME      ENERGY      RATE       AMOUNT", 0.20),
+      buildLine(1, 1, "Peak      12,500      2.45       30,625", 0.25),
+      buildLine(1, 2, "TIME      ENERGY      RATE       AMOUNT", 0.30), // Repeated header!
+      buildLine(1, 3, "Standard  18,200      1.75       31,850", 0.35),
+      buildLine(1, 4, "OffPeak   25,000      0.90       22,500", 0.40),
+    ];
+
+    const table = TableReconstructionEngine.reconstructTable(tableWithRepeatedHeader, 1);
+    assert(table.hasRepeatedHeaders === true, "Detects repeated header in table");
+    assert(table.repeatedHeaderRowIndices.includes(2), "Identifies Row 2 as repeated header index");
+    assert(table.tableRows[2].isHeaderRow === true, "Row 2 flagged as isHeaderRow = true");
+  }
+
+  // Test 20.6: Multi-Page Continuation Detection & Table Stitching
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Multi-page continuation detection and cross-page stitching`);
+
+    // Page 1 Table (Header + 2 rows, NO total)
+    const page1Lines: OcrLineBlock[] = [
+      buildLine(1, 0, "TIME      ENERGY      RATE       AMOUNT", 0.60),
+      buildLine(1, 1, "Peak      12,500      2.45       30,625", 0.65),
+      buildLine(1, 2, "Standard  18,200      1.75       31,850", 0.70),
+    ];
+    const tablePage1 = TableReconstructionEngine.reconstructTable(page1Lines, 1, {
+      tableId: "table-p1-billing",
+    });
+
+    // Page 2 Table (Repeated Header + 1 row + Total)
+    const page2Lines: OcrLineBlock[] = [
+      buildLine(2, 0, "TIME      ENERGY      RATE       AMOUNT", 0.10),
+      buildLine(2, 1, "OffPeak   25,000      0.90       22,500", 0.15),
+      buildLine(2, 2, "Total     55,700                 84,975", 0.20),
+    ];
+    const tablePage2 = TableReconstructionEngine.reconstructTable(page2Lines, 2, {
+      tableId: "table-p2-billing",
+    });
+
+    // Check continuation detection
+    const isCont = TableReconstructionEngine.isContinuation(tablePage1, tablePage2);
+    assert(isCont === true, "Detects table on Page 2 is a continuation of table on Page 1");
+
+    // Stitch tables
+    const stitched = TableReconstructionEngine.mergeContinuationTables(tablePage1, tablePage2);
+    assert(stitched !== undefined, "Merges continuation tables cleanly");
+
+    // Verify continuation link pointers
+    assert(tablePage1.continuesToTableId === "table-p2-billing", "Table 1 points to Table 2");
+    assert(tablePage1.continuedOnPage === 2, "Table 1 records continuedOnPage = 2");
+    assert(tablePage2.isContinuation === true, "Table 2 flagged isContinuation = true");
+    assert(tablePage2.continuedFromTableId === "table-p1-billing", "Table 2 points back to Table 1");
+    assert(tablePage2.continuedFromPage === 1, "Table 2 records continuedFromPage = 1");
+
+    // Stitched table properties
+    assert(stitched.rowCount >= 4, "Stitched table combines rows across pages");
+    assert(stitched.detectedTotals.length >= 1, "Stitched table has detected total row");
+    const amountTot = stitched.detectedTotals.find((t) => t.columnIndex === 3);
+    assert(amountTot !== undefined, "Stitched table verified cross-page total sum");
+    assert(amountTot!.arithmeticMatches === true, "Combined rows (30625 + 31850 + 22500) match total 84975");
+  }
+
+  // Test 20.7: Strict Anti-Concatenation Assertion (Do not simply concatenate into a paragraph)
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] Strict anti-concatenation assertion`);
+
+    const table = TableReconstructionEngine.reconstructTable(tableLinesUserExample, 1);
+
+    // Assert that table representation is NOT a single flattened string
+    assert(Array.isArray(table.cells), "Table cells are stored in structured array, not a string");
+    assert(table.cells.length === 20, "Contains exactly 20 distinct structured cells (5 rows x 4 columns)");
+
+    for (const cell of table.cells) {
+      assert(typeof cell.rowIndex === "number", "Cell has structured numeric rowIndex");
+      assert(typeof cell.columnIndex === "number", "Cell has structured numeric columnIndex");
+      assert(typeof cell.text === "string", "Cell has isolated text token");
+      assert(Array.isArray(cell.boundingBox), "Cell has isolated boundingBox tuple");
+      assert(cell.detailedBoundingBox !== undefined, "Cell has isolated detailedBoundingBox");
+    }
+
+    // Verify layoutStructureEngine detectTables also produces structured table
+    const layout = OcrLayoutStructureEngine.analyzePageLayout(tableLinesUserExample, 1);
+    assert(layout.tables.length === 1, "analyzePageLayout detected the table structure");
+    const reconstructed = layout.tables[0];
+    assert(reconstructed.tableRows.length === 5, "Layout engine produces full tableRows hierarchy");
+    assert(reconstructed.tableColumns.length === 4, "Layout engine produces full tableColumns hierarchy");
   }
 
   console.log("\n==================================================================");

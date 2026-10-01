@@ -202,6 +202,61 @@ export interface OcrTableCell {
   confidenceTier?: OcrConfidenceTier;
 }
 
+export type OcrTableRowType = "HEADER" | "DATA" | "TOTAL" | "SUBHEADER" | "EMPTY";
+export type OcrColumnDataType =
+  | "TEXT"
+  | "NUMERIC"
+  | "CURRENCY"
+  | "DATE"
+  | "PERCENTAGE"
+  | "UNIT"
+  | "MIXED";
+
+export interface OcrTableRow {
+  rowId: string;
+  rowIndex: number;
+  rowType: OcrTableRowType;
+  cells: OcrTableCell[];
+  rawText: string;
+  boundingBox: OcrBoundingBox;
+  confidence: number;
+  confidenceTier?: OcrConfidenceTier;
+  isTotalRow: boolean;
+  isHeaderRow: boolean;
+}
+
+export interface OcrTableColumn {
+  columnIndex: number;
+  headerText: string;
+  inferredDataType: OcrColumnDataType;
+  cells: OcrTableCell[];
+  alignment: "LEFT" | "RIGHT" | "CENTER";
+  widthApprox: number;
+}
+
+export interface OcrMergedCell {
+  cellId: string;
+  startRowIndex: number;
+  endRowIndex: number;
+  startColumnIndex: number;
+  endColumnIndex: number;
+  rowSpan: number;
+  colSpan: number;
+  text: string;
+  mergedDirection: "HORIZONTAL" | "VERTICAL" | "BOTH";
+}
+
+export interface OcrTableTotalSummary {
+  rowId: string;
+  rowIndex: number;
+  label: string; // e.g. "Total", "Subtotal", "Current Due"
+  columnIndex: number;
+  amount: number;
+  calculatedColumnSum?: number;
+  arithmeticMatches: boolean;
+  discrepancy?: number;
+}
+
 export interface OcrTableStructure {
   tableId: string;
   pageNumber: number;
@@ -225,6 +280,61 @@ export interface OcrTableStructure {
   confidence: number;
   confidenceNormalized?: number;
   confidenceTier?: OcrConfidenceTier;
+
+  // Table Reconstruction Hierarchical Structure (Requirement 18)
+  tableRows?: OcrTableRow[];
+  tableColumns?: OcrTableColumn[];
+  headerRows?: OcrTableRow[];
+  dataRows?: OcrTableRow[];
+  totalRows?: OcrTableRow[];
+  hasMergedCells?: boolean;
+  mergedCells?: OcrMergedCell[];
+  hasRepeatedHeaders?: boolean;
+  repeatedHeaderRowIndices?: number[];
+  isContinuation?: boolean;
+  continuedFromTableId?: string;
+  continuedFromPage?: number;
+  continuedOnPage?: number;
+  continuesToTableId?: string;
+  detectedTotals?: OcrTableTotalSummary[];
+}
+
+// ---------------------------------------------------------------------------
+// Candidate Date Recognition Types (Requirement 17)
+// ---------------------------------------------------------------------------
+
+export interface CandidateDateRecognition {
+  candidateId: string;
+  pageNumber: number;
+  /** Exact original string from OCR text (NEVER mutated or destroyed!) */
+  originalRaw: string;
+  /** Normalized ISO 8601 string: YYYY-MM-DD (e.g. 2026-09-01) */
+  normalizedIsoDate: string | null;
+  /** Date components */
+  components?: {
+    year: number;
+    month: number;
+    day: number;
+  };
+  /** Detected format pattern (e.g. "DD/MM/YYYY", "YYYY-MM-DD", "DD MMM YYYY", "MMMM D, YYYY") */
+  detectedFormat: string;
+  /** Regional pattern classification */
+  localePattern: "SOUTH_AFRICAN" | "INTERNATIONAL" | "AMBIGUOUS";
+  /** Whether the date is valid on the Gregorian calendar (valid days in month, leap year) */
+  isCalendarValid: boolean;
+  /** Bounding box of the date token if spatially resolved */
+  boundingBox?: OcrBoundingBox;
+  coordinates?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    coordinateSystem: CoordinateSystem;
+  };
+  confidence: number;
+  confidenceTier: OcrConfidenceTier;
+  contextSnippet?: string;
+  validationErrors?: OcrDetectedError[];
 }
 
 export interface OcrKeyValuePair {
@@ -274,6 +384,7 @@ export interface OcrPageResult {
   appliedRotation?: RotationDegrees;
   wasOrientationCorrected?: boolean;
   languageUsed?: string;
+  candidateDates?: CandidateDateRecognition[]; // Requirement 17: identified candidate dates on page
 }
 
 /**
@@ -478,6 +589,7 @@ export interface OcrDocumentResult {
   reviewReasons: string[];
   detectedErrors?: OcrDetectedError[]; // Requirement 14: all detected OCR issues
   tables: OcrTableStructure[];
+  candidateDates?: CandidateDateRecognition[]; // Requirement 17: all identified candidate dates across document
   rawFullText: string;
 
   // Extracted domain determinants based on category

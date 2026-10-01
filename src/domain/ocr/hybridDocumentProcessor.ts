@@ -38,6 +38,8 @@ import { OcrLayoutStructureEngine } from "./ocrLayoutStructureEngine";
 import { OcrConfidenceScorer } from "./ocrConfidenceScorer";
 import { OcrEvidenceExtractor } from "./ocrEvidenceExtractor";
 import { PdfjsLoader } from "../intelligence/pdfjsLoader";
+import { DateRecognitionEngine } from "./dateRecognitionEngine";
+import { TableReconstructionEngine } from "./tableReconstructionEngine";
 import type {
   OcrDocumentResult,
   OcrPageResult,
@@ -266,6 +268,22 @@ export class HybridDocumentProcessor {
     const rawFullText = pageResults.map((p) => p.fullText).join("\n\n");
     const allTables = pageResults.flatMap((p) => p.tables);
 
+    // 5b. Multi-page table continuation detection & linking (Requirement 18)
+    for (let i = 0; i < allTables.length; i++) {
+      for (let j = i + 1; j < allTables.length; j++) {
+        if (TableReconstructionEngine.isContinuation(allTables[i], allTables[j])) {
+          allTables[i].continuesToTableId = allTables[j].tableId;
+          allTables[i].continuedOnPage = allTables[j].pageNumber;
+          allTables[j].isContinuation = true;
+          allTables[j].continuedFromTableId = allTables[i].tableId;
+          allTables[j].continuedFromPage = allTables[i].pageNumber;
+        }
+      }
+    }
+
+    // 5c. Aggregate candidate dates recognized across document pages (Requirement 17)
+    const allCandidateDates = pageResults.flatMap((p) => p.candidateDates || []);
+
     // 6. Classify document category
     const documentCategory: OcrDocumentCategory =
       OcrEvidenceExtractor.classifyCategory(rawFullText);
@@ -363,6 +381,7 @@ export class HybridDocumentProcessor {
       reviewReasons: confidenceEval.reviewReasons,
       detectedErrors: confidenceEval.detectedErrors,
       tables: allTables,
+      candidateDates: allCandidateDates,
       rawFullText,
       invoiceDeterminants,
       statementDeterminants,
@@ -469,6 +488,10 @@ export class HybridDocumentProcessor {
       languageUsed: executionLanguage,
     };
 
+    // Step D: Recognize Candidate Dates (Requirement 17)
+    const candidateDates = DateRecognitionEngine.recognizeDatesInPage(result);
+    result.candidateDates = candidateDates;
+
     // Attach preprocessing decision as a non-enumerable staging field
     // so the status tracker can read it without polluting the public type.
     if (preprocessed.preprocessingDecision) {
@@ -532,7 +555,7 @@ export class HybridDocumentProcessor {
       wasOrientationCorrected: false,
     };
 
-    return OcrConfidenceScorer.assignTiersToPage({
+    const pageResult = OcrConfidenceScorer.assignTiersToPage({
       pageNumber: pageNum,
       fullText: nativeStream.text,
       geometry,
@@ -553,6 +576,9 @@ export class HybridDocumentProcessor {
       wasOrientationCorrected: false,
       languageUsed: executionLanguage,
     });
+
+    pageResult.candidateDates = DateRecognitionEngine.recognizeDatesInPage(pageResult);
+    return pageResult;
   }
 
   /**

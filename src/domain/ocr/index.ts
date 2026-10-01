@@ -37,3 +37,5 @@ export * from "./providers/cloudOcrProvider";
 export * from "./providers/nullOcrProvider";
 export * from "./ocrErrorDetector";
 export * from "./numericProtectionEngine";
+export * from "./dateRecognitionEngine";
+export * from "./tableReconstructionEngine";

@@ -26,6 +26,7 @@ import type {
   OcrElementBoundingBox,
   OcrConfidenceTier,
 } from "./types";
+import { TableReconstructionEngine } from "./tableReconstructionEngine";
 
 export class OcrLayoutStructureEngine {
   /**
@@ -285,6 +286,7 @@ export class OcrLayoutStructureEngine {
       ["PEAK", "STANDARD", "OFF-PEAK"],
       ["METER", "PREVIOUS", "CURRENT", "UNITS"],
       ["ENERGY", "DEMAND", "NETWORK", "LEVY"],
+      ["TIME", "ENERGY", "RATE", "AMOUNT"],
     ];
 
     for (let i = 0; i < lines.length; i++) {
@@ -337,183 +339,18 @@ export class OcrLayoutStructureEngine {
   }
 
   /**
-   * Builds an OcrTableStructure from consecutive aligned lines
+   * Builds an authoritative OcrTableStructure from consecutive aligned lines,
+   * preserving TABLE → ROW → COLUMN → CELL relationships via TableReconstructionEngine.
    */
   private static buildTableFromLines(
     lines: OcrLineBlock[],
     pageNumber: number,
     tableIndex: number,
   ): OcrTableStructure {
-    const headerLine = lines[0];
-    const dataLines = lines.slice(1);
-
-    // Approximate column boundaries from word X-positions across all lines
-    const colSplitRegex = /\s{2,}|\t|(?<=[0-9A-Za-z])\s+(?=[R\d])/;
-    const headerCols = headerLine.text.split(colSplitRegex).filter((h) => h.trim().length > 0);
-    const colCount = Math.max(2, headerCols.length);
-
-    const cells: OcrTableCell[] = [];
-    const rows: string[][] = [];
-
-    // 1. Add header cells
-    headerCols.forEach((hText, cIdx) => {
-      const hCoordSys = headerLine.coordinateSystem || "NORMALIZED_0_1";
-      const hX = headerLine.x !== undefined ? headerLine.x : headerLine.boundingBox[0];
-      const hY = headerLine.y !== undefined ? headerLine.y : headerLine.boundingBox[1];
-      const hW = headerLine.width !== undefined ? headerLine.width : headerLine.boundingBox[2];
-      const hH = headerLine.height !== undefined ? headerLine.height : headerLine.boundingBox[3];
-      const hConf = headerLine.confidence;
-      const hNormConf = Number((hConf > 1 ? hConf / 100 : hConf).toFixed(4));
-
-      cells.push({
-        cellId: `cell-p${pageNumber}-t${tableIndex}-r0-c${cIdx}`,
-        rowIndex: 0,
-        columnIndex: cIdx,
-        rowSpan: 1,
-        colSpan: 1,
-        text: hText.trim(),
-        rawValue: hText.trim(),
-        numericValue: null,
-        boundingBox: headerLine.boundingBox,
-        x: hX,
-        y: hY,
-        width: hW,
-        height: hH,
-        coordinateSystem: hCoordSys,
-        detailedBoundingBox: {
-          pageNumber,
-          x: hX,
-          y: hY,
-          width: hW,
-          height: hH,
-          coordinateSystem: hCoordSys,
-          confidence: hNormConf,
-        },
-        confidence: hConf,
-        confidenceNormalized: hNormConf,
-      });
-    });
-
-    // 2. Add data rows
-    dataLines.forEach((rowLine, rIdx) => {
-      const rawCols = rowLine.text.split(colSplitRegex).filter((c) => c.trim().length > 0);
-      const rowStrings: string[] = [];
-      const rCoordSys = rowLine.coordinateSystem || "NORMALIZED_0_1";
-      const rX = rowLine.x !== undefined ? rowLine.x : rowLine.boundingBox[0];
-      const rY = rowLine.y !== undefined ? rowLine.y : rowLine.boundingBox[1];
-      const rW = rowLine.width !== undefined ? rowLine.width : rowLine.boundingBox[2];
-      const rH = rowLine.height !== undefined ? rowLine.height : rowLine.boundingBox[3];
-      const rConf = rowLine.confidence;
-      const rNormConf = Number((rConf > 1 ? rConf / 100 : rConf).toFixed(4));
-
-      for (let cIdx = 0; cIdx < colCount; cIdx++) {
-        const val = rawCols[cIdx] ? rawCols[cIdx].trim() : "";
-        rowStrings.push(val);
-
-        const cleanNum = val.replace(/[R\s,]/g, "");
-        const numVal = !isNaN(Number(cleanNum)) && cleanNum.length > 0 ? Number(cleanNum) : null;
-
-        cells.push({
-          cellId: `cell-p${pageNumber}-t${tableIndex}-r${rIdx + 1}-c${cIdx}`,
-          rowIndex: rIdx + 1,
-          columnIndex: cIdx,
-          rowSpan: 1,
-          colSpan: 1,
-          text: val,
-          rawValue: val,
-          numericValue: numVal,
-          boundingBox: rowLine.boundingBox,
-          x: rX,
-          y: rY,
-          width: rW,
-          height: rH,
-          coordinateSystem: rCoordSys,
-          detailedBoundingBox: {
-            pageNumber,
-            x: rX,
-            y: rY,
-            width: rW,
-            height: rH,
-            coordinateSystem: rCoordSys,
-            confidence: rNormConf,
-          },
-          confidence: rConf,
-          confidenceNormalized: rNormConf,
-        });
-      }
-      rows.push(rowStrings);
-    });
-
-    // Compute enclosing bounding box
-    const minX = Math.min(...lines.map((l) => l.boundingBox[0]));
-    const minY = lines[0].boundingBox[1];
-    const maxX = Math.max(...lines.map((l) => l.boundingBox[0] + l.boundingBox[2]));
-    const maxY = lines[lines.length - 1].boundingBox[1] + lines[lines.length - 1].boundingBox[3];
-
-    let tableType: OcrTableStructure["tableType"] = "GENERIC";
-    const headerCombined = headerCols.join(" ").toUpperCase();
-    const rowsCombined = lines.map((l) => l.text.toUpperCase()).join(" ");
-
-    if (
-      headerCombined.includes("METER") ||
-      headerCombined.includes("READING") ||
-      headerCombined.includes("DIAL")
-    ) {
-      tableType = "METER_READINGS";
-    } else if (
-      headerCombined.includes("TARIFF") ||
-      headerCombined.includes("CHARGE") ||
-      headerCombined.includes("AMOUNT") ||
-      headerCombined.includes("RATE") ||
-      rowsCombined.includes("ENERGY") ||
-      rowsCombined.includes("DEMAND") ||
-      rowsCombined.includes("CHARGE")
-    ) {
-      tableType = "BILLING_SCHEDULE";
-    }
-
-    const tCoordSys = lines[0]?.coordinateSystem || "NORMALIZED_0_1";
-    const tX = lines[0]?.x !== undefined ? Math.min(...lines.map((l) => l.x)) : minX;
-    const tY = lines[0]?.y !== undefined ? lines[0].y : minY;
-    const tW =
-      lines[0]?.width !== undefined
-        ? Math.max(...lines.map((l) => l.x + l.width)) - tX
-        : maxX - minX;
-    const tH =
-      lines[0]?.height !== undefined
-        ? lines[lines.length - 1].y + lines[lines.length - 1].height - tY
-        : maxY - minY;
-    const avgTableConf = Math.round(lines.reduce((acc, l) => acc + l.confidence, 0) / lines.length);
-
-    return {
+    return TableReconstructionEngine.reconstructTable(lines, pageNumber, {
       tableId: `table-p${pageNumber}-${tableIndex}`,
-      pageNumber,
-      tableType,
-      headers: headerCols,
-      rows,
-      cells,
-      rowCount: rows.length,
-      columnCount: colCount,
-      boundingBox: [minX, minY, maxX - minX, maxY - minY],
-      x: tX,
-      y: tY,
-      width: tW,
-      height: tH,
-      coordinateSystem: tCoordSys,
-      detailedBoundingBox: {
-        pageNumber,
-        x: tX,
-        y: tY,
-        width: tW,
-        height: tH,
-        coordinateSystem: tCoordSys,
-        confidence: Number((avgTableConf > 1 ? avgTableConf / 100 : avgTableConf).toFixed(4)),
-      },
-      confidence: avgTableConf,
-      confidenceNormalized: Number(
-        (avgTableConf > 1 ? avgTableConf / 100 : avgTableConf).toFixed(4),
-      ),
-    };
+      coordinateSystem: lines[0]?.coordinateSystem || "NORMALIZED_0_1",
+    });
   }
 
   /**
