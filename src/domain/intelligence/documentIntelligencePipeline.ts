@@ -792,7 +792,7 @@ export class DocumentIntelligencePipeline {
           // Replace text lines for this page with OCR-extracted lines
           textLines = textLines.filter((l) => l.pageNumber !== pageNum).concat(pageOcrLines);
         } catch {
-          // Graceful fallback for non-renderable/mock streams
+          // Graceful fallback for non-rasterizable or mock page streams
           pageConfidenceScores.push(0.5);
           p.isScanned = true;
         }

@@ -102,7 +102,13 @@ export class HybridDocumentProcessor {
       // 2. Extract native digital text streams per page
       const nativeTextMap = new Map<
         number,
-        { text: string; words: OcrWordToken[]; lines: OcrLineBlock[]; width: number; height: number }
+        {
+          text: string;
+          words: OcrWordToken[];
+          lines: OcrLineBlock[];
+          width: number;
+          height: number;
+        }
       >();
 
       const pdfDoc = await this.extractPdfNativeTextStreams(bytes, nativeTextMap, maxPages);
@@ -116,8 +122,8 @@ export class HybridDocumentProcessor {
         const nativeStream = nativeTextMap.get(pageNum);
         const hasReliableText = Boolean(
           !options.forceOcr &&
-            nativeStream &&
-            this.isReliableNativePageText(nativeStream.text, nativeStream.lines),
+          nativeStream &&
+          this.isReliableNativePageText(nativeStream.text, nativeStream.lines),
         );
 
         let pageResult: OcrPageResult;
@@ -361,25 +367,14 @@ export class HybridDocumentProcessor {
     nativeStream: { text: string; words: OcrWordToken[]; lines: OcrLineBlock[] },
     dimensions?: { width: number; height: number; dpi?: number },
   ): OcrPageResult {
-    const pageNum =
-      typeof pageIdentifier === "number" ? pageIdentifier : pageIdentifier.pageNumber;
+    const pageNum = typeof pageIdentifier === "number" ? pageIdentifier : pageIdentifier.pageNumber;
     const width =
-      typeof pageIdentifier !== "number"
-        ? pageIdentifier.width
-        : dimensions?.width || 595;
+      typeof pageIdentifier !== "number" ? pageIdentifier.width : dimensions?.width || 595;
     const height =
-      typeof pageIdentifier !== "number"
-        ? pageIdentifier.height
-        : dimensions?.height || 842;
-    const dpi =
-      typeof pageIdentifier !== "number"
-        ? pageIdentifier.dpi
-        : dimensions?.dpi || 300;
+      typeof pageIdentifier !== "number" ? pageIdentifier.height : dimensions?.height || 842;
+    const dpi = typeof pageIdentifier !== "number" ? pageIdentifier.dpi : dimensions?.dpi || 300;
 
-    const layout = OcrLayoutStructureEngine.analyzePageLayout(
-      nativeStream.lines,
-      pageNum,
-    );
+    const layout = OcrLayoutStructureEngine.analyzePageLayout(nativeStream.lines, pageNum);
 
     const safeWidth = width > 0 ? width : 595;
     const safeHeight = height > 0 ? height : 842;
