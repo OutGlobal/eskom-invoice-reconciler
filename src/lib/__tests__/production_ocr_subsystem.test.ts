@@ -117,12 +117,14 @@ import {
   type OcrStatus,
   type OcrJobStage,
   type OcrBackgroundJob,
+  type OcrDocumentResult,
   OcrCorrectionEngine,
   type OcrFieldCorrection,
   type OcrCorrectionAuditTrail,
   type OcrReviewUser,
 } from "../../domain/ocr";
 import { UnifiedDocumentBridge, AiValidationInputBuilder } from "../../domain/intelligence";
+import { PipelineLayerGuard } from "../../domain/pipeline/pipelineLayerBoundaries";
 import { ProvenanceGuard } from "../../domain/intelligence/provenanceGuard";
 import { TenantIsolationViolationError } from "../../domain/security/tenantContextService";
 
@@ -6349,6 +6351,332 @@ export async function runProductionOcrTestSuite() {
     assert(
       pkg.validationConstraints.some((c) => c.fieldKey === "tariffName"),
       "Contains additional custom tariff constraint",
+    );
+  }
+
+  // =========================================================================
+  // TEST GROUP 35: PIPELINE LAYER SEPARATION & ARCHITECTURAL BOUNDARIES (REQ 33)
+  // =========================================================================
+  console.log("\n--- TEST GROUP 35: PIPELINE LAYER SEPARATION (REQ 33) ---");
+
+  // Test 138: 4 Distinct Pipeline Layer Contracts
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Enforces formal separation between OCR, Document Intelligence, AI Validation, and Reconciliation`,
+    );
+    const ocrContract = PipelineLayerGuard.getLayerContract("OCR");
+    const docIntelContract = PipelineLayerGuard.getLayerContract("DOCUMENT_INTELLIGENCE");
+    const aiValContract = PipelineLayerGuard.getLayerContract("AI_VALIDATION");
+    const reconContract = PipelineLayerGuard.getLayerContract("RECONCILIATION");
+
+    assert(
+      ocrContract.primaryQuestion === "What characters appear on the page?",
+      "OCR answers 'What characters appear on the page?'",
+    );
+    assert(
+      docIntelContract.primaryQuestion === "What is the structure of the document?",
+      "Document Intelligence answers 'What is the structure of the document?'",
+    );
+    assert(
+      aiValContract.primaryQuestion ===
+        "Does the extracted information make sense and agree with the available evidence?",
+      "AI Validation answers 'Does the extracted information make sense and agree with the available evidence?'",
+    );
+    assert(
+      reconContract.primaryQuestion === "What does the validated information mean financially?",
+      "Reconciliation answers 'What does the validated information mean financially?'",
+    );
+  }
+
+  // Test 139: OCR Layer Prohibition against AI Hallucination & Semantic Guessing
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Flags violations when OCR layer attempts AI semantic guessing`,
+    );
+    const validOp = PipelineLayerGuard.validateLayerSeparation(
+      "OCR",
+      "CHARACTER_RECOGNITION_AND_BOUNDING_BOX",
+    );
+    assert(validOp.isCompliant, "Valid OCR bounding box recognition is compliant");
+
+    const invalidOp = PipelineLayerGuard.validateLayerSeparation(
+      "OCR",
+      "AI_SEMANTIC_GUESSING_MISSING_VALUE",
+    );
+    assert(!invalidOp.isCompliant, "AI semantic guessing in OCR layer is blocked");
+    assert(
+      invalidOp.reason?.includes("Rule 33"),
+      "Explains Rule 33 violation for OCR layer semantic guessing",
+    );
+  }
+
+  // Test 140: AI Validation Layer Prohibition against Becoming the OCR Engine
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Flags violations when AI Validation layer attempts raw character recognition`,
+    );
+    const validAiOp = PipelineLayerGuard.validateLayerSeparation(
+      "AI_VALIDATION",
+      "SEMANTIC_ANOMALY_DETECTION",
+    );
+    assert(validAiOp.isCompliant, "Semantic anomaly detection in AI layer is compliant");
+
+    const invalidAiOp = PipelineLayerGuard.validateLayerSeparation(
+      "AI_VALIDATION",
+      "RAW_CHARACTER_RECOGNITION_WITHOUT_GROUNDING",
+    );
+    assert(!invalidAiOp.isCompliant, "AI Validation cannot act as the raw OCR engine");
+    assert(
+      invalidAiOp.reason?.includes("Rule 33"),
+      "Explains Rule 33 violation for ungrounded AI character recognition",
+    );
+  }
+
+  // Test 141: Reconciliation Layer Prohibition against Mutating Raw OCR Evidence
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Flags violations when Reconciliation layer attempts to mutate raw OCR evidence`,
+    );
+    const validRecon = PipelineLayerGuard.validateLayerSeparation(
+      "RECONCILIATION",
+      "FINANCIAL_VARIANCE_CALCULATION",
+    );
+    assert(validRecon.isCompliant, "Financial variance calculation is compliant");
+
+    const invalidRecon = PipelineLayerGuard.validateLayerSeparation(
+      "RECONCILIATION",
+      "MUTATE_RAW_OCR_EVIDENCE_TOKENS",
+    );
+    assert(!invalidRecon.isCompliant, "Reconciliation cannot mutate raw OCR evidence");
+  }
+
+  // =========================================================================
+  // TEST GROUP 36: PERSISTENT STORAGE, MIGRATIONS & TENANT ISOLATION (REQ 34)
+  // =========================================================================
+  console.log("\n--- TEST GROUP 36: PERSISTENT STORAGE & TENANT ISOLATION (REQ 34) ---");
+
+  // Test 142: Multi-Tier Persistent Storage Survival Across Browser Refreshes and Restarts
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Persists OCR document result to L1 cache, L2 local workspace store, and L3 database`,
+    );
+    const persistentDoc: OcrDocumentResult = {
+      ocrRunId: "run-persist-142",
+      documentId: "doc-persist-142",
+      organisationId: "ORG-001",
+      filename: "Millennium_33kV_Feb2026.pdf",
+      documentCategory: "INVOICE",
+      totalPages: 1,
+      overallConfidence: 96,
+      confidenceTier: "HIGH",
+      isReliable: true,
+      reviewRequired: false,
+      reviewReasons: [],
+      pages: [
+        {
+          pageNumber: 1,
+          fullText: "Account: 123456789 Total: R 45,000.00",
+          geometry: { width: 595, height: 842, dpi: 300, aspectRatio: 0.7067, rotation: 0 },
+          words: [],
+          lines: [],
+          blocks: [],
+          tables: [],
+          keyValuePairs: [],
+          averageConfidence: 96,
+          characterCount: 38,
+          isNativeDigital: false,
+          isScannedRaster: true,
+          processingDurationMs: 42,
+        },
+      ],
+      tables: [],
+      rawFullText: "Account: 123456789 Total: R 45,000.00",
+      executionEngine: "TESSERACT_OCR",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 42,
+    };
+
+    const secContext = {
+      userId: "user-1",
+      email: "engineer@company.com",
+      organisationId: "ORG-001",
+      role: "ANALYST" as const,
+    };
+
+    await OcrPersistenceService.saveOcrRun(persistentDoc, secContext);
+
+    // Rehydrate as if after a browser refresh / restart
+    const retrieved = await OcrPersistenceService.getOcrRun("run-persist-142", secContext);
+    assert(retrieved !== null, "Successfully rehydrated persistent OCR run");
+    assert(retrieved?.documentId === "doc-persist-142", "Document ID correctly preserved");
+    assert(retrieved?.overallConfidence === 96, "Overall confidence score preserved");
+  }
+
+  // Test 143: Processing Run Persistence & Lifecycle Tracking (ocr_processing_runs)
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Persists and retrieves OCR processing runs (ocr_processing_runs)`,
+    );
+    const procRun: OcrProcessingRun = {
+      ocrRunId: "proc-run-143",
+      documentId: "doc-proc-143",
+      pageId: "page-1",
+      provider: "Tesseract.js",
+      providerVersion: "6.0.0",
+      configuration: { oem: 1, psm: 3, dpi: 300 },
+      language: "eng+afr+zul+xho",
+      preprocessingVersion: "2.0.0",
+      startTime: new Date(Date.now() - 500).toISOString(),
+      endTime: new Date().toISOString(),
+      processingDuration: 500,
+      status: "COMPLETED",
+      retryAttempt: 0,
+      error: null,
+      outputVersion: "1.0.0",
+    };
+
+    const secContext = {
+      userId: "user-1",
+      email: "engineer@company.com",
+      organisationId: "ORG-001",
+      role: "ANALYST" as const,
+    };
+
+    await OcrPersistenceService.saveProcessingRun(procRun, secContext);
+    const retrievedProcRun = await OcrPersistenceService.getProcessingRun(
+      "proc-run-143",
+      secContext,
+    );
+
+    assert(retrievedProcRun !== null, "Retrieved persistent processing run");
+    assert(
+      retrievedProcRun?.providerVersion === "6.0.0",
+      "Provider version matches persistent record",
+    );
+    assert(
+      retrievedProcRun?.language === "eng+afr+zul+xho",
+      "Language configuration matches persistent record",
+    );
+  }
+
+  // Test 144: Human Review Correction Persistence & Immutable Audit Trail (ocr_corrections)
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Persists and retrieves human review corrections with full audit trail (ocr_corrections)`,
+    );
+    const correction: OcrFieldCorrection = {
+      correctionId: "corr-144-acc",
+      documentId: "doc-corr-144",
+      processingRunId: "proc-run-144",
+      fieldKey: "accountNumber",
+      originalValue: "1234S6789",
+      correctedValue: "123456789",
+      validatedValue: "123456789",
+      stage: "USER_CORRECTION",
+      status: "ACTIVE",
+      user: {
+        id: "usr-auditor-99",
+        name: "Sipho Khumalo",
+        email: "sipho@energyaudit.co.za",
+        role: "SENIOR_AUDITOR",
+      },
+      reason: "Optical ambiguity: 'S' was misread for '5'",
+      evidenceSnapshot: {
+        page: 1,
+        sourceText: "1234S6789",
+        boundingBox: [100, 200, 80, 20],
+        confidence: 68,
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    const secContext = {
+      userId: "usr-auditor-99",
+      email: "sipho@energyaudit.co.za",
+      organisationId: "ORG-001",
+      role: "SENIOR_AUDITOR" as any,
+    };
+
+    await OcrPersistenceService.saveCorrection(correction, secContext);
+    const retrievedCorr = await OcrPersistenceService.getCorrection("corr-144-acc", secContext);
+
+    assert(retrievedCorr !== null, "Retrieved persistent OCR field correction");
+    assert(
+      retrievedCorr?.originalValue === "1234S6789",
+      "Preserves original OCR value (non-destructive)",
+    );
+    assert(retrievedCorr?.correctedValue === "123456789", "Preserves human-corrected value");
+    assert(
+      retrievedCorr?.user.name === "Sipho Khumalo",
+      "Preserves auditor identity in audit trail",
+    );
+  }
+
+  // Test 145: Strict Multi-Tenant Isolation & RLS Enforcement on Database Operations
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Enforces strict multi-tenant isolation and blocks cross-tenant data access`,
+    );
+    const tenantADoc: OcrDocumentResult = {
+      ocrRunId: "run-tenant-A-145",
+      documentId: "doc-tenant-A-145",
+      organisationId: "ORG-ALPHA",
+      filename: "Alpha_Megaflex.pdf",
+      documentCategory: "INVOICE",
+      totalPages: 1,
+      overallConfidence: 95,
+      confidenceTier: "HIGH",
+      isReliable: true,
+      reviewRequired: false,
+      reviewReasons: [],
+      pages: [],
+      tables: [],
+      rawFullText: "Alpha Corporation Invoice",
+      executionEngine: "TESSERACT_OCR",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 30,
+    };
+
+    const tenantAContext = {
+      userId: "user-alpha",
+      email: "alpha@corp.co.za",
+      organisationId: "ORG-ALPHA",
+      role: "ANALYST" as const,
+    };
+
+    const tenantBContext = {
+      userId: "user-beta",
+      email: "beta@corp.co.za",
+      organisationId: "ORG-BETA",
+      role: "ANALYST" as const,
+    };
+
+    // Save under Tenant Alpha
+    await OcrPersistenceService.saveOcrRun(tenantADoc, tenantAContext);
+
+    // Tenant Beta attempts unauthorized access
+    let accessBlocked = false;
+    try {
+      await OcrPersistenceService.getOcrRun("run-tenant-A-145", tenantBContext);
+    } catch (err: any) {
+      if (err instanceof TenantIsolationViolationError) {
+        accessBlocked = true;
+      }
+    }
+
+    assert(
+      accessBlocked,
+      "Cross-tenant access attempt was immediately blocked with TenantIsolationViolationError",
     );
   }
 

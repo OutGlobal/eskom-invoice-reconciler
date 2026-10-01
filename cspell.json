@@ -234,7 +234,8 @@
     "Sipho",
     "Dlamini",
     "immut",
-    "Rostova"
+    "Rostova",
+    "plpgsql"
   ],
   "ignorePaths": ["node_modules/**", "dist/**", ".tanstack/**", "package-lock.json", "bun.lock"]
 }

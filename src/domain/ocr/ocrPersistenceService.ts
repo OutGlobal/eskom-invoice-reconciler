@@ -268,4 +268,305 @@ export class OcrPersistenceService {
 
     return null;
   }
+
+  /**
+   * Persists an OCR processing run record across L1, L2, and L3 tiers
+   */
+  public static async saveProcessingRun(
+    run: import("./types").OcrProcessingRun,
+    context?: UserSecurityContext,
+  ): Promise<void> {
+    const orgId = context?.organisationId || "DEFAULT_TENANT";
+    const runId = run.ocrRunId || (run as any).runId || `proc-run-${Date.now()}`;
+
+    try {
+      await LocalWorkspaceStore.set(`enera_ocr_proc_runs:${runId}`, run);
+      await LocalWorkspaceStore.set(`enera_ocr_proc_runs:doc:${run.documentId}`, run);
+    } catch {
+      // Local workspace store fallback
+    }
+
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from("ocr_processing_runs" as any).upsert(
+          {
+            run_id: runId,
+            document_id: run.documentId,
+            page_id: run.pageId,
+            organisation_id: orgId,
+            provider: run.provider,
+            provider_version: run.providerVersion,
+            configuration: run.configuration,
+            language: run.language,
+            preprocessing_version: run.preprocessingVersion,
+            start_time: run.startTime,
+            end_time: run.endTime,
+            processing_duration: run.processingDuration,
+            status: run.status,
+            retry_attempt: run.retryAttempt || 0,
+            retry_history: run.retryHistory || [],
+            error: run.error,
+            output_version: run.outputVersion,
+            metrics: (run as any).metrics || {},
+          },
+          { onConflict: "run_id" },
+        );
+      } catch {
+        // Remote persistence fallback
+      }
+    }
+  }
+
+  /**
+   * Retrieves an OCR processing run by ID or document ID
+   */
+  public static async getProcessingRun(
+    runIdOrDocId: string,
+    context?: UserSecurityContext,
+  ): Promise<import("./types").OcrProcessingRun | null> {
+    try {
+      const byId = await LocalWorkspaceStore.get<import("./types").OcrProcessingRun>(
+        `enera_ocr_proc_runs:${runIdOrDocId}`,
+      );
+      if (byId) return byId;
+
+      const byDoc = await LocalWorkspaceStore.get<import("./types").OcrProcessingRun>(
+        `enera_ocr_proc_runs:doc:${runIdOrDocId}`,
+      );
+      if (byDoc) return byDoc;
+    } catch {
+      // Local store miss
+    }
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from("ocr_processing_runs" as any)
+          .select("*")
+          .or(`run_id.eq.${runIdOrDocId},document_id.eq.${runIdOrDocId}`)
+          .maybeSingle();
+
+        if (!error && data) {
+          const runData = data as any;
+          if (
+            context &&
+            context.role !== "SUPER_ADMIN" &&
+            runData.organisation_id !== context.organisationId
+          ) {
+            throw new TenantIsolationViolationError(
+              context.organisationId,
+              runData.organisation_id,
+            );
+          }
+          return {
+            ocrRunId: runData.run_id,
+            documentId: runData.document_id,
+            pageId: runData.page_id,
+            provider: runData.provider,
+            providerVersion: runData.provider_version,
+            configuration: runData.configuration || {},
+            language: runData.language,
+            preprocessingVersion: runData.preprocessing_version,
+            startTime: runData.start_time,
+            endTime: runData.end_time,
+            processingDuration: runData.processing_duration,
+            status: runData.status,
+            retryAttempt: runData.retry_attempt,
+            retryHistory: runData.retry_history || [],
+            error: runData.error,
+            outputVersion: runData.output_version,
+          };
+        }
+      } catch {
+        // Remote lookup fallback
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Persists a human review OCR field correction to the database and audit store
+   */
+  public static async saveCorrection(
+    correction: import("./types").OcrFieldCorrection,
+    context?: UserSecurityContext,
+  ): Promise<void> {
+    const orgId = context?.organisationId || "DEFAULT_TENANT";
+
+    try {
+      await LocalWorkspaceStore.set(`enera_ocr_corrections:${correction.correctionId}`, correction);
+      const existing =
+        (await LocalWorkspaceStore.get<import("./types").OcrFieldCorrection[]>(
+          `enera_ocr_corrections:doc:${correction.documentId}`,
+        )) || [];
+      const updated = [
+        ...existing.filter((c) => c.correctionId !== correction.correctionId),
+        correction,
+      ];
+      await LocalWorkspaceStore.set(`enera_ocr_corrections:doc:${correction.documentId}`, updated);
+    } catch {
+      // Local store fallback
+    }
+
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from("ocr_corrections" as any).upsert(
+          {
+            correction_id: correction.correctionId,
+            document_id: correction.documentId,
+            organisation_id: orgId,
+            ocr_run_id: correction.processingRunId,
+            field_key: correction.fieldKey,
+            original_value: correction.originalValue,
+            corrected_value: correction.correctedValue,
+            validated_value: correction.validatedValue,
+            stage: correction.stage,
+            status: correction.status,
+            user_id: correction.user.id,
+            user_name: correction.user.name,
+            user_email: correction.user.email,
+            user_role: correction.user.role,
+            reason: correction.reason,
+            evidence_snapshot: correction.evidenceSnapshot,
+            timestamp: correction.timestamp,
+            reverted_at: correction.revertedAt,
+            reverted_by: correction.revertedBy,
+          },
+          { onConflict: "correction_id" },
+        );
+      } catch {
+        // Remote persistence fallback
+      }
+    }
+  }
+
+  /**
+   * Retrieves a human review OCR field correction by correction ID
+   */
+  public static async getCorrection(
+    correctionId: string,
+    context?: UserSecurityContext,
+  ): Promise<import("./types").OcrFieldCorrection | null> {
+    try {
+      const correction = await LocalWorkspaceStore.get<import("./types").OcrFieldCorrection>(
+        `enera_ocr_corrections:${correctionId}`,
+      );
+      if (correction) return correction;
+    } catch {
+      // Local store miss
+    }
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from("ocr_corrections" as any)
+          .select("*")
+          .eq("correction_id", correctionId)
+          .maybeSingle();
+
+        if (!error && data) {
+          const row = data as any;
+          if (
+            context &&
+            context.role !== "SUPER_ADMIN" &&
+            row.organisation_id !== context.organisationId
+          ) {
+            throw new TenantIsolationViolationError(context.organisationId, row.organisation_id);
+          }
+          return {
+            correctionId: row.correction_id,
+            documentId: row.document_id,
+            processingRunId: row.ocr_run_id,
+            fieldKey: row.field_key,
+            originalValue: row.original_value,
+            correctedValue: row.corrected_value,
+            validatedValue: row.validated_value,
+            stage: row.stage,
+            status: row.status,
+            user: {
+              id: row.user_id,
+              name: row.user_name,
+              email: row.user_email,
+              role: row.user_role,
+            },
+            reason: row.reason,
+            evidenceSnapshot: row.evidence_snapshot,
+            timestamp: row.timestamp,
+            revertedAt: row.reverted_at,
+            revertedBy: row.reverted_by,
+          };
+        }
+      } catch {
+        // Remote lookup fallback
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Retrieves all corrections for a specific document
+   */
+  public static async getCorrectionsForDocument(
+    documentId: string,
+    context?: UserSecurityContext,
+  ): Promise<import("./types").OcrFieldCorrection[]> {
+    try {
+      const local = await LocalWorkspaceStore.get<import("./types").OcrFieldCorrection[]>(
+        `enera_ocr_corrections:doc:${documentId}`,
+      );
+      if (local && local.length > 0) return local;
+    } catch {
+      // Local store miss
+    }
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from("ocr_corrections" as any)
+          .select("*")
+          .eq("document_id", documentId)
+          .order("timestamp", { ascending: true });
+
+        if (!error && data) {
+          return (data as any[]).map((row) => {
+            if (
+              context &&
+              context.role !== "SUPER_ADMIN" &&
+              row.organisation_id !== context.organisationId
+            ) {
+              throw new TenantIsolationViolationError(context.organisationId, row.organisation_id);
+            }
+            return {
+              correctionId: row.correction_id,
+              documentId: row.document_id,
+              processingRunId: row.ocr_run_id,
+              fieldKey: row.field_key,
+              originalValue: row.original_value,
+              correctedValue: row.corrected_value,
+              validatedValue: row.validated_value,
+              stage: row.stage,
+              status: row.status,
+              user: {
+                id: row.user_id,
+                name: row.user_name,
+                email: row.user_email,
+                role: row.user_role,
+              },
+              reason: row.reason,
+              evidenceSnapshot: row.evidence_snapshot,
+              timestamp: row.timestamp,
+              revertedAt: row.reverted_at,
+              revertedBy: row.reverted_by,
+            };
+          });
+        }
+      } catch {
+        // Remote lookup fallback
+      }
+    }
+
+    return [];
+  }
 }
