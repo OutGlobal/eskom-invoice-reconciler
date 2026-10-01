@@ -122,6 +122,7 @@ import {
   type OcrCorrectionAuditTrail,
   type OcrReviewUser,
 } from "../../domain/ocr";
+import { UnifiedDocumentBridge, AiValidationInputBuilder } from "../../domain/intelligence";
 import { ProvenanceGuard } from "../../domain/intelligence/provenanceGuard";
 import { TenantIsolationViolationError } from "../../domain/security/tenantContextService";
 
@@ -5714,6 +5715,640 @@ export async function runProductionOcrTestSuite() {
     assert(
       revertedDoc.auditTrail!.lastCorrectedBy === "Admin Supervisor",
       "Recorded supervisor in audit trail",
+    );
+  }
+
+  // =========================================================================
+  // TEST GROUP 33: OCR → DOCUMENT INTELLIGENCE (REQUIREMENT 31)
+  // =========================================================================
+  console.log("\n--- TEST GROUP 33: OCR → DOCUMENT INTELLIGENCE (Requirement 31) ---");
+
+  // Test 130: UnifiedDocumentBridge Converting Native PDF Text
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] UnifiedDocumentBridge converting Native PDF text to Unified format`,
+    );
+    const mockNative: any = {
+      pages: [
+        {
+          pageNumber: 1,
+          fullText: "Eskom Direct Tax Invoice\nAccount Number: 1234567890",
+          characterCount: 50,
+          wordCount: 7,
+          lines: [
+            {
+              lineId: "line-1",
+              pageNumber: 1,
+              text: "Eskom Direct Tax Invoice",
+              bbox: [50, 50, 300, 20],
+              confidence: 0.99,
+              tokens: [
+                { text: "Eskom", bbox: [50, 50, 60, 20], confidence: 0.99 },
+                { text: "Direct", bbox: [120, 50, 60, 20], confidence: 0.99 },
+              ],
+            },
+            {
+              lineId: "line-2",
+              pageNumber: 1,
+              text: "Account Number: 1234567890",
+              bbox: [50, 80, 250, 20],
+              confidence: 0.99,
+              tokens: [
+                { text: "Account", bbox: [50, 80, 70, 20], confidence: 0.99 },
+                { text: "Number:", bbox: [125, 80, 65, 20], confidence: 0.99 },
+                { text: "1234567890", bbox: [195, 80, 100, 20], confidence: 0.99 },
+              ],
+            },
+          ],
+          paragraphs: [
+            {
+              paragraphId: "para-1",
+              pageNumber: 1,
+              text: "Eskom Direct Tax Invoice\nAccount Number: 1234567890",
+              lines: [],
+              bbox: [50, 50, 300, 50],
+            },
+          ],
+          tables: [],
+        },
+      ],
+      entities: [
+        {
+          entityType: "ACCOUNT_NUMBER",
+          pageNumber: 1,
+          rawText: "1234567890",
+          normalizedValue: "1234567890",
+          confidence: 0.99,
+          bbox: [195, 80, 100, 20],
+        },
+      ],
+      totalPages: 1,
+      processingDurationMs: 25,
+      extractedAt: new Date().toISOString(),
+    };
+
+    const unified = UnifiedDocumentBridge.fromNativePdf(mockNative, "doc-native-01", {
+      organisationId: "org-001",
+      processingRunId: "run-nat-01",
+    });
+
+    assert(unified.documentId === "doc-native-01", "Document ID matches");
+    assert(unified.sourceType === "NATIVE_PDF_TEXT", "Source type is NATIVE_PDF_TEXT");
+    assert(unified.totalPages === 1, "Total pages is 1");
+    assert(unified.pages[0].lines.length === 2, "2 unified lines extracted");
+    assert(unified.pages[0].words.length === 5, "5 unified words extracted");
+    assert(unified.candidateFields["account_number"] !== undefined, "Candidate field extracted");
+    assert(unified.candidateFields["account_number"].value === "1234567890", "Field value matches");
+    assert(
+      unified.candidateFields["account_number"].provenance.extractionMethod === "NATIVE_PDF_TEXT",
+      "Provenance method matches",
+    );
+  }
+
+  // Test 131: UnifiedDocumentBridge Converting OCR Document Result
+  {
+    testCount++;
+    console.log(`[Test ${testCount}] UnifiedDocumentBridge converting OCR text to Unified format`);
+    const mockOcr: OcrDocumentResult = {
+      documentId: "doc-ocr-01",
+      pageCount: 1,
+      overallConfidence: 94,
+      pages: [
+        {
+          pageNumber: 1,
+          fullText: "ESKOM HOLDINGS SOC LTD\nTotal Due: R 245000.50",
+          lines: [
+            {
+              lineId: "ocr-l-1",
+              text: "ESKOM HOLDINGS SOC LTD",
+              confidence: 96,
+              confidenceTier: "HIGH",
+              boundingBox: [100, 100, 400, 30],
+              words: [
+                { text: "ESKOM", confidence: 96, boundingBox: [100, 100, 100, 30] },
+                { text: "HOLDINGS", confidence: 96, boundingBox: [210, 100, 120, 30] },
+              ],
+            },
+            {
+              lineId: "ocr-l-2",
+              text: "Total Due: R 245000.50",
+              confidence: 92,
+              confidenceTier: "HIGH",
+              boundingBox: [100, 150, 300, 30],
+              words: [
+                { text: "Total", confidence: 92, boundingBox: [100, 150, 60, 30] },
+                { text: "Due:", confidence: 92, boundingBox: [165, 150, 55, 30] },
+                { text: "R", confidence: 92, boundingBox: [225, 150, 20, 30] },
+                { text: "245000.50", confidence: 92, boundingBox: [250, 150, 150, 30] },
+              ],
+            },
+          ],
+          confidenceAverage: 94,
+        },
+      ],
+      determinants: {
+        totalAmountDue: {
+          fieldKey: "totalAmountDue",
+          fieldLabel: "Total Amount Due",
+          value: 245000.5,
+          sourceText: "Total Due: R 245000.50",
+          pageNumber: 1,
+          boundingBox: [100, 150, 300, 30],
+          confidence: 92,
+        },
+      },
+      tables: [
+        {
+          tableId: "tbl-01",
+          pageNumber: 1,
+          rowCount: 2,
+          columnCount: 2,
+          headers: ["Description", "Amount"],
+          rows: [
+            { cells: [{ rawText: "Energy Charge" }, { rawText: "R 200000.00" }] },
+            { cells: [{ rawText: "Network Demand" }, { rawText: "R 45000.50" }] },
+          ],
+        },
+      ],
+      rawFullText: "ESKOM HOLDINGS SOC LTD\nTotal Due: R 245000.50",
+      executionEngine: "TESSERACT_OCR",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 120,
+    };
+
+    const unified = UnifiedDocumentBridge.fromOcrResult(mockOcr, "doc-ocr-01", {
+      organisationId: "org-001",
+    });
+
+    assert(unified.documentId === "doc-ocr-01", "Document ID matches");
+    assert(unified.sourceType === "OCR_RASTER", "Source type is OCR_RASTER");
+    assert(unified.pages[0].lines.length === 2, "2 lines in unified OCR page");
+    assert(unified.pages[0].words.length === 6, "6 words in unified OCR page");
+    assert(unified.tables.length === 1, "1 table converted to unified table format");
+    assert(unified.tables[0].headers[0] === "Description", "Table header preserved");
+    assert(
+      unified.candidateFields["totalAmountDue"] !== undefined,
+      "totalAmountDue candidate extracted",
+    );
+    assert(
+      unified.candidateFields["totalAmountDue"].value === 245000.5,
+      "Field value matches float",
+    );
+    assert(
+      unified.candidateFields["totalAmountDue"].provenance.hasExactBoundingBox === true,
+      "Exact bounding box tracked",
+    );
+  }
+
+  // Test 132: Universal Consumer Operating Seamlessly Without Source Distinctions
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Universal consume() method providing consistent downstream interface`,
+    );
+    const mockOcr: OcrDocumentResult = {
+      documentId: "doc-universal-01",
+      pageCount: 1,
+      overallConfidence: 89,
+      pages: [
+        {
+          pageNumber: 1,
+          fullText: "Municipal Electricity Bill",
+          lines: [
+            {
+              lineId: "line-u1",
+              text: "Municipal Electricity Bill",
+              confidence: 89,
+              boundingBox: [10, 10, 200, 20],
+              words: [{ text: "Municipal", confidence: 89, boundingBox: [10, 10, 80, 20] }],
+            },
+          ],
+          confidenceAverage: 89,
+        },
+      ],
+      rawFullText: "Municipal Electricity Bill",
+      executionEngine: "TESSERACT_LOCAL",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 45,
+    };
+
+    // Downstream caller consumes via identical method
+    const unified = UnifiedDocumentBridge.consume({
+      type: "OCR",
+      data: mockOcr,
+      documentId: "doc-universal-01",
+    });
+
+    assert(unified.totalPages === 1, "Universal unified totalPages == 1");
+    assert(unified.pages[0].pageNumber === 1, "Page 1 exists");
+    assert(
+      unified.pages[0].lines[0].text === "Municipal Electricity Bill",
+      "Line text extracted identically",
+    );
+  }
+
+  // Test 133: Hybrid Multi-Page Merging
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Hybrid Document consumption merging digital text and scanned OCR pages`,
+    );
+    const mockNative: any = {
+      pages: [
+        {
+          pageNumber: 1,
+          fullText:
+            "Digital Page 1 Header with lots of clean embedded searchable text characters and words",
+          characterCount: 88,
+          wordCount: 13,
+          lines: [
+            {
+              lineId: "p1-l1",
+              pageNumber: 1,
+              text: "Digital Page 1 Header",
+              bbox: [10, 10, 100, 20],
+              confidence: 1.0,
+              tokens: [{ text: "Digital", bbox: [10, 10, 50, 20], confidence: 1.0 }],
+            },
+          ],
+          paragraphs: [],
+          tables: [],
+        },
+      ],
+      entities: [],
+      totalPages: 1,
+    };
+
+    const mockOcr: OcrDocumentResult = {
+      documentId: "doc-hybrid-merge-01",
+      pageCount: 2,
+      overallConfidence: 86,
+      pages: [
+        {
+          pageNumber: 1,
+          fullText: "OCR Page 1",
+          lines: [],
+          confidenceAverage: 80,
+        },
+        {
+          pageNumber: 2,
+          fullText: "OCR Page 2 Scanned Meter Sheet",
+          lines: [
+            {
+              lineId: "p2-l1",
+              text: "OCR Page 2 Scanned Meter Sheet",
+              confidence: 86,
+              boundingBox: [20, 20, 200, 30],
+              words: [{ text: "Meter", confidence: 86, boundingBox: [20, 20, 50, 30] }],
+            },
+          ],
+          confidenceAverage: 86,
+        },
+      ],
+      rawFullText: "OCR Page 1\nOCR Page 2 Scanned Meter Sheet",
+      executionEngine: "TESSERACT_HYBRID",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 90,
+    };
+
+    const hybridUnified = UnifiedDocumentBridge.consume({
+      type: "HYBRID",
+      native: mockNative,
+      ocr: mockOcr,
+      documentId: "doc-hybrid-merge-01",
+    });
+
+    assert(hybridUnified.totalPages === 2, "Merged hybrid document has 2 total pages");
+    assert(
+      hybridUnified.pages[0].sourceType === "NATIVE_PDF_TEXT",
+      "Page 1 prioritizes clean native PDF text",
+    );
+    assert(
+      hybridUnified.pages[1].sourceType === "OCR_RASTER",
+      "Page 2 utilizes scanned OCR raster",
+    );
+    assert(hybridUnified.sourceType === "HYBRID", "Document level source is HYBRID");
+  }
+
+  // =========================================================================
+  // TEST GROUP 34: OCR → AI VALIDATION (REQUIREMENT 32)
+  // =========================================================================
+  console.log("\n--- TEST GROUP 34: OCR → AI VALIDATION (Requirement 32) ---");
+
+  // Test 134: Structured Evidence Hierarchy (Document -> Pages -> Blocks -> Lines -> Words -> Fields)
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Structured evidence hierarchy generation for feature/ai-validation`,
+    );
+    const mockOcr: OcrDocumentResult = {
+      documentId: "doc-ai-val-01",
+      pageCount: 1,
+      overallConfidence: 95,
+      pages: [
+        {
+          pageNumber: 1,
+          fullText: "Account Number: 9876543210\nTotal Due: R 55000.00",
+          blocks: [
+            {
+              blockId: "blk-1",
+              pageNumber: 1,
+              blockType: "KEY_VALUE",
+              boundingBox: [50, 50, 400, 100],
+              confidence: 95,
+              confidenceNormalized: 0.95,
+              x: 50,
+              y: 50,
+              width: 400,
+              height: 100,
+              coordinateSystem: "PIXEL_SPACE",
+              lines: [
+                {
+                  lineId: "l-1",
+                  text: "Account Number: 9876543210",
+                  confidence: 96,
+                  confidenceTier: "HIGH",
+                  boundingBox: [50, 50, 300, 30],
+                  words: [
+                    { text: "Account", confidence: 96, boundingBox: [50, 50, 70, 30] },
+                    { text: "Number:", confidence: 96, boundingBox: [125, 50, 65, 30] },
+                    { text: "9876543210", confidence: 96, boundingBox: [195, 50, 120, 30] },
+                  ],
+                },
+                {
+                  lineId: "l-2",
+                  text: "Total Due: R 55000.00",
+                  confidence: 94,
+                  confidenceTier: "HIGH",
+                  boundingBox: [50, 90, 250, 30],
+                  words: [
+                    { text: "Total", confidence: 94, boundingBox: [50, 90, 50, 30] },
+                    { text: "Due:", confidence: 94, boundingBox: [105, 90, 45, 30] },
+                    { text: "R", confidence: 94, boundingBox: [155, 90, 20, 30] },
+                    { text: "55000.00", confidence: 94, boundingBox: [180, 90, 90, 30] },
+                  ],
+                },
+              ],
+            },
+          ],
+          lines: [
+            {
+              lineId: "l-1",
+              text: "Account Number: 9876543210",
+              confidence: 96,
+              confidenceTier: "HIGH",
+              boundingBox: [50, 50, 300, 30],
+              words: [
+                { text: "Account", confidence: 96, boundingBox: [50, 50, 70, 30] },
+                { text: "Number:", confidence: 96, boundingBox: [125, 50, 65, 30] },
+                { text: "9876543210", confidence: 96, boundingBox: [195, 50, 120, 30] },
+              ],
+            },
+            {
+              lineId: "l-2",
+              text: "Total Due: R 55000.00",
+              confidence: 94,
+              confidenceTier: "HIGH",
+              boundingBox: [50, 90, 250, 30],
+              words: [
+                { text: "Total", confidence: 94, boundingBox: [50, 90, 50, 30] },
+                { text: "Due:", confidence: 94, boundingBox: [105, 90, 45, 30] },
+                { text: "R", confidence: 94, boundingBox: [155, 90, 20, 30] },
+                { text: "55000.00", confidence: 94, boundingBox: [180, 90, 90, 30] },
+              ],
+            },
+          ],
+          confidenceAverage: 95,
+        },
+      ],
+      determinants: {
+        accountNumber: {
+          fieldKey: "accountNumber",
+          fieldLabel: "Account Number",
+          value: "9876543210",
+          sourceText: "Account Number: 9876543210",
+          pageNumber: 1,
+          boundingBox: [195, 50, 120, 30],
+          confidence: 96,
+        },
+        totalAmountDue: {
+          fieldKey: "totalAmountDue",
+          fieldLabel: "Total Amount Due",
+          value: 55000,
+          sourceText: "Total Due: R 55000.00",
+          pageNumber: 1,
+          boundingBox: [180, 90, 90, 30],
+          confidence: 94,
+        },
+      },
+      rawFullText: "Account Number: 9876543210\nTotal Due: R 55000.00",
+      executionEngine: "TESSERACT_OCR",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 85,
+    };
+
+    const pkg = AiValidationInputBuilder.buildStructuredPackage(mockOcr, {
+      documentId: "doc-ai-val-01",
+      organisationId: "org-test-01",
+    });
+
+    assert(
+      pkg.targetBranch === "feature/ai-validation",
+      "Explicitly targets feature/ai-validation branch",
+    );
+    assert(pkg.documentId === "doc-ai-val-01", "Matches documentId");
+    assert(pkg.hierarchy.pages.length === 1, "Hierarchy contains 1 page");
+    assert(pkg.hierarchy.pages[0].ocrBlocks.length === 1, "Page contains OCR Blocks");
+    assert(pkg.hierarchy.pages[0].ocrBlocks[0].lines.length === 2, "OCR Block contains Lines");
+    assert(pkg.hierarchy.pages[0].ocrBlocks[0].lines[0].words.length === 3, "Line contains Words");
+    assert(pkg.hierarchy.candidateFields.length === 2, "Candidate fields compiled");
+  }
+
+  // Test 135: Mandatory Source Page and OCR Evidence Reference
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Candidate fields referencing source page and verifiable OCR evidence`,
+    );
+    const mockOcr: OcrDocumentResult = {
+      documentId: "doc-evidence-ref-01",
+      pageCount: 1,
+      overallConfidence: 98,
+      pages: [
+        {
+          pageNumber: 1,
+          fullText: "Account Number: 123456789",
+          lines: [
+            {
+              lineId: "l1",
+              text: "Account Number: 123456789",
+              confidence: 98,
+              boundingBox: [100, 200, 300, 40],
+              words: [
+                { text: "Account", confidence: 98, boundingBox: [100, 200, 80, 40] },
+                { text: "123456789", confidence: 98, boundingBox: [220, 200, 180, 40] },
+              ],
+            },
+          ],
+          confidenceAverage: 98,
+        },
+      ],
+      determinants: {
+        accountNumber: {
+          fieldKey: "accountNumber",
+          fieldLabel: "Account Number",
+          value: "123456789",
+          sourceText: "Account Number: 123456789",
+          pageNumber: 1,
+          boundingBox: [100, 200, 300, 40],
+          confidence: 98,
+          processingRunId: "ocr-run-001",
+        },
+      },
+      processingRun: {
+        runId: "ocr-run-001",
+        documentId: "doc-evidence-ref-01",
+        pageId: "doc-evidence-ref-01-p1",
+        provider: "TESSERACT",
+        providerVersion: "5.0.0",
+        configuration: { language: "eng" },
+        language: "eng",
+        preprocessingVersion: "1.0.0",
+        startTime: new Date().toISOString(),
+        endTime: new Date().toISOString(),
+        processingDuration: 50,
+        status: "COMPLETED",
+        error: null,
+        outputVersion: "1.0.0",
+      },
+      rawFullText: "Account Number: 123456789",
+      executionEngine: "TESSERACT_OCR",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 50,
+    };
+
+    const pkg = AiValidationInputBuilder.buildStructuredPackage(mockOcr);
+    const accountField = pkg.hierarchy.candidateFields.find((f) => f.fieldKey === "accountNumber");
+
+    assert(accountField !== undefined, "Account number candidate found");
+    assert(accountField!.sourcePage === 1, "Candidate references source page 1");
+    assert(
+      accountField!.ocrEvidence.sourceText === "Account Number: 123456789",
+      "References source text",
+    );
+    assert(
+      accountField!.ocrEvidence.boundingBox![0] === 100,
+      "References exact bounding box X coordinate",
+    );
+    assert(
+      accountField!.ocrEvidence.boundingBox![1] === 200,
+      "References exact bounding box Y coordinate",
+    );
+    assert(
+      accountField!.ocrEvidence.processingRunId === "ocr-run-001",
+      "References OCR processing run ID",
+    );
+    assert(accountField!.ocrEvidence.confidence === 98, "References confidence 98%");
+  }
+
+  // Test 136: Grounded Prompt Context Summary Generation (No Raw Blob)
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Token-efficient grounded prompt context summary for LLM consumption`,
+    );
+    const mockOcr: OcrDocumentResult = {
+      documentId: "doc-summary-01",
+      pageCount: 1,
+      overallConfidence: 96,
+      pages: [
+        {
+          pageNumber: 1,
+          fullText: "Account: 111222333\nTotal: R 12000.00",
+          lines: [],
+          confidenceAverage: 96,
+        },
+      ],
+      determinants: {
+        accountNumber: {
+          fieldKey: "accountNumber",
+          fieldLabel: "Account Number",
+          value: "111222333",
+          sourceText: "Account: 111222333",
+          pageNumber: 1,
+          boundingBox: [50, 50, 150, 20],
+          confidence: 96,
+        },
+      },
+      tables: [],
+      rawFullText: "Account: 111222333\nTotal: R 12000.00",
+      executionEngine: "TESSERACT_OCR",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 40,
+    };
+
+    const pkg = AiValidationInputBuilder.buildStructuredPackage(mockOcr);
+    assert(
+      pkg.promptContextSummary.includes("# STRUCTURED EVIDENCE FOR AI VALIDATION"),
+      "Contains structured evidence header",
+    );
+    assert(
+      pkg.promptContextSummary.includes("Account Number"),
+      "Contains Account Number field label",
+    );
+    assert(pkg.promptContextSummary.includes("111222333"), "Contains exact candidate value");
+    assert(pkg.promptContextSummary.includes("Source Page: 1"), "Contains source page reference");
+    assert(
+      pkg.promptContextSummary.includes("Box: [50, 50, 150, 20]"),
+      "Contains exact bounding box snippet",
+    );
+  }
+
+  // Test 137: Pre-Configured Deterministic AI Validation Constraints
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Attached deterministic validation constraints for arithmetic and format validation`,
+    );
+    const mockOcr: OcrDocumentResult = {
+      documentId: "doc-constraints-01",
+      pageCount: 1,
+      overallConfidence: 90,
+      pages: [{ pageNumber: 1, fullText: "Bill", lines: [], confidenceAverage: 90 }],
+      determinants: {},
+      tables: [],
+      rawFullText: "Bill",
+      executionEngine: "TESSERACT_OCR",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 30,
+    };
+
+    const pkg = AiValidationInputBuilder.buildStructuredPackage(mockOcr, {
+      additionalConstraints: [
+        {
+          fieldKey: "tariffName",
+          constraintType: "REQUIRED",
+          description: "Must match standard NERSA tariff schedule.",
+        },
+      ],
+    });
+
+    assert(pkg.validationConstraints.length >= 5, "Attached at least 5 validation constraints");
+    assert(
+      pkg.validationConstraints.some((c) => c.constraintType === "TOTAL_SUM_CHECK"),
+      "Contains TOTAL_SUM_CHECK constraint",
+    );
+    assert(
+      pkg.validationConstraints.some((c) => c.fieldKey === "tariffName"),
+      "Contains additional custom tariff constraint",
     );
   }
 

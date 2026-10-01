@@ -43,5 +43,9 @@ export {
 } from "./documentIntelligenceErrors";
 export { DocumentSecurityGuard } from "./documentSecurityGuard";
 export { DocumentIntelligencePipeline } from "./documentIntelligencePipeline";
+export { UnifiedDocumentBridge } from "./unifiedDocumentBridge";
+export * from "./unifiedDocumentBridge";
+export { AiValidationInputBuilder } from "./aiValidationInputBuilder";
+export * from "./aiValidationInputBuilder";
 export * from "./frontendDocumentTypes";
 export * from "./documentViewerTypes";

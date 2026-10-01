@@ -49,6 +49,8 @@ import {
   SecretExposureSecurityError,
 } from "./documentIntelligenceErrors";
 import { DocumentSecurityGuard } from "./documentSecurityGuard";
+import { UnifiedDocumentBridge } from "./unifiedDocumentBridge";
+import { AiValidationInputBuilder } from "./aiValidationInputBuilder";
 import { HybridDocumentProcessor } from "../ocr/hybridDocumentProcessor";
 import { PdfPageRasterizer } from "../ocr/pdfPageRasterizer";
 import { ImagePreprocessingEngine } from "../ocr/imagePreprocessingEngine";
@@ -1135,6 +1137,24 @@ export class DocumentIntelligencePipeline {
       handoff: {
         ocrPlan,
         aiValidationPayload,
+        unifiedExtraction: structuredText
+          ? UnifiedDocumentBridge.fromNativePdf(structuredText, documentId, {
+              organisationId,
+              processingRunId: currentRun?.runId,
+            })
+          : undefined,
+        aiStructuredPackage: structuredText
+          ? AiValidationInputBuilder.buildStructuredPackage(
+              UnifiedDocumentBridge.fromNativePdf(structuredText, documentId, {
+                organisationId,
+                processingRunId: currentRun?.runId,
+              }),
+              {
+                documentId,
+                organisationId,
+              },
+            )
+          : undefined,
       },
       processingTimestamp: new Date().toISOString(),
       processingDurationMs,

@@ -943,6 +943,8 @@ export interface DocumentIntelligencePackage {
   handoff: {
     ocrPlan: OcrHandoffPlan;
     aiValidationPayload: AiValidationPayload;
+    unifiedExtraction?: any;
+    aiStructuredPackage?: any;
   };
   processingTimestamp: string;
   processingDurationMs: number;
