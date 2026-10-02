@@ -586,3 +586,133 @@ export interface IdempotencyValidationOptions {
   validationVersion?: number;
   forceRerun?: boolean;
 }
+
+// --- 13. PERSISTENT VALIDATION RUNS (REQUIREMENT 26) ---
+
+export interface PersistentValidationRun {
+  validationRunId: string;
+  documentId: string;
+  ocrRunId: string;
+  modelProvider: string;
+  promptVersion: string;
+  validationVersion: number;
+  startTime: string;
+  endTime: string;
+  durationMs: number;
+  status: ValidationLifecycleStatus;
+  findings: {
+    semanticCount: number;
+    deterministicCount: number;
+    crossFieldCount: number;
+    ocrErrorsCount: number;
+    duplicateConflictsCount: number;
+    missingDataCount: number;
+    totalFindings: number;
+  };
+  confidence: ValidationConfidenceBreakdown;
+  errors: ValidationExceptionRecord[];
+  aiFailure?: AiFailureRecord;
+  fullResultSnapshot: CompleteValidationResult;
+  createdAt: string;
+}
+
+export interface ValidationRunQueryOptions {
+  documentId?: string;
+  ocrRunId?: string;
+  status?: ValidationLifecycleStatus;
+  modelProvider?: string;
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+}
+
+// --- 14. ENERA 7-STAGE AUDIT CHAIN (REQUIREMENT 27) ---
+
+export type EneraAuditStage =
+  | "DOCUMENT"
+  | "OCR_RUN"
+  | "EXTRACTED_VALUE"
+  | "AI_VALIDATION"
+  | "DETERMINISTIC_VALIDATION"
+  | "USER_REVIEW"
+  | "APPROVED_VALUE";
+
+export interface DocumentAuditLink {
+  documentId: string;
+  filename?: string;
+  documentHash?: string;
+  receivedAt: string;
+}
+
+export interface OcrRunAuditLink {
+  ocrRunId: string;
+  sourcePage: number;
+  boundingBox?: [number, number, number, number];
+  opticalConfidence: number;
+  rawTokensCount: number;
+}
+
+export interface ExtractedValueAuditLink {
+  rawValue: string;
+  extractedValue: string | number | null;
+  sourceText?: string;
+}
+
+export interface AiValidationAuditLink {
+  modelProvider: string;
+  promptVersion: string;
+  validationScore: number;
+  semanticConsistency: string;
+  status: string;
+  reasoning: string;
+}
+
+export interface DeterministicValidationAuditLink {
+  evaluatedRules: string[];
+  isPassed: boolean;
+  appliedTolerance?: number;
+  deviation?: number;
+}
+
+export interface UserReviewAuditLink {
+  reviewStatus: "AUTOMATIC_PASS" | "HUMAN_APPROVED" | "HUMAN_OVERRIDDEN" | "PENDING_REVIEW";
+  reviewedBy?: string;
+  reviewedAt?: string;
+  reviewNotes?: string;
+  originalValueBeforeOverride?: string | number | null;
+}
+
+export interface ApprovedValueAuditLink {
+  finalValue: string | number | null;
+  approvedAt: string;
+  isReadyForReconciliation: boolean;
+  authoritativeSource: "SYSTEM_AUTOMATIC" | "HUMAN_CONFIRMED" | "OVERRIDE";
+}
+
+export interface FieldAuditLineageChain {
+  fieldKey: string;
+  fieldLabel: string;
+  documentId: string;
+  chain: {
+    document: DocumentAuditLink;
+    ocrRun: OcrRunAuditLink;
+    extractedValue: ExtractedValueAuditLink;
+    aiValidation: AiValidationAuditLink;
+    deterministicValidation: DeterministicValidationAuditLink;
+    userReview: UserReviewAuditLink;
+    approvedValue: ApprovedValueAuditLink;
+  };
+  chainVerificationHash: string;
+  isChainComplete: boolean;
+}
+
+export interface DocumentAuditTrailSummary {
+  documentId: string;
+  validationRunId: string;
+  ocrRunId: string;
+  totalFieldsTracked: number;
+  fieldChains: Record<string, FieldAuditLineageChain>;
+  auditChainIntegrity: "INTACT" | "INCOMPLETE" | "CORRUPTED";
+  generatedAt: string;
+}
+

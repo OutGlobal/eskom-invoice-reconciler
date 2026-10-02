@@ -38,5 +38,7 @@ export { MultiEvidenceReconciler } from "./multiEvidenceReconciler";
 export { DuplicateFieldDetector } from "./duplicateFieldDetector";
 export { ValidationConfidenceCalculator } from "./validationConfidenceCalculator";
 export { ExceptionGenerator } from "./exceptionGenerator";
+export { ValidationRunStore } from "./validationRunStore";
+export { EneraAuditChainEngine } from "./eneraAuditChain";
 export { ValidationPipeline } from "./validationPipeline";
 

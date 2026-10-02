@@ -21,6 +21,8 @@ import {
   MissingDataGuard,
   AiFailureHandler,
   IdempotencyManager,
+  ValidationRunStore,
+  EneraAuditChainEngine,
   CanonicalInvoiceBuilder,
   StructuredAiPayloadBuilder,
   StructuredAiResponseValidator,
@@ -1850,6 +1852,136 @@ async function runAiValidationPipelineTestSuite() {
 
   assert(executionCount === 1, "Concurrency: In-flight deduplication ensured AI was only executed once");
   assert(resA.validationRunId === resB.validationRunId, "Concurrency: Both callers received identical validationRunId");
+
+  // --- TEST GROUP 26: PERSISTENT VALIDATION RUNS (REQ 26) ---
+  console.log("\n[Test Group 26] Validation Runs — Stores Complete Run Snapshot & Never Overwrites Historical Runs");
+
+  ValidationRunStore.clearStore();
+
+  const startTime1 = new Date(Date.now() - 5000).toISOString();
+  const endTime1 = new Date().toISOString();
+
+  // 26.1: Persist initial validation run
+  const persistentRun1 = ValidationRunStore.persistRun({
+    result: firstRunResult,
+    ocrRunId: "ocr-run-alpha",
+    modelProvider: "google-gemini-pro",
+    promptVersion: "v2.4.0-prompt-contract",
+    startTime: startTime1,
+    endTime: endTime1,
+  });
+
+  assert(persistentRun1.validationRunId === firstRunResult.validationRunId, "Validation Runs: Correct validationRunId stored");
+  assert(persistentRun1.documentId === "DOC-IDEM-01", "Validation Runs: Correct documentId stored");
+  assert(persistentRun1.ocrRunId === "ocr-run-alpha", "Validation Runs: Correct ocrRunId stored");
+  assert(persistentRun1.modelProvider === "google-gemini-pro", "Validation Runs: Correct modelProvider stored");
+  assert(persistentRun1.promptVersion === "v2.4.0-prompt-contract", "Validation Runs: Correct promptVersion stored");
+  assert(persistentRun1.validationVersion === 1, "Validation Runs: Correct validationVersion stored");
+  assert(persistentRun1.startTime === startTime1, "Validation Runs: Correct startTime stored");
+  assert(persistentRun1.endTime === endTime1, "Validation Runs: Correct endTime stored");
+  assert(persistentRun1.durationMs >= 0, "Validation Runs: durationMs is non-negative");
+  assert(persistentRun1.status === firstRunResult.status, "Validation Runs: Correct status stored");
+  assert(persistentRun1.findings.totalFindings > 0, "Validation Runs: Aggregated findings stored");
+  assert(persistentRun1.confidence.overallScore > 0, "Validation Runs: Confidence breakdown stored");
+  assert(Array.isArray(persistentRun1.errors), "Validation Runs: Error exceptions stored");
+
+  // 26.2: Persist second historical run for the same document (Must NOT overwrite historical run 1)
+  const startTime2 = new Date(Date.now() - 2000).toISOString();
+  const endTime2 = new Date().toISOString();
+
+  const persistentRun2 = ValidationRunStore.persistRun({
+    result: v2RunResult,
+    ocrRunId: "ocr-run-alpha",
+    modelProvider: "google-gemini-pro",
+    promptVersion: "v2.4.0-prompt-contract",
+    startTime: startTime2,
+    endTime: endTime2,
+  });
+
+  assert(persistentRun2.validationRunId === v2RunResult.validationRunId, "Validation Runs: Second run has distinct validationRunId");
+  assert(persistentRun2.validationVersion === 2, "Validation Runs: Second run has version 2");
+
+  // Verify historical runs immutability
+  const docHistory = ValidationRunStore.listRunsForDocument("DOC-IDEM-01");
+  assert(docHistory.length === 2, "Validation Runs: Exactly 2 historical runs preserved without overwrite");
+  assert(docHistory[0].validationRunId === firstRunResult.validationRunId, "Validation Runs: Run 1 preserved in history");
+  assert(docHistory[1].validationRunId === v2RunResult.validationRunId, "Validation Runs: Run 2 appended to history");
+
+  // 26.3: Query by OCR run ID and summary
+  const ocrRuns = ValidationRunStore.listRunsForOcrRun("ocr-run-alpha");
+  assert(ocrRuns.length === 2, "Validation Runs: Query by ocrRunId returns both runs");
+
+  const summary = ValidationRunStore.getHistoricalRunsSummary("DOC-IDEM-01");
+  assert(summary.totalRuns === 2, "Validation Runs: Historical summary totalRuns is 2");
+  assert(summary.versions.includes(1) && summary.versions.includes(2), "Validation Runs: Historical summary versions track [1, 2]");
+
+  // --- TEST GROUP 27: ENERA 7-STAGE AUDIT CHAIN (REQ 27) ---
+  console.log("\n[Test Group 27] Enera Audit Trail — Complete 7-Stage Verifiable Field Lineage Chain");
+
+  // 27.1: Build full document audit trail
+  const docAuditTrail = EneraAuditChainEngine.buildDocumentAuditTrail({
+    result: firstRunResult,
+    candidateFields: originalCandidateInputs,
+    documentMetadata: {
+      filename: "Eskom_Invoice_Sep2025.pdf",
+      documentHash: "sha256_e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      receivedAt: "2025-09-30T10:00:00Z",
+    },
+  });
+
+  assert(docAuditTrail.totalFieldsTracked === 2, "Audit Trail: Tracks all 2 candidate fields");
+  assert(docAuditTrail.auditChainIntegrity === "INTACT", "Audit Trail: Overall chain integrity is INTACT");
+
+  // 27.2: Verify the 7 distinct links for 'invoiceTotal'
+  const totalChain = docAuditTrail.fieldChains["invoiceTotal"];
+  assert(totalChain !== undefined, "Audit Chain: Chain generated for 'invoiceTotal'");
+
+  // Link 1: DOCUMENT
+  assert(totalChain.chain.document.documentId === "DOC-IDEM-01", "Audit Link 1 (DOCUMENT): Correct documentId");
+  assert(totalChain.chain.document.filename === "Eskom_Invoice_Sep2025.pdf", "Audit Link 1 (DOCUMENT): Correct filename");
+  assert(totalChain.chain.document.documentHash?.startsWith("sha256_") === true, "Audit Link 1 (DOCUMENT): Document hash present");
+
+  // Link 2: OCR RUN
+  assert(totalChain.chain.ocrRun.sourcePage === 1, "Audit Link 2 (OCR RUN): Source page is 1");
+  assert(totalChain.chain.ocrRun.opticalConfidence === 98, "Audit Link 2 (OCR RUN): Optical confidence is 98%");
+  assert(totalChain.chain.ocrRun.rawTokensCount === 1, "Audit Link 2 (OCR RUN): Raw tokens count is 1");
+
+  // Link 3: EXTRACTED VALUE
+  assert(totalChain.chain.extractedValue.rawValue === "R125,430.20", "Audit Link 3 (EXTRACTED VALUE): Raw value preserved");
+  assert(totalChain.chain.extractedValue.extractedValue === 125430.2, "Audit Link 3 (EXTRACTED VALUE): Extracted value is 125430.2");
+
+  // Link 4: AI VALIDATION
+  assert(totalChain.chain.aiValidation.modelProvider === "google-gemini-pro", "Audit Link 4 (AI VALIDATION): Model provider recorded");
+  assert(totalChain.chain.aiValidation.validationScore > 0, "Audit Link 4 (AI VALIDATION): Validation score recorded");
+
+  // Link 5: DETERMINISTIC VALIDATION
+  assert(typeof totalChain.chain.deterministicValidation.isPassed === "boolean", "Audit Link 5 (DETERMINISTIC VALIDATION): isPassed boolean evaluated");
+
+  // Link 6: USER REVIEW
+  assert(totalChain.chain.userReview.reviewStatus !== undefined, "Audit Link 6 (USER REVIEW): reviewStatus is recorded");
+
+  // Link 7: APPROVED VALUE
+  assert(totalChain.chain.approvedValue.finalValue === 125430.2, "Audit Link 7 (APPROVED VALUE): Final approved value is 125430.2");
+  assert(totalChain.chain.approvedValue.authoritativeSource !== undefined, "Audit Link 7 (APPROVED VALUE): Authoritative source is recorded");
+
+  // 27.3: Cryptographic Chain Verification Hash Integrity
+  assert(typeof totalChain.chainVerificationHash === "string" && totalChain.chainVerificationHash.startsWith("chain_"), "Audit Hash: Chain verification hash generated");
+  assert(EneraAuditChainEngine.verifyChainIntegrity(totalChain) === true, "Audit Hash: Chain integrity verification succeeds");
+
+  // 27.4: User Review Override Provenance & Tamper-Evident Lineage
+  const overriddenChain = EneraAuditChainEngine.applyUserOverride(totalChain, {
+    overriddenValue: 125430.0,
+    reviewedBy: "senior.auditor@enera.co.za",
+    reviewNotes: "Reconciled with bank remittance rounding of 20 cents.",
+  });
+
+  assert(overriddenChain.chain.userReview.reviewStatus === "HUMAN_OVERRIDDEN", "Audit Override: Status updated to HUMAN_OVERRIDDEN");
+  assert(overriddenChain.chain.userReview.reviewedBy === "senior.auditor@enera.co.za", "Audit Override: Reviewed by recorded");
+  assert(overriddenChain.chain.userReview.originalValueBeforeOverride === 125430.2, "Audit Override: Original extracted value preserved in audit trail");
+  assert(overriddenChain.chain.approvedValue.finalValue === 125430.0, "Audit Override: Approved value updated to overridden value");
+  assert(overriddenChain.chain.approvedValue.authoritativeSource === "OVERRIDE", "Audit Override: Authoritative source set to OVERRIDE");
+  assert(overriddenChain.chainVerificationHash !== totalChain.chainVerificationHash, "Audit Hash: Verification hash reflects override mutation");
+  assert(EneraAuditChainEngine.verifyChainIntegrity(overriddenChain) === true, "Audit Hash: New override chain integrity is valid");
 
   console.log("\n==================================================================");
   console.log(`  🎉 ALL ${passedCount} / ${totalCount} AI VALIDATION TESTS PASSED CLEANLY!`);
