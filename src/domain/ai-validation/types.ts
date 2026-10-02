@@ -128,6 +128,9 @@ export type DeterministicRuleType =
   | "TOU_ENERGY_SUM"
   | "RATE_QUANTITY_PRODUCT"
   | "DATE_CHRONOLOGY"
+  | "DEMAND_SANITY_AND_UNITS"
+  | "POWER_FACTOR_BOUNDS"
+  | "REACTIVE_ENERGY_SANITY"
   | "ACCOUNT_NUMBER_FORMAT"
   | "METER_READING_DELTA"
   | "NON_NEGATIVE_FINANCIALS";
@@ -200,18 +203,31 @@ export const DEFAULT_CONFIDENCE_THRESHOLDS: ValidationConfidenceThresholds = {
 };
 
 export const CRITICAL_DOCUMENT_FIELDS: readonly string[] = [
-  "invoiceTotal",
-  "subtotal",
-  "vat",
-  "totalKwh",
   "accountNumber",
+  "invoiceNumber",
   "billingPeriodStart",
   "billingPeriodEnd",
-  "peakKwh",
-  "standardKwh",
-  "offPeakKwh",
+  "meterNumber",
   "tariffName",
+  "tariffCode",
+  "totalKwh",
+  "totalActiveEnergyKwh",
+  "totalEnergyKwh",
   "maximumDemandKva",
+  "demandKva",
+  "subtotal",
+  "totalExclVat",
+  "vat",
+  "vatAmount",
+  "invoiceTotal",
+  "totalAmountDue",
+  "totalDue",
+  "peakKwh",
+  "peakEnergyKwh",
+  "standardKwh",
+  "standardEnergyKwh",
+  "offPeakKwh",
+  "offPeakEnergyKwh",
 ];
 
 export interface DocumentValidationQualitySummary {

@@ -831,6 +831,170 @@ async function runAiValidationPipelineTestSuite() {
     "Anti-Masking: Reconciliation handoff strictly blocked when critical fields have validation uncertainty",
   );
 
+  // --- TEST GROUP 12: CRITICAL FIELDS ROSTER & UNRESOLVED FIELD POLICY (REQ 14) ---
+  console.log("\n[Test 12] Enforces Critical Fields identification and mandatory REVIEW_REQUIRED on unresolved critical fields");
+
+  // Incomplete document missing critical financial fields
+  const missingCriticalDocResult = await ValidationPipeline.executePipeline({
+    documentId: "doc-missing-critical",
+    candidateFields: [
+      {
+        fieldKey: "accountNumber",
+        fieldLabel: "Account Number",
+        value: "0123456789",
+        rawValue: "0123456789",
+        sourcePage: 1,
+        boundingBox: [0.1, 0.1, 0.15, 0.3],
+        opticalConfidence: 95,
+        sourceText: "Account: 0123456789",
+      },
+      // Note: invoiceTotal and subtotal are MISSING (unresolved)
+    ],
+  });
+
+  assert(
+    missingCriticalDocResult.status === "REVIEW_REQUIRED",
+    "Critical Fields: Unresolved critical financial fields transition document to REVIEW_REQUIRED",
+  );
+  assert(
+    missingCriticalDocResult.reconciliationHandoffReady === false,
+    "Critical Fields: Reconciliation handoff strictly disabled when critical fields are unresolved",
+  );
+
+  // --- TEST GROUP 13: COMPREHENSIVE DETERMINISTIC VALIDATION RULES (REQ 15) ---
+  console.log("\n[Test 13] Verifies authoritative deterministic validation rules (TOU balance, Date Chronology, Demand, Power Factor)");
+
+  // 1. TOU Energy Balance
+  const touCandidateFields: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "peakKwh",
+      fieldLabel: "Peak Active Energy",
+      value: 10000,
+      rawValue: "10,000 kWh",
+      sourcePage: 1,
+      boundingBox: [0.2, 0.1, 0.25, 0.3],
+      opticalConfidence: 95,
+      sourceText: "Peak: 10,000 kWh",
+    },
+    {
+      fieldKey: "standardKwh",
+      fieldLabel: "Standard Active Energy",
+      value: 20000,
+      rawValue: "20,000 kWh",
+      sourcePage: 1,
+      boundingBox: [0.25, 0.1, 0.3, 0.3],
+      opticalConfidence: 95,
+      sourceText: "Standard: 20,000 kWh",
+    },
+    {
+      fieldKey: "offPeakKwh",
+      fieldLabel: "Off-Peak Active Energy",
+      value: 30000,
+      rawValue: "30,000 kWh",
+      sourcePage: 1,
+      boundingBox: [0.3, 0.1, 0.35, 0.3],
+      opticalConfidence: 95,
+      sourceText: "Off-Peak: 30,000 kWh",
+    },
+    {
+      fieldKey: "totalKwh",
+      fieldLabel: "Total Active Energy",
+      value: 60000, // 10k + 20k + 30k == 60k
+      rawValue: "60,000 kWh",
+      sourcePage: 1,
+      boundingBox: [0.35, 0.1, 0.4, 0.3],
+      opticalConfidence: 95,
+      sourceText: "Total Active: 60,000 kWh",
+    },
+  ];
+
+  const touResult = await ValidationPipeline.executePipeline({
+    documentId: "doc-tou-test",
+    candidateFields: touCandidateFields,
+  });
+
+  const touEval = touResult.deterministicValidation.evaluations.find((e) => e.ruleType === "TOU_ENERGY_SUM");
+  assert(touEval !== undefined && touEval.isPassed === true, "Deterministic TOU: Exact sum Peak + Standard + Off-Peak == Total matches");
+
+  // 2. Date Chronology (Start < End)
+  const invalidDateFields: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "billingPeriodStart",
+      fieldLabel: "Billing Period Start",
+      value: "2026-03-31",
+      rawValue: "31 March 2026",
+      sourcePage: 1,
+      boundingBox: [0.1, 0.1, 0.15, 0.3],
+      opticalConfidence: 95,
+      sourceText: "Start Date: 31 March 2026",
+    },
+    {
+      fieldKey: "billingPeriodEnd",
+      fieldLabel: "Billing Period End",
+      value: "2026-03-01", // Start > End is chronologically invalid
+      rawValue: "01 March 2026",
+      sourcePage: 1,
+      boundingBox: [0.15, 0.1, 0.2, 0.3],
+      opticalConfidence: 95,
+      sourceText: "End Date: 01 March 2026",
+    },
+  ];
+
+  const invalidDateResult = await ValidationPipeline.executePipeline({
+    documentId: "doc-invalid-date-test",
+    candidateFields: invalidDateFields,
+  });
+
+  const dateEval = invalidDateResult.deterministicValidation.evaluations.find((e) => e.ruleType === "DATE_CHRONOLOGY");
+  assert(dateEval !== undefined && dateEval.isPassed === false, "Deterministic Dates: Start Date >= End Date flagged as chronological error");
+
+  // 3. Power Factor Meaningful Bounds (0.00 <= PF <= 1.00)
+  const validPfFields: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "powerFactor",
+      fieldLabel: "Power Factor",
+      value: 0.92,
+      rawValue: "0.92",
+      sourcePage: 1,
+      boundingBox: [0.5, 0.1, 0.55, 0.3],
+      opticalConfidence: 95,
+      sourceText: "Power Factor: 0.92",
+    },
+  ];
+
+  const validPfResult = await ValidationPipeline.executePipeline({
+    documentId: "doc-valid-pf",
+    candidateFields: validPfFields,
+  });
+  const pfEval = validPfResult.deterministicValidation.evaluations.find((e) => e.ruleType === "POWER_FACTOR_BOUNDS");
+  assert(pfEval !== undefined && pfEval.isPassed === true, "Deterministic PF: Valid PF (0.92) is within [0.00, 1.00] bounds");
+
+  const invalidPfFields: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "powerFactor",
+      fieldLabel: "Power Factor",
+      value: 1.85, // Impossible PF > 1.0
+      rawValue: "1.85",
+      sourcePage: 1,
+      boundingBox: [0.5, 0.1, 0.55, 0.3],
+      opticalConfidence: 95,
+      sourceText: "Power Factor: 1.85",
+    },
+  ];
+
+  const invalidPfResult = await ValidationPipeline.executePipeline({
+    documentId: "doc-invalid-pf",
+    candidateFields: invalidPfFields,
+  });
+  const invalidPfEval = invalidPfResult.deterministicValidation.evaluations.find((e) => e.ruleType === "POWER_FACTOR_BOUNDS");
+  assert(invalidPfEval !== undefined && invalidPfEval.isPassed === false, "Deterministic PF: Impossible PF (1.85) flagged as out of bounds");
+
+  // 4. Deterministic Precedence over AI
+  // Deterministic failure forces field status to INVALID even if AI considered it valid
+  const failingField = invalidPfResult.overallConfidence.fieldScores["powerFactor"];
+  assert(failingField.status === "INVALID", "Deterministic Precedence: Deterministic rule failure forces field state to INVALID");
+  assert(invalidPfResult.status === "REVIEW_REQUIRED", "Deterministic Precedence: AI cannot override deterministic failure");
+
   console.log("\n==================================================================");
   console.log(`  🎉 ALL ${passedCount} / ${totalCount} AI VALIDATION TESTS PASSED CLEANLY!`);
   console.log("==================================================================\n");
@@ -840,4 +1004,5 @@ runAiValidationPipelineTestSuite().catch((err) => {
   console.error("AI Validation Test Suite Failed:", err);
   process.exit(1);
 });
+
 

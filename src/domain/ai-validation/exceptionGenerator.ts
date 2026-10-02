@@ -118,7 +118,24 @@ export class ExceptionGenerator {
       }
     }
 
-    // 5. Low Overall Confidence Warning
+    // 5. Critical Field Failures (Requirement 14)
+    if (confidence.qualitySummary.hasFailingCriticalField) {
+      for (const failure of confidence.qualitySummary.criticalFieldFailures) {
+        exceptions.push({
+          exceptionId: `exc-critical-${documentId}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          documentId,
+          category: "MISSING_MANDATORY_FIELD",
+          severity: "CRITICAL",
+          title: "Critical Field Validation Failure",
+          description: failure,
+          suggestedAction:
+            "Resolve missing or unverified critical field prior to financial reconciliation.",
+          createdAt: now,
+        });
+      }
+    }
+
+    // 6. Low Overall Confidence Warning
     if (confidence.tier === "LOW") {
       exceptions.push({
         exceptionId: `exc-conf-${documentId}-${Date.now()}`,

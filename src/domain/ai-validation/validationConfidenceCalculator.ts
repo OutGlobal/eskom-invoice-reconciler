@@ -208,6 +208,24 @@ export class ValidationConfidenceCalculator {
     const criticalFieldFailures: string[] = [];
     let hasInvalidCriticalField = false;
 
+    // Check if mandatory critical financial total is extracted
+    const hasFinancialTotal = candidateFields.some(
+      (f) =>
+        (f.fieldKey === "totalAmountDue" ||
+          f.fieldKey === "invoiceTotal" ||
+          f.fieldKey === "totalDue" ||
+          f.fieldKey === "subtotal" ||
+          f.fieldKey === "totalExclVat") &&
+        f.value !== null &&
+        f.value !== "",
+    );
+
+    if (!hasFinancialTotal && candidateFields.length > 0) {
+      criticalFieldFailures.push(
+        "Critical financial total field (invoiceTotal / totalAmountDue / subtotal) is missing or unresolved.",
+      );
+    }
+
     for (const critScore of criticalScores) {
       const isExtracted = candidateFields.some(
         (f) => f.fieldKey === critScore.fieldKey && f.value !== null,
