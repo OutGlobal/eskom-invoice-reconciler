@@ -140,7 +140,8 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
             Enterprise Analytics &amp; Energy Intelligence Visualizations
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Real database audit records, verified deterministic tariff calculations &amp; telemetry profiles
+            Real database audit records, verified deterministic tariff calculations &amp; telemetry
+            profiles
           </p>
         </div>
 
@@ -215,15 +216,18 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
         ) : (
           <>
             {/* 1. Monthly Consumption */}
-            {activeTab === "monthly_consumption" && (
-              chartsData.monthlyConsumption.hasData ? (
+            {activeTab === "monthly_consumption" &&
+              (chartsData.monthlyConsumption.hasData ? (
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart
                     data={chartsData.monthlyConsumption.data}
                     margin={{ top: 12, right: 24, left: 12, bottom: 20 }}
                   >
                     <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="period" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
+                    <XAxis
+                      dataKey="period"
+                      tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                    />
                     <YAxis
                       tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
                       tickFormatter={(v) => `${(v / 1000).toLocaleString()} MWh`}
@@ -238,7 +242,12 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="totalKwh" name="Total Consumption (kWh)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar
+                      dataKey="totalKwh"
+                      name="Total Consumption (kWh)"
+                      fill="#3b82f6"
+                      radius={[4, 4, 0, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -247,19 +256,21 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                   message={chartsData.monthlyConsumption.emptyReason}
                   icon="chart"
                 />
-              )
-            )}
+              ))}
 
             {/* 2. Monthly Cost */}
-            {activeTab === "monthly_cost" && (
-              chartsData.monthlyCost.hasData ? (
+            {activeTab === "monthly_cost" &&
+              (chartsData.monthlyCost.hasData ? (
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart
                     data={chartsData.monthlyCost.data}
                     margin={{ top: 12, right: 24, left: 12, bottom: 20 }}
                   >
                     <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="period" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
+                    <XAxis
+                      dataKey="period"
+                      tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                    />
                     <YAxis
                       tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
                       tickFormatter={(v) => `R${(v / 1000).toFixed(0)}k`}
@@ -274,8 +285,18 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="billedZar" name="Billed Amount (ZAR)" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="calculatedZar" name="Calculated Tariff (ZAR)" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    <Bar
+                      dataKey="billedZar"
+                      name="Billed Amount (ZAR)"
+                      fill="#ef4444"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="calculatedZar"
+                      name="Calculated Tariff (ZAR)"
+                      fill="#10b981"
+                      radius={[4, 4, 0, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -284,12 +305,11 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                   message={chartsData.monthlyCost.emptyReason}
                   icon="database"
                 />
-              )
-            )}
+              ))}
 
             {/* 3. Peak / Standard / Off-Peak TOU */}
-            {activeTab === "tou_breakdown" && (
-              chartsData.touBreakdown.hasData ? (
+            {activeTab === "tou_breakdown" &&
+              (chartsData.touBreakdown.hasData ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[320px]">
                   <div className="lg:col-span-2 h-full">
                     <ResponsiveContainer width="100%" height="100%">
@@ -298,7 +318,10 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                         margin={{ top: 12, right: 24, left: 12, bottom: 20 }}
                       >
                         <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                        <XAxis dataKey="period" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
+                        <XAxis
+                          dataKey="period"
+                          tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                        />
                         <YAxis
                           tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
                           tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
@@ -313,9 +336,25 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                           }}
                         />
                         <Legend />
-                        <Bar dataKey="peakKwh" name="Peak kWh" stackId="tou" fill={TOU_COLOR.peak} />
-                        <Bar dataKey="standardKwh" name="Standard kWh" stackId="tou" fill={TOU_COLOR.standard} />
-                        <Bar dataKey="offPeakKwh" name="Off-Peak kWh" stackId="tou" fill={TOU_COLOR.offPeak} radius={[4, 4, 0, 0]} />
+                        <Bar
+                          dataKey="peakKwh"
+                          name="Peak kWh"
+                          stackId="tou"
+                          fill={TOU_COLOR.peak}
+                        />
+                        <Bar
+                          dataKey="standardKwh"
+                          name="Standard kWh"
+                          stackId="tou"
+                          fill={TOU_COLOR.standard}
+                        />
+                        <Bar
+                          dataKey="offPeakKwh"
+                          name="Off-Peak kWh"
+                          stackId="tou"
+                          fill={TOU_COLOR.offPeak}
+                          radius={[4, 4, 0, 0]}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -351,8 +390,13 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                     <div className="flex flex-wrap gap-2 justify-center text-[10px] font-mono">
                       {chartsData.touBreakdown.distribution.map((d) => (
                         <div key={d.name} className="flex items-center gap-1">
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
-                          <span>{d.name.split(" ")[0]}: {d.percentage}%</span>
+                          <span
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: d.color }}
+                          />
+                          <span>
+                            {d.name.split(" ")[0]}: {d.percentage}%
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -364,19 +408,22 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                   message={chartsData.touBreakdown.emptyReason}
                   icon="chart"
                 />
-              )
-            )}
+              ))}
 
             {/* 4. Demand Profile vs NMD */}
-            {activeTab === "demand_profile" && (
-              chartsData.demandProfile.hasData ? (
+            {activeTab === "demand_profile" &&
+              (chartsData.demandProfile.hasData ? (
                 <ResponsiveContainer width="100%" height={320}>
                   <LineChart
                     data={chartsData.demandProfile.data}
                     margin={{ top: 12, right: 24, left: 12, bottom: 20 }}
                   >
                     <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} minTickGap={30} />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+                      minTickGap={30}
+                    />
                     <YAxis
                       tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
                       unit=" kVA"
@@ -421,19 +468,21 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                   message={chartsData.demandProfile.emptyReason}
                   icon="upload"
                 />
-              )
-            )}
+              ))}
 
             {/* 5. Variance Trend */}
-            {activeTab === "variance_trend" && (
-              chartsData.varianceTrend.hasData ? (
+            {activeTab === "variance_trend" &&
+              (chartsData.varianceTrend.hasData ? (
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart
                     data={chartsData.varianceTrend.data}
                     margin={{ top: 12, right: 24, left: 12, bottom: 20 }}
                   >
                     <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="period" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
+                    <XAxis
+                      dataKey="period"
+                      tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                    />
                     <YAxis
                       tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
                       tickFormatter={(v) => `R${(v / 1000).toFixed(0)}k`}
@@ -449,8 +498,18 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                     />
                     <Legend />
                     <ReferenceLine y={0} stroke="var(--color-border)" />
-                    <Bar dataKey="overbillingZar" name="Overbilling Recovery Claim (ZAR)" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="underbillingZar" name="Underbilling Exposure (ZAR)" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                    <Bar
+                      dataKey="overbillingZar"
+                      name="Overbilling Recovery Claim (ZAR)"
+                      fill="#ef4444"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="underbillingZar"
+                      name="Underbilling Exposure (ZAR)"
+                      fill="#f59e0b"
+                      radius={[4, 4, 0, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -459,19 +518,21 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                   message={chartsData.varianceTrend.emptyReason}
                   icon="database"
                 />
-              )
-            )}
+              ))}
 
             {/* 6. Site Comparison */}
-            {activeTab === "site_comparison" && (
-              chartsData.siteComparison.hasData ? (
+            {activeTab === "site_comparison" &&
+              (chartsData.siteComparison.hasData ? (
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart
                     data={chartsData.siteComparison.data}
                     margin={{ top: 12, right: 24, left: 12, bottom: 20 }}
                   >
                     <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="siteName" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
+                    <XAxis
+                      dataKey="siteName"
+                      tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                    />
                     <YAxis
                       tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
                       tickFormatter={(v) => `${(v / 1000).toFixed(0)} MWh`}
@@ -489,7 +550,12 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="totalKwh" name="Energy Consumed (kWh)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar
+                      dataKey="totalKwh"
+                      name="Energy Consumed (kWh)"
+                      fill="#3b82f6"
+                      radius={[4, 4, 0, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -498,19 +564,21 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                   message={chartsData.siteComparison.emptyReason}
                   icon="chart"
                 />
-              )
-            )}
+              ))}
 
             {/* 7. Billing Trend */}
-            {activeTab === "billing_trend" && (
-              chartsData.billingTrend.hasData ? (
+            {activeTab === "billing_trend" &&
+              (chartsData.billingTrend.hasData ? (
                 <ResponsiveContainer width="100%" height={320}>
                   <LineChart
                     data={chartsData.billingTrend.data}
                     margin={{ top: 12, right: 24, left: 12, bottom: 20 }}
                   >
                     <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="period" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
+                    <XAxis
+                      dataKey="period"
+                      tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                    />
                     <YAxis
                       yAxisId="left"
                       tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
@@ -571,19 +639,21 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                   message={chartsData.billingTrend.emptyReason}
                   icon="database"
                 />
-              )
-            )}
+              ))}
 
             {/* 8. Anomaly Trend */}
-            {activeTab === "anomaly_trend" && (
-              chartsData.anomalyTrend.hasData ? (
+            {activeTab === "anomaly_trend" &&
+              (chartsData.anomalyTrend.hasData ? (
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart
                     data={chartsData.anomalyTrend.data}
                     margin={{ top: 12, right: 24, left: 12, bottom: 20 }}
                   >
                     <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="period" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
+                    <XAxis
+                      dataKey="period"
+                      tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                    />
                     <YAxis
                       tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
                       allowDecimals={false}
@@ -598,9 +668,25 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="criticalCount" name="Critical Anomalies" fill="#ef4444" stackId="anom" />
-                    <Bar dataKey="majorCount" name="Major Anomalies" fill="#f59e0b" stackId="anom" />
-                    <Bar dataKey="minorCount" name="Minor Anomalies" fill="#3b82f6" stackId="anom" radius={[4, 4, 0, 0]} />
+                    <Bar
+                      dataKey="criticalCount"
+                      name="Critical Anomalies"
+                      fill="#ef4444"
+                      stackId="anom"
+                    />
+                    <Bar
+                      dataKey="majorCount"
+                      name="Major Anomalies"
+                      fill="#f59e0b"
+                      stackId="anom"
+                    />
+                    <Bar
+                      dataKey="minorCount"
+                      name="Minor Anomalies"
+                      fill="#3b82f6"
+                      stackId="anom"
+                      radius={[4, 4, 0, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -609,11 +695,10 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                   message={chartsData.anomalyTrend.emptyReason}
                   icon="info"
                 />
-              )
-            )}
+              ))}
 
-            {activeTab === "location_zones" && (
-              chartsData.locationZones.hasData ? (
+            {activeTab === "location_zones" &&
+              (chartsData.locationZones.hasData ? (
                 <div className="space-y-3">
                   <ResponsiveContainer width="100%" height={320}>
                     <Treemap
@@ -638,13 +723,20 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                   </ResponsiveContainer>
                   <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                     {chartsData.locationZones.data.map((point) => (
-                      <div key={`${point.zone}-${point.name}`} className="rounded-md border border-border bg-secondary/30 p-3">
+                      <div
+                        key={`${point.zone}-${point.name}`}
+                        className="rounded-md border border-border bg-secondary/30 p-3"
+                      >
                         <div className="text-sm font-semibold text-foreground">{point.zone}</div>
                         <div className="mt-1 text-xs text-muted-foreground">{point.name}</div>
-                        {point.address && <div className="text-xs text-muted-foreground">{point.address}</div>}
+                        {point.address && (
+                          <div className="text-xs text-muted-foreground">{point.address}</div>
+                        )}
                         <div className="mt-2 flex gap-3 text-xs tabular-nums">
                           <span>{NUM(point.totalKwh)} kWh</span>
-                          <span>{point.invoiceCount} invoice{point.invoiceCount === 1 ? "" : "s"}</span>
+                          <span>
+                            {point.invoiceCount} invoice{point.invoiceCount === 1 ? "" : "s"}
+                          </span>
                         </div>
                       </div>
                     ))}
@@ -656,8 +748,7 @@ export const EnterpriseAnalyticsCharts: React.FC<EnterpriseAnalyticsChartsProps>
                   message={chartsData.locationZones.emptyReason}
                   icon="database"
                 />
-              )
-            )}
+              ))}
           </>
         )}
       </div>

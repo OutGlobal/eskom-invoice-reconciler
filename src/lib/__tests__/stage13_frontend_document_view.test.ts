@@ -112,7 +112,9 @@ describe("STAGE 13 — FRONTEND DOCUMENT VIEW", () => {
         validationStatus: "VALID",
       });
 
-      const html = renderToStaticMarkup(React.createElement(DocumentHierarchyTree, { document: docModel }));
+      const html = renderToStaticMarkup(
+        React.createElement(DocumentHierarchyTree, { document: docModel }),
+      );
 
       // Root Document node
       expect(html).toContain("Document");
@@ -266,8 +268,12 @@ describe("STAGE 13 — FRONTEND DOCUMENT VIEW", () => {
 
     it("should strictly verify all 4 mandated useful state messages from config", () => {
       expect(USEFUL_DOCUMENT_STATES.PROCESSING.userMessage).toBe("Analysing document…");
-      expect(USEFUL_DOCUMENT_STATES.SUCCESSFUL.userMessage).toBe("Document processed successfully.");
-      expect(USEFUL_DOCUMENT_STATES.REVIEW_REQUIRED.userMessage).toBe("Some information requires verification.");
+      expect(USEFUL_DOCUMENT_STATES.SUCCESSFUL.userMessage).toBe(
+        "Document processed successfully.",
+      );
+      expect(USEFUL_DOCUMENT_STATES.REVIEW_REQUIRED.userMessage).toBe(
+        "Some information requires verification.",
+      );
       expect(USEFUL_DOCUMENT_STATES.FAILED.userMessage).toBe("Document processing failed.");
     });
   });
@@ -292,7 +298,7 @@ describe("STAGE 13 — FRONTEND DOCUMENT VIEW", () => {
       expect(html).not.toContain("50%");
       expect(html).not.toContain("75%");
       expect(html).not.toContain("100%");
-      expect(html).not.toContain("style=\"width:");
+      expect(html).not.toContain('style="width:');
     });
 
     it("should render truthful discrete pipeline execution milestones", () => {
@@ -441,7 +447,7 @@ describe("STAGE 13 — FRONTEND DOCUMENT VIEW", () => {
       );
 
       // Hero banner
-      expect(html).toContain("data-testid=\"document-state-banner-processing\"");
+      expect(html).toContain('data-testid="document-state-banner-processing"');
       expect(html).toContain("Analysing document…");
       expect(html).toContain("Truthful Stage Progress");
       expect(html).toContain("eskom_invoice_august_processing.pdf");

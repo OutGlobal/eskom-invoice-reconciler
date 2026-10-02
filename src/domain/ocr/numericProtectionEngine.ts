@@ -851,7 +851,7 @@ export class NumericProtectionEngine {
     isNegative: boolean;
     format: NegativeNumberFormat;
   } {
-    let clean = (raw || "").trim();
+    const clean = (raw || "").trim();
 
     // 1. Accounting Parentheses: "(123.45)" or "(R 123.45)"
     const parenMatch = clean.match(/^\s*\((.*)\)\s*$/);
@@ -1026,7 +1026,7 @@ export class NumericProtectionEngine {
     isPercentage: boolean;
     percentageValue?: number;
   } {
-    let clean = (raw || "").trim();
+    const clean = (raw || "").trim();
     const percMatch = clean.match(/^(.*?)\s*%\s*$/) || clean.match(/^%\s*(.*)$/);
     if (percMatch) {
       const numPart = (percMatch[1] || percMatch[2] || "").trim();
@@ -1057,7 +1057,7 @@ export class NumericProtectionEngine {
     isValidUnit: boolean;
     detectedToken?: string;
   } {
-    let clean = (raw || "").trim();
+    const clean = (raw || "").trim();
 
     // Match trailing unit tokens (e.g. "12 345 kWh", "45.2 kVA", "145.23 c/kWh")
     const unitMatch = clean.match(/^(.*?)\s*([A-Za-z/]+)$/);

@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Panel, NUM } from "@/components/dashboard/parts";
-import {
-  DeterministicReconciliationEngine,
-} from "@/domain/reconciliation/reconciliationEngine";
+import { DeterministicReconciliationEngine } from "@/domain/reconciliation/reconciliationEngine";
 import {
   DEFAULT_TOLERANCE_CONFIG,
   type AuthoritativeReconciliationPayload,
@@ -58,7 +56,6 @@ function ReconciliationPage() {
     setPayload(outcome.payload);
   };
 
-
   useEffect(() => {
     runReconciliation();
     import("@/domain/tariff/tariffStorageService").then(({ TariffStorageService }) =>
@@ -99,7 +96,7 @@ function ReconciliationPage() {
         <EmptyState
           icon={Scale}
           title="No reconciliation has been completed."
-           description="Upload an invoice, interval meter data, and the applicable tariff document to begin reconciliation."
+          description="Upload an invoice, interval meter data, and the applicable tariff document to begin reconciliation."
           badge="Awaiting Settlement Analysis"
           primaryAction={{
             label: "Upload Energy Data",
@@ -113,7 +110,7 @@ function ReconciliationPage() {
 
   return (
     <div className="space-y-6">
-          {/* Uploaded billing period selector */}
+      {/* Uploaded billing period selector */}
       <InvoiceSelector />
 
       {/* Header */}
@@ -135,7 +132,8 @@ function ReconciliationPage() {
 
         <div className="flex items-center gap-2">
           <div className="rounded border border-border bg-background px-3 py-1.5 text-xs font-medium">
-            Active Invoice ({activeInvoice?.invoiceNumber || activeInvoice?.invoiceNo || "Current Period"})
+            Active Invoice (
+            {activeInvoice?.invoiceNumber || activeInvoice?.invoiceNo || "Current Period"})
           </div>
           <button
             onClick={runReconciliation}
@@ -202,7 +200,7 @@ function ReconciliationPage() {
           }`}
         >
           <ShieldCheck className="h-4 w-4 text-emerald-500" />
-              <span>Evidence Ledger</span>
+          <span>Evidence Ledger</span>
           <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-emerald-500/10 text-emerald-600 font-mono">
             Audited
           </span>

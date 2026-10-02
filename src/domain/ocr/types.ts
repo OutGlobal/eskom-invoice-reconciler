@@ -444,19 +444,20 @@ export interface OcrFieldProvenance {
  * Processing Run: ocr-run-001
  */
 export interface OcrFieldEvidence<T = string | number | null> {
-  field: string;
+  field?: string;
+  fieldName?: string;
   fieldKey?: string;
   fieldLabel?: string;
   value: T;
   rawValue?: string;
-  document: string;
+  document?: string;
   documentId?: string;
-  page: number;
+  page?: number;
   pageNumber?: number;
-  ocr: boolean;
+  ocr?: boolean;
   isOcr?: boolean;
-  sourceText: string;
-  boundingBox: OcrBoundingBox;
+  sourceText?: string;
+  boundingBox?: OcrBoundingBox | null;
   x?: number;
   y?: number;
   width?: number;
@@ -466,10 +467,12 @@ export interface OcrFieldEvidence<T = string | number | null> {
   confidence: number;
   confidenceScore?: number;
   confidenceTier?: OcrConfidenceTier;
-  processingRun: string;
+  processingRun?: string;
+  processingRunId?: string;
   ocrRunId?: string;
   extractionMethod?: string;
   extractedAt?: string;
+  stage?: OcrCorrectionStage;
 }
 
 // ---------------------------------------------------------------------------
@@ -660,6 +663,7 @@ export interface OcrDocumentProgress {
  */
 export interface OcrProcessingRun {
   ocrRunId: string;
+  runId?: string;
   documentId: string;
   pageId?: string;
   pageIds?: string[];
@@ -776,6 +780,8 @@ export interface OcrDeterminantField<T = string | number | null> {
   rawValue: string;
   provenance: OcrFieldProvenance;
 }
+
+export type ExtractedDeterminantField<T = string | number | null> = OcrDeterminantField<T>;
 
 // ---------------------------------------------------------------------------
 // Document-Specific Extracted Models
@@ -961,6 +967,7 @@ export interface OcrDocumentResult {
   // Requirements 29 & 30: Human Review & Corrections Audit Log
   corrections?: OcrFieldCorrection[];
   auditTrail?: OcrCorrectionAuditTrail;
+  determinants?: any;
 }
 
 // ---------------------------------------------------------------------------
@@ -1341,18 +1348,22 @@ export interface OcrFieldCorrection<T = string | number | null> {
   correctionId: string;
   documentId: string;
   fieldKey: string;
-  fieldLabel: string;
-  pageNumber: number;
+  fieldLabel?: string;
+  pageNumber?: number;
   originalValue: T;
   correctedValue: T;
   validatedValue: T;
   user: OcrReviewUser;
-  timestamp: string;
+  timestamp?: string;
   reason?: string;
-  evidence: OcrFieldEvidence;
+  evidence?: OcrFieldEvidence;
+  evidenceSnapshot?: any;
   processingRunId: string;
-  status: "APPLIED" | "PENDING_APPROVAL" | "REVERTED";
+  stage?: OcrCorrectionStage;
+  status: "APPLIED" | "PENDING_APPROVAL" | "REVERTED" | "SUPERSEDED";
   previousCorrectionId?: string;
+  revertedAt?: string;
+  revertedBy?: string;
 }
 
 export interface OcrCorrectionAuditTrail {

@@ -154,15 +154,11 @@ function InvoicesPage() {
         invoiceNumber: String(
           extracted.invoice_number.value || pdfRes?.invoice?.invoiceNumber || "",
         ),
-        customerName: String(
-          extracted.customer_name.value || pdfRes?.invoice?.customerName || "",
-        ),
+        customerName: String(extracted.customer_name.value || pdfRes?.invoice?.customerName || ""),
         accountNumber: String(
           extracted.account_number.value || pdfRes?.invoice?.accountNumber || "",
         ),
-        meterNumber: String(
-          extracted.meter_number.value || pdfRes?.invoice?.meterNumber || "",
-        ),
+        meterNumber: String(extracted.meter_number.value || pdfRes?.invoice?.meterNumber || ""),
         tariffName: String(
           extracted.tariff_name.value || pdfRes?.invoice?.tariffName || "Megaflex",
         ),
@@ -180,16 +176,10 @@ function InvoicesPage() {
           extracted.billing_period_end?.value || pdfRes?.invoice?.billingPeriodEnd || "",
         ),
         peakKWh: Number(extracted.peak_kwh?.value ?? pdfRes?.invoice?.peakKWh ?? 0),
-        standardKWh: Number(
-          extracted.standard_kwh?.value ?? pdfRes?.invoice?.standardKWh ?? 0,
-        ),
-        offPeakKWh: Number(
-          extracted.off_peak_kwh?.value ?? pdfRes?.invoice?.offPeakKWh ?? 0,
-        ),
+        standardKWh: Number(extracted.standard_kwh?.value ?? pdfRes?.invoice?.standardKWh ?? 0),
+        offPeakKWh: Number(extracted.off_peak_kwh?.value ?? pdfRes?.invoice?.offPeakKWh ?? 0),
         totalKWh: Number(extracted.total_kwh?.value ?? pdfRes?.invoice?.totalKWh ?? 0),
-        maxDemandKVA: Number(
-          extracted.maximum_demand?.value ?? pdfRes?.invoice?.maxDemandKVA ?? 0,
-        ),
+        maxDemandKVA: Number(extracted.maximum_demand?.value ?? pdfRes?.invoice?.maxDemandKVA ?? 0),
         transmissionNetworkCharge: Number(
           extracted.network_charges?.value ?? pdfRes?.invoice?.transmissionNetworkCharge ?? 0,
         ),
@@ -200,17 +190,11 @@ function InvoicesPage() {
         networkDemandCharge: Number(
           extracted.demand_charges?.value ?? pdfRes?.invoice?.networkDemandCharge ?? 0,
         ),
-        ancillary: Number(
-          extracted.reliability_services?.value ?? pdfRes?.invoice?.ancillary ?? 0,
-        ),
+        ancillary: Number(extracted.reliability_services?.value ?? pdfRes?.invoice?.ancillary ?? 0),
         legacy: 0,
         affordability: 0,
-        electrification: Number(
-          extracted.levies?.value ?? pdfRes?.invoice?.electrification ?? 0,
-        ),
-        reactive: Number(
-          extracted.reactive_energy_kvarh?.value ?? pdfRes?.invoice?.reactive ?? 0,
-        ),
+        electrification: Number(extracted.levies?.value ?? pdfRes?.invoice?.electrification ?? 0),
+        reactive: Number(extracted.reactive_energy_kvarh?.value ?? pdfRes?.invoice?.reactive ?? 0),
         peakEnergyCharge: Number(pdfRes?.invoice?.peakEnergyCharge ?? 0),
         standardEnergyCharge: Number(pdfRes?.invoice?.standardEnergyCharge ?? 0),
         offPeakEnergyCharge: Number(pdfRes?.invoice?.offPeakEnergyCharge ?? 0),

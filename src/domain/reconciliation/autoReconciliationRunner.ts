@@ -20,11 +20,7 @@ import {
 } from "@/domain/tariff/tariffFixtures";
 
 export type AutoReconciliationStatus =
-  | "COMPLETED"
-  | "AWAITING_INVOICE"
-  | "AWAITING_METER_DATA"
-  | "AWAITING_TARIFF"
-  | "FAILED";
+  "COMPLETED" | "AWAITING_INVOICE" | "AWAITING_METER_DATA" | "AWAITING_TARIFF" | "FAILED";
 
 export interface AutoReconciliationOutcome {
   status: AutoReconciliationStatus;

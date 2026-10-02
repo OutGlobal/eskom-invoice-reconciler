@@ -1,1 +1,3 @@
-export function EneraProductInterfacePreviewSection() { return null; }
+export function EneraProductInterfacePreviewSection() {
+  return null;
+}

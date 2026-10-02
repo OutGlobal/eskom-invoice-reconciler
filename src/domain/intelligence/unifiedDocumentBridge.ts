@@ -166,7 +166,7 @@ export class UnifiedDocumentBridge {
 
         const lConf = 98;
         lines.push({
-          lineId: line.lineId || `l-p${pageNum}-${lIdx}`,
+          lineId: (line as any).lineId || `l-p${pageNum}-${line.lineNumber || lIdx}`,
           pageNumber: pageNum,
           text: line.text,
           confidence: lConf,
@@ -179,7 +179,7 @@ export class UnifiedDocumentBridge {
       // Convert paragraphs into layout blocks
       const blocks: UnifiedLayoutBlock[] = (pageStructure.paragraphs || []).map((p, pIdx) => {
         const matchingLines = lines.filter((l) =>
-          p.lines.some((pl) => pl.lineId === l.lineId || pl.text === l.text),
+          p.lines.some((pl) => (pl as any).lineId === (l as any).lineId || pl.text === l.text),
         );
         return {
           blockId: `blk-p${pageNum}-${pIdx}`,
@@ -195,13 +195,17 @@ export class UnifiedDocumentBridge {
 
       // Tables
       for (const t of pageStructure.tables || []) {
+        const colCount = (t as any).columns ? (t as any).columns.length : 0;
+        const hdrs = (t as any).columns
+          ? (t as any).columns.map((c: any) => c.headerText || "")
+          : [];
         const tData: UnifiedTableData = {
-          tableId: t.tableId || `tbl-p${pageNum}-${tables.length + 1}`,
+          tableId: (t as any).tableId || `tbl-p${pageNum}-${tables.length + 1}`,
           pageNumber: pageNum,
           rowCount: t.rows.length,
-          columnCount: t.columns.length,
-          headers: t.columns.map((c) => c.headerText),
-          rows: t.rows.map((r) => r.cells.map((c) => c.rawText)),
+          columnCount: colCount,
+          headers: hdrs,
+          rows: t.rows.map((r) => r.cells.map((c) => c.text)),
           confidence: 95,
           boundingBox: t.bbox,
         };
@@ -210,8 +214,8 @@ export class UnifiedDocumentBridge {
 
       pages.push({
         pageNumber: pageNum,
-        rawText: pageStructure.fullText,
-        fullText: pageStructure.fullText,
+        rawText: pageStructure.rawText,
+        fullText: pageStructure.rawText,
         characterCount: pageStructure.characterCount,
         wordCount: pageStructure.wordCount,
         lineCount: lines.length,
@@ -225,21 +229,22 @@ export class UnifiedDocumentBridge {
     }
 
     // Convert extracted entities into candidate fields
-    for (const entity of nativeResult.entities || []) {
+    const entitiesList = nativeResult.allEntities || (nativeResult as any).entities || [];
+    for (const entity of entitiesList) {
       const fieldKey = entity.entityType.toLowerCase();
       const conf = entity.confidence !== undefined ? entity.confidence * 100 : 95;
       candidateFields[fieldKey] = {
         fieldKey,
         fieldLabel: entity.entityType,
         value: entity.normalizedValue,
-        rawValue: entity.rawText,
+        rawValue: entity.rawValue,
         confidenceScore: conf,
         confidenceTier: OcrConfidenceScorer.getConfidenceTier(conf),
         provenance: {
           documentId,
           pageNumber: entity.pageNumber,
           extractionMethod: "NATIVE_PDF_TEXT",
-          sourceText: entity.rawText,
+          sourceText: entity.contextSnippet || entity.rawValue || "",
           boundingBox: entity.bbox,
           processingRunId: options.processingRunId,
           hasExactBoundingBox: Boolean(entity.bbox && entity.bbox.length === 4),
@@ -321,13 +326,13 @@ export class UnifiedDocumentBridge {
           blocks.push({
             blockId: b.blockId,
             pageNumber: pageNum,
-            blockType: (b.blockType as any) || "PARAGRAPH",
+            blockType: ((b as any).blockType || (b as any).type || "PARAGRAPH") as any,
             text: b.lines ? b.lines.map((l) => l.text).join("\n") : "",
             confidence: bConf,
             confidenceTier: OcrConfidenceScorer.getConfidenceTier(bConf),
             boundingBox: b.boundingBox || [0, 0, 0, 0],
             lines: (b.lines || []).map((l, idx) => ({
-              lineId: l.lineId || `l-blk-p${pageNum}-${idx}`,
+              lineId: (l as any).lineId || `l-blk-p${pageNum}-${idx}`,
               pageNumber: pageNum,
               text: l.text,
               confidence: l.confidence || 85,
@@ -346,13 +351,14 @@ export class UnifiedDocumentBridge {
         }
       } else {
         // Fallback single block from lines
+        const pConf = pRes.averageConfidence || (pRes as any).confidenceAverage || 85;
         blocks.push({
           blockId: `blk-ocr-p${pageNum}-1`,
           pageNumber: pageNum,
           blockType: "PARAGRAPH",
           text: lines.map((l) => l.text).join("\n"),
-          confidence: pRes.confidenceAverage || 85,
-          confidenceTier: OcrConfidenceScorer.getConfidenceTier(pRes.confidenceAverage || 85),
+          confidence: pConf,
+          confidenceTier: OcrConfidenceScorer.getConfidenceTier(pConf),
           boundingBox: [0, 0, 100, 100],
           lines,
         });
@@ -360,23 +366,36 @@ export class UnifiedDocumentBridge {
 
       // Preserved tables from page
       for (const t of pRes.tables || []) {
+        const tHeaders =
+          t.headers ||
+          ((t as any).columns
+            ? (t as any).columns.map((c: any) => c.headerText || c.name || String(c))
+            : []);
+        const tColCount =
+          t.columnCount || ((t as any).columns ? (t as any).columns.length : tHeaders.length);
         const tData: UnifiedTableData = {
           tableId: t.tableId || `tbl-ocr-p${pageNum}-${tables.length + 1}`,
           pageNumber: pageNum,
           rowCount: t.rows ? t.rows.length : 0,
-          columnCount: t.columns ? t.columns.length : 0,
-          headers: t.columns ? t.columns.map((c: any) => c.headerText || c.name || String(c)) : [],
+          columnCount: tColCount,
+          headers: tHeaders,
           rows: t.rows
-            ? t.rows.map((r: any) =>
-                r.cells ? r.cells.map((c: any) => c.rawText || String(c)) : [],
+            ? (t.rows as any[]).map((r: any) =>
+                Array.isArray(r)
+                  ? r.map(String)
+                  : r.cells
+                    ? r.cells.map((c: any) => c.text || c.rawText || String(c))
+                    : [],
               )
             : [],
-          confidence: t.confidence || pRes.confidenceAverage || 85,
+          confidence:
+            t.confidence || pRes.averageConfidence || (pRes as any).confidenceAverage || 85,
           boundingBox: t.boundingBox,
         };
         tables.push(tData);
       }
 
+      const pAvgConf = pRes.averageConfidence || (pRes as any).confidenceAverage || 85;
       pages.push({
         pageNumber: pageNum,
         rawText: pRes.fullText || "",
@@ -388,7 +407,7 @@ export class UnifiedDocumentBridge {
         lines,
         words,
         tables: tables.filter((t) => t.pageNumber === pageNum),
-        confidence: pRes.confidenceAverage || 85,
+        confidence: pAvgConf,
         sourceType: "OCR_RASTER",
       });
     }
@@ -397,15 +416,26 @@ export class UnifiedDocumentBridge {
     if (ocrResult.tables && ocrResult.tables.length > 0) {
       for (const t of ocrResult.tables) {
         if (!tables.some((existing) => existing.tableId === t.tableId)) {
+          const docHeaders =
+            t.headers ||
+            ((t as any).columns
+              ? (t as any).columns.map((c: any) => c.headerText || c.name || String(c))
+              : []);
+          const docColCount =
+            t.columnCount || ((t as any).columns ? (t as any).columns.length : docHeaders.length);
           tables.push({
             tableId: t.tableId || `tbl-ocr-doc-${tables.length + 1}`,
             pageNumber: t.pageNumber || 1,
             rowCount: t.rows ? t.rows.length : 0,
-            columnCount: t.columns ? t.columns.length : (t.headers ? t.headers.length : 0),
-            headers: t.headers || (t.columns ? t.columns.map((c: any) => c.headerText || c.name || String(c)) : []),
+            columnCount: docColCount,
+            headers: docHeaders,
             rows: t.rows
-              ? t.rows.map((r: any) =>
-                  r.cells ? r.cells.map((c: any) => c.rawText || String(c)) : Array.isArray(r) ? r : [],
+              ? (t.rows as any[]).map((r: any) =>
+                  Array.isArray(r)
+                    ? r.map(String)
+                    : r.cells
+                      ? r.cells.map((c: any) => c.text || c.rawText || String(c))
+                      : [],
                 )
               : [],
             confidence: t.confidence || ocrResult.overallConfidence || 85,
@@ -416,26 +446,38 @@ export class UnifiedDocumentBridge {
     }
 
     // Convert OCR Determinants to Candidate Fields
-    if (ocrResult.determinants) {
-      for (const [key, field] of Object.entries(ocrResult.determinants)) {
+    if ((ocrResult as any).determinants) {
+      for (const [key, field] of Object.entries((ocrResult as any).determinants)) {
         if (!field) continue;
         const detField = field as ExtractedDeterminantField;
-        const conf = detField.confidence || 85;
+        const prov = detField.provenance;
+        const conf = (detField as any).confidence || prov?.confidenceScore || 85;
+        const rawBbox = prov?.boundingBox || (detField as any).boundingBox || null;
+        const bBox: [number, number, number, number] | undefined =
+          rawBbox && Array.isArray(rawBbox) && rawBbox.length === 4
+            ? [rawBbox[0], rawBbox[1], rawBbox[2], rawBbox[3]]
+            : undefined;
+        const srcText = prov?.sourceText || (detField as any).sourceText || detField.rawValue || "";
         candidateFields[key] = {
           fieldKey: detField.fieldKey || key,
           fieldLabel: detField.fieldLabel || key,
           value: detField.value,
-          rawValue: detField.sourceText || String(detField.value ?? ""),
+          rawValue: detField.rawValue || String(detField.value ?? ""),
           confidenceScore: conf,
           confidenceTier: OcrConfidenceScorer.getConfidenceTier(conf),
           provenance: {
-            documentId: detField.documentId || documentId,
-            pageNumber: detField.pageNumber || 1,
+            documentId: prov?.documentId || (detField as any).documentId || documentId,
+            pageNumber: prov?.pageNumber || (detField as any).pageNumber || 1,
             extractionMethod: "OCR_RASTER",
-            sourceText: detField.sourceText || "",
-            boundingBox: detField.boundingBox,
-            processingRunId: detField.processingRunId || ocrResult.processingRun?.runId,
-            hasExactBoundingBox: Boolean(detField.boundingBox && detField.boundingBox.length === 4),
+            sourceText: srcText,
+            boundingBox: bBox,
+            processingRunId:
+              prov?.ocrRunId ||
+              prov?.processingRun ||
+              (detField as any).processingRunId ||
+              ocrResult.ocrRunId ||
+              ocrResult.processingRun?.ocrRunId,
+            hasExactBoundingBox: Boolean(bBox && bBox.length === 4),
           },
         };
       }

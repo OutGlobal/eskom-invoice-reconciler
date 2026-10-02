@@ -368,7 +368,9 @@ export class OcrBackgroundJobManager {
       for (const cb of jobSubs) {
         try {
           cb(job);
-        } catch {}
+        } catch {
+          // Swallow subscriber exception to preserve job dispatch
+        }
       }
     }
 
@@ -377,14 +379,18 @@ export class OcrBackgroundJobManager {
       for (const cb of docSubs) {
         try {
           cb(job);
-        } catch {}
+        } catch {
+          // Swallow subscriber exception to preserve job dispatch
+        }
       }
     }
 
     for (const cb of this.globalSubscribers) {
       try {
         cb(job);
-      } catch {}
+      } catch {
+        // Swallow subscriber exception to preserve job dispatch
+      }
     }
   }
 

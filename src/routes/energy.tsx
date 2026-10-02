@@ -121,7 +121,14 @@ export function EnergyPage() {
   ];
 
   if (rows.length === 0) {
-    return <EmptyState title="No meter data uploaded" description="Upload interval meter data to view energy analysis." icon={UploadCloud} primaryAction={{ label: "Upload meter data", href: "/upload" }} />;
+    return (
+      <EmptyState
+        title="No meter data uploaded"
+        description="Upload interval meter data to view energy analysis."
+        icon={UploadCloud}
+        primaryAction={{ label: "Upload meter data", href: "/upload" }}
+      />
+    );
   }
 
   return (

@@ -90,8 +90,7 @@ export function DemandPage() {
 
   const activePeakDate = totals.maxDemandAt || new Date();
 
-  const activeDemandChargeR =
-    invoice?.networkDemandCharge || 0;
+  const activeDemandChargeR = invoice?.networkDemandCharge || 0;
 
   const activeExceedanceKVA = Math.max(0, activeBilledPeakKVA - nmd);
   const isExceeded = nmd > 0 && activeExceedanceKVA > 0.01;
@@ -137,7 +136,14 @@ export function DemandPage() {
   });
 
   if (rows.length === 0) {
-    return <EmptyState title="No meter data uploaded" description="Upload interval meter data to view demand analysis." icon={UploadCloud} primaryAction={{ label: "Upload meter data", href: "/upload" }} />;
+    return (
+      <EmptyState
+        title="No meter data uploaded"
+        description="Upload interval meter data to view demand analysis."
+        icon={UploadCloud}
+        primaryAction={{ label: "Upload meter data", href: "/upload" }}
+      />
+    );
   }
 
   return (

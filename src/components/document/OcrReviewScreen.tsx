@@ -215,28 +215,30 @@ export const OcrReviewScreen: React.FC<OcrReviewScreenProps> = ({
         const validBbox =
           Array.isArray(rawBbox) && rawBbox.length === 4 ? (rawBbox as BoundingBox) : null;
         const hasValidBbox = hasValidBoundingBox(validBbox);
+        const fKey = ev.fieldName || ev.fieldKey || ev.field || "unknown";
+        const fLabel = ev.fieldLabel || ev.fieldName || ev.fieldKey || ev.field || fKey;
 
         items.push({
-          id: `ev-${ev.fieldName}-${ev.pageNumber}`,
-          fieldKey: ev.fieldName,
-          fieldLabel: ev.fieldLabel || ev.fieldName,
+          id: `ev-${fKey}-${ev.pageNumber || ev.page || 1}`,
+          fieldKey: fKey,
+          fieldLabel: fLabel,
           value: ev.value,
           confidence: Math.round(ev.confidence),
           confidenceTier: ev.confidence >= 90 ? "HIGH" : ev.confidence >= 70 ? "MEDIUM" : "LOW",
-          pageNumber: ev.pageNumber || 1,
+          pageNumber: ev.pageNumber || ev.page || 1,
           hasExactBoundingBox: hasValidBbox,
           boundingBox: hasValidBbox ? validBbox : null,
-          sourceText: ev.sourceText,
+          sourceText: ev.sourceText || "",
           extractionMethod: ev.isOcr ? "OCR Optical Extraction" : "Native PDF Stream",
           category: "DETERMINANT",
-          ocrRunId: ev.processingRunId,
+          ocrRunId: ev.processingRunId || ev.processingRun || ev.ocrRunId || "",
         });
       }
     }
 
     // Fallback: If no evidence list, extract from determinants
-    if (items.length === 0 && ocrResult.determinants?.invoice) {
-      const inv = ocrResult.determinants.invoice;
+    if (items.length === 0 && (ocrResult as any).determinants?.invoice) {
+      const inv = (ocrResult as any).determinants.invoice;
       const addField = (key: string, label: string, fieldObj: any, category: string) => {
         if (!fieldObj || fieldObj.value === null || fieldObj.value === undefined) return;
         const validBbox =

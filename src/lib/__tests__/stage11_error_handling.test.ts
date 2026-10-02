@@ -99,12 +99,10 @@ describe("STAGE 11 — Explicit Error Handling & Failure Audit Subsystem", () =>
       const documentId = "doc-corrupted-1";
 
       await expect(
-        DocumentIntelligencePipeline.processDocument(
-          corruptBytes,
-          "broken.pdf",
-          TEST_ORG_A,
-          { documentId, skipStorageUpload: true },
-        ),
+        DocumentIntelligencePipeline.processDocument(corruptBytes, "broken.pdf", TEST_ORG_A, {
+          documentId,
+          skipStorageUpload: true,
+        }),
       ).rejects.toThrow(PdfCorruptedError);
 
       // Verify the failure was recorded in DocumentErrorService
@@ -158,12 +156,11 @@ describe("STAGE 11 — Explicit Error Handling & Failure Audit Subsystem", () =>
       const documentId = "doc-recipe-strict";
 
       await expect(
-        DocumentIntelligencePipeline.processDocument(
-          recipeDoc,
-          "recipe.pdf",
-          TEST_ORG_A,
-          { documentId, skipStorageUpload: true, strictValidation: true },
-        ),
+        DocumentIntelligencePipeline.processDocument(recipeDoc, "recipe.pdf", TEST_ORG_A, {
+          documentId,
+          skipStorageUpload: true,
+          strictValidation: true,
+        }),
       ).rejects.toThrow(UnsupportedFormatError);
 
       const errors = await DocumentErrorService.getErrorsForDocument(documentId, TEST_ORG_A);
@@ -273,7 +270,9 @@ describe("STAGE 11 — Explicit Error Handling & Failure Audit Subsystem", () =>
       const doc = await DocumentRegistryService.getDocumentById(docId);
       expect(doc).not.toBeNull();
       expect(doc?.errorCode).toBe("LAYOUT_EXTRACTION_FAILED");
-      expect(doc?.userMessage).toBe("Layout analysis failed to resolve document structure and tables.");
+      expect(doc?.userMessage).toBe(
+        "Layout analysis failed to resolve document structure and tables.",
+      );
       expect(doc?.errorStatus).toBe("FATAL");
     });
   });

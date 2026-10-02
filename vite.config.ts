@@ -16,9 +16,11 @@ export default defineConfig({
   vite: {
     resolve: {
       alias: {
-        "lucide-react": path.resolve(__dirname, "node_modules/lucide-react/dist/cjs/lucide-react.js"),
+        "lucide-react": path.resolve(
+          __dirname,
+          "node_modules/lucide-react/dist/cjs/lucide-react.js",
+        ),
       },
     },
   },
 });
-

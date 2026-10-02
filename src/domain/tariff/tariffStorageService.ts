@@ -271,7 +271,6 @@ export class TariffStorageService {
     }
   }
 
-
   /**
    * Get all registered versions belonging to a tariff family
    */

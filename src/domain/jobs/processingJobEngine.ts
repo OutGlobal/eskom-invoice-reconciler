@@ -540,7 +540,10 @@ export class ProcessingJobEngine {
     }
 
     if (rawTelemetryRecords.length === 0 && input.meterFile) {
-      this.failJob(jobId, "Unable to parse interval telemetry stream: No valid interval records found.");
+      this.failJob(
+        jobId,
+        "Unable to parse interval telemetry stream: No valid interval records found.",
+      );
       return;
     }
 
@@ -696,13 +699,9 @@ export class ProcessingJobEngine {
 
     // Resolve billing period — prefer extracted fields, fall back to billingPeriodStart/End aliases
     const billingStart =
-      extractedInvoice.billingStart ||
-      extractedInvoice.billingPeriodStart ||
-      "2025-01-01";
+      extractedInvoice.billingStart || extractedInvoice.billingPeriodStart || "2025-01-01";
     const billingEnd =
-      extractedInvoice.billingEnd ||
-      extractedInvoice.billingPeriodEnd ||
-      "2025-01-31";
+      extractedInvoice.billingEnd || extractedInvoice.billingPeriodEnd || "2025-01-31";
     const invoiceId = extractedInvoice.invoiceNumber || `INV-${Date.now()}`;
 
     const reconInput: AuthoritativeReconciliationInput = {
@@ -752,7 +751,9 @@ export class ProcessingJobEngine {
         { jobId, invoiceId, orgId, billingStart, billingEnd, tariffCode },
         userId,
       );
-    } catch { /* non-blocking */ }
+    } catch {
+      /* non-blocking */
+    }
 
     const reconciliationPayload = DeterministicReconciliationEngine.reconcile(reconInput);
 
@@ -796,7 +797,9 @@ export class ProcessingJobEngine {
         },
         userId,
       );
-    } catch { /* non-blocking */ }
+    } catch {
+      /* non-blocking */
+    }
 
     // -------------------------------------------------------------
     // STAGE 7: ANOMALY_ANALYSIS & DIAGNOSTICS
@@ -939,7 +942,9 @@ export class ProcessingJobEngine {
         execution_environment: "browser-worker",
         status: "COMPLETED",
       });
-    } catch { /* non-blocking */ }
+    } catch {
+      /* non-blocking */
+    }
 
     // --- PERSIST generated report metadata ---
     try {
@@ -962,7 +967,9 @@ export class ProcessingJobEngine {
         createdAt: job.completedAt || new Date().toISOString(),
         createdBy: userId,
       });
-    } catch { /* non-blocking */ }
+    } catch {
+      /* non-blocking */
+    }
 
     try {
       void AuditTrailService.recordAction({

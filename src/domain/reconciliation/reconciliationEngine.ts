@@ -40,7 +40,6 @@ import { ReconciliationStorageService } from "./reconciliationStorageService";
 import { TouScheduleEngine } from "../tariff/touScheduleEngine";
 import { TariffVersionSelector } from "../tariff/tariffVersionSelector";
 
-
 export interface AuthoritativeReconciliationInput {
   tenant_id?: string;
   invoice_id: string;

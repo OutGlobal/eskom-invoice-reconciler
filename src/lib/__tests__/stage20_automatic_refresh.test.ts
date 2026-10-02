@@ -227,11 +227,13 @@ describe("Stage 20: Realtime Refresh Manager & Auto-Update Architecture", () => 
 
     it("triggers callbacks when a postgres change event occurs on subscribed tables", () => {
       let postgresChangeCallback: ((...args: any[]) => any) | null = null;
-      mockChannelOn.mockImplementation((event: string, filter: any, cb: (...args: any[]) => any) => {
-        if (filter?.table === "invoice_records") {
-          postgresChangeCallback = cb;
-        }
-      });
+      mockChannelOn.mockImplementation(
+        (event: string, filter: any, cb: (...args: any[]) => any) => {
+          if (filter?.table === "invoice_records") {
+            postgresChangeCallback = cb;
+          }
+        },
+      );
 
       const onRefreshMock = vi.fn();
       const handle = RealtimeRefreshManager.attachRealtimeSubscription({

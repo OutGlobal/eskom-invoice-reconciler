@@ -512,7 +512,6 @@ export function CommandCentreDashboard() {
             >
               <Sparkles className="h-4 w-4 text-primary" /> Refresh Uploaded Data
             </button>
-
           </div>
         </div>
       ) : (

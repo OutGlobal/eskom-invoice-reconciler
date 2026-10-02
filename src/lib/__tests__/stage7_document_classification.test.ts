@@ -45,7 +45,7 @@ import type {
 // Helper to construct simulated extracted pages and lines
 function createMockExtraction(
   textByPage: string[],
-  docId = "mock-doc-001"
+  docId = "mock-doc-001",
 ): { pages: ExtractedPage[]; lines: ExtractedTextLine[] } {
   const pages: ExtractedPage[] = textByPage.map((text, idx) => ({
     documentId: docId,
@@ -420,7 +420,9 @@ describe("Stage 7 — Document Classification Architecture Suite", () => {
       expect(res.standardCategory).toBe("UNKNOWN");
       expect(res.confidenceLevel).toBe("UNKNOWN");
       expect(res.confidence).toBe(0.0);
-      expect(res.rationale).toContain("Insufficient textual evidence to determine document classification");
+      expect(res.rationale).toContain(
+        "Insufficient textual evidence to determine document classification",
+      );
       expect(res.deterministicIndicators).toHaveLength(0);
     });
 
@@ -568,7 +570,7 @@ trailer << /Root 1 0 R /Size 5 >>
         bytes,
         "eskom_megaflex_2026.pdf",
         "00000000-0000-0000-0000-000000000001",
-        { skipStorageUpload: true }
+        { skipStorageUpload: true },
       );
 
       expect(pkg.classification).toBeDefined();

@@ -15,8 +15,10 @@ const SUPABASE_ANON_KEY =
 
 export const isSupabaseConfigured =
   Boolean(
-    (typeof import.meta !== "undefined" && (import.meta.env?.VITE_SUPABASE_URL || import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY)) ||
-    (typeof process !== "undefined" && (process.env?.VITE_SUPABASE_URL || process.env?.SUPABASE_URL))
+    (typeof import.meta !== "undefined" &&
+      (import.meta.env?.VITE_SUPABASE_URL || import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY)) ||
+    (typeof process !== "undefined" &&
+      (process.env?.VITE_SUPABASE_URL || process.env?.SUPABASE_URL)),
   ) &&
   !SUPABASE_URL.includes("placeholder-project.supabase.co") &&
   SUPABASE_ANON_KEY !== "placeholder-anon-key";
@@ -122,7 +124,10 @@ export async function syncInvoiceToSupabase(inv: any): Promise<any> {
 }
 
 /** Sync interval meter readings to Supabase database */
-export async function syncMeterReadingsToSupabase(invoiceNumber: string, measurements: any[]): Promise<void> {
+export async function syncMeterReadingsToSupabase(
+  invoiceNumber: string,
+  measurements: any[],
+): Promise<void> {
   if (!isSupabaseConfigured || !measurements || measurements.length === 0) return;
   try {
     const payload = measurements.slice(0, 500).map((m: any) => ({
@@ -140,4 +145,3 @@ export async function syncMeterReadingsToSupabase(invoiceNumber: string, measure
     console.warn("syncMeterReadingsToSupabase error:", err);
   }
 }
-

@@ -129,7 +129,6 @@ export class DashboardService {
           job.status === "QUEUED" ||
           job.status === "PAUSED_AMBIGUITY"
         ) {
-
           activeJobs.push({
             id: job.jobId,
             name:

@@ -130,7 +130,10 @@ function TariffPage() {
             Upload the applicable tariff booklet before running billing calculations.
           </p>
           <Button asChild className="mt-5">
-            <Link to="/upload"><Upload className="h-4 w-4" />Upload tariff document</Link>
+            <Link to="/upload">
+              <Upload className="h-4 w-4" />
+              Upload tariff document
+            </Link>
           </Button>
         </section>
       </div>

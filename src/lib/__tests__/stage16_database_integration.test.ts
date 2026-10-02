@@ -130,7 +130,9 @@ describe("STAGE 16 — DATABASE INTEGRATION", () => {
       expect(persistedRecord?.id).toBe(record.documentId);
       expect(persistedRecord?.filename).toBe("Eskom_Invoice_Q1.pdf");
       expect(persistedRecord?.processingStatus).toBe("PROCESSED");
-      expect((persistedRecord?.metadata as any)?.financialDeterminants?.totalAmountDue).toBe(187450.25);
+      expect((persistedRecord?.metadata as any)?.financialDeterminants?.totalAmountDue).toBe(
+        187450.25,
+      );
     });
   });
 
@@ -161,7 +163,8 @@ describe("STAGE 16 — DATABASE INTEGRATION", () => {
       expect(useApp.getState().invoice).toBeNull();
 
       // Step 3: Trigger Rehydration as executed on page mount / refresh
-      const rehydrated = await PersistentDocumentIntelligenceService.rehydrateOnSessionStart(TEST_ORG_A);
+      const rehydrated =
+        await PersistentDocumentIntelligenceService.rehydrateOnSessionStart(TEST_ORG_A);
       expect(rehydrated).toBe(true);
 
       // Step 4: Verify complete processing state restored from persistent database
@@ -203,13 +206,16 @@ describe("STAGE 16 — DATABASE INTEGRATION", () => {
       // Step 2: SIMULATE LOGOUT
       // User logs out -> session terminated, React store wiped, runtime cache cleared
       useApp.getState().setInvoice(null);
-      useApp.getState().setCustomer({ name: "", meter: "", accountNumber: "", address: "", nmd: 0 });
+      useApp
+        .getState()
+        .setCustomer({ name: "", meter: "", accountNumber: "", address: "", nmd: 0 });
       PersistentDocumentIntelligenceService.clearRuntimeCache();
       expect(useApp.getState().invoice).toBeNull();
 
       // Step 3: SIMULATE LOGIN
       // User logs back in to Org A -> rehydration on session start
-      const success = await PersistentDocumentIntelligenceService.rehydrateOnSessionStart(TEST_ORG_A);
+      const success =
+        await PersistentDocumentIntelligenceService.rehydrateOnSessionStart(TEST_ORG_A);
       expect(success).toBe(true);
 
       // Step 4: Verify processing state is fully intact
@@ -234,10 +240,11 @@ describe("STAGE 16 — DATABASE INTEGRATION", () => {
       });
 
       // Tenant B attempts to load Tenant A's document
-      const unauthorizedAccess = await PersistentDocumentIntelligenceService.loadPersistedDocumentState(
-        record.documentId,
-        TEST_ORG_B, // Wrong organisation ID!
-      );
+      const unauthorizedAccess =
+        await PersistentDocumentIntelligenceService.loadPersistedDocumentState(
+          record.documentId,
+          TEST_ORG_B, // Wrong organisation ID!
+        );
 
       expect(unauthorizedAccess).toBeNull();
     });

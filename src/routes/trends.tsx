@@ -279,7 +279,13 @@ export function TrendsPage() {
   };
 
   if (rows.length === 0 && batchInvoices.length === 0 && dbInvoices.length === 0) {
-    return <EmptyState title="No trend data available" description="Upload invoices and meter data to build period trends." primaryAction={{ label: "Upload data", href: "/upload" }} />;
+    return (
+      <EmptyState
+        title="No trend data available"
+        description="Upload invoices and meter data to build period trends."
+        primaryAction={{ label: "Upload data", href: "/upload" }}
+      />
+    );
   }
 
   return (

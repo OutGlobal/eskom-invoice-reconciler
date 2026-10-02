@@ -601,8 +601,7 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
     }
   } catch {
     try {
-      pdfjs.GlobalWorkerOptions.workerSrc =
-        `https://unpkg.com/pdfjs-dist@${pdfjs.version || "6.1.200"}/build/pdf.worker.min.mjs`;
+      pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version || "6.1.200"}/build/pdf.worker.min.mjs`;
     } catch (err) {
       console.warn("PDF.js worker initialization notice:", err);
     }
@@ -656,8 +655,9 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
   // scanned bill would otherwise short-circuit the image pipeline and yield
   // zero-value extractions.
   const hasMonetaryAmounts = (embeddedText.match(/\d[\d,\s]*\.\d{2}/g) || []).length >= 3;
-  const hasBillingKeywords =
-    /(TOTAL|CHARGE|CONSUMPTION|ACCOUNT|INVOICE|TARIFF|kWh|kVA|VAT)/i.test(embeddedText);
+  const hasBillingKeywords = /(TOTAL|CHARGE|CONSUMPTION|ACCOUNT|INVOICE|TARIFF|kWh|kVA|VAT)/i.test(
+    embeddedText,
+  );
 
   if (embeddedLines.length >= 8 && hasBillingKeywords && hasMonetaryAmounts) {
     return {

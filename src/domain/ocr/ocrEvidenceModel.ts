@@ -345,15 +345,23 @@ export class OcrEvidenceModel {
         ? Number((evidence.confidence / 100).toFixed(4))
         : evidence.confidence;
 
+    const docId = evidence.document || evidence.documentId || "unknown-document";
+    const pg = evidence.page || evidence.pageNumber || 1;
+    const fKey = evidence.fieldKey || evidence.fieldName || evidence.field || "unknown";
+    const fLabel = evidence.fieldLabel || evidence.field || evidence.fieldName || fKey;
+    const sText = evidence.sourceText || evidence.rawValue || String(evidence.value ?? "");
+    const procRun =
+      evidence.processingRun || evidence.ocrRunId || evidence.processingRunId || "ocr-run-default";
+
     return ProvenanceGuard.createProvenancedField({
-      fieldKey: evidence.fieldKey || evidence.field,
-      fieldLabel: evidence.fieldLabel || evidence.field,
+      fieldKey: fKey,
+      fieldLabel: fLabel,
       value: evidence.value,
       rawValue: evidence.rawValue || String(evidence.value ?? ""),
-      documentId: evidence.document,
-      pageNumber: Math.max(1, evidence.page),
+      documentId: docId,
+      pageNumber: Math.max(1, pg),
       region,
-      regionText: evidence.sourceText || evidence.rawValue || String(evidence.value ?? ""),
+      regionText: sText,
       contextSnippet: evidence.sourceText,
       extractionMethod: evidence.ocr ? "TESSERACT_OCR" : "PDF_TEXT_STREAM",
       confidenceScore: Math.min(1.0, Math.max(0.0, confScore)),
@@ -372,7 +380,7 @@ export class OcrEvidenceModel {
             confidence: evidence.detailedBoundingBox.confidence,
           }
         : undefined,
-      runId: evidence.processingRun,
+      runId: procRun,
     });
   }
 
@@ -454,40 +462,58 @@ export class OcrEvidenceModel {
     evidenceChain: string;
     toString: () => string;
   } {
-    const bb = evidence.boundingBox;
+    const rawBb = evidence.boundingBox;
+    const bb: OcrBoundingBox =
+      rawBb && Array.isArray(rawBb) && rawBb.length === 4
+        ? [rawBb[0], rawBb[1], rawBb[2], rawBb[3]]
+        : [0, 0, 0, 0];
+    const doc = evidence.document || evidence.documentId || "unknown-document";
+    const pageNum = evidence.page || evidence.pageNumber || 1;
+    const fName = evidence.field || evidence.fieldName || evidence.fieldKey || "unknown";
+    const fKey =
+      evidence.fieldKey ||
+      (evidence.field ? OcrEvidenceModel.toCamelCase(evidence.field) : "unknown");
+    const fLabel = evidence.fieldLabel || evidence.field || fKey;
+    const sText = evidence.sourceText || evidence.rawValue || String(evidence.value ?? "");
+    const procRun =
+      evidence.processingRun || evidence.ocrRunId || evidence.processingRunId || "ocr-run-default";
+    const isOcr =
+      evidence.ocr !== undefined
+        ? evidence.ocr
+        : evidence.isOcr !== undefined
+          ? evidence.isOcr
+          : true;
+
     const isGrounded =
-      evidence.page > 0 &&
-      evidence.document.length > 0 &&
-      evidence.confidence > 0 &&
-      bb.length === 4;
+      pageNum > 0 && doc.length > 0 && evidence.confidence > 0 && bb[2] > 0 && bb[3] > 0;
 
     const coordStr = `[x=${bb[0]}, y=${bb[1]}, w=${bb[2]}, h=${bb[3]}]`;
     const evidenceChain = isGrounded
-      ? `Document ${evidence.document} -> Page ${evidence.page} -> BoundingBox ${coordStr} -> SourceText '${evidence.sourceText}' -> Run ${evidence.processingRun} -> Confidence ${evidence.confidence}% (${evidence.confidenceTier || "HIGH"})`
-      : `Document ${evidence.document} -> Unobserved / Not Grounded`;
+      ? `Document ${doc} -> Page ${pageNum} -> BoundingBox ${coordStr} -> SourceText '${sText}' -> Run ${procRun} -> Confidence ${evidence.confidence}% (${evidence.confidenceTier || "HIGH"})`
+      : `Document ${doc} -> Unobserved / Not Grounded`;
 
     const explanation = isGrounded
-      ? `Field '${evidence.field}' (${evidence.value}) was extracted from document '${evidence.document}', page ${evidence.page} at bounding box ${coordStr} with ${evidence.confidence}% confidence via processing run '${evidence.processingRun}'. Source text: '${evidence.sourceText}'.`
-      : `Field '${evidence.field}' was not grounded or observed in document '${evidence.document}'.`;
+      ? `Field '${fName}' (${evidence.value}) was extracted from document '${doc}', page ${pageNum} at bounding box ${coordStr} with ${evidence.confidence}% confidence via processing run '${procRun}'. Source text: '${sText}'.`
+      : `Field '${fName}' was not grounded or observed in document '${doc}'.`;
 
     return {
       question: "Where exactly did this extracted field come from?",
       found: isGrounded,
       isGrounded,
-      field: evidence.field,
-      fieldKey: evidence.fieldKey || OcrEvidenceModel.toCamelCase(evidence.field),
-      fieldLabel: evidence.fieldLabel || evidence.field,
+      field: fName,
+      fieldKey: fKey,
+      fieldLabel: fLabel,
       value: evidence.value,
-      document: evidence.document,
-      page: evidence.page,
-      ocr: evidence.ocr,
-      sourceText: evidence.sourceText,
+      document: doc,
+      page: pageNum,
+      ocr: isOcr,
+      sourceText: sText,
       boundingBox: bb,
       confidence: evidence.confidence,
       confidenceTier:
         evidence.confidenceTier ||
         (evidence.confidence >= 85 ? "HIGH" : evidence.confidence >= 70 ? "MEDIUM" : "LOW"),
-      processingRun: evidence.processingRun,
+      processingRun: procRun,
       explanation,
       evidenceChain,
       toString: () => explanation,

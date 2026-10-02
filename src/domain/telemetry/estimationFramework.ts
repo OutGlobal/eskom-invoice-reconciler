@@ -52,7 +52,12 @@ export class EstimationFrameworkEngine {
           (a, b) => new Date(a.timestamp_utc).getTime() - new Date(b.timestamp_utc).getTime(),
         )[0];
 
-      if (prev && next && prev.engineering_value !== undefined && next.engineering_value !== undefined) {
+      if (
+        prev &&
+        next &&
+        prev.engineering_value !== undefined &&
+        next.engineering_value !== undefined
+      ) {
         const tPrev = new Date(prev.timestamp_utc).getTime();
         const tNext = new Date(next.timestamp_utc).getTime();
         const vPrev = new Decimal(prev.engineering_value);

@@ -39,7 +39,10 @@ import {
   createLargePdfBytes,
 } from "../../fixtures/realDocumentFixtures";
 
-function createUploadFile(name: string, bytes: Uint8Array): {
+function createUploadFile(
+  name: string,
+  bytes: Uint8Array,
+): {
   name: string;
   size: number;
   type: string;
@@ -262,7 +265,9 @@ describe("STAGE 18 — TEST WITH REAL DOCUMENTS", () => {
       expect(record.inspection?.detectedTableCount).toBeGreaterThanOrEqual(1);
 
       // 5. Extract
-      const tableField = record.extractedFields.find((f) => f.fieldKey === "billing_schedule_table");
+      const tableField = record.extractedFields.find(
+        (f) => f.fieldKey === "billing_schedule_table",
+      );
       expect(tableField).toBeDefined();
       expect(tableField?.extractionMethod).toBe("Table Column Layout Analysis");
       expect(record.financialDeterminants?.totalAmountDue).toBe(191319.21);
@@ -274,7 +279,11 @@ describe("STAGE 18 — TEST WITH REAL DOCUMENTS", () => {
       const uploads = await LocalWorkspaceStore.listUploads();
       const persisted = uploads.find((u) => u.id === record.documentId);
       expect(persisted).toBeDefined();
-      expect((persisted?.metadata as any)?.extractedFields?.some((f: any) => f.fieldKey === "billing_schedule_table")).toBe(true);
+      expect(
+        (persisted?.metadata as any)?.extractedFields?.some(
+          (f: any) => f.fieldKey === "billing_schedule_table",
+        ),
+      ).toBe(true);
 
       // 8. Display
       const store = useApp.getState();

@@ -74,7 +74,9 @@ export class TelemetryXmlAdapter implements ILayoutAdapter {
         rawTextPreview: text.substring(0, 500),
         confidenceScore: hasRequiredValues ? 0.95 : 0.4,
         needsHumanReview: !hasRequiredValues,
-        ambiguityReasons: hasRequiredValues ? ambiguityReasons : ["Required XML billing fields are missing"],
+        ambiguityReasons: hasRequiredValues
+          ? ambiguityReasons
+          : ["Required XML billing fields are missing"],
         errors,
       };
     } catch (err: any) {

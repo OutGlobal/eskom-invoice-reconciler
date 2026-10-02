@@ -12,9 +12,7 @@
 
 import Decimal from "decimal.js-light";
 import type { TelemetryIntervalRecord, TelemetryQualityState } from "./types";
-import {
-  TenantIsolationViolationError,
-} from "../security/tenantContextService";
+import { TenantIsolationViolationError } from "../security/tenantContextService";
 import type { UserSecurityContext } from "../security/types";
 import { TelemetryStorageService } from "./telemetryStorageService";
 import type {
@@ -351,7 +349,10 @@ export class LargeDatasetQueryEngine {
       let dominantTou: TouPeriod = "standard";
       if (b.touCounts.peak >= b.touCounts.standard && b.touCounts.peak >= b.touCounts.offPeak) {
         dominantTou = "peak";
-      } else if (b.touCounts.offPeak > b.touCounts.standard && b.touCounts.offPeak > b.touCounts.peak) {
+      } else if (
+        b.touCounts.offPeak > b.touCounts.standard &&
+        b.touCounts.offPeak > b.touCounts.peak
+      ) {
         dominantTou = "offPeak";
       }
 
@@ -459,13 +460,11 @@ export class LargeDatasetQueryEngine {
       }
 
       // Cooperative event-loop tick yield
-      await new Promise<void>((resolve) =>
-        setTimeout(resolve, options?.yieldTickIntervalMs ?? 0),
-      );
+      await new Promise<void>((resolve) => setTimeout(resolve, options?.yieldTickIntervalMs ?? 0));
     }
 
     const durationMs = Math.max(1, Math.round(performance.now() - startTime));
-    const throughputRowsPerSec = Math.round((totalItems / (durationMs / 1000)));
+    const throughputRowsPerSec = Math.round(totalItems / (durationMs / 1000));
 
     return {
       totalProcessed: processed,
@@ -494,18 +493,18 @@ export class LargeDatasetQueryEngine {
         ).getTime()
       : undefined;
 
-    const qualitySet = filter.qualityStates && filter.qualityStates.length > 0
-      ? new Set(filter.qualityStates)
-      : undefined;
+    const qualitySet =
+      filter.qualityStates && filter.qualityStates.length > 0
+        ? new Set(filter.qualityStates)
+        : undefined;
 
     const touSet =
       filter.touPeriods && filter.touPeriods.length > 0
         ? new Set(filter.touPeriods.map((t) => String(t).toUpperCase().replace(/_/g, "")))
         : undefined;
 
-    const channelSet = filter.channels && filter.channels.length > 0
-      ? new Set(filter.channels)
-      : undefined;
+    const channelSet =
+      filter.channels && filter.channels.length > 0 ? new Set(filter.channels) : undefined;
 
     return records.filter((rec) => {
       // Meter ID matching

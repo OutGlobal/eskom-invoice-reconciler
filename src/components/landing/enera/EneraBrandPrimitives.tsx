@@ -61,7 +61,9 @@ export function EneraBrandMark({
 
       <div className="flex flex-col">
         <div className="flex items-center gap-2">
-          <span className={`font-mono font-bold text-white ${textSizeClasses.logo}`}>E N E R A</span>
+          <span className={`font-mono font-bold text-white ${textSizeClasses.logo}`}>
+            E N E R A
+          </span>
           <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-semibold">
             AI
           </span>

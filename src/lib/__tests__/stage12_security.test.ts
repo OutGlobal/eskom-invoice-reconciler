@@ -88,11 +88,7 @@ describe("STAGE 12 — SECURITY SUBSYSTEM", () => {
     email: "readonly@alpha.co.za",
     organisationId: tenantAlpha,
     role: "READ_ONLY",
-    permissions: [
-      "PERM_VIEW_DASHBOARD",
-      "PERM_VIEW_TELEMETRY",
-      "PERM_VIEW_INVOICES",
-    ],
+    permissions: ["PERM_VIEW_DASHBOARD", "PERM_VIEW_TELEMETRY", "PERM_VIEW_INVOICES"],
   };
 
   const auditorContextAlpha: UserSecurityContext = {
@@ -100,11 +96,7 @@ describe("STAGE 12 — SECURITY SUBSYSTEM", () => {
     email: "auditor@alpha.co.za",
     organisationId: tenantAlpha,
     role: "AUDITOR",
-    permissions: [
-      "PERM_VIEW_DASHBOARD",
-      "PERM_VIEW_TELEMETRY",
-      "PERM_VIEW_INVOICES",
-    ],
+    permissions: ["PERM_VIEW_DASHBOARD", "PERM_VIEW_TELEMETRY", "PERM_VIEW_INVOICES"],
   };
 
   const superAdminContext: UserSecurityContext = {
@@ -172,16 +164,11 @@ describe("STAGE 12 — SECURITY SUBSYSTEM", () => {
     it("should reject pipeline execution when strictSecurity is enabled and context is missing", async () => {
       const pdfBytes = createValidPdfBytes();
       await expect(
-        DocumentIntelligencePipeline.processDocument(
-          pdfBytes,
-          "valid_invoice.pdf",
-          tenantAlpha,
-          {
-            strictSecurity: true,
-            context: undefined,
-            throwOnError: true,
-          },
-        ),
+        DocumentIntelligencePipeline.processDocument(pdfBytes, "valid_invoice.pdf", tenantAlpha, {
+          strictSecurity: true,
+          context: undefined,
+          throwOnError: true,
+        }),
       ).rejects.toThrowError(AuthenticationRequiredError);
     });
   });
@@ -276,11 +263,7 @@ describe("STAGE 12 — SECURITY SUBSYSTEM", () => {
         email: "other@alpha.co.za",
         organisationId: tenantAlpha,
         role: "ENERGY_MANAGER",
-        permissions: [
-          "PERM_VIEW_DASHBOARD",
-          "PERM_VIEW_INVOICES",
-          "PERM_UPLOAD_INVOICE",
-        ],
+        permissions: ["PERM_VIEW_DASHBOARD", "PERM_VIEW_INVOICES", "PERM_UPLOAD_INVOICE"],
       };
 
       expect(() => {
@@ -319,11 +302,17 @@ describe("STAGE 12 — SECURITY SUBSYSTEM", () => {
 
     it("should verify storage access policy via SecurityHardeningService", () => {
       const validPath = `tenants/${tenantAlpha}/documents/doc-123/invoice.pdf`;
-      const check = SecurityHardeningService.verifyStorageAccessPolicy(adminContextAlpha, validPath);
+      const check = SecurityHardeningService.verifyStorageAccessPolicy(
+        adminContextAlpha,
+        validPath,
+      );
       expect(check.allowed).toBe(true);
 
       const crossPath = `tenants/${tenantBeta}/documents/doc-123/invoice.pdf`;
-      const crossCheck = SecurityHardeningService.verifyStorageAccessPolicy(adminContextAlpha, crossPath);
+      const crossCheck = SecurityHardeningService.verifyStorageAccessPolicy(
+        adminContextAlpha,
+        crossPath,
+      );
       expect(crossCheck.allowed).toBe(false);
     });
   });
@@ -372,8 +361,12 @@ describe("STAGE 12 — SECURITY SUBSYSTEM", () => {
     });
 
     it("should reject storage paths with double slashes or backward slashes", () => {
-      expect(DocumentSecurityGuard.validateStoragePath("tenants//org/documents/1/f.pdf").isValid).toBe(false);
-      expect(DocumentSecurityGuard.validateStoragePath("tenants\\org\\documents\\1\\f.pdf").isValid).toBe(false);
+      expect(
+        DocumentSecurityGuard.validateStoragePath("tenants//org/documents/1/f.pdf").isValid,
+      ).toBe(false);
+      expect(
+        DocumentSecurityGuard.validateStoragePath("tenants\\org\\documents\\1\\f.pdf").isValid,
+      ).toBe(false);
     });
   });
 
@@ -403,11 +396,7 @@ describe("STAGE 12 — SECURITY SUBSYSTEM", () => {
     });
 
     it("should detect and reject null-byte truncation attacks", () => {
-      const nullByteFilenames = [
-        "invoice.pdf\0.exe",
-        "safe.pdf%00.sh",
-        "document\0_malicious.bat",
-      ];
+      const nullByteFilenames = ["invoice.pdf\0.exe", "safe.pdf%00.sh", "document\0_malicious.bat"];
 
       for (const name of nullByteFilenames) {
         const result = DocumentSecurityGuard.sanitizeUploadedFilename(name);
@@ -578,7 +567,9 @@ describe("STAGE 12 — SECURITY SUBSYSTEM", () => {
 
       expect(scan.isSecure).toBe(true);
       expect(scan.sanitizedFilename).toBe("September_2026_Megaflex.pdf");
-      expect(scan.storagePath).toBe(`tenants/${tenantAlpha}/documents/doc-test-123/September_2026_Megaflex.pdf`);
+      expect(scan.storagePath).toBe(
+        `tenants/${tenantAlpha}/documents/doc-test-123/September_2026_Megaflex.pdf`,
+      );
       expect(scan.detectedMimeType).toBe("application/pdf");
       expect(scan.errors).toHaveLength(0);
     });
@@ -628,7 +619,9 @@ describe("STAGE 12 — SECURITY SUBSYSTEM", () => {
 
       const audit = DocumentSecurityGuard.auditSecretLeakage(leakyPromptObject);
       expect(audit.isSecure).toBe(false);
-      expect(audit.violations.some((v) => v.includes("SYSTEM_PROMPT") || v.includes("INTERNAL_PROMPT"))).toBe(true);
+      expect(
+        audit.violations.some((v) => v.includes("SYSTEM_PROMPT") || v.includes("INTERNAL_PROMPT")),
+      ).toBe(true);
     });
 
     it("should verify that DocumentIntelligencePipeline outputs never expose confidential secrets", async () => {

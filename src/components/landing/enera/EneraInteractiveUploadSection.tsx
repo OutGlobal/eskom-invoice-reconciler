@@ -1,1 +1,3 @@
-export function EneraInteractiveUploadSection() { return null; }
+export function EneraInteractiveUploadSection() {
+  return null;
+}

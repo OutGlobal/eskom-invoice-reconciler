@@ -119,7 +119,9 @@ describe("Stage 39: Source of Truth Architecture & Four Pillars of Truth", () =>
 
   describe("Pillar 2: OBJECT STORAGE = ORIGINAL SOURCE FILES", () => {
     it("verifies raw uploaded files are stored in persistent source_files bucket with cryptographic hash", async () => {
-      const rawPdfContent = new TextEncoder().encode("%PDF-1.4 Eskom Bill Balancer Test Invoice 2026");
+      const rawPdfContent = new TextEncoder().encode(
+        "%PDF-1.4 Eskom Bill Balancer Test Invoice 2026",
+      );
       const uploadId = "upl-sot-001";
       const filename = "eskom_march_2026.pdf";
 
@@ -241,12 +243,7 @@ describe("Stage 39: Source of Truth Architecture & Four Pillars of Truth", () =>
 
     it("verifies sessionStorage is only used for demo UI gate flags, never business data", () => {
       if (typeof window !== "undefined" && window.sessionStorage) {
-        const businessKeys = [
-          "invoices",
-          "telemetry_rows",
-          "reconciliation_runs",
-          "audit_ledger",
-        ];
+        const businessKeys = ["invoices", "telemetry_rows", "reconciliation_runs", "audit_ledger"];
 
         businessKeys.forEach((key) => {
           expect(window.sessionStorage.getItem(key)).toBeNull();

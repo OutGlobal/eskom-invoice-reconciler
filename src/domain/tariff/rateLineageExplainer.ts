@@ -19,10 +19,7 @@ export function explainAppliedRate(options: RateLineageOptions): RateLineageExpl
   const { tariffCodeOrFamily, dateStr, componentCode } = options;
 
   // 1. Select effective tariff version for target date
-  const version = TariffVersionSelector.selectVersionForDate(
-    tariffCodeOrFamily,
-    dateStr,
-  );
+  const version = TariffVersionSelector.selectVersionForDate(tariffCodeOrFamily, dateStr);
   if (!version) throw new Error("No uploaded tariff covers this date.");
 
   // 2. Determine season for date

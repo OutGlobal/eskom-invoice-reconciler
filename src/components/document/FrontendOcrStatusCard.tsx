@@ -69,9 +69,9 @@ export const FrontendOcrStatusCard: React.FC<FrontendOcrStatusCardProps> = ({
 }) => {
   // Derive effective page count from job or prop
   const effectivePages = useMemo(() => {
-    if (job && job.totalPages > 0) return job.totalPages;
-    if (job && job.result && job.result.totalPages > 0) return job.result.totalPages;
-    return pageCount;
+    if (job && (job.totalPages ?? 0) > 0) return job.totalPages!;
+    if (job && job.result && (job.result.totalPages ?? 0) > 0) return job.result.totalPages;
+    return pageCount ?? 8;
   }, [job, pageCount]);
 
   // Derive authoritative step list based strictly on actual events that have occurred
@@ -111,7 +111,7 @@ export const FrontendOcrStatusCard: React.FC<FrontendOcrStatusCardProps> = ({
     // 4. Pages identified - Occurred once totalPages > 0 or in OCR stage
     const isPagesIdentified = Boolean(
       job &&
-      (effectivePages > 0 ||
+      ((effectivePages ?? 0) > 0 ||
         stage === "OCR" ||
         stage === "DATABASE" ||
         stage === "STATUS_UPDATE" ||
@@ -160,7 +160,7 @@ export const FrontendOcrStatusCard: React.FC<FrontendOcrStatusCardProps> = ({
         id: "step-pages",
         label: "Pages identified",
         status: isPagesIdentified ? "COMPLETED" : "PENDING",
-        details: effectivePages > 0 ? `${effectivePages} pages` : undefined,
+        details: (effectivePages ?? 0) > 0 ? `${effectivePages} pages` : undefined,
       },
       {
         id: "step-ocr",

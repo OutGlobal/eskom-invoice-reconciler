@@ -89,7 +89,13 @@ export class TariffDocumentAdapter implements ILayoutAdapter {
           throw new Error(`Rate row ${index + 1} has no valid rate value`);
         return {
           component_code: String(rate.component_code || rate.code || `RATE_${index + 1}`),
-          component_name: String(rate.component_name || rate.name || rate.component_code || rate.code || `Rate ${index + 1}`),
+          component_name: String(
+            rate.component_name ||
+              rate.name ||
+              rate.component_code ||
+              rate.code ||
+              `Rate ${index + 1}`,
+          ),
           component_type: rate.component_type || rate.type || "ACTIVE_ENERGY",
           unit_of_measure: rate.unit_of_measure || rate.unit || "c/kWh",
           season: rate.season || "all",
@@ -102,17 +108,31 @@ export class TariffDocumentAdapter implements ILayoutAdapter {
       });
       const tariffDefinition: TariffVersionDefinition = {
         header: {
-          tariff_code: String(header.tariff_code), tariff_name: String(header.tariff_name || header.schedule_name || header.tariff_code),
-          utility: String(header.utility || ""), tariff_family: header.tariff_family || "custom", version: String(header.version),
-          effective_date: String(header.effective_date), expiry_date: header.expiry_date ? String(header.expiry_date) : undefined,
-          season: header.season || "high", voltage_level: header.voltage_level || "high", customer_class: header.customer_class || "commercial",
-          status: header.status || "active", vat_treatment: header.vat_treatment || "standard_15", source_document: file.name,
-          source_hash: String(header.source_hash || ""), is_locked: true,
+          tariff_code: String(header.tariff_code),
+          tariff_name: String(header.tariff_name || header.schedule_name || header.tariff_code),
+          utility: String(header.utility || ""),
+          tariff_family: header.tariff_family || "custom",
+          version: String(header.version),
+          effective_date: String(header.effective_date),
+          expiry_date: header.expiry_date ? String(header.expiry_date) : undefined,
+          season: header.season || "high",
+          voltage_level: header.voltage_level || "high",
+          customer_class: header.customer_class || "commercial",
+          status: header.status || "active",
+          vat_treatment: header.vat_treatment || "standard_15",
+          source_document: file.name,
+          source_hash: String(header.source_hash || ""),
+          is_locked: true,
         },
-        tou_schedule: Array.isArray(tariffData.tou_schedule) ? tariffData.tou_schedule : [], components,
-        public_holidays: Array.isArray(tariffData.public_holidays) ? tariffData.public_holidays : [],
-        reactive_penalty_rate: new Decimal(tariffData.reactive_penalty_rate ?? 0), pf_threshold: new Decimal(tariffData.pf_threshold ?? 0),
-        nmd_ratchet_multiplier: new Decimal(tariffData.nmd_ratchet_multiplier ?? 0), minimum_nmd_kva: new Decimal(tariffData.minimum_nmd_kva ?? 0),
+        tou_schedule: Array.isArray(tariffData.tou_schedule) ? tariffData.tou_schedule : [],
+        components,
+        public_holidays: Array.isArray(tariffData.public_holidays)
+          ? tariffData.public_holidays
+          : [],
+        reactive_penalty_rate: new Decimal(tariffData.reactive_penalty_rate ?? 0),
+        pf_threshold: new Decimal(tariffData.pf_threshold ?? 0),
+        nmd_ratchet_multiplier: new Decimal(tariffData.nmd_ratchet_multiplier ?? 0),
+        minimum_nmd_kva: new Decimal(tariffData.minimum_nmd_kva ?? 0),
       };
       const rateCount = components.length;
 

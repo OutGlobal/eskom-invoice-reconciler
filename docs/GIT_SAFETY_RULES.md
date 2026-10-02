@@ -35,7 +35,7 @@ git branch -D <branch> (if not fully merged into trunk)
 
 ## 2. Lovable Platform History Integrity
 
-This repository is connected to **Lovable** (`https://lovable.dev`). 
+This repository is connected to **Lovable** (`https://lovable.dev`).
 
 - Any history rewriting (force pushing, rebasing, amending, or squashing commits that have already been pushed to `origin`) disrupts synchronization and can cause permanent loss of project history.
 - All commits pushed to remote branches must be additive, forward-moving changes (`git revert` or compensatory commits instead of history rewrites).

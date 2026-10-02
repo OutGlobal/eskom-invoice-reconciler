@@ -55,7 +55,7 @@ export class OcrCorrectionEngine {
    *
    * Strictly guarantees the original OCR evidence is never overwritten.
    */
-  public static applyCorrection<T = string | number | null>(
+  public static applyCorrection<T extends string | number | null = string | number | null>(
     docResult: OcrDocumentResult,
     params: ApplyOcrCorrectionParams<T>,
   ): OcrCorrectionResult {
@@ -75,13 +75,16 @@ export class OcrCorrectionEngine {
     if (docResult.evidenceRecords && docResult.evidenceRecords[fieldKey]) {
       originalEvidence = docResult.evidenceRecords[fieldKey];
     } else if (docResult.fieldEvidenceList) {
-      originalEvidence = docResult.fieldEvidenceList.find((e) => e.fieldName === fieldKey);
+      originalEvidence = docResult.fieldEvidenceList.find(
+        (e) => e.fieldName === fieldKey || e.fieldKey === fieldKey || e.field === fieldKey,
+      );
     }
 
     // Fallback: create grounded snapshot if not in direct evidence list
     if (!originalEvidence) {
       originalEvidence = {
         fieldName: fieldKey,
+        fieldKey,
         fieldLabel: params.fieldLabel || fieldKey,
         value: null,
         documentId,
@@ -221,7 +224,9 @@ export class OcrCorrectionEngine {
     if (docResult.evidenceRecords && docResult.evidenceRecords[fieldKey]) {
       originalVal = docResult.evidenceRecords[fieldKey].value;
     } else if (docResult.fieldEvidenceList) {
-      const ev = docResult.fieldEvidenceList.find((e) => e.fieldName === fieldKey);
+      const ev = docResult.fieldEvidenceList.find(
+        (e) => e.fieldName === fieldKey || e.fieldKey === fieldKey || e.field === fieldKey,
+      );
       if (ev) originalVal = ev.value;
     } else if (docResult.invoiceDeterminants) {
       const inv = (docResult.invoiceDeterminants as any)[fieldKey];

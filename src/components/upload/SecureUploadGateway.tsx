@@ -642,7 +642,9 @@ export function SecureUploadGateway() {
             file,
             organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
             userId: "user-system-admin",
-          }).catch((err) => console.warn("Stage 16 document intelligence persistence notice:", err));
+          }).catch((err) =>
+            console.warn("Stage 16 document intelligence persistence notice:", err),
+          );
 
           const ext: any = res.extractedInvoice;
           const mappedInvoice: InvoiceData = {
@@ -1146,14 +1148,19 @@ export function SecureUploadGateway() {
             <DocumentUsefulStateBanner
               usefulState="PROCESSING"
               customMessage="Analysing document…"
-              details={statusMessage || "The document is undergoing automated multi-stage extraction and analysis."}
+              details={
+                statusMessage ||
+                "The document is undergoing automated multi-stage extraction and analysis."
+              }
             />
             <TruthfulStagesTracker
-              stages={buildDocumentTreeViewModel({
-                filename: "active_document.pdf",
-                processingStatus: "PROCESSING",
-                activeStage: currentState || "TEXT_EXTRACTION",
-              }).truthfulStages}
+              stages={
+                buildDocumentTreeViewModel({
+                  filename: "active_document.pdf",
+                  processingStatus: "PROCESSING",
+                  activeStage: currentState || "TEXT_EXTRACTION",
+                }).truthfulStages
+              }
               showDescriptions
             />
           </div>
@@ -1702,7 +1709,9 @@ export function SecureUploadGateway() {
                           {(rec.fileSizeBytes / 1024).toFixed(1)} KB
                         </td>
                         <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
-                          {rec.createdAt ? format(new Date(rec.createdAt), "yyyy-MM-dd HH:mm") : "—"}
+                          {rec.createdAt
+                            ? format(new Date(rec.createdAt), "yyyy-MM-dd HH:mm")
+                            : "—"}
                         </td>
                         <td className="py-3 px-4">
                           <span

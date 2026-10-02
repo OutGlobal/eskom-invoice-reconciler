@@ -26,7 +26,9 @@ function MunicipalPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Municipal Statement Reconciliation</h1>
+        <h1 className="text-xl font-semibold text-foreground">
+          Municipal Statement Reconciliation
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Uploaded municipal statements and tariff documents will appear here after processing.
         </p>
@@ -36,9 +38,12 @@ function MunicipalPage() {
         <div className="flex h-12 w-12 items-center justify-center rounded-md border border-primary/30 bg-primary/10 text-primary">
           <Building2 className="h-6 w-6" />
         </div>
-        <h2 className="mt-4 text-base font-semibold text-foreground">No municipal statements uploaded</h2>
+        <h2 className="mt-4 text-base font-semibold text-foreground">
+          No municipal statements uploaded
+        </h2>
         <p className="mt-2 max-w-md text-sm text-muted-foreground">
-          Upload a municipal statement and its applicable tariff document to create a line-by-line reconciliation.
+          Upload a municipal statement and its applicable tariff document to create a line-by-line
+          reconciliation.
         </p>
         <Button asChild className="mt-5">
           <Link to="/upload">

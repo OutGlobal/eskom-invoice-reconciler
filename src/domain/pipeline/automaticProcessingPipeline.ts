@@ -13,10 +13,7 @@ import { DeterministicReconciliationEngine } from "../reconciliation/reconciliat
 import { DeterministicDiagnosticsEngine } from "../discrepancy/deterministicDiagnosticsEngine";
 import { EnergyDataNormalizationEngine } from "../telemetry/energyDataNormalizationEngine";
 import { TariffStorageService } from "../tariff/tariffStorageService";
-import {
-  ALL_PRODUCTION_TARIFF_FIXTURES,
-  ESKOM_MEGAFLEX_2025_2026,
-} from "../tariff/tariffFixtures";
+import { ALL_PRODUCTION_TARIFF_FIXTURES, ESKOM_MEGAFLEX_2025_2026 } from "../tariff/tariffFixtures";
 import type {
   AutomatedPipelineInput,
   AutomatedPipelineResult,
@@ -301,25 +298,15 @@ export class AutomaticProcessingPipeline {
             (extractedInvoice as any).kvarh?.toString() ||
             "0",
         ),
-        billed_energy_charges_zar: new Decimal(
-          extractedInvoice.energyCharges?.toString() || "0",
-        ),
-        billed_demand_charges_zar: new Decimal(
-          extractedInvoice.demandCharges?.toString() || "0",
-        ),
-        billed_network_charges_zar: new Decimal(
-          extractedInvoice.networkCharges?.toString() || "0",
-        ),
-        billed_service_charges_zar: new Decimal(
-          extractedInvoice.serviceCharges?.toString() || "0",
-        ),
+        billed_energy_charges_zar: new Decimal(extractedInvoice.energyCharges?.toString() || "0"),
+        billed_demand_charges_zar: new Decimal(extractedInvoice.demandCharges?.toString() || "0"),
+        billed_network_charges_zar: new Decimal(extractedInvoice.networkCharges?.toString() || "0"),
+        billed_service_charges_zar: new Decimal(extractedInvoice.serviceCharges?.toString() || "0"),
         billed_ancillary_charges_zar: new Decimal(
           extractedInvoice.ancillaryCharges?.toString() || "0",
         ),
         billed_vat_zar: new Decimal(extractedInvoice.vat?.toString() || "0"),
-        billed_total_invoice_zar: new Decimal(
-          extractedInvoice.totalInvoice?.toString() || "0",
-        ),
+        billed_total_invoice_zar: new Decimal(extractedInvoice.totalInvoice?.toString() || "0"),
 
         // Calculated Telemetry from Normalized Summary
         calc_peak_kwh: new Decimal(normalizedSummary.peakKwh.toString()),
