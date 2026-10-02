@@ -286,7 +286,13 @@ export class ReconciliationGate {
       billed_maximum_demand_kva: billedMaxDemandKva,
       billed_ratcheted_demand_kva: billedRatchetedDemandKva,
       billed_reactive_kvarh: billedReactiveKvarh,
+      billed_reactive_energy_kvarh: billedReactiveKvarh,
       billed_power_factor: billedPowerFactor,
+      billed_energy_charges_zar: toDecimal(fieldValues.energyChargesZar, "0.00"),
+      billed_demand_charges_zar: toDecimal(fieldValues.networkDemandChargeZar),
+      billed_network_charges_zar: toDecimal(fieldValues.networkAccessChargeZar),
+      billed_service_charges_zar: toDecimal(fieldValues.serviceChargeZar),
+      billed_ancillary_charges_zar: toDecimal(fieldValues.adminChargeZar),
       billed_network_demand_charge_zar: toDecimal(fieldValues.networkDemandChargeZar),
       billed_network_access_charge_zar: toDecimal(fieldValues.networkAccessChargeZar),
       billed_service_charge_zar: toDecimal(fieldValues.serviceChargeZar),
@@ -294,6 +300,7 @@ export class ReconciliationGate {
       billed_subtotal_zar: billedSubtotalZar,
       billed_vat_zar: billedVatZar,
       billed_total_zar: billedTotalZar,
+      billed_total_invoice_zar: billedTotalZar,
     };
   }
 
