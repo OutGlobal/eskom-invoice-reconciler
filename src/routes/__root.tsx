@@ -99,6 +99,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "ENERA transforms complex energy and billing information into clear, actionable intelligence for better financial and operational decisions.",
       },
       { property: "og:site_name", content: "ENERA AI" },
+      { property: "og:url", content: "https://eskom-invoice-reconciler.vercel.app" },
       { property: "og:title", content: "ENERA AI | Energy Financial Intelligence" },
       {
         property: "og:description",
@@ -125,6 +126,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
     ],
     links: [
+      { rel: "canonical", href: "https://eskom-invoice-reconciler.vercel.app" },
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
