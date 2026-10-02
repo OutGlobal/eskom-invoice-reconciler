@@ -1,0 +1,507 @@
+import React, { useState, useEffect, useMemo } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { Panel, NUM } from "@/components/dashboard/parts";
+import { DeterministicReconciliationEngine } from "@/domain/reconciliation/reconciliationEngine";
+import {
+  DEFAULT_TOLERANCE_CONFIG,
+  type AuthoritativeReconciliationPayload,
+  type DeterminantComparisonItem,
+  type ToleranceConfig,
+} from "@/domain/reconciliation/types";
+import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
+import { runAutomaticReconciliation } from "@/domain/reconciliation/autoReconciliationRunner";
+
+import {
+  Scale,
+  ShieldCheck,
+  Info,
+  CheckCircle,
+  AlertTriangle,
+  FileText,
+  RefreshCw,
+  Sliders,
+  Search,
+  Upload,
+} from "lucide-react";
+import Decimal from "decimal.js-light";
+import { useApp } from "@/lib/store";
+import { AnomalyDashboard } from "@/components/discrepancy/AnomalyDashboard";
+import { AuditViewer } from "@/components/audit/AuditViewer";
+import { InvoiceSelector } from "@/components/InvoiceSelector";
+import { StatutoryReconciliationWorkbench } from "@/components/reconciliation/StatutoryReconciliationWorkbench";
+import { Calculator } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
+
+export const Route = createFileRoute("/reconciliation")({
+  head: () => ({ meta: [{ title: "Authoritative Reconciliation Engine — Eskom Bill Balancer" }] }),
+  component: ReconciliationPage,
+});
+
+function ReconciliationPage() {
+  const activeInvoice = useApp((s) => s.invoice);
+  const meterRows = useApp((s) => s.rows);
+  const [payload, setPayload] = useState<AuthoritativeReconciliationPayload | null>(null);
+  const [selectedDeterminant, setSelectedDeterminant] = useState<DeterminantComparisonItem | null>(
+    null,
+  );
+  const [isExplainerOpen, setIsExplainerOpen] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [filterTab, setFilterTab] = useState<"all" | "discrepancies" | "matches">("all");
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<
+    "statutory" | "matrix" | "anomalies" | "evidence"
+  >("statutory");
+
+  const runReconciliation = () => {
+    const outcome = runAutomaticReconciliation(activeInvoice, meterRows, DEFAULT_TOLERANCE_CONFIG);
+    setPayload(outcome.payload);
+  };
+
+  useEffect(() => {
+    runReconciliation();
+    import("@/domain/tariff/tariffStorageService").then(({ TariffStorageService }) =>
+      TariffStorageService.hydrateFromLocal().then((n) => {
+        if (n > 0) runReconciliation();
+      }),
+    );
+  }, [activeInvoice, meterRows]);
+
+  const openExplainer = (item: DeterminantComparisonItem) => {
+    setSelectedDeterminant(item);
+    setIsExplainerOpen(true);
+  };
+
+  const filteredComparisons = useMemo(() => {
+    if (!payload) return [];
+    return payload.determinant_comparisons.filter((item) => {
+      const matchesSearch =
+        !searchTerm ||
+        item.determinant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.determinant_code.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesTab =
+        filterTab === "all"
+          ? true
+          : filterTab === "discrepancies"
+            ? item.classification === "DISCREPANCY" || item.classification === "CRITICAL"
+            : item.classification === "PASS" || item.classification === "WARNING";
+
+      return matchesSearch && matchesTab;
+    });
+  }, [payload, searchTerm, filterTab]);
+
+  if (!payload) {
+    return (
+      <div className="space-y-6">
+        <InvoiceSelector />
+        <EmptyState
+          icon={Scale}
+          title="No reconciliation has been completed."
+          description="Upload an invoice, interval meter data, and the applicable tariff document to begin reconciliation."
+          badge="Awaiting Settlement Analysis"
+          primaryAction={{
+            label: "Upload Energy Data",
+            href: "/upload",
+            icon: Upload,
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Uploaded billing period selector */}
+      <InvoiceSelector />
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold tracking-tight">
+              Authoritative Billing Reconciliation Engine
+            </h1>
+            <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full">
+              ENGINE v{payload.engine_version} &bull; DETERMINISTIC
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Zero floating-point financial settlement. 14 billing determinants compared against
+            gazetted NERSA rates and telemetry.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="rounded border border-border bg-background px-3 py-1.5 text-xs font-medium">
+            Active Invoice (
+            {activeInvoice?.invoiceNumber || activeInvoice?.invoiceNo || "Current Period"})
+          </div>
+          <button
+            onClick={runReconciliation}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Re-Run
+          </button>
+        </div>
+      </div>
+
+      {/* Workspace Hub Navigation Tabs */}
+      <div className="flex border-b border-border gap-2 overflow-x-auto">
+        <button
+          onClick={() => setActiveWorkspaceTab("statutory")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+            activeWorkspaceTab === "statutory"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Calculator className="h-4 w-4" />
+          <span>Statutory Reconciliation (2.a – 2.d)</span>
+          <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-primary/10 text-primary font-mono font-bold">
+            Statutory
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveWorkspaceTab("matrix")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+            activeWorkspaceTab === "matrix"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Scale className="h-4 w-4" />
+          <span>14-Determinant Reconciliation Matrix</span>
+          <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-muted font-mono">
+            {payload.determinant_comparisons.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveWorkspaceTab("anomalies")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+            activeWorkspaceTab === "anomalies"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <span>Root-Cause Discrepancy Diagnostics</span>
+          <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-amber-500/10 text-amber-600 font-mono">
+            12 Codes
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveWorkspaceTab("evidence")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+            activeWorkspaceTab === "evidence"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <ShieldCheck className="h-4 w-4 text-emerald-500" />
+          <span>Evidence Ledger</span>
+          <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-emerald-500/10 text-emerald-600 font-mono">
+            Audited
+          </span>
+        </button>
+      </div>
+
+      {activeWorkspaceTab === "statutory" && <StatutoryReconciliationWorkbench />}
+
+      {activeWorkspaceTab === "matrix" && (
+        <>
+          {/* Idempotency & Metadata Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="rounded-lg border border-border bg-card p-3 space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Reconciliation Run ID
+              </div>
+              <div className="text-xs font-mono font-medium truncate">{payload.run_id}</div>
+              <div className="text-[10px] text-muted-foreground">{payload.completed_at}</div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-3 space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Idempotency SHA-256 Checksum
+              </div>
+              <div className="text-xs font-mono font-medium text-emerald-600 dark:text-emerald-400 truncate">
+                {payload.result_checksum}
+              </div>
+              <div className="text-[10px] text-muted-foreground">Same Inputs = Same Output</div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-3 space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Billed vs Calculated Settlement
+              </div>
+              <div className="text-xs font-mono font-semibold text-foreground">
+                R {NUM(payload.billed_total_zar.toNumber())} / R{" "}
+                {NUM(payload.calculated_total_zar.toNumber())}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                Variance:{" "}
+                <span className="font-mono font-medium">
+                  R {NUM(payload.variance_total_zar.toNumber())} (
+                  {payload.variance_percentage.toFixed(2)}%)
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-3 space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Overall Classification
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span
+                  className={`px-2 py-0.5 text-xs font-semibold uppercase rounded font-mono ${
+                    payload.classification === "PASS"
+                      ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                      : payload.classification === "WARNING"
+                        ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                        : "bg-red-500/10 text-red-500 border border-red-500/20"
+                  }`}
+                >
+                  {payload.classification}
+                </span>
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  STATUS: {payload.status}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Filter & Search Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card p-2.5 rounded-lg border border-border">
+            <div className="flex items-center gap-1.5 w-full sm:w-auto">
+              <button
+                onClick={() => setFilterTab("all")}
+                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                  filterTab === "all"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                All Determinants (14)
+              </button>
+              <button
+                onClick={() => setFilterTab("discrepancies")}
+                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                  filterTab === "discrepancies"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                Discrepancies Only
+              </button>
+              <button
+                onClick={() => setFilterTab("matches")}
+                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                  filterTab === "matches"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                Matches (PASS)
+              </button>
+            </div>
+
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search determinant..."
+                className="w-full pl-8 pr-3 py-1 bg-background border border-border rounded text-xs"
+              />
+            </div>
+          </div>
+
+          {/* 14 Billing Determinant Comparison Matrix Table */}
+          <Panel
+            title="14 Billing Determinant Comparison Matrix"
+            subtitle="Comparing Extracted Eskom Billed Values vs Telemetry & Gazetted NERSA Calculated Values"
+          >
+            <div className="border border-border rounded-md overflow-hidden">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-muted/50 text-muted-foreground">
+                  <tr>
+                    <th className="p-2.5 font-medium">Billing Determinant</th>
+                    <th className="p-2.5 font-medium text-right">Eskom Billed</th>
+                    <th className="p-2.5 font-medium text-right">Calculated</th>
+                    <th className="p-2.5 font-medium text-right">Variance</th>
+                    <th className="p-2.5 font-medium text-right">Variance %</th>
+                    <th className="p-2.5 font-medium text-center">Status</th>
+                    <th className="p-2.5 font-medium text-center">Audit & Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredComparisons.map((item) => (
+                    <tr key={item.determinant_code} className="hover:bg-muted/20">
+                      <td className="p-2.5 font-medium">
+                        <div>{item.determinant_name}</div>
+                        <div className="text-[10px] text-muted-foreground font-mono">
+                          {item.determinant_code}
+                        </div>
+                      </td>
+                      <td className="p-2.5 font-mono text-right font-medium">
+                        {item.unit_of_measure === "ZAR"
+                          ? `R ${NUM(item.billed_value.toNumber())}`
+                          : `${item.billed_value.toString()} ${item.unit_of_measure}`}
+                      </td>
+                      <td className="p-2.5 font-mono text-right font-medium">
+                        {item.unit_of_measure === "ZAR"
+                          ? `R ${NUM(item.calculated_value.toNumber())}`
+                          : `${item.calculated_value.toString()} ${item.unit_of_measure}`}
+                      </td>
+                      <td className="p-2.5 font-mono text-right">
+                        <span
+                          className={
+                            item.variance_value.isZero()
+                              ? "text-muted-foreground"
+                              : item.variance_value.gt(0)
+                                ? "text-amber-500 font-medium"
+                                : "text-emerald-500 font-medium"
+                          }
+                        >
+                          {item.unit_of_measure === "ZAR"
+                            ? `R ${NUM(item.variance_value.toNumber())}`
+                            : `${item.variance_value.toString()} ${item.unit_of_measure}`}
+                        </span>
+                      </td>
+                      <td className="p-2.5 font-mono text-right">
+                        {item.variance_percentage.toFixed(2)}%
+                      </td>
+                      <td className="p-2.5 text-center">
+                        <span
+                          className={`px-2 py-0.5 text-[10px] font-mono font-semibold rounded ${
+                            item.classification === "PASS"
+                              ? "bg-emerald-500/10 text-emerald-500"
+                              : item.classification === "WARNING"
+                                ? "bg-amber-500/10 text-amber-500"
+                                : "bg-red-500/10 text-red-500"
+                          }`}
+                        >
+                          {item.classification}
+                        </span>
+                      </td>
+                      <td className="p-2.5 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => openExplainer(item)}
+                            className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+                            title="Inspect calculation explanation formula lineage"
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                          {item.classification !== "PASS" && (
+                            <>
+                              <button
+                                onClick={() => setActiveWorkspaceTab("anomalies")}
+                                className="px-1.5 py-0.5 text-[10px] font-medium bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 rounded"
+                                title="Jump to Root-Cause Diagnostics"
+                              >
+                                Diagnose
+                              </button>
+                              <button
+                                onClick={() => setActiveWorkspaceTab("evidence")}
+                                className="px-1.5 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 rounded"
+                                title="Trace 12-Node Evidence Chain"
+                              >
+                                Trace
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
+        </>
+      )}
+
+      {activeWorkspaceTab === "anomalies" && (
+        <div className="space-y-4">
+          <AnomalyDashboard />
+        </div>
+      )}
+
+      {activeWorkspaceTab === "evidence" && (
+        <div className="space-y-4">
+          <AuditViewer />
+        </div>
+      )}
+
+      {/* Calculation Explanation Inspector Modal */}
+      {isExplainerOpen && selectedDeterminant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-lg space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold text-sm">Calculation Explanation Lineage</h3>
+              </div>
+              <button
+                onClick={() => setIsExplainerOpen(false)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-3 bg-muted/40 rounded border border-border space-y-1">
+                <div className="font-semibold text-foreground">
+                  {selectedDeterminant.determinant_name} ({selectedDeterminant.determinant_code})
+                </div>
+                <div className="text-muted-foreground font-mono text-[11px]">
+                  {selectedDeterminant.explanation.input_value}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-muted-foreground">
+                <div>
+                  <span className="font-semibold text-foreground">Formula:</span>{" "}
+                  {selectedDeterminant.explanation.formula_used}
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Rate Applied:</span>{" "}
+                  {selectedDeterminant.explanation.rate_applied}
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Precision Model:</span>{" "}
+                  {selectedDeterminant.explanation.precision}
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Rounding Method:</span>{" "}
+                  {selectedDeterminant.explanation.rounding_method}
+                </div>
+              </div>
+
+              <div className="p-2 font-mono text-[11px] bg-background border border-border rounded text-foreground">
+                Output Value:{" "}
+                <span className="font-bold text-primary">
+                  {selectedDeterminant.explanation.output_value}{" "}
+                  {selectedDeterminant.unit_of_measure}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setIsExplainerOpen(false)}
+                className="px-4 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded hover:opacity-90"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
