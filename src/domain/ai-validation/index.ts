@@ -45,7 +45,10 @@ export { EneraAuditChainEngine } from "./eneraAuditChain";
 export { HumanReviewWorkflowEngine } from "./humanReviewWorkflow";
 export { ApprovalStateManager } from "./approvalStateManager";
 export { ReconciliationGate, ReconciliationGateError } from "./reconciliationGate";
+export { GeminiAiValidationClient } from "./geminiAiValidationClient";
+export { ValidationDatabasePersistence } from "./validationDatabasePersistence";
 export { ValidationPipeline } from "./validationPipeline";
+
 
 
 
