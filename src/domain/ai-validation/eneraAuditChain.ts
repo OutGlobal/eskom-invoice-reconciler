@@ -121,8 +121,8 @@ export class EneraAuditChainEngine {
     const deterministicLink = {
       evaluatedRules: detEvaluations.map((e) => e.ruleName),
       isPassed: isDetPassed,
-      appliedTolerance: detEvaluations.find((e) => e.appliedTolerance !== undefined)?.appliedTolerance,
-      deviation: detEvaluations.find((e) => e.observedValue !== undefined)?.difference,
+      appliedTolerance: detEvaluations.find((e) => e.toleranceApplied !== undefined)?.toleranceApplied,
+      deviation: detEvaluations.find((e) => e.difference !== undefined)?.difference,
     };
 
     // 6. USER REVIEW

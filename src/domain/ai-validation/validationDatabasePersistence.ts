@@ -75,7 +75,7 @@ export class ValidationDatabasePersistence {
         (result.deterministicValidation?.evaluations?.length || 0) +
         (result.crossFieldValidation?.findings?.length || 0),
       errors_count: result.exceptions?.length || 0,
-      ai_failure_mode: result.aiFailure?.mode || null,
+      ai_failure_mode: result.aiFailure?.reason || null,
       reconciliation_handoff_ready: result.reconciliationHandoffReady || false,
       full_snapshot_json: result,
       created_at: now,
@@ -178,7 +178,7 @@ export class ValidationDatabasePersistence {
         field_key: correction.fieldKey,
         original_value: correction.originalValue !== null ? String(correction.originalValue) : null,
         corrected_value: String(correction.correctedValue),
-        reason: correction.reason,
+        reason: correction.correctionReason,
         reviewer: correction.reviewer,
         source_page: correction.evidence?.sourcePage || 1,
         bounding_box: correction.evidence?.boundingBox || null,

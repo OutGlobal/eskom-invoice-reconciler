@@ -1,5 +1,7 @@
+// @ts-ignore
 import * as tslibOriginal from "../../node_modules/tslib/tslib.es6.mjs";
 
+// @ts-ignore
 export * from "../../node_modules/tslib/tslib.es6.mjs";
 
 const defaultExport = {

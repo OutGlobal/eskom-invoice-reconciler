@@ -285,7 +285,6 @@ export class ReconciliationGate {
       billed_total_kwh: billedTotalKwh,
       billed_maximum_demand_kva: billedMaxDemandKva,
       billed_ratcheted_demand_kva: billedRatchetedDemandKva,
-      billed_reactive_kvarh: billedReactiveKvarh,
       billed_reactive_energy_kvarh: billedReactiveKvarh,
       billed_power_factor: billedPowerFactor,
       billed_energy_charges_zar: toDecimal(fieldValues.energyChargesZar, "0.00"),

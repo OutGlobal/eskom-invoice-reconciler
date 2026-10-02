@@ -72,11 +72,16 @@ export class GeminiAiValidationClient {
     // Build structured payload adhering to schema
     const structuredPayload = StructuredAiPayloadBuilder.buildPayload({
       documentId,
-      fullDocumentText,
       candidateFields,
     });
 
     const endpoint = `${this.API_ENDPOINT_BASE}/${this.MODEL_NAME}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+    const promptText = `${structuredPayload.systemInstructions}\n\nExpected Output Schema:\n${structuredPayload.expectedOutputJsonSchema}\n\nCandidate Fields:\n${JSON.stringify(
+      structuredPayload.candidateFields,
+      null,
+      2,
+    )}`;
 
     const requestBody = {
       contents: [
@@ -84,11 +89,7 @@ export class GeminiAiValidationClient {
           role: "user",
           parts: [
             {
-              text: `${structuredPayload.promptContract.systemPrompt}\n\n${structuredPayload.promptContract.developerGuidance}\n\nDocument Payload:\n${JSON.stringify(
-                structuredPayload.structuredContext,
-                null,
-                2,
-              )}`,
+              text: promptText,
             },
           ],
         },
@@ -156,9 +157,8 @@ export class GeminiAiValidationClient {
       }
 
       // Convert validated structured output into AiSemanticValidationResult
-      return StructuredAiResponseValidator.convertToSemanticResult(
+      return StructuredAiResponseValidator.toSemanticValidationResult(
         validation.data,
-        candidateFields,
       );
     } catch (err: any) {
       clearTimeout(timeoutId);
