@@ -13,7 +13,13 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  nitro: {
+    noExternals: true,
+  },
   vite: {
+    ssr: {
+      noExternal: true,
+    },
     resolve: {
       alias: {
         "lucide-react": path.resolve(
