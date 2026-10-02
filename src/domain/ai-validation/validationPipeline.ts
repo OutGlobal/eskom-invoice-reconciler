@@ -155,28 +155,23 @@ export class ValidationPipeline {
           : `${exceptions.length} exception(s) require human review before reconciliation handoff.`,
     };
 
-    // Build Validated Fields Map
+    // Build Validated Fields Map with Field Validation Scores (Reqs 10 & 11)
     const validatedFields: CompleteValidationResult["validatedFields"] = {};
     for (const f of candidateFields) {
       const fieldEvidence = evidenceCheck.results.find((r) => r.fieldKey === f.fieldKey);
       const isFieldGrounded = fieldEvidence?.isGrounded ?? false;
-      const hasFieldException = exceptions.some(
-        (e) => e.fieldKey === f.fieldKey && e.severity === "CRITICAL",
-      );
+      const fieldScore = confidence.fieldScores[f.fieldKey];
 
-      let fieldStatus: "VALIDATED" | "UNKNOWN" | "REVIEW_REQUIRED" = "VALIDATED";
-      if (!isFieldGrounded || f.value === null) {
-        fieldStatus = "UNKNOWN";
-      } else if (hasFieldException) {
-        fieldStatus = "REVIEW_REQUIRED";
-      }
+      const fieldState =
+        fieldScore?.status || (isFieldGrounded && f.value !== null ? "VALID" : "MISSING");
 
       validatedFields[f.fieldKey] = {
-        value: fieldStatus === "UNKNOWN" ? null : f.value,
+        value: fieldState === "MISSING" ? null : f.value,
         rawValue: f.rawValue,
         confidence: f.opticalConfidence,
+        validationScore: fieldScore,
         isGrounded: isFieldGrounded,
-        status: fieldStatus,
+        status: fieldState,
         provenance: {
           pageNumber: f.sourcePage,
           boundingBox: f.boundingBox,

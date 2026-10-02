@@ -117,6 +117,7 @@ export class AiSemanticValidator {
       return {
         fieldKey: field.fieldKey,
         consistencyLevel: "UNKNOWN",
+        status: "MISSING",
         semanticConfidence: 0,
         interpretationSummary: `Field '${field.fieldKey}' has no value in evidence.`,
         anomalyDetected: true,
@@ -134,6 +135,7 @@ export class AiSemanticValidator {
       return {
         fieldKey: field.fieldKey,
         consistencyLevel: isConsistent ? "CONSISTENT" : "AMBIGUOUS",
+        status: isConsistent ? "VALID" : "UNCERTAIN",
         semanticConfidence: isConsistent ? 92 : 55,
         interpretationSummary: isConsistent
           ? `Account number '${valStr}' adheres to standard utility billing format.`
@@ -159,6 +161,7 @@ export class AiSemanticValidator {
       return {
         fieldKey: field.fieldKey,
         consistencyLevel: isValidDate ? "CONSISTENT" : "AMBIGUOUS",
+        status: isValidDate ? "VALID" : "UNCERTAIN",
         semanticConfidence: isValidDate ? 95 : 60,
         interpretationSummary: isValidDate
           ? `Date field '${field.fieldKey}' parsed as valid calendar date: '${valStr}'.`
@@ -183,6 +186,7 @@ export class AiSemanticValidator {
       return {
         fieldKey: field.fieldKey,
         consistencyLevel: isReasonableFinancial ? "CONSISTENT" : "INCONSISTENT",
+        status: isReasonableFinancial ? "VALID" : "INVALID",
         semanticConfidence: isReasonableFinancial ? 94 : 30,
         interpretationSummary: isReasonableFinancial
           ? `Financial field '${field.fieldKey}' represents non-negative charge: R ${numVal.toFixed(2)}.`
@@ -200,6 +204,7 @@ export class AiSemanticValidator {
     return {
       fieldKey: field.fieldKey,
       consistencyLevel: "CONSISTENT",
+      status: "VALID",
       semanticConfidence: 88,
       interpretationSummary: `Field '${field.fieldKey}' is semantically consistent with extracted value '${valStr}'.`,
       anomalyDetected: false,

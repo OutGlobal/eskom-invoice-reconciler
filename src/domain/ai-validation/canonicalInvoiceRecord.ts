@@ -46,7 +46,16 @@ export interface CanonicalField<T = string | number> {
   unit?: string;
   source: FieldEvidenceSource | null;
   confidence: number; // 0.0 to 1.0
-  status: "VALIDATED" | "UNKNOWN" | "REVIEW_REQUIRED";
+  validationConfidenceScore?: number; // 0 to 100
+  status:
+    | "VALID"
+    | "INVALID"
+    | "UNCERTAIN"
+    | "MISSING"
+    | "CONFLICT"
+    | "REVIEW_REQUIRED"
+    | "VALIDATED"
+    | "UNKNOWN";
   validationNotes?: string;
 }
 
@@ -167,7 +176,16 @@ export class CanonicalInvoiceBuilder {
     extractionMethod?: "ocr" | "native_pdf" | "hybrid";
     processingRunId?: string;
     confidence?: number;
-    status?: "VALIDATED" | "UNKNOWN" | "REVIEW_REQUIRED";
+    validationConfidenceScore?: number;
+    status?:
+      | "VALID"
+      | "INVALID"
+      | "UNCERTAIN"
+      | "MISSING"
+      | "CONFLICT"
+      | "REVIEW_REQUIRED"
+      | "VALIDATED"
+      | "UNKNOWN";
     validationNotes?: string;
   }): CanonicalField<T> {
     const rawVal = params.rawValue ?? (params.value !== null ? String(params.value) : "");
@@ -196,7 +214,7 @@ export class CanonicalInvoiceBuilder {
     }
 
     const fieldStatus =
-      params.status || (params.value === null ? "UNKNOWN" : source ? "VALIDATED" : "UNKNOWN");
+      params.status || (params.value === null ? "MISSING" : source ? "VALID" : "UNKNOWN");
 
     return {
       field: params.field,
@@ -205,6 +223,7 @@ export class CanonicalInvoiceBuilder {
       unit: params.unit,
       source,
       confidence: confNorm,
+      validationConfidenceScore: params.validationConfidenceScore,
       status: fieldStatus,
       validationNotes: params.validationNotes,
     };
@@ -236,11 +255,14 @@ export class CanonicalInvoiceBuilder {
       const val = (valField?.value as T) ?? (cand?.value as T) ?? defaultValue;
       const raw = valField?.rawValue ?? cand?.rawValue ?? "";
       const conf = valField?.confidence ?? cand?.opticalConfidence ?? 0;
+      const valScore =
+        valField?.validationScore?.score ??
+        (typeof conf === "number" ? Math.round(conf) : undefined);
       const page = cand?.sourcePage ?? valField?.provenance?.pageNumber ?? 1;
       const text = cand?.sourceText ?? valField?.provenance?.sourceText ?? raw;
       const bbox = cand?.boundingBox ?? valField?.provenance?.boundingBox;
       const runId = cand?.processingRunId;
-      const status = valField?.status ?? (val !== null ? "VALIDATED" : "UNKNOWN");
+      const status = valField?.status ?? (val !== null ? "VALID" : "MISSING");
 
       return this.createField<T>({
         field: fieldKey,
@@ -254,6 +276,7 @@ export class CanonicalInvoiceBuilder {
         extractionMethod: "ocr",
         processingRunId: runId,
         confidence: conf,
+        validationConfidenceScore: valScore,
         status,
       });
     };

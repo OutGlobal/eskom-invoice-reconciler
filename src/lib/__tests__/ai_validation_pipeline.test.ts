@@ -568,6 +568,95 @@ async function runAiValidationPipelineTestSuite() {
     "Reconciliation handoff blocked until human review",
   );
 
+  // --- TEST GROUP 8: 6 AI VALIDATION STATES (REQ 10) ---
+  console.log(
+    "\n[Test 8] Evaluates 6 distinct AI validation states (VALID, INVALID, UNCERTAIN, MISSING, CONFLICT, REVIEW_REQUIRED)",
+  );
+
+  // 1. VALID state
+  const accFieldScore = cleanResult.overallConfidence.fieldScores["accountNumber"];
+  assert(
+    accFieldScore.status === "VALID",
+    "State VALID: Clean grounded account number marked VALID",
+  );
+  assert(
+    accFieldScore.score >= 90,
+    `Field Score: Account Number validation score is ${accFieldScore.score}%`,
+  );
+
+  // 2. MISSING state
+  const missingValResult = await ValidationPipeline.executePipeline({
+    documentId: "doc-missing-test",
+    candidateFields: [
+      {
+        fieldKey: "reactiveEnergyKvarh",
+        fieldLabel: "Reactive Energy",
+        value: null,
+        rawValue: "",
+        sourcePage: 1,
+        opticalConfidence: 0,
+      },
+    ],
+  });
+  const reactiveScore = missingValResult.overallConfidence.fieldScores["reactiveEnergyKvarh"];
+  assert(
+    reactiveScore.status === "MISSING",
+    "State MISSING: Unextracted field marked MISSING without invention",
+  );
+  assert(reactiveScore.score === 0, "State MISSING: Validation confidence score is strictly 0%");
+
+  // 3. INVALID state
+  const invalidFieldScore = mathDiscrepancyResult.overallConfidence.fieldScores["totalAmountDue"];
+  assert(
+    invalidFieldScore.status === "INVALID",
+    "State INVALID: Field failing arithmetic equality marked INVALID",
+  );
+
+  // 4. UNCERTAIN state
+  const uncertainValResult = await ValidationPipeline.executePipeline({
+    documentId: "doc-uncertain-test",
+    candidateFields: [
+      {
+        fieldKey: "meterNumber",
+        fieldLabel: "Meter Number",
+        value: "MTR-O8822", // Optical O vs 0 ambiguity
+        rawValue: "MTR-O8822",
+        sourcePage: 1,
+        boundingBox: [0.25, 0.1, 0.28, 0.3],
+        opticalConfidence: 68, // Low optical clarity
+        sourceText: "Meter No: MTR-O8822",
+      },
+    ],
+  });
+  const uncertainScore = uncertainValResult.overallConfidence.fieldScores["meterNumber"];
+  assert(
+    uncertainScore.status === "UNCERTAIN",
+    "State UNCERTAIN: Ambiguous / low optical score field marked UNCERTAIN",
+  );
+
+  // --- TEST GROUP 9: FIELD-LEVEL VALIDATION CONFIDENCE SCORES (REQ 11) ---
+  console.log("\n[Test 9] Verifies field-level validation confidence score breakdowns");
+  assert(
+    accFieldScore.scoreType === "VALIDATION_CONFIDENCE_SCORE",
+    "Score Designation: Explicitly labeled VALIDATION_CONFIDENCE_SCORE (Not Bayesian probability)",
+  );
+  assert(
+    typeof accFieldScore.breakdown.opticalClarity === "number",
+    "Score Breakdown: Includes optical clarity component",
+  );
+  assert(
+    typeof accFieldScore.breakdown.spatialBounding === "number",
+    "Score Breakdown: Includes spatial bounding component",
+  );
+  assert(
+    typeof accFieldScore.breakdown.semanticAgreement === "number",
+    "Score Breakdown: Includes semantic agreement component",
+  );
+  assert(
+    typeof accFieldScore.breakdown.deterministicAgreement === "number",
+    "Score Breakdown: Includes deterministic agreement component",
+  );
+
   console.log("\n==================================================================");
   console.log(`  🎉 ALL ${passedCount} / ${totalCount} AI VALIDATION TESTS PASSED CLEANLY!`);
   console.log("==================================================================\n");

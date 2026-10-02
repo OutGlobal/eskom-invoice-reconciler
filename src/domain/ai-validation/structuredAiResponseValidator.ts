@@ -14,6 +14,7 @@ import type {
   AiSemanticValidationResult,
   SemanticValidationFinding,
   SemanticConsistencyLevel,
+  AiFieldValidationState,
 } from "./types";
 
 // --- 1. ZOD OUTPUT SCHEMAS ---
@@ -132,9 +133,18 @@ export class StructuredAiResponseValidator {
   ): AiSemanticValidationResult {
     const findings: SemanticValidationFinding[] = validatedAiData.validated_fields.map((f) => {
       let consistencyLevel: SemanticConsistencyLevel = "CONSISTENT";
-      if (f.status === "INVALID") consistencyLevel = "INCONSISTENT";
-      else if (f.status === "AMBIGUOUS") consistencyLevel = "AMBIGUOUS";
-      else if (f.status === "UNKNOWN") consistencyLevel = "UNKNOWN";
+      let status: AiFieldValidationState = "VALID";
+
+      if (f.status === "INVALID") {
+        consistencyLevel = "INCONSISTENT";
+        status = "INVALID";
+      } else if (f.status === "AMBIGUOUS") {
+        consistencyLevel = "AMBIGUOUS";
+        status = "UNCERTAIN";
+      } else if (f.status === "UNKNOWN") {
+        consistencyLevel = "UNKNOWN";
+        status = "MISSING";
+      }
 
       const isAnomaly = f.status === "INVALID" || f.status === "AMBIGUOUS";
       const snippets = f.evidence.map((e) => e.source_text);
@@ -142,6 +152,7 @@ export class StructuredAiResponseValidator {
       return {
         fieldKey: f.field,
         consistencyLevel,
+        status,
         semanticConfidence: Math.round(f.confidence * 100),
         interpretationSummary: f.reason,
         anomalyDetected: isAnomaly,

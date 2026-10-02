@@ -20,10 +20,11 @@
  *   Approval / Review
  *
  * MANDATE & CORE PRINCIPLES:
- * 1. AI may interpret evidence. AI may NOT invent evidence.
- * 2. Never manufacture missing values, silently change financial numbers, or invent accounts.
- * 3. If evidence is insufficient, return UNKNOWN or REVIEW_REQUIRED.
- * 4. Separate Extraction vs. AI Validation vs. Deterministic Validation vs. Reconciliation.
+ * 1. Support 6 AI Validation States: VALID, INVALID, UNCERTAIN, MISSING, CONFLICT, REVIEW_REQUIRED.
+ * 2. Field-level validation confidence scores (not statistical Bayesian calibrated probabilities).
+ * 3. AI may interpret evidence. AI may NOT invent evidence.
+ * 4. Never manufacture missing values, silently change financial numbers, or invent accounts.
+ * 5. If evidence is insufficient, return UNKNOWN / MISSING / REVIEW_REQUIRED.
  */
 
 import type {
@@ -44,7 +45,29 @@ export interface LayerContract {
   prohibitions: string[];
 }
 
-// --- 2. CANDIDATE DATA & EVIDENCE CHECK ---
+// --- 2. AI VALIDATION STATES (REQUIREMENT 10) ---
+
+export type AiFieldValidationState =
+  "VALID" | "INVALID" | "UNCERTAIN" | "MISSING" | "CONFLICT" | "REVIEW_REQUIRED";
+
+// --- 3. FIELD-LEVEL CONFIDENCE (REQUIREMENT 11) ---
+
+export interface FieldValidationConfidenceScore {
+  fieldKey: string;
+  fieldLabel: string;
+  score: number; // 0 to 100 validation confidence score
+  status: AiFieldValidationState;
+  scoreType: "VALIDATION_CONFIDENCE_SCORE"; // Explicitly designated as validation score, not calibrated Bayesian probability
+  breakdown: {
+    opticalClarity: number; // 0..100
+    spatialBounding: number; // 0..100
+    semanticAgreement: number; // 0..100
+    deterministicAgreement: number; // 0..100
+  };
+  reasoning: string;
+}
+
+// --- 4. CANDIDATE DATA & EVIDENCE CHECK ---
 
 export type GroundedStatus = "FULLY_GROUNDED" | "PARTIALLY_GROUNDED" | "UNGROUNDED" | "UNKNOWN";
 
@@ -72,13 +95,14 @@ export interface GroundedEvidenceCheckResult {
   reason: string;
 }
 
-// --- 3. AI SEMANTIC VALIDATION ---
+// --- 5. AI SEMANTIC VALIDATION ---
 
 export type SemanticConsistencyLevel = "CONSISTENT" | "AMBIGUOUS" | "INCONSISTENT" | "UNKNOWN";
 
 export interface SemanticValidationFinding {
   fieldKey: string;
   consistencyLevel: SemanticConsistencyLevel;
+  status: AiFieldValidationState;
   semanticConfidence: number;
   interpretationSummary: string;
   anomalyDetected: boolean;
@@ -97,7 +121,7 @@ export interface AiSemanticValidationResult {
   unresolvedAmbiguities: string[];
 }
 
-// --- 4. DETERMINISTIC RULES & ARITHMETIC ---
+// --- 6. DETERMINISTIC RULES & ARITHMETIC ---
 
 export type DeterministicRuleType =
   | "SUBTOTAL_VAT_TOTAL_SUM"
@@ -128,7 +152,7 @@ export interface DeterministicValidationResult {
   evaluations: DeterministicRuleEvaluation[];
 }
 
-// --- 5. CROSS-FIELD VALIDATION ---
+// --- 7. CROSS-FIELD VALIDATION ---
 
 export interface CrossFieldValidationFinding {
   ruleCode: string;
@@ -142,7 +166,7 @@ export interface CrossFieldValidationResult {
   findings: CrossFieldValidationFinding[];
 }
 
-// --- 6. MULTI-FACTOR CONFIDENCE CALCULATION ---
+// --- 8. MULTI-FACTOR CONFIDENCE CALCULATION ---
 
 export type ValidationConfidenceTier = "HIGH" | "MEDIUM" | "LOW";
 
@@ -152,13 +176,14 @@ export interface ValidationConfidenceBreakdown {
   semanticScore: number; // 0..100 (AI semantic consistency)
   deterministicScore: number; // 0..100 (exact arithmetic & structural rules)
   crossFieldScore: number; // 0..100 (relational cross-checks)
-  overallScore: number; // 0..100 (weighted aggregate)
+  overallScore: number; // 0..100 (weighted aggregate validation score)
   tier: ValidationConfidenceTier;
   isReliable: boolean;
   requiresReview: boolean;
+  fieldScores: Record<string, FieldValidationConfidenceScore>;
 }
 
-// --- 7. EXCEPTION GENERATION ---
+// --- 9. EXCEPTION GENERATION ---
 
 export type ExceptionSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 export type ExceptionCategory =
@@ -187,7 +212,7 @@ export interface ValidationExceptionRecord {
   createdAt: string;
 }
 
-// --- 8. APPROVAL & REVIEW WORKFLOW ---
+// --- 10. APPROVAL & REVIEW WORKFLOW ---
 
 export type ValidationLifecycleStatus =
   | "PENDING"
@@ -206,7 +231,7 @@ export interface ValidationApprovalRecord {
   blockingExceptionCount: number;
 }
 
-// --- 9. FULL VALIDATION PIPELINE RESULT ---
+// --- 11. FULL VALIDATION PIPELINE RESULT ---
 
 export interface CompleteValidationResult {
   validationRunId: string;
@@ -232,8 +257,9 @@ export interface CompleteValidationResult {
       value: string | number | null;
       rawValue: string;
       confidence: number;
+      validationScore: FieldValidationConfidenceScore;
       isGrounded: boolean;
-      status: "VALIDATED" | "UNKNOWN" | "REVIEW_REQUIRED";
+      status: AiFieldValidationState;
       provenance?: {
         pageNumber: number;
         boundingBox?: [number, number, number, number];
