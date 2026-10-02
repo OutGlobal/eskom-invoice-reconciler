@@ -14,9 +14,12 @@ import {
   ValidationPipeline,
   EvidenceCheckEngine,
   DeterministicRuleEngine,
+  CrossFieldValidator,
   CanonicalInvoiceBuilder,
   StructuredAiPayloadBuilder,
   StructuredAiResponseValidator,
+  VALIDATION_TOLERANCES,
+  ValidationToleranceEvaluator,
   type CandidateFieldValidationInput,
 } from "../../domain/ai-validation";
 
@@ -995,6 +998,236 @@ async function runAiValidationPipelineTestSuite() {
   assert(failingField.status === "INVALID", "Deterministic Precedence: Deterministic rule failure forces field state to INVALID");
   assert(invalidPfResult.status === "REVIEW_REQUIRED", "Deterministic Precedence: AI cannot override deterministic failure");
 
+  // --- TEST GROUP 14: CENTRALIZED TOLERANCES & DOMAIN RATIONALE (REQ 16) ---
+  console.log("\n[Test 14] Evaluates centralized tolerances and explicit rounding evaluations");
+
+  // 1. Verify tolerance definitions exist and have documented rationales
+  assert(VALIDATION_TOLERANCES.FINANCIAL_CENT.value === 0.02, "Tolerances: Financial cent tolerance is 2 cents");
+  assert(typeof VALIDATION_TOLERANCES.FINANCIAL_CENT.rationale === "string", "Tolerances: Financial cent rationale documented");
+  assert(VALIDATION_TOLERANCES.ENERGY_KWH.value === 1.0, "Tolerances: Energy kWh tolerance is 1.0 kWh");
+  assert(typeof VALIDATION_TOLERANCES.ENERGY_KWH.rationale === "string", "Tolerances: Energy kWh rationale documented");
+  assert(VALIDATION_TOLERANCES.METER_CONSUMPTION_DELTA.value === 2.0, "Tolerances: Meter reading delta tolerance is 2.0 kWh");
+
+  // 2. Tolerance Evaluator - within tolerance
+  const evalWithin = ValidationToleranceEvaluator.evaluateNumericTolerance({
+    expected: 100.0,
+    actual: 100.015,
+    toleranceDef: VALIDATION_TOLERANCES.FINANCIAL_CENT,
+  });
+  assert(evalWithin.isPassed === true, "Tolerance Evaluator: R 0.015 diff passes within R 0.02 tolerance");
+  assert(evalWithin.difference === 0.015, "Tolerance Evaluator: Difference recorded accurately");
+
+  // 3. Tolerance Evaluator - exceeds tolerance
+  const evalExceeds = ValidationToleranceEvaluator.evaluateNumericTolerance({
+    expected: 100.0,
+    actual: 100.05,
+    toleranceDef: VALIDATION_TOLERANCES.FINANCIAL_CENT,
+  });
+  assert(evalExceeds.isPassed === false, "Tolerance Evaluator: R 0.05 diff correctly fails R 0.02 tolerance");
+  assert(typeof evalExceeds.message === "string", "Tolerance Evaluator: Clear error message generated on exceedance");
+
+  // --- TEST GROUP 15: COMPREHENSIVE CROSS-FIELD VALIDATION (REQ 17) ---
+  console.log("\n[Test 15] Evaluates all 7 relational cross-field validation rules");
+
+  // Test full candidate invoice with all 7 cross-field relations
+  const fullCrossCandidateFields: CandidateFieldValidationInput[] = [
+    // 1. Account & Customer & Site
+    {
+      fieldKey: "accountNumber",
+      fieldLabel: "Account Number",
+      value: "0123456789",
+      rawValue: "0123456789",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Account: 0123456789",
+    },
+    {
+      fieldKey: "customerName",
+      fieldLabel: "Customer Name",
+      value: "Mega Industrial Plant Pty Ltd",
+      rawValue: "Mega Industrial Plant Pty Ltd",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Customer: Mega Industrial Plant Pty Ltd",
+    },
+    {
+      fieldKey: "premiseAddress",
+      fieldLabel: "Premise Address",
+      value: "Portion 5, Farm Industrial Park, Rustenburg",
+      rawValue: "Portion 5, Farm Industrial Park, Rustenburg",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Premise: Portion 5, Farm Industrial Park, Rustenburg",
+    },
+    // 2. Meter Number
+    {
+      fieldKey: "meterNumber",
+      fieldLabel: "Meter Number",
+      value: "MTR-883311-ZA",
+      rawValue: "MTR-883311-ZA",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Meter No: MTR-883311-ZA",
+    },
+    // 3. Billing Period & Invoice Dates
+    {
+      fieldKey: "billingPeriodStart",
+      fieldLabel: "Billing Period Start",
+      value: "2026-04-01",
+      rawValue: "01 April 2026",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Billing Period: 01/04/2026",
+    },
+    {
+      fieldKey: "billingPeriodEnd",
+      fieldLabel: "Billing Period End",
+      value: "2026-04-30",
+      rawValue: "30 April 2026",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "to 30/04/2026",
+    },
+    {
+      fieldKey: "issueDate",
+      fieldLabel: "Invoice Issue Date",
+      value: "2026-05-02",
+      rawValue: "02 May 2026",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Date of Issue: 02 May 2026",
+    },
+    // 4. Tariff Category
+    {
+      fieldKey: "tariffName",
+      fieldLabel: "Tariff Name",
+      value: "Megaflex Non-Local High Voltage",
+      rawValue: "Megaflex Non-Local High Voltage",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Tariff: Megaflex Non-Local High Voltage",
+    },
+    // 5. TOU Active Energy Balance
+    {
+      fieldKey: "peakEnergyKwh",
+      fieldLabel: "Peak Active Energy",
+      value: 50000,
+      rawValue: "50,000 kWh",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Peak: 50,000 kWh",
+    },
+    {
+      fieldKey: "standardEnergyKwh",
+      fieldLabel: "Standard Active Energy",
+      value: 100000,
+      rawValue: "100,000 kWh",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Standard: 100,000 kWh",
+    },
+    {
+      fieldKey: "offPeakEnergyKwh",
+      fieldLabel: "Off-Peak Active Energy",
+      value: 50000,
+      rawValue: "50,000 kWh",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Off-Peak: 50,000 kWh",
+    },
+    {
+      fieldKey: "totalActiveEnergyKwh",
+      fieldLabel: "Total Active Energy",
+      value: 200000, // 50k + 100k + 50k == 200k
+      rawValue: "200,000 kWh",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Total kWh: 200,000 kWh",
+    },
+    // 6. Subtotal + VAT (15%) == Invoice Total
+    {
+      fieldKey: "subtotal",
+      fieldLabel: "Subtotal",
+      value: 500000,
+      rawValue: "R 500,000.00",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Subtotal Excl VAT: R 500,000.00",
+    },
+    {
+      fieldKey: "vatAmount",
+      fieldLabel: "VAT Amount",
+      value: 75000, // 15% of 500,000 == 75,000
+      rawValue: "R 75,000.00",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "VAT 15%: R 75,000.00",
+    },
+    {
+      fieldKey: "totalAmountDue",
+      fieldLabel: "Total Amount Due",
+      value: 575000, // 500k + 75k == 575k
+      rawValue: "R 575,000.00",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Total Due: R 575,000.00",
+    },
+    // 7. Meter Readings Delta: (Curr - Prev) * Multiplier == Billed Total
+    {
+      fieldKey: "previousReading",
+      fieldLabel: "Previous Meter Index",
+      value: 12000,
+      rawValue: "12,000",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Previous Reading: 12,000",
+    },
+    {
+      fieldKey: "currentReading",
+      fieldLabel: "Current Meter Index",
+      value: 14000,
+      rawValue: "14,000",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Current Reading: 14,000",
+    },
+    {
+      fieldKey: "meterMultiplier",
+      fieldLabel: "Meter Multiplier",
+      value: 100, // (14,000 - 12,000) * 100 == 200,000 kWh
+      rawValue: "100",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "CT/VT Multiplier: 100",
+    },
+  ];
+
+  const crossResult = CrossFieldValidator.validateCrossFields(fullCrossCandidateFields);
+
+  assert(crossResult.isCompliant === true, "Cross-Field: All 7 cross-field relational checks passed");
+  assert(crossResult.findings.length === 7, "Cross-Field: Exactly 7 cross-field findings generated");
+
+  const accFinding = crossResult.findings.find((f) => f.ruleCode === "ACCOUNT_CUSTOMER_SITE_LINK");
+  assert(accFinding !== undefined && accFinding.isConsistent === true, "Cross-Field 1: Account ↔ Customer/Site confirmed");
+
+  const meterFinding = crossResult.findings.find((f) => f.ruleCode === "METER_SITE_LINK");
+  assert(meterFinding !== undefined && meterFinding.isConsistent === true, "Cross-Field 2: Meter ↔ Site confirmed");
+
+  const datesFinding = crossResult.findings.find((f) => f.ruleCode === "BILLING_PERIOD_INVOICE_DATES");
+  assert(datesFinding !== undefined && datesFinding.isConsistent === true, "Cross-Field 3: Billing period ↔ Invoice dates confirmed");
+
+  const tariffFinding = crossResult.findings.find((f) => f.ruleCode === "TARIFF_DOCUMENT_CATEGORY");
+  assert(tariffFinding !== undefined && tariffFinding.isConsistent === true, "Cross-Field 4: Tariff ↔ Category confirmed");
+
+  const touFinding = crossResult.findings.find((f) => f.ruleCode === "TOU_TOTAL_ENERGY_BALANCE");
+  assert(touFinding !== undefined && touFinding.isConsistent === true, "Cross-Field 5: TOU Active Energy ↔ Total Active Energy confirmed");
+
+  const finFinding = crossResult.findings.find((f) => f.ruleCode === "SUBTOTAL_VAT_TOTAL_RELATION");
+  assert(finFinding !== undefined && finFinding.isConsistent === true, "Cross-Field 6: Subtotal + VAT ↔ Invoice Total (15% rate) confirmed");
+
+  const deltaFinding = crossResult.findings.find((f) => f.ruleCode === "CONSUMPTION_METER_READINGS_DELTA");
+  assert(deltaFinding !== undefined && deltaFinding.isConsistent === true, "Cross-Field 7: Consumption ↔ (Current - Previous) * Multiplier confirmed");
+
   console.log("\n==================================================================");
   console.log(`  🎉 ALL ${passedCount} / ${totalCount} AI VALIDATION TESTS PASSED CLEANLY!`);
   console.log("==================================================================\n");
@@ -1004,5 +1237,6 @@ runAiValidationPipelineTestSuite().catch((err) => {
   console.error("AI Validation Test Suite Failed:", err);
   process.exit(1);
 });
+
 
 

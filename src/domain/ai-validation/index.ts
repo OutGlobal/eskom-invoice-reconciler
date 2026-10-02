@@ -23,6 +23,7 @@
 
 export * from "./types";
 export * from "./canonicalInvoiceRecord";
+export * from "./validationTolerances";
 export * from "./structuredAiPayloadBuilder";
 export * from "./structuredAiResponseValidator";
 export { EvidenceCheckEngine } from "./evidenceCheckEngine";

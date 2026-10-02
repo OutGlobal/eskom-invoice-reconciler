@@ -22,10 +22,11 @@ import type {
   DeterministicRuleEvaluation,
   DeterministicValidationResult,
 } from "./types";
+import { VALIDATION_TOLERANCES } from "./validationTolerances";
 
 export class DeterministicRuleEngine {
-  private static readonly FINANCIAL_TOLERANCE = 0.02; // R 0.02 rounding tolerance
-  private static readonly ENERGY_TOLERANCE = 1.0; // 1 kWh rounding tolerance
+  private static readonly FINANCIAL_TOLERANCE = VALIDATION_TOLERANCES.FINANCIAL_CENT.value;
+  private static readonly ENERGY_TOLERANCE = VALIDATION_TOLERANCES.ENERGY_KWH.value;
 
   /**
    * Evaluates all deterministic rules across candidate fields.
