@@ -4461,6 +4461,134 @@ async function runAiValidationPipelineTestSuite() {
     assert(chainRecord.chain.approvedValue.isReadyForReconciliation === true, `Acceptance Traceability: ${field.fieldKey} marked authoritative for reconciliation handoff`);
   }
 
+  // =========================================================================
+  // SECTION 20: PDF INGESTION & RESILIENT LAYOUT ACCEPTANCE TEST
+  // =========================================================================
+  console.log("\n--- SECTION 20: PDF INGESTION & RESILIENT LAYOUT ACCEPTANCE ---");
+
+  const { DocumentIntelligencePipeline } = await import("../../domain/intelligence/documentIntelligencePipeline");
+  const { LayoutAnalysisEngine } = await import("../../domain/intelligence/layoutAnalysisEngine");
+  const { buildDocumentTreeViewModel, resolveUsefulDocumentState } = await import("../../domain/intelligence/frontendDocumentTypes");
+  const { PersistentDocumentIntelligenceService } = await import("../../domain/intelligence/persistentDocumentIntelligenceService");
+
+  // Create a realistic Eskom 33kV invoice text stream simulating Millennium_33kV_Eskom_Apr_2026.pdf
+  const eskomInvoicePdfContent = `%PDF-1.4
+%ESKOM INVOICE STREAM
+ESKOM HOLDINGS SOC LTD
+TAX INVOICE / STATEMENT
+Customer: Millennium 33kV Smelter (Pty) Ltd
+Account Number: 7856504676
+Tax Invoice Number: 785101497007
+Billing Period: 2026-04-01 to 2026-04-30
+Tariff: Megaflex High Voltage 33 kV
+Supply Voltage: 33 kV
+Meter Number: MTR-982341
+Energy Consumption Peak kWh: 120,500
+Energy Consumption Standard kWh: 245,000
+Energy Consumption Off Peak kWh: 380,000
+Energy Consumption Total kWh: 745,500
+Maximum Demand kVA: 4,850.00
+Reactive Energy kVArh: 85,200.00
+Power Factor: 0.96
+Peak Energy Charge: R 350,200.00
+Standard Energy Charge: R 420,100.00
+Off-Peak Energy Charge: R 280,000.00
+Transmission Network Charge: R 115,000.00
+Distribution Network Capacity Charge: R 95,000.00
+Administration Charge: R 1,250.00
+Service Charge: R 2,500.00
+Affordability Subsidy: R 18,400.00
+Electrification Subsidy: R 12,300.00
+Subtotal: R 1,294,750.00
+VAT (15%): R 194,212.50
+Total Amount Due: R 1,488,962.50
+%%EOF`;
+
+  const eskomBytes = new TextEncoder().encode(eskomInvoicePdfContent);
+
+  // 1. Process with DocumentIntelligencePipeline
+  const pipelinePackage = await DocumentIntelligencePipeline.processDocument(
+    eskomBytes,
+    "Millennium_33kV_Eskom_Apr_2026.pdf",
+    "org_millennium_test",
+    { throwOnError: false },
+  );
+
+  assert(pipelinePackage.document.processingStatus !== "FAILED", "PDF Ingestion: Document status is NOT FAILED");
+  assert(pipelinePackage.pages.length >= 1, "PDF Ingestion: Pages extracted successfully");
+  assert(pipelinePackage.layouts.length >= 1, "PDF Ingestion: Layout stage completed successfully");
+
+  // 2. Test LayoutAnalysisEngine resilience
+  const dummyPage = {
+    pageNumber: 1,
+    dimensions: { width: 595.28, height: 841.89 },
+    aspectRatio: 0.707,
+    orientation: "PORTRAIT" as const,
+    rawText: "Sample text",
+    characterCount: 11,
+    tokenCount: 2,
+    hasText: true,
+    isScanned: false,
+  };
+  const dummyLines = [
+    {
+      lineNumber: 1,
+      pageNumber: 1,
+      text: "TAX INVOICE",
+      bbox: [50, 40, 200, 20] as [number, number, number, number],
+      confidence: 0.99,
+      tokens: [{ text: "TAX INVOICE", bbox: [50, 40, 200, 20] as [number, number, number, number], confidence: 0.99 }],
+    },
+    {
+      lineNumber: 2,
+      pageNumber: 1,
+      text: "Account Number: 7856504676",
+      bbox: [50, 80, 250, 15] as [number, number, number, number],
+      confidence: 0.99,
+      tokens: [{ text: "Account Number: 7856504676", bbox: [50, 80, 250, 15] as [number, number, number, number], confidence: 0.99 }],
+    },
+  ];
+
+  const layoutResult = LayoutAnalysisEngine.extractDocumentLayout([dummyPage], dummyLines, "doc_test_resilience");
+  assert(layoutResult.totalPages === 1, "Layout Analysis: Layout extraction completed cleanly with totalPages=1");
+  assert(layoutResult.headings.length >= 1, "Layout Analysis: Headings recognized");
+
+  // 3. Test Truthful Stage Resolution in Frontend ViewModel
+  const treeModel = buildDocumentTreeViewModel({
+    id: "doc_test_millennium",
+    filename: "Millennium_33kV_Eskom_Apr_2026.pdf",
+    processingStatus: "PROCESSED",
+    validationStatus: "VALID",
+    pageCount: 1,
+    extractionStatus: "COMPLETED",
+    ocrStatus: "NOT_REQUIRED",
+    currentStage: "OCR_AI_HANDOFF",
+  });
+
+  assert(treeModel.usefulState === "SUCCESSFUL", "Frontend Model: Status resolved to SUCCESSFUL");
+  const layoutStage = treeModel.truthfulStages.find((s) => s.shortLabel === "Layout");
+  assert(layoutStage?.executionStatus === "COMPLETED", "Frontend Model: Stage 05 Layout is COMPLETED (NOT Failed)");
+
+  // 4. Test Persistent Service Ingestion
+  const mockFile = {
+    name: "Millennium_33kV_Eskom_Apr_2026.pdf",
+    size: eskomBytes.byteLength,
+    type: "application/pdf",
+    arrayBuffer: async () => eskomBytes.buffer,
+  };
+
+  const persistedDoc = await PersistentDocumentIntelligenceService.ingestAndProcessDocument({
+    file: mockFile as any,
+    organisationId: "org_millennium_test",
+    forceReprocess: true,
+  });
+
+  assert(persistedDoc.processingStatus === "PROCESSED", "Persistent Service: Document processed successfully");
+  assert(persistedDoc.financialDeterminants !== undefined, "Persistent Service: Financial determinants populated");
+  assert(persistedDoc.financialDeterminants?.accountNumber === "7856504676", "Persistent Service: Account number correctly recognized");
+  assert(persistedDoc.financialDeterminants?.invoiceNumber === "785101497007", "Persistent Service: Invoice number correctly recognized");
+  assert((persistedDoc.financialDeterminants?.totalAmountDue || 0) > 0, "Persistent Service: Total amount due correctly recognized");
+
   console.log("\n==================================================================");
   console.log(`  🎉 ALL ${passedCount} / ${totalCount} AI VALIDATION TESTS PASSED CLEANLY!`);
   console.log("==================================================================\n");
