@@ -463,12 +463,24 @@ export interface MissingDataAuditResult {
   summary: string;
 }
 
-// --- 9. EXCEPTION GENERATION ---
+// --- 9. EXCEPTION GENERATION (REQUIREMENT 33) ---
 
-export type ExceptionSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+export type ExceptionSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+
+export type StructuredExceptionStatus =
+  | "OPEN"
+  | "IN_REVIEW"
+  | "RESOLVED"
+  | "OVERRIDDEN"
+  | "WAIVED"
+  | "DISMISSED";
+
 export type ExceptionCategory =
   | "UNGROUNDED_FIELD"
   | "ARITHMETIC_MISMATCH"
+  | "TOTAL_KWH_MISMATCH"
+  | "INVOICE_TOTAL_MISMATCH"
+  | "TARIFF_NAME_UNGROUNDED"
   | "DATE_CHRONOLOGY_ERROR"
   | "DIGIT_AMBIGUITY"
   | "MISSING_MANDATORY_FIELD"
@@ -483,6 +495,7 @@ export type ExceptionCategory =
 
 export interface ValidationExceptionRecord {
   exceptionId: string;
+  code?: string;
   documentId: string;
   fieldKey?: string;
   category: ExceptionCategory;
@@ -494,8 +507,77 @@ export interface ValidationExceptionRecord {
   boundingBox?: [number, number, number, number];
   observedValue?: string | number | null;
   expectedValue?: string | number | null;
+  difference?: string | number | null;
+  evidenceSourceText?: string;
+  extractionMethod?: string;
+  status?: StructuredExceptionStatus;
+  resolution?: {
+    resolvedBy: string;
+    resolvedAt: string;
+    reason: string;
+    correctedValue?: string | number;
+  };
   createdAt: string;
 }
+
+// --- 9a. FRONTEND VALIDATION DASHBOARD DATA (REQUIREMENT 32) ---
+
+export interface FrontendDocumentMetadata {
+  filename: string;
+  documentType: string;
+  invoiceNumber: string;
+  accountNumber: string;
+  billingPeriod: string;
+  billingPeriodStart: string;
+  billingPeriodEnd: string;
+}
+
+export interface FrontendValidationSummary {
+  overallStatus: ApprovalState;
+  fieldsValidatedCount: number;
+  totalFieldsCount: number;
+  fieldsRequiringReviewCount: number;
+  confidenceScore: number;
+  confidenceTier: ValidationConfidenceTier;
+  conflictsCount: number;
+  conflictsSummary: string[];
+}
+
+export interface FrontendFinancialSummary {
+  totalKwh: number | string;
+  peakKwh?: number | string;
+  standardKwh?: number | string;
+  offPeakKwh?: number | string;
+  subtotalZar: number | string;
+  vatZar: number | string;
+  invoiceTotalZar: number | string;
+}
+
+export interface FrontendEvidenceItem {
+  fieldKey: string;
+  fieldLabel: string;
+  value: string | number | null;
+  rawValue: string;
+  page: number;
+  sourceText: string;
+  extractionMethod: string;
+  boundingBox?: [number, number, number, number];
+  confidence: number;
+  isGrounded: boolean;
+  status: AiFieldValidationState;
+}
+
+export interface FrontendValidationDashboardData {
+  documentId: string;
+  document: FrontendDocumentMetadata;
+  validation: FrontendValidationSummary;
+  financial: FrontendFinancialSummary;
+  evidence: FrontendEvidenceItem[];
+  exceptions: ValidationExceptionRecord[];
+  auditHash?: string;
+  loadedFromDatabase: boolean;
+}
+
 
 // --- 10. APPROVAL STATES (REQUIREMENT 30) ---
 

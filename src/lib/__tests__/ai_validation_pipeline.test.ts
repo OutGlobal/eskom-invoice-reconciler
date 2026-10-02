@@ -27,6 +27,8 @@ import {
   ApprovalStateManager,
   ReconciliationGate,
   ReconciliationGateError,
+  ExceptionManager,
+  FrontendValidationDataLoader,
   CanonicalInvoiceBuilder,
   StructuredAiPayloadBuilder,
   StructuredAiResponseValidator,
@@ -36,6 +38,7 @@ import {
   type EvidenceStreamReading,
   type DuplicateFieldOccurrence,
 } from "../../domain/ai-validation";
+import { InvoiceStorageService } from "../../domain/invoice/invoiceStorageService";
 
 let passedCount = 0;
 let totalCount = 0;
@@ -2375,6 +2378,119 @@ async function runAiValidationPipelineTestSuite() {
   assert(authoritativeInput.billed_peak_kwh.toString() === "35000", "Authoritative Input: Exact Decimal peak kWh (35000)");
   assert(authoritativeInput.billed_vat_zar.toString() === "15000", "Authoritative Input: Exact Decimal VAT (15000)");
   assert(authoritativeInput.telemetry_batch_id === "BATCH-AMR-SEPT-2025", "Authoritative Input: Telemetry batch attached");
+
+  // --- TEST GROUP 32: FRONTEND VALIDATION DASHBOARD (REQ 32) ---
+  console.log("\n[Test Group 32] Frontend Validation Dashboard — Dynamic Database Data Loading & 4 Structured Sections");
+
+  // Populate test record in InvoiceStorageService and ValidationRunStore
+  InvoiceStorageService.recordInvoiceMemory("INV-2026-001", {
+    id: "INV-2026-001",
+    invoice_number: "INV-2026-001",
+    account_number: "0712345678",
+    tariff_name: "MEGAFLEX",
+    billing_start: "2026-01-01",
+    billing_end: "2026-01-31",
+    billing_period_name: "January 2026",
+    invoiced_subtotal: 100000,
+    invoiced_vat: 15000,
+    invoiced_total: 115000,
+    total_kwh: 56200,
+    peak_kwh: 20000,
+    standard_kwh: 25000,
+    off_peak_kwh: 11200,
+    source_file_name: "Eskom_Invoice_Jan2026_Megaflex.pdf",
+    validation_status: "VALID",
+  });
+
+  const dashboardData = await FrontendValidationDataLoader.loadDashboardData("INV-2026-001");
+  assert(dashboardData !== null, "Dashboard Loader: Successfully loaded data for document");
+  assert(dashboardData?.loadedFromDatabase === true, "Dashboard Loader: Invariant verified — loadedFromDatabase is true (zero static values)");
+
+  // 32.1: Document Section
+  assert(dashboardData?.document.filename === "Eskom_Invoice_Jan2026_Megaflex.pdf", "Dashboard (Document): Filename matches DB record");
+  assert(dashboardData?.document.documentType.toLowerCase().includes("megaflex"), "Dashboard (Document): Document type reflects Megaflex tariff");
+  assert(dashboardData?.document.invoiceNumber === "INV-2026-001", "Dashboard (Document): Invoice number matches DB");
+  assert(dashboardData?.document.billingPeriod === "2026-01-01 to 2026-01-31", "Dashboard (Document): Billing period formatted correctly");
+
+  // 32.2: Validation Section
+  assert(dashboardData?.validation.overallStatus === "VALID", "Dashboard (Validation): Overall status is VALID");
+  assert(dashboardData?.validation.fieldsValidatedCount > 0, "Dashboard (Validation): Fields validated count > 0");
+  assert(typeof dashboardData?.validation.confidenceScore === "number", "Dashboard (Validation): Confidence score present");
+  assert(dashboardData?.validation.conflictsCount === 0, "Dashboard (Validation): Conflicts count is 0 for clean invoice");
+
+  // 32.3: Financial Section
+  assert(dashboardData?.financial.totalKwh === 56200, "Dashboard (Financial): Total kWh matches DB (56,200 kWh)");
+  assert(dashboardData?.financial.subtotalZar === 100000, "Dashboard (Financial): Subtotal matches DB (R 100,000.00)");
+  assert(dashboardData?.financial.vatZar === 15000, "Dashboard (Financial): VAT matches DB (R 15,000.00)");
+  assert(dashboardData?.financial.invoiceTotalZar === 115000, "Dashboard (Financial): Invoice total matches DB (R 115,000.00)");
+
+  // 32.4: Evidence Section
+  assert(dashboardData?.evidence.length > 0, "Dashboard (Evidence): Evidence items populated");
+  const totalKwhEvidence = dashboardData?.evidence.find((e) => e.fieldKey === "totalKwh");
+  assert(totalKwhEvidence !== undefined, "Dashboard (Evidence): Total kWh evidence item present");
+  assert(totalKwhEvidence?.page === 3, "Dashboard (Evidence): Page number is 3");
+  assert(totalKwhEvidence?.sourceText.includes("56200") || totalKwhEvidence?.sourceText.includes("56,200"), "Dashboard (Evidence): Source text snippet present");
+  assert(totalKwhEvidence?.extractionMethod === "TABLE_EXTRACTION" || totalKwhEvidence?.extractionMethod === "NATIVE_PDF_TEXT", "Dashboard (Evidence): Extraction method present");
+
+  // --- TEST GROUP 33: STRUCTURED EXCEPTION MANAGEMENT (REQ 33) ---
+  console.log("\n[Test Group 33] Structured Exception Management — Documented Severity Rules, Comparison Delta & Audit Lifecycle");
+
+  ExceptionManager.clearStore();
+
+  // 33.1: Create Structured TOTAL_KWH_MISMATCH Exception matching exact specification
+  const exc1 = ExceptionManager.createException({
+    code: "TOTAL_KWH_MISMATCH",
+    category: "TOTAL_KWH_MISMATCH",
+    documentId: "INV-2026-001",
+    fieldKey: "totalKwh",
+    title: "Total Active Energy Summation Mismatch",
+    description: "Sum of TOU energy blocks (55,700 kWh) does not equal billed Total kWh (56,200 kWh).",
+    expectedValue: "55,700 kWh",
+    observedValue: "56,200 kWh",
+    difference: "500 kWh",
+    pageNumber: 3,
+    evidenceSourceText: "Total Active Energy: 56,200 kWh | Peak: 20,000 | Std: 24,500 | OffPeak: 11,200",
+    extractionMethod: "TABLE_EXTRACTION",
+    status: "OPEN",
+    suggestedAction: "Check for unmetered load or verify sub-interval meter accumulation.",
+  });
+
+  assert(exc1.code === "TOTAL_KWH_MISMATCH", "Exception: Code is TOTAL_KWH_MISMATCH");
+  assert(exc1.severity === "HIGH", "Exception: Severity is HIGH based on documented rules");
+  assert(exc1.documentId === "INV-2026-001", "Exception: Document is INV-2026-001");
+  assert(exc1.expectedValue === "55,700 kWh", "Exception: Expected is 55,700 kWh");
+  assert(exc1.observedValue === "56,200 kWh", "Exception: Document observed is 56,200 kWh");
+  assert(exc1.difference === "500 kWh", "Exception: Difference is 500 kWh");
+  assert(exc1.pageNumber === 3, "Exception: Evidence page is 3");
+  assert(exc1.status === "OPEN", "Exception: Status is OPEN");
+
+  // 33.2: Verify Documented Severity Rules for all 5 Severity Levels (CRITICAL, HIGH, MEDIUM, LOW, INFO)
+  assert(ExceptionManager.determineSeverity("INVOICE_TOTAL_MISMATCH") === "CRITICAL", "Severity Rule: INVOICE_TOTAL_MISMATCH is CRITICAL");
+  assert(ExceptionManager.determineSeverity("MISSING_MANDATORY_FIELD") === "CRITICAL", "Severity Rule: MISSING_MANDATORY_FIELD is CRITICAL");
+  assert(ExceptionManager.determineSeverity("ARITHMETIC_MISMATCH", { isFinancial: true, differenceNumber: 150 }) === "CRITICAL", "Severity Rule: Large financial discrepancy is CRITICAL");
+  assert(ExceptionManager.determineSeverity("TOTAL_KWH_MISMATCH") === "HIGH", "Severity Rule: TOTAL_KWH_MISMATCH is HIGH");
+  assert(ExceptionManager.determineSeverity("TARIFF_NAME_UNGROUNDED") === "HIGH", "Severity Rule: TARIFF_NAME_UNGROUNDED is HIGH");
+  assert(ExceptionManager.determineSeverity("MULTI_SOURCE_CONFLICT") === "HIGH", "Severity Rule: MULTI_SOURCE_CONFLICT is HIGH");
+  assert(ExceptionManager.determineSeverity("SEMANTIC_INCONSISTENCY") === "MEDIUM", "Severity Rule: SEMANTIC_INCONSISTENCY is MEDIUM");
+  assert(ExceptionManager.determineSeverity("CROSS_FIELD_CONFLICT") === "MEDIUM", "Severity Rule: CROSS_FIELD_CONFLICT is MEDIUM");
+  assert(ExceptionManager.determineSeverity("ARITHMETIC_MISMATCH", { isFinancial: true, differenceNumber: 1.20 }) === "LOW", "Severity Rule: Minor rounding variance (< R2) is LOW");
+
+  // 33.3: Exception Querying and Resolution Lifecycle
+  const docExceptions = ExceptionManager.listExceptionsForDocument("INV-2026-001");
+  assert(docExceptions.length === 1, "Exception Store: Exactly 1 exception found for document");
+
+  const resolvedExc = ExceptionManager.resolveException({
+    exceptionId: exc1.exceptionId,
+    resolvedBy: "Sipho Khumalo",
+    reason: "Adjusted for 500 kWh auxiliary transformer unbilled loss after physical inspection",
+    correctedValue: "55,700 kWh",
+    action: "RESOLVED",
+  });
+
+  assert(resolvedExc.status === "RESOLVED", "Exception Resolution: Status transitioned to RESOLVED");
+  assert(resolvedExc.resolution?.resolvedBy === "Sipho Khumalo", "Exception Resolution: Reviewer recorded");
+  assert(resolvedExc.resolution?.correctedValue === "55,700 kWh", "Exception Resolution: Corrected value recorded");
+  assert(resolvedExc.resolution?.reason.includes("auxiliary transformer"), "Exception Resolution: Reason recorded");
 
   console.log("\n==================================================================");
   console.log(`  🎉 ALL ${passedCount} / ${totalCount} AI VALIDATION TESTS PASSED CLEANLY!`);

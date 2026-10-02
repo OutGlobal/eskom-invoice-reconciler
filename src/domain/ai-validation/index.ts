@@ -38,12 +38,15 @@ export { MultiEvidenceReconciler } from "./multiEvidenceReconciler";
 export { DuplicateFieldDetector } from "./duplicateFieldDetector";
 export { ValidationConfidenceCalculator } from "./validationConfidenceCalculator";
 export { ExceptionGenerator } from "./exceptionGenerator";
+export { ExceptionManager } from "./exceptionManager";
+export { FrontendValidationDataLoader } from "./frontendValidationDataLoader";
 export { ValidationRunStore } from "./validationRunStore";
 export { EneraAuditChainEngine } from "./eneraAuditChain";
 export { HumanReviewWorkflowEngine } from "./humanReviewWorkflow";
 export { ApprovalStateManager } from "./approvalStateManager";
 export { ReconciliationGate, ReconciliationGateError } from "./reconciliationGate";
 export { ValidationPipeline } from "./validationPipeline";
+
 
 
 
