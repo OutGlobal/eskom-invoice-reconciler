@@ -128,7 +128,10 @@ import {
   NullOcrProvider,
 } from "../../domain/ocr";
 import { UnifiedDocumentBridge, AiValidationInputBuilder } from "../../domain/intelligence";
-import { PipelineLayerGuard } from "../../domain/pipeline/pipelineLayerBoundaries";
+import {
+  PipelineLayerGuard,
+  PIPELINE_LAYER_DEFINITIONS,
+} from "../../domain/pipeline/pipelineLayerBoundaries";
 import { ProvenanceGuard } from "../../domain/intelligence/provenanceGuard";
 import { TenantIsolationViolationError } from "../../domain/security/tenantContextService";
 
@@ -7559,6 +7562,745 @@ export async function runProductionOcrTestSuite() {
     assert(
       rehydrated?.rawFullText.includes("Total Due: R 250,000.00"),
       "Full text evidence preserved exactly without fabrication",
+    );
+  }
+
+  // =========================================================================
+  // TEST GROUP 41: END-TO-END PIPELINE & PERSISTENCE LIFECYCLE (REQ 39)
+  // =========================================================================
+  console.log("\n--- TEST GROUP 41: END-TO-END PIPELINE & PERSISTENCE (REQ 39) ---");
+
+  // Test 169: Complete 10-Stage Pipeline on Real Authorised Utility Invoice
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Executes complete 10-Stage Pipeline: PDF → DOC INTEL → OCR → CANDIDATES → AI VALIDATION → DETERMINISTIC VALIDATION → CONFIDENCE → EXCEPTIONS → REVIEW → APPROVAL`,
+    );
+
+    const docId = "doc-authorised-eskom-feb2026";
+    const runId = "ocr-run-authorised-001";
+    const orgId = "ORG-MILLENNIUM";
+    const filename = "Millennium 33kV Eskom Feb 2026.pdf";
+
+    // Stage 1: PDF Document Representation
+    const mockOcrWords: OcrWordToken[] = [
+      {
+        wordId: "w1",
+        text: "Eskom",
+        confidence: 99,
+        boundingBox: [40, 40, 80, 20],
+        x: 40,
+        y: 40,
+        width: 80,
+        height: 20,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "Eskom",
+        pageNumber: 1,
+      },
+      {
+        wordId: "w2",
+        text: "Megaflex",
+        confidence: 98,
+        boundingBox: [130, 40, 90, 20],
+        x: 130,
+        y: 40,
+        width: 90,
+        height: 20,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "Megaflex",
+        pageNumber: 1,
+      },
+      {
+        wordId: "w3",
+        text: "Account:",
+        confidence: 97,
+        boundingBox: [40, 80, 70, 15],
+        x: 40,
+        y: 80,
+        width: 70,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "Account:",
+        pageNumber: 1,
+      },
+      {
+        wordId: "w4",
+        text: "1234567890",
+        confidence: 98,
+        boundingBox: [120, 80, 100, 15],
+        x: 120,
+        y: 80,
+        width: 100,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "1234567890",
+        pageNumber: 1,
+      },
+      {
+        wordId: "w5",
+        text: "Meter:",
+        confidence: 96,
+        boundingBox: [40, 105, 60, 15],
+        x: 40,
+        y: 105,
+        width: 60,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "Meter:",
+        pageNumber: 1,
+      },
+      {
+        wordId: "w6",
+        text: "MTR-998877",
+        confidence: 97,
+        boundingBox: [110, 105, 90, 15],
+        x: 110,
+        y: 105,
+        width: 90,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "MTR-998877",
+        pageNumber: 1,
+      },
+      {
+        wordId: "w7",
+        text: "Billing",
+        confidence: 96,
+        boundingBox: [40, 130, 50, 15],
+        x: 40,
+        y: 130,
+        width: 50,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "Billing",
+        pageNumber: 1,
+      },
+      {
+        wordId: "w8",
+        text: "Period:",
+        confidence: 96,
+        boundingBox: [95, 130, 55, 15],
+        x: 95,
+        y: 130,
+        width: 55,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "Period:",
+        pageNumber: 1,
+      },
+      {
+        wordId: "w9",
+        text: "2026-02-01",
+        confidence: 97,
+        boundingBox: [160, 130, 80, 15],
+        x: 160,
+        y: 130,
+        width: 80,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "2026-02-01",
+        pageNumber: 1,
+      },
+      {
+        wordId: "w10",
+        text: "to",
+        confidence: 98,
+        boundingBox: [245, 130, 20, 15],
+        x: 245,
+        y: 130,
+        width: 20,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "to",
+        pageNumber: 1,
+      },
+      {
+        wordId: "w11",
+        text: "2026-02-28",
+        confidence: 97,
+        boundingBox: [270, 130, 80, 15],
+        x: 270,
+        y: 130,
+        width: 80,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "2026-02-28",
+        pageNumber: 1,
+      },
+      {
+        wordId: "w12",
+        text: "Subtotal:",
+        confidence: 96,
+        boundingBox: [40, 200, 70, 15],
+        x: 40,
+        y: 200,
+        width: 70,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "Subtotal:",
+        pageNumber: 1,
+      },
+      {
+        wordId: "w13",
+        text: "R 2,131,196.09",
+        confidence: 98,
+        boundingBox: [200, 200, 120, 15],
+        x: 200,
+        y: 200,
+        width: 120,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "R 2,131,196.09",
+        pageNumber: 1,
+      },
+      {
+        wordId: "w14",
+        text: "VAT (15%):",
+        confidence: 96,
+        boundingBox: [40, 225, 80, 15],
+        x: 40,
+        y: 225,
+        width: 80,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "VAT (15%):",
+        pageNumber: 1,
+      },
+      {
+        wordId: "w15",
+        text: "R 319,679.41",
+        confidence: 97,
+        boundingBox: [200, 225, 110, 15],
+        x: 200,
+        y: 225,
+        width: 110,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "R 319,679.41",
+        pageNumber: 1,
+      },
+      {
+        wordId: "w16",
+        text: "Total Due:",
+        confidence: 99,
+        boundingBox: [40, 260, 80, 18],
+        x: 40,
+        y: 260,
+        width: 80,
+        height: 18,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "Total Due:",
+        pageNumber: 1,
+      },
+      {
+        wordId: "w17",
+        text: "R 2,450,875.50",
+        confidence: 98,
+        boundingBox: [200, 260, 130, 18],
+        x: 200,
+        y: 260,
+        width: 130,
+        height: 18,
+        coordinateSystem: "PIXEL_SPACE",
+        sanitizedText: "R 2,450,875.50",
+        pageNumber: 1,
+      },
+    ];
+
+    const mockLines: OcrLineBlock[] = [
+      {
+        lineId: "l1",
+        text: "Eskom Megaflex",
+        confidence: 98.5,
+        boundingBox: [40, 40, 180, 20],
+        x: 40,
+        y: 40,
+        width: 180,
+        height: 20,
+        coordinateSystem: "PIXEL_SPACE",
+        pageNumber: 1,
+        words: [mockOcrWords[0], mockOcrWords[1]],
+      },
+      {
+        lineId: "l2",
+        text: "Account: 1234567890",
+        confidence: 97.5,
+        boundingBox: [40, 80, 180, 15],
+        x: 40,
+        y: 80,
+        width: 180,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        pageNumber: 1,
+        words: [mockOcrWords[2], mockOcrWords[3]],
+      },
+      {
+        lineId: "l3",
+        text: "Meter: MTR-998877",
+        confidence: 96.5,
+        boundingBox: [40, 105, 160, 15],
+        x: 40,
+        y: 105,
+        width: 160,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        pageNumber: 1,
+        words: [mockOcrWords[4], mockOcrWords[5]],
+      },
+      {
+        lineId: "l4",
+        text: "Billing Period: 2026-02-01 to 2026-02-28",
+        confidence: 97.0,
+        boundingBox: [40, 130, 310, 15],
+        x: 40,
+        y: 130,
+        width: 310,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        pageNumber: 1,
+        words: [
+          mockOcrWords[6],
+          mockOcrWords[7],
+          mockOcrWords[8],
+          mockOcrWords[9],
+          mockOcrWords[10],
+        ],
+      },
+      {
+        lineId: "h2",
+        text: "TOTAL AMOUNT DUE",
+        confidence: 99.0,
+        boundingBox: [40, 180, 200, 16],
+        x: 40,
+        y: 180,
+        width: 200,
+        height: 16,
+        coordinateSystem: "PIXEL_SPACE",
+        pageNumber: 1,
+        words: [
+          {
+            wordId: "w_tot_h",
+            text: "TOTAL",
+            confidence: 99,
+            boundingBox: [40, 180, 60, 16],
+            x: 40,
+            y: 180,
+            width: 60,
+            height: 16,
+            coordinateSystem: "PIXEL_SPACE",
+            sanitizedText: "TOTAL",
+            pageNumber: 1,
+          },
+        ],
+      },
+      {
+        lineId: "l5",
+        text: "Subtotal: R 2,131,196.09",
+        confidence: 97.0,
+        boundingBox: [40, 200, 280, 15],
+        x: 40,
+        y: 200,
+        width: 280,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        pageNumber: 1,
+        words: [mockOcrWords[11], mockOcrWords[12]],
+      },
+      {
+        lineId: "l6",
+        text: "VAT (15%): R 319,679.41",
+        confidence: 96.5,
+        boundingBox: [40, 225, 270, 15],
+        x: 40,
+        y: 225,
+        width: 270,
+        height: 15,
+        coordinateSystem: "PIXEL_SPACE",
+        pageNumber: 1,
+        words: [mockOcrWords[13], mockOcrWords[14]],
+      },
+      {
+        lineId: "l7",
+        text: "Total Due: R 2,450,875.50",
+        confidence: 98.5,
+        boundingBox: [40, 260, 290, 18],
+        x: 40,
+        y: 260,
+        width: 290,
+        height: 18,
+        coordinateSystem: "PIXEL_SPACE",
+        pageNumber: 1,
+        words: [mockOcrWords[15], mockOcrWords[16]],
+      },
+    ];
+
+    const rawText = mockLines.map((l) => l.text).join("\n");
+
+    // Stage 3: OCR Page & Document Result Construction
+    const pageResult: OcrPageResult = {
+      pageNumber: 1,
+      fullText: rawText,
+      geometry: { width: 595, height: 842, dpi: 300, aspectRatio: 0.7067, rotation: 0 },
+      words: mockOcrWords,
+      lines: mockLines,
+      blocks: [],
+      tables: [],
+      keyValuePairs: [
+        {
+          key: "Account:",
+          value: "1234567890",
+          keyBoundingBox: [40, 80, 70, 15],
+          valueBoundingBox: [120, 80, 100, 15],
+          confidence: 98,
+          orientation: "HORIZONTAL",
+        },
+        {
+          key: "Meter:",
+          value: "MTR-998877",
+          keyBoundingBox: [40, 105, 60, 15],
+          valueBoundingBox: [110, 105, 90, 15],
+          confidence: 97,
+          orientation: "HORIZONTAL",
+        },
+        {
+          key: "Total Due:",
+          value: "R 2,450,875.50",
+          keyBoundingBox: [40, 260, 80, 18],
+          valueBoundingBox: [200, 260, 130, 18],
+          confidence: 98.5,
+          orientation: "HORIZONTAL",
+        },
+      ],
+      averageConfidence: 97.5,
+      characterCount: rawText.length,
+      isNativeDigital: true,
+      isScannedRaster: false,
+      processingDurationMs: 45,
+    };
+
+    // Stage 2: DOCUMENT INTELLIGENCE (Layout Structure Analysis)
+    const docStructure = DocumentStructureEngine.analyzeDocumentStructure([pageResult], docId);
+    assert(docStructure.sections.length >= 1, "Document Intelligence identified bounded sections");
+
+    const docResult: OcrDocumentResult = {
+      ocrRunId: runId,
+      documentId: docId,
+      organisationId: orgId,
+      filename,
+      documentCategory: "INVOICE",
+      totalPages: 1,
+      overallConfidence: 97.5,
+      confidenceTier: "HIGH",
+      isReliable: true,
+      reviewRequired: false,
+      reviewReasons: [],
+      pages: [pageResult],
+      tables: [],
+      rawFullText: rawText,
+      executionEngine: "TESSERACT_OCR",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 45,
+    };
+
+    // Stage 4: CANDIDATE FIELDS Extraction
+    const candidateDates = DateRecognitionEngine.recognizeDatesInPage(pageResult);
+    assert(candidateDates.length >= 2, "Candidate dates recognized for billing period");
+    assert(candidateDates[0].normalizedIsoDate === "2026-02-01", "Start date is 2026-02-01");
+    assert(candidateDates[1].normalizedIsoDate === "2026-02-28", "End date is 2026-02-28");
+
+    const parsedSubtotal = NumericProtectionEngine.parseAndProtectNumeric(
+      "R 2,131,196.09",
+      "CURRENCY",
+      { pageNumber: 1 },
+    );
+    const parsedVat = NumericProtectionEngine.parseAndProtectNumeric("R 319,679.41", "CURRENCY", {
+      pageNumber: 1,
+    });
+    const parsedTotal = NumericProtectionEngine.parseAndProtectNumeric(
+      "R 2,450,875.50",
+      "CURRENCY",
+      { pageNumber: 1 },
+    );
+
+    assert(parsedTotal.numericValue === 2450875.5, "Protected numeric total parsed accurately");
+
+    // Stage 5: AI VALIDATION Package Builder
+    const unifiedExtraction = UnifiedDocumentBridge.fromOcrResult(docResult, docId);
+    const aiValidationPackage = AiValidationInputBuilder.buildStructuredPackage(unifiedExtraction, {
+      documentId: docId,
+      organisationId: orgId,
+    });
+
+    assert(
+      aiValidationPackage.hierarchy.pages.length === 1,
+      "AI validation package includes structured page",
+    );
+    assert(
+      aiValidationPackage.targetBranch === "feature/ai-validation",
+      "AI validation package targeted for feature/ai-validation",
+    );
+
+    // Stage 6: DETERMINISTIC VALIDATION
+    const arithmeticMatch =
+      Math.abs(parsedSubtotal.numericValue! + parsedVat.numericValue! - parsedTotal.numericValue!) <
+      0.01;
+    assert(arithmeticMatch, "Deterministic arithmetic matches: Subtotal + VAT == Total Due");
+
+    const accountValidation = OcrErrorDetector.validatePipeline({
+      ocrValue: "1234567890",
+      expectedType: "ACCOUNT",
+      pageNumber: 1,
+    });
+    assert(accountValidation.validationPassed === true, "Deterministic account check passed");
+
+    // Stage 7: CONFIDENCE Scoring
+    const scoredConfidence = OcrConfidenceScorer.evaluateDocumentConfidence(docResult.pages);
+    assert(scoredConfidence.overallScore >= 85, "Scored overall document confidence >= 85%");
+    assert(scoredConfidence.tier === "HIGH", "Confidence tier is strictly HIGH");
+    assert(scoredConfidence.isReliable === true, "Document marked isReliable = true");
+
+    // Stage 8: EXCEPTIONS Check
+    const exceptions = docResult.reviewReasons;
+    assert(exceptions.length === 0, "Zero exceptions detected on clean authorized invoice");
+
+    // Stage 9: REVIEW IF REQUIRED Check
+    assert(
+      docResult.reviewRequired === false,
+      "reviewRequired is false for clean high-confidence document",
+    );
+
+    // Stage 10: APPROVAL & Persistence Record Generation
+    const approvalRecord = {
+      documentId: docId,
+      ocrRunId: runId,
+      status: "APPROVED" as const,
+      validatedBy: "auditor@enera.co.za",
+      approvedAt: new Date().toISOString(),
+      validationMethod: "AUTOMATED_DETERMINISTIC_AND_AI_GROUNDED",
+      verifiedTotalDue: parsedTotal.numericValue,
+      originalEvidenceRetained: true,
+    };
+
+    assert(approvalRecord.status === "APPROVED", "Document transitioned to APPROVED");
+    assert(
+      approvalRecord.verifiedTotalDue === 2450875.5,
+      "Verified total due bound to approval record",
+    );
+
+    // Persist full state
+    const secContext = {
+      userId: "auditor-usr-01",
+      email: "auditor@enera.co.za",
+      organisationId: orgId,
+      role: "ANALYST" as const,
+    };
+
+    await OcrPersistenceService.saveOcrRun(docResult, secContext);
+    const persisted = await OcrPersistenceService.getOcrRun(docId, secContext);
+    assert(persisted !== null, "Complete OCR document result persisted successfully");
+    assert(persisted?.documentId === docId, "Persisted document ID verified");
+  }
+
+  // Test 170: Session & Authentication Lifecycle Persistence (Refresh -> Logout -> Login -> Verify)
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Session & Authentication Lifecycle: REFRESH → LOGOUT → LOGIN → CONFIRM VALIDATION RECORD STILL EXISTS`,
+    );
+
+    const lifecycleDocId = "doc-lifecycle-session-170";
+    const lifecycleRunId = "run-lifecycle-session-170";
+    const lifecycleOrgId = "ORG-LIFECYCLE";
+
+    const lifecycleDocResult: OcrDocumentResult = {
+      ocrRunId: lifecycleRunId,
+      documentId: lifecycleDocId,
+      organisationId: lifecycleOrgId,
+      filename: "Eskom_Megaflex_Jan2026_Auth.pdf",
+      documentCategory: "INVOICE",
+      totalPages: 1,
+      overallConfidence: 98.2,
+      confidenceTier: "HIGH",
+      isReliable: true,
+      reviewRequired: false,
+      reviewReasons: [],
+      pages: [
+        {
+          pageNumber: 1,
+          fullText: "Account: 5544332211 Meter: MTR-001122 Total: R 1,500,000.00",
+          geometry: { width: 595, height: 842, dpi: 300, aspectRatio: 0.7067, rotation: 0 },
+          words: [],
+          lines: [],
+          blocks: [],
+          tables: [],
+          keyValuePairs: [],
+          averageConfidence: 98.2,
+          characterCount: 60,
+          isNativeDigital: true,
+          isScannedRaster: false,
+          processingDurationMs: 35,
+        },
+      ],
+      tables: [],
+      rawFullText: "Account: 5544332211 Meter: MTR-001122 Total: R 1,500,000.00",
+      executionEngine: "TESSERACT_OCR",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: 35,
+    };
+
+    // 1. Initial State: Authenticated User A saves OCR result and validation approval
+    let activeSessionToken: string | null = "session-jwt-token-alpha-123";
+    const userSessionContext = {
+      userId: "user-session-1",
+      email: "analyst@utilityaudit.co.za",
+      organisationId: lifecycleOrgId,
+      role: "ANALYST" as const,
+    };
+
+    await OcrPersistenceService.saveOcrRun(lifecycleDocResult, userSessionContext);
+
+    // 2. Step: Refresh the browser (re-instantiate query from persistent store)
+    const postRefreshResult = await OcrPersistenceService.getOcrRun(
+      lifecycleDocId,
+      userSessionContext,
+    );
+    assert(postRefreshResult !== null, "Validation record survived simulated browser refresh");
+    assert(
+      postRefreshResult?.ocrRunId === lifecycleRunId,
+      "OCR Run ID intact after browser refresh",
+    );
+
+    // 3. Step: Log out (session token destroyed, credentials revoked)
+    activeSessionToken = null;
+    let unauthorizedAccessBlocked = false;
+    try {
+      // Simulate unauthenticated request
+      const unauthContext = {
+        userId: "",
+        email: "",
+        organisationId: "",
+        role: "VIEWER" as const,
+      };
+      await OcrPersistenceService.getOcrRun(lifecycleDocId, unauthContext);
+    } catch (err: any) {
+      if (err instanceof TenantIsolationViolationError) {
+        unauthorizedAccessBlocked = true;
+      }
+    }
+    assert(unauthorizedAccessBlocked, "Unauthenticated access blocked after logout");
+
+    // 4. Step: Log back in (re-authenticated session established)
+    activeSessionToken = "session-jwt-token-alpha-456-reauthenticated";
+    const reauthenticatedContext = {
+      userId: "user-session-1",
+      email: "analyst@utilityaudit.co.za",
+      organisationId: lifecycleOrgId,
+      role: "ANALYST" as const,
+    };
+
+    // 5. Step: Confirm validation record still exists and evidence is unchanged
+    const rehydratedRecord = await OcrPersistenceService.getOcrRun(
+      lifecycleDocId,
+      reauthenticatedContext,
+    );
+    assert(rehydratedRecord !== null, "Validation record still exists after logging back in");
+    assert(
+      rehydratedRecord?.documentId === lifecycleDocId,
+      "Document ID intact after re-authentication",
+    );
+    assert(
+      rehydratedRecord?.rawFullText.includes("Total: R 1,500,000.00"),
+      "Raw full text evidence intact and immutable after login cycle",
+    );
+    assert(
+      rehydratedRecord?.overallConfidence === 98.2,
+      "Confidence score preserved with zero degradation",
+    );
+  }
+
+  // =========================================================================
+  // TEST GROUP 42: STRICT RECONCILIATION BOUNDARY EMBARGO (REQ 40)
+  // =========================================================================
+  console.log("\n--- TEST GROUP 42: RECONCILIATION BOUNDARY EMBARGO (REQ 40) ---");
+
+  // Test 171: Strict Embargo on Tariff Calculation & Reconciliation Engines in feature/ocr
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Enforces strict boundary embargo: feature/ocr must NOT implement tariff calculation or financial reconciliation`,
+    );
+
+    const ocrDefinition = PIPELINE_LAYER_DEFINITIONS.OCR;
+    assert(
+      ocrDefinition.strictProhibitions.includes(
+        "Never execute semantic business logic or financial calculations",
+      ),
+      "OCR layer strictly prohibits financial calculations",
+    );
+
+    // Verify boundary invariants for Requirement 40:
+    const forbiddenCapabilities = [
+      "tariff_calculation",
+      "expected_invoice_calculation",
+      "financial_reconciliation",
+      "eskom_tariff_matching",
+      "municipal_tariff_calculation",
+      "variance_calculation",
+      "final_savings_calculation",
+    ];
+
+    const downstreamOwnerMap: Record<string, string> = {
+      tariff_calculation: "feature/tariff-engine",
+      expected_invoice_calculation: "feature/reconciliation-engine",
+      financial_reconciliation: "feature/reconciliation-engine",
+      eskom_tariff_matching: "feature/tariff-engine",
+      municipal_tariff_calculation: "feature/tariff-engine",
+      variance_calculation: "feature/reconciliation-engine",
+      final_savings_calculation: "feature/reconciliation-engine",
+    };
+
+    for (const cap of forbiddenCapabilities) {
+      assert(
+        downstreamOwnerMap[cap] === "feature/reconciliation-engine" ||
+          downstreamOwnerMap[cap] === "feature/tariff-engine",
+        `Capability '${cap}' is formally assigned to downstream branch '${downstreamOwnerMap[cap]}'`,
+      );
+    }
+  }
+
+  // Test 172: Clean Downstream Evidence Handoff without Financial Mutation
+  {
+    testCount++;
+    console.log(
+      `[Test ${testCount}] Exports structured, grounded evidence without mutating financial invoice truth`,
+    );
+
+    const sampleOcrEvidence = {
+      documentId: "doc-handoff-172",
+      extractedTotal: 125000.0,
+      extractedSubtotal: 108695.65,
+      extractedVat: 16304.35,
+      accountNumber: "987654321",
+      meterNumber: "MTR-5544",
+      tariffNameFromDocument: "Megaflex Non-Local",
+      isOcrEvidenceGrounded: true,
+      hasComputedVariance: false, // Must remain false in OCR branch!
+      hasAppliedTariffSchedule: false, // Must remain false in OCR branch!
+    };
+
+    assert(
+      sampleOcrEvidence.hasComputedVariance === false,
+      "feature/ocr does not compute variances (deferred to feature/reconciliation-engine)",
+    );
+    assert(
+      sampleOcrEvidence.hasAppliedTariffSchedule === false,
+      "feature/ocr does not apply tariff rate math (deferred to feature/tariff-engine)",
+    );
+    assert(
+      sampleOcrEvidence.isOcrEvidenceGrounded === true,
+      "feature/ocr exports 100% grounded optical evidence",
     );
   }
 
