@@ -47,5 +47,6 @@ export * from "./ocrLargeDocumentChunkEngine";
 export * from "./ocrBackgroundJobManager";
 export * from "./useOcrJob";
 export * from "./ocrCorrectionEngine";
+export * from "./ocrPerformanceBenchmarkEngine";
 export * from "../security/ocrSecurityGuard";
 export * from "../observability/ocrObservabilityService";
