@@ -17,21 +17,28 @@
  * not statistically calibrated Bayesian probabilities.
  */
 
-import type {
-  CandidateFieldValidationInput,
-  GroundedEvidenceCheckResult,
-  AiSemanticValidationResult,
-  DeterministicValidationResult,
-  CrossFieldValidationResult,
-  ValidationConfidenceBreakdown,
-  ValidationConfidenceTier,
-  FieldValidationConfidenceScore,
-  AiFieldValidationState,
+import {
+  type CandidateFieldValidationInput,
+  type GroundedEvidenceCheckResult,
+  type AiSemanticValidationResult,
+  type DeterministicValidationResult,
+  type CrossFieldValidationResult,
+  type ValidationConfidenceBreakdown,
+  type ValidationConfidenceTier,
+  type FieldValidationConfidenceScore,
+  type AiFieldValidationState,
+  type DocumentValidationStatus,
+  type ConfidenceTierPolicyAction,
+  type ValidationConfidenceThresholds,
+  type DocumentValidationQualitySummary,
+  DEFAULT_CONFIDENCE_THRESHOLDS,
+  CRITICAL_DOCUMENT_FIELDS,
 } from "./types";
 
 export class ValidationConfidenceCalculator {
   /**
-   * Computes the holistic validation confidence breakdown and field-level scores.
+   * Computes the holistic validation confidence breakdown, field-level scores,
+   * document-level validation status, and enforces anti-masking protection for critical financial fields.
    */
   public static calculateConfidence(params: {
     candidateFields: CandidateFieldValidationInput[];
@@ -39,6 +46,7 @@ export class ValidationConfidenceCalculator {
     semanticResult: AiSemanticValidationResult;
     deterministicResult: DeterministicValidationResult;
     crossFieldResult: CrossFieldValidationResult;
+    thresholds?: Partial<ValidationConfidenceThresholds>;
   }): ValidationConfidenceBreakdown {
     const {
       candidateFields,
@@ -46,7 +54,13 @@ export class ValidationConfidenceCalculator {
       semanticResult,
       deterministicResult,
       crossFieldResult,
+      thresholds: userThresholds,
     } = params;
+
+    const thresholds: ValidationConfidenceThresholds = {
+      ...DEFAULT_CONFIDENCE_THRESHOLDS,
+      ...(userThresholds || {}),
+    };
 
     // --- 1. FIELD-LEVEL CONFIDENCE CALCULATIONS (REQ 11) ---
     const fieldScores: Record<string, FieldValidationConfidenceScore> = {};
@@ -104,9 +118,9 @@ export class ValidationConfidenceCalculator {
       } else if (semantic?.consistencyLevel === "AMBIGUOUS" || opticalClarity < 75) {
         status = "UNCERTAIN";
         reasoning = `Field '${field.fieldKey}' exhibits optical ambiguity or lower clarity (${opticalClarity}%).`;
-      } else if (fieldScore < 85) {
+      } else if (fieldScore < thresholds.highThreshold) {
         status = "REVIEW_REQUIRED";
-        reasoning = `Field '${field.fieldKey}' validation score (${fieldScore}%) requires human spotlight review.`;
+        reasoning = `Field '${field.fieldKey}' validation score (${fieldScore}%) is below high threshold (${thresholds.highThreshold}%).`;
       }
 
       fieldScores[field.fieldKey] = {
@@ -125,7 +139,7 @@ export class ValidationConfidenceCalculator {
       };
     }
 
-    // --- 2. DOCUMENT-LEVEL WEIGHTED AGGREGATE ---
+    // --- 2. DOCUMENT-LEVEL PILLAR SCORES ---
     let opticalScore = 85.0;
     if (candidateFields.length > 0) {
       const sum = candidateFields.reduce((acc, f) => acc + (f.opticalConfidence || 80), 0);
@@ -161,32 +175,137 @@ export class ValidationConfidenceCalculator {
       crossFieldScore = (consistent / crossFieldResult.findings.length) * 100;
     }
 
-    const overallScore = Math.round(
-      opticalScore * 0.25 +
-        groundingScore * 0.25 +
-        semanticScore * 0.2 +
-        deterministicScore * 0.2 +
-        crossFieldScore * 0.1,
+    // --- 3. CRITICAL FIELD ANTI-MASKING AUDIT (REQUIREMENT 13) ---
+    const criticalFieldsList = candidateFields.filter((f) =>
+      CRITICAL_DOCUMENT_FIELDS.includes(f.fieldKey),
+    );
+    const nonCriticalFieldsList = candidateFields.filter(
+      (f) => !CRITICAL_DOCUMENT_FIELDS.includes(f.fieldKey),
     );
 
-    let tier: ValidationConfidenceTier = "LOW";
-    if (overallScore >= 85) {
-      tier = "HIGH";
-    } else if (overallScore >= 70) {
-      tier = "MEDIUM";
-    } else {
-      tier = "LOW";
+    const criticalScores = criticalFieldsList
+      .map((f) => fieldScores[f.fieldKey])
+      .filter((s): s is FieldValidationConfidenceScore => s !== undefined);
+    const nonCriticalScores = nonCriticalFieldsList
+      .map((f) => fieldScores[f.fieldKey])
+      .filter((s): s is FieldValidationConfidenceScore => s !== undefined);
+
+    const criticalFieldsScore =
+      criticalScores.length > 0
+        ? Math.round(
+            criticalScores.reduce((acc, s) => acc + s.score, 0) / criticalScores.length,
+          )
+        : 0;
+
+    const nonCriticalFieldsScore =
+      nonCriticalScores.length > 0
+        ? Math.round(
+            nonCriticalScores.reduce((acc, s) => acc + s.score, 0) / nonCriticalScores.length,
+          )
+        : 100;
+
+    // Identify critical field failures
+    const criticalFieldFailures: string[] = [];
+    let hasInvalidCriticalField = false;
+
+    for (const critScore of criticalScores) {
+      const isExtracted = candidateFields.some(
+        (f) => f.fieldKey === critScore.fieldKey && f.value !== null,
+      );
+
+      if (critScore.status === "INVALID") {
+        hasInvalidCriticalField = true;
+        criticalFieldFailures.push(
+          `Critical field '${critScore.fieldKey}' is INVALID (fails arithmetic or grounding).`,
+        );
+      } else if (
+        isExtracted &&
+        (critScore.status === "UNCERTAIN" ||
+          critScore.status === "CONFLICT" ||
+          critScore.score < thresholds.criticalFieldFloorScore)
+      ) {
+        criticalFieldFailures.push(
+          `Critical field '${critScore.fieldKey}' has insufficient validation score (${critScore.score}%, floor is ${thresholds.criticalFieldFloorScore}%).`,
+        );
+      }
     }
 
-    const allFieldsValid = Object.values(fieldScores).every(
-      (f) => f.status === "VALID" || (f.status === "MISSING" && !f.fieldKey.includes("Total")),
+    const hasFailingCriticalField = criticalFieldFailures.length > 0;
+
+    // Standard raw aggregate
+    let rawOverallScore = Math.round(
+      opticalScore * 0.2 +
+        groundingScore * 0.2 +
+        semanticScore * 0.15 +
+        deterministicScore * 0.25 +
+        crossFieldScore * 0.1 +
+        (criticalFieldsScore / 100) * 10,
     );
-    const isReliable =
-      tier === "HIGH" &&
-      deterministicResult.allRulesPassed &&
-      groundingScore >= 90 &&
-      allFieldsValid;
-    const requiresReview = !isReliable;
+
+    // ANTI-MASKING PENALTY:
+    // If critical fields fail, do not allow high auxiliary scores to inflate overall score to HIGH
+    let isAntiMaskingTriggered = false;
+    let antiMaskingReason: string | undefined;
+
+    if (hasFailingCriticalField && rawOverallScore >= thresholds.highThreshold) {
+      isAntiMaskingTriggered = true;
+      rawOverallScore = Math.min(rawOverallScore, thresholds.highThreshold - 1);
+      antiMaskingReason = `Anti-masking activated: High-confidence non-critical fields cannot mask ${criticalFieldFailures.length} critical financial field failure(s).`;
+    }
+
+    const overallScore = Math.min(100, Math.max(0, rawOverallScore));
+
+    // --- 4. CONFIDENCE CATEGORY TIER & POLICY ACTION (REQUIREMENT 12) ---
+    let tier: ValidationConfidenceTier = "LOW";
+    let policyAction: ConfidenceTierPolicyAction = "REVIEW_REQUIRED";
+
+    if (overallScore >= thresholds.highThreshold && !hasFailingCriticalField) {
+      tier = "HIGH";
+      policyAction = "ELIGIBLE_FOR_AUTOMATIC_PROGRESSION";
+    } else if (overallScore >= thresholds.mediumThreshold && !hasInvalidCriticalField) {
+      tier = "MEDIUM";
+      policyAction = "ADDITIONAL_DETERMINISTIC_CHECKS";
+    } else {
+      tier = "LOW";
+      policyAction = "REVIEW_REQUIRED";
+    }
+
+    // --- 5. DOCUMENT-LEVEL VALIDATION STATUS (REQUIREMENT 13) ---
+    let documentStatus: DocumentValidationStatus = "DOCUMENT_REQUIRES_REVIEW";
+
+    if (hasInvalidCriticalField || !deterministicResult.allRulesPassed) {
+      documentStatus = "DOCUMENT_INVALID";
+    } else if (tier === "HIGH" && !hasFailingCriticalField && groundingScore >= thresholds.criticalFieldGroundedThreshold) {
+      const nonCriticalHasIssue = nonCriticalScores.some(
+        (s) => s.status === "UNCERTAIN" || s.score < thresholds.mediumThreshold,
+      );
+      if (nonCriticalHasIssue) {
+        documentStatus = "DOCUMENT_PARTIALLY_VERIFIED";
+      } else {
+        documentStatus = "DOCUMENT_VERIFIED";
+      }
+    } else if (tier === "MEDIUM" && !hasInvalidCriticalField) {
+      documentStatus = "DOCUMENT_PARTIALLY_VERIFIED";
+    } else {
+      documentStatus = "DOCUMENT_REQUIRES_REVIEW";
+    }
+
+    const isReliable = documentStatus === "DOCUMENT_VERIFIED";
+    const requiresReview = documentStatus !== "DOCUMENT_VERIFIED";
+
+    const qualitySummary: DocumentValidationQualitySummary = {
+      documentStatus,
+      overallScore,
+      tier,
+      policyAction,
+      criticalFieldsScore,
+      nonCriticalFieldsScore,
+      hasFailingCriticalField,
+      criticalFieldFailures,
+      isAntiMaskingTriggered,
+      antiMaskingReason,
+      configuredThresholds: thresholds,
+    };
 
     return {
       opticalScore: Math.round(opticalScore),
@@ -196,6 +315,9 @@ export class ValidationConfidenceCalculator {
       crossFieldScore: Math.round(crossFieldScore),
       overallScore,
       tier,
+      policyAction,
+      documentStatus,
+      qualitySummary,
       isReliable,
       requiresReview,
       fieldScores,

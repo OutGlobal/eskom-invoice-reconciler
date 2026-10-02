@@ -166,9 +166,67 @@ export interface CrossFieldValidationResult {
   findings: CrossFieldValidationFinding[];
 }
 
-// --- 8. MULTI-FACTOR CONFIDENCE CALCULATION ---
+// --- 8. MULTI-FACTOR CONFIDENCE & DOCUMENT QUALITY (REQUIREMENTS 12 & 13) ---
 
 export type ValidationConfidenceTier = "HIGH" | "MEDIUM" | "LOW";
+
+export type ConfidenceTierPolicyAction =
+  | "ELIGIBLE_FOR_AUTOMATIC_PROGRESSION"
+  | "ADDITIONAL_DETERMINISTIC_CHECKS"
+  | "REVIEW_REQUIRED";
+
+export type DocumentValidationStatus =
+  | "DOCUMENT_VERIFIED"
+  | "DOCUMENT_PARTIALLY_VERIFIED"
+  | "DOCUMENT_REQUIRES_REVIEW"
+  | "DOCUMENT_INVALID";
+
+export interface ValidationConfidenceThresholds {
+  /** Minimum score for HIGH tier (Default: 85) - eligible for automatic progression */
+  highThreshold: number;
+  /** Minimum score for MEDIUM tier (Default: 65) - triggers additional deterministic checks */
+  mediumThreshold: number;
+  /** Minimum validation score required on every critical field to allow HIGH tier (Default: 80) */
+  criticalFieldFloorScore: number;
+  /** Minimum grounding score required on critical fields (Default: 90) */
+  criticalFieldGroundedThreshold: number;
+}
+
+export const DEFAULT_CONFIDENCE_THRESHOLDS: ValidationConfidenceThresholds = {
+  highThreshold: 85,
+  mediumThreshold: 65,
+  criticalFieldFloorScore: 80,
+  criticalFieldGroundedThreshold: 90,
+};
+
+export const CRITICAL_DOCUMENT_FIELDS: readonly string[] = [
+  "invoiceTotal",
+  "subtotal",
+  "vat",
+  "totalKwh",
+  "accountNumber",
+  "billingPeriodStart",
+  "billingPeriodEnd",
+  "peakKwh",
+  "standardKwh",
+  "offPeakKwh",
+  "tariffName",
+  "maximumDemandKva",
+];
+
+export interface DocumentValidationQualitySummary {
+  documentStatus: DocumentValidationStatus;
+  overallScore: number;
+  tier: ValidationConfidenceTier;
+  policyAction: ConfidenceTierPolicyAction;
+  criticalFieldsScore: number;
+  nonCriticalFieldsScore: number;
+  hasFailingCriticalField: boolean;
+  criticalFieldFailures: string[];
+  isAntiMaskingTriggered: boolean;
+  antiMaskingReason?: string;
+  configuredThresholds: ValidationConfidenceThresholds;
+}
 
 export interface ValidationConfidenceBreakdown {
   opticalScore: number; // 0..100 (from OCR tokens)
@@ -178,6 +236,9 @@ export interface ValidationConfidenceBreakdown {
   crossFieldScore: number; // 0..100 (relational cross-checks)
   overallScore: number; // 0..100 (weighted aggregate validation score)
   tier: ValidationConfidenceTier;
+  policyAction: ConfidenceTierPolicyAction;
+  documentStatus: DocumentValidationStatus;
+  qualitySummary: DocumentValidationQualitySummary;
   isReliable: boolean;
   requiresReview: boolean;
   fieldScores: Record<string, FieldValidationConfidenceScore>;

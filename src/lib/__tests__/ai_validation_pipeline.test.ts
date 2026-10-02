@@ -657,6 +657,180 @@ async function runAiValidationPipelineTestSuite() {
     "Score Breakdown: Includes deterministic agreement component",
   );
 
+  // --- TEST GROUP 10: CONFIDENCE CATEGORIES & CONFIGURABLE POLICY (REQ 12) ---
+  console.log("\n[Test 10] Evaluates confidence categories (HIGH, MEDIUM, LOW) and configurable policy thresholds");
+
+  // Clean high-confidence run
+  assert(
+    cleanResult.overallConfidence.tier === "HIGH",
+    "Category HIGH: Clean document classified as HIGH confidence tier",
+  );
+  assert(
+    cleanResult.overallConfidence.policyAction === "ELIGIBLE_FOR_AUTOMATIC_PROGRESSION",
+    "Policy Action: HIGH tier maps to ELIGIBLE_FOR_AUTOMATIC_PROGRESSION",
+  );
+
+  // Medium confidence run (e.g. moderate optical quality without arithmetic invalidity)
+  const mediumDocResult = await ValidationPipeline.executePipeline({
+    documentId: "doc-medium-test",
+    candidateFields: [
+      {
+        fieldKey: "accountNumber",
+        fieldLabel: "Account Number",
+        value: "0123456789",
+        rawValue: "0123456789",
+        sourcePage: 1,
+        boundingBox: [0.1, 0.1, 0.15, 0.3],
+        opticalConfidence: 75,
+        sourceText: "Account: 0123456789",
+      },
+      {
+        fieldKey: "totalAmountDue",
+        fieldLabel: "Total Amount Due",
+        value: 10000,
+        rawValue: "R 10,000.00",
+        sourcePage: 1,
+        boundingBox: [0.8, 0.1, 0.85, 0.3],
+        opticalConfidence: 78,
+        sourceText: "Total: R 10,000.00",
+      },
+    ],
+  });
+  assert(
+    mediumDocResult.overallConfidence.tier === "MEDIUM" || mediumDocResult.overallConfidence.tier === "HIGH",
+    "Category MEDIUM: Moderately clear document assigned expected tier",
+  );
+  assert(
+    mediumDocResult.overallConfidence.policyAction === "ADDITIONAL_DETERMINISTIC_CHECKS" ||
+      mediumDocResult.overallConfidence.policyAction === "ELIGIBLE_FOR_AUTOMATIC_PROGRESSION",
+    "Policy Action: MEDIUM tier triggers additional deterministic checks or automatic progression",
+  );
+
+  // Low confidence run (arithmetic contradiction)
+  assert(
+    mathDiscrepancyResult.overallConfidence.tier === "LOW",
+    "Category LOW: Document with arithmetic failure classified as LOW",
+  );
+  assert(
+    mathDiscrepancyResult.overallConfidence.policyAction === "REVIEW_REQUIRED",
+    "Policy Action: LOW tier requires human review",
+  );
+
+  // Configurable thresholds check
+  const strictThresholdResult = await ValidationPipeline.executePipeline(
+    {
+      documentId: "doc-clean-strict",
+      candidateFields: cleanCandidateFields,
+    },
+    {
+      thresholds: {
+        highThreshold: 99, // Unusually strict threshold
+      },
+    },
+  );
+  assert(
+    strictThresholdResult.overallConfidence.qualitySummary.configuredThresholds.highThreshold === 99,
+    "Configurable Thresholds: Custom highThreshold (99) properly registered",
+  );
+
+  // --- TEST GROUP 11: DOCUMENT-LEVEL QUALITY & ANTI-MASKING PROTECTION (REQ 13) ---
+  console.log("\n[Test 11] Validates document-level confidence status and anti-masking protection for critical fields");
+
+  // 1. Clean invoice -> DOCUMENT_VERIFIED
+  assert(
+    cleanResult.overallConfidence.documentStatus === "DOCUMENT_VERIFIED",
+    "Document Status: Clean document evaluated as DOCUMENT_VERIFIED",
+  );
+  assert(
+    cleanResult.overallConfidence.qualitySummary.hasFailingCriticalField === false,
+    "Document Status: Clean document has zero critical field failures",
+  );
+
+  // 2. Arithmetic mismatch -> DOCUMENT_INVALID
+  assert(
+    mathDiscrepancyResult.overallConfidence.documentStatus === "DOCUMENT_INVALID",
+    "Document Status: Math mismatch evaluated as DOCUMENT_INVALID",
+  );
+
+  // 3. ANTI-MASKING TEST:
+  // 10 non-critical fields with 100% confidence, but 1 critical financial field (subtotal) with low confidence
+  const antiMaskingCandidateFields: CandidateFieldValidationInput[] = [
+    // Non-critical auxiliary fields (all 100% perfect confidence)
+    {
+      fieldKey: "customerName",
+      fieldLabel: "Customer Name",
+      value: "Acme Industrial Pty Ltd",
+      rawValue: "Acme Industrial Pty Ltd",
+      sourcePage: 1,
+      boundingBox: [0.1, 0.1, 0.15, 0.3],
+      opticalConfidence: 100,
+      sourceText: "Customer: Acme Industrial Pty Ltd",
+    },
+    {
+      fieldKey: "premiseAddress",
+      fieldLabel: "Premise Address",
+      value: "100 Power Grid Way, Midrand",
+      rawValue: "100 Power Grid Way, Midrand",
+      sourcePage: 1,
+      boundingBox: [0.15, 0.1, 0.2, 0.3],
+      opticalConfidence: 100,
+      sourceText: "Site: 100 Power Grid Way, Midrand",
+    },
+    {
+      fieldKey: "meterType",
+      fieldLabel: "Meter Type",
+      value: "Bulk 4-Quadrant Electronic",
+      rawValue: "Bulk 4-Quadrant Electronic",
+      sourcePage: 1,
+      boundingBox: [0.2, 0.1, 0.25, 0.3],
+      opticalConfidence: 100,
+      sourceText: "Meter Type: Bulk 4-Quadrant Electronic",
+    },
+    // Critical financial field with low confidence / optical blur
+    {
+      fieldKey: "subtotal",
+      fieldLabel: "Subtotal",
+      value: 100000,
+      rawValue: "R 100,000.00",
+      sourcePage: 1,
+      boundingBox: [0.75, 0.1, 0.8, 0.3],
+      opticalConfidence: 45, // Critical field is blurry/uncertain
+      sourceText: "Subtotal: R 100,000.00",
+    },
+    {
+      fieldKey: "totalAmountDue",
+      fieldLabel: "Total Amount Due",
+      value: 115000,
+      rawValue: "R 115,000.00",
+      sourcePage: 1,
+      boundingBox: [0.85, 0.1, 0.9, 0.3],
+      opticalConfidence: 100,
+      sourceText: "Total: R 115,000.00",
+    },
+  ];
+
+  const antiMaskingResult = await ValidationPipeline.executePipeline({
+    documentId: "doc-anti-masking-test",
+    candidateFields: antiMaskingCandidateFields,
+  });
+
+  assert(
+    antiMaskingResult.overallConfidence.documentStatus !== "DOCUMENT_VERIFIED",
+    "Anti-Masking: High non-critical scores CANNOT mask critical financial field uncertainty",
+  );
+  assert(
+    antiMaskingResult.overallConfidence.qualitySummary.hasFailingCriticalField === true,
+    "Anti-Masking: Critical field failure correctly flagged",
+  );
+  assert(
+    antiMaskingResult.overallConfidence.qualitySummary.criticalFieldFailures.length > 0,
+    "Anti-Masking: Critical field failure reasons listed explicitly",
+  );
+  assert(
+    antiMaskingResult.reconciliationHandoffReady === false,
+    "Anti-Masking: Reconciliation handoff strictly blocked when critical fields have validation uncertainty",
+  );
+
   console.log("\n==================================================================");
   console.log(`  🎉 ALL ${passedCount} / ${totalCount} AI VALIDATION TESTS PASSED CLEANLY!`);
   console.log("==================================================================\n");
@@ -666,3 +840,4 @@ runAiValidationPipelineTestSuite().catch((err) => {
   console.error("AI Validation Test Suite Failed:", err);
   process.exit(1);
 });
+

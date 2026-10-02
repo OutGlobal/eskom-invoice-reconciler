@@ -31,6 +31,7 @@ import type {
   CompleteValidationResult,
   ValidationApprovalRecord,
   ValidationLifecycleStatus,
+  ValidationConfidenceThresholds,
 } from "./types";
 import type {
   AiValidationStructuredPackage,
@@ -42,6 +43,10 @@ import { DeterministicRuleEngine } from "./deterministicRuleEngine";
 import { CrossFieldValidator } from "./crossFieldValidator";
 import { ValidationConfidenceCalculator } from "./validationConfidenceCalculator";
 import { ExceptionGenerator } from "./exceptionGenerator";
+
+export interface ValidationPipelineExecutionOptions {
+  thresholds?: Partial<ValidationConfidenceThresholds>;
+}
 
 export class ValidationPipeline {
   /**
@@ -56,6 +61,7 @@ export class ValidationPipeline {
           candidateFields: CandidateFieldValidationInput[];
           fullDocumentText?: string;
         },
+    options?: ValidationPipelineExecutionOptions,
   ): Promise<CompleteValidationResult> {
     const now = new Date().toISOString();
     const documentId = inputPackage.documentId;
@@ -113,6 +119,7 @@ export class ValidationPipeline {
       semanticResult: semanticValidation,
       deterministicResult: deterministicValidation,
       crossFieldResult: crossFieldValidation,
+      thresholds: options?.thresholds,
     });
 
     // --- STAGE 7: EXCEPTION GENERATION ---
