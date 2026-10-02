@@ -373,7 +373,7 @@ async function runAiValidationPipelineTestSuite() {
   // 7. Reactive Section
   assert(
     canonicalRecord.reactive.reactiveEnergyKvarh.value === null,
-    "Canonical Reactive: unbilled reactive remains null (not invented)",
+    "Canonical Reactive: non-billed reactive remains null (not invented)",
   );
 
   // 8. Financial Section
@@ -778,12 +778,12 @@ async function runAiValidationPipelineTestSuite() {
     {
       fieldKey: "premiseAddress",
       fieldLabel: "Premise Address",
-      value: "100 Power Grid Way, Midrand",
-      rawValue: "100 Power Grid Way, Midrand",
+      value: "100 Power Grid Way, Johannesburg",
+      rawValue: "100 Power Grid Way, Johannesburg",
       sourcePage: 1,
       boundingBox: [0.15, 0.1, 0.2, 0.3],
       opticalConfidence: 100,
-      sourceText: "Site: 100 Power Grid Way, Midrand",
+      sourceText: "Site: 100 Power Grid Way, Johannesburg",
     },
     {
       fieldKey: "meterType",

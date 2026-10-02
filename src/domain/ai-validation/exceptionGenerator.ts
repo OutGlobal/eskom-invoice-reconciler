@@ -154,7 +154,7 @@ export class ExceptionGenerator {
     if (multiSourceResult && multiSourceResult.conflictList.length > 0) {
       for (const conf of multiSourceResult.conflictList) {
         exceptions.push({
-          exceptionId: `exc-multisource-${documentId}-${conf.fieldKey}-${Date.now()}`,
+          exceptionId: `exc-multi-source-${documentId}-${conf.fieldKey}-${Date.now()}`,
           documentId,
           fieldKey: conf.fieldKey,
           category: "MULTI_SOURCE_CONFLICT",
@@ -173,7 +173,7 @@ export class ExceptionGenerator {
     if (duplicateFieldResult && duplicateFieldResult.conflictList.length > 0) {
       for (const dup of duplicateFieldResult.conflictList) {
         exceptions.push({
-          exceptionId: `exc-dupfield-${documentId}-${dup.fieldKey}-${Date.now()}`,
+          exceptionId: `exc-duplicate-field-${documentId}-${dup.fieldKey}-${Date.now()}`,
           documentId,
           fieldKey: dup.fieldKey,
           category: "DUPLICATE_FIELD_CONFLICT",
