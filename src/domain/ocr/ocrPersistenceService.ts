@@ -30,11 +30,32 @@ export class OcrPersistenceService {
   /**
    * Persists an authoritative OCR extraction result across L1, L2, and L3 tiers
    */
+  public static async saveOcrResult(
+    result: OcrDocumentResult,
+    context?: UserSecurityContext,
+  ): Promise<void> {
+    return this.saveOcrRun(result, context);
+  }
+
+  /**
+   * Retrieves an authoritative OCR extraction result across L1, L2, and L3 tiers
+   */
+  public static async getOcrResult(
+    idOrDocId: string,
+    context?: UserSecurityContext,
+  ): Promise<OcrDocumentResult | null> {
+    return this.getOcrRun(idOrDocId, context);
+  }
+
+  /**
+   * Persists an authoritative OCR extraction result across L1, L2, and L3 tiers
+   */
   public static async saveOcrRun(
     result: OcrDocumentResult,
     context?: UserSecurityContext,
   ): Promise<void> {
     const orgId = result.organisationId || context?.organisationId || "DEFAULT_TENANT";
+    result.organisationId = orgId;
 
     // Strict tenant isolation guard
     if (context && context.role !== "SUPER_ADMIN" && context.organisationId !== orgId) {
