@@ -1,19 +1,13 @@
 /**
  * ENERA AI VALIDATION & INTELLIGENT DOCUMENT VERIFICATION — TEST SUITE
  * =====================================================================
- * Verifies Requirements 4, 5, 6 & 7:
- * 1. Strict Separation of Concerns:
- *    - Extraction: "What information appears in the document?"
- *    - AI Validation: "Does the extracted information agree with available evidence?"
- *    - Deterministic Validation: "Do the values mathematically and structurally agree?"
- *    - Reconciliation: "What should the customer have been charged?"
- * 2. 8-Stage Validation Pipeline:
- *    Candidate Data -> Evidence Check -> AI Semantic Validation -> Deterministic Rules ->
- *    Cross-Field Validation -> Confidence Calculation -> Exception Generation -> Approval/Review
- * 3. Canonical Invoice Record & Field-Level Evidence:
- *    - 8 Functional Domains: Document, Customer, Meter, Tariff, Energy, Demand, Reactive, Financial
- *    - 100% Traceable Provenance: document_id, page, text, bounding_box, extraction_method, confidence
- * 4. Core Principle: Zero hallucination, non-invention, fallback to UNKNOWN/REVIEW_REQUIRED.
+ * Verifies Requirements 4, 5, 6, 7, 8 & 9:
+ * 1. Strict Separation of Concerns
+ * 2. 8-Stage Validation Pipeline
+ * 3. Canonical Invoice Record & Field-Level Evidence
+ * 4. Structured AI Input Payload Builder (Req 8)
+ * 5. Structured AI Output Schema Validation & Malformed Rejection (Req 9)
+ * 6. Core Principle: Zero hallucination, non-invention, fallback to UNKNOWN/REVIEW_REQUIRED.
  */
 
 import {
@@ -21,6 +15,8 @@ import {
   EvidenceCheckEngine,
   DeterministicRuleEngine,
   CanonicalInvoiceBuilder,
+  StructuredAiPayloadBuilder,
+  StructuredAiResponseValidator,
   type CandidateFieldValidationInput,
 } from "../../domain/ai-validation";
 
@@ -417,8 +413,120 @@ async function runAiValidationPipelineTestSuite() {
     "Provenance summary confirms grounded fields count",
   );
 
-  // --- TEST GROUP 5: ARITHMETIC DISCREPANCY EXCEPTION HANDLING ---
-  console.log("\n[Test 5] Flags arithmetic discrepancies without mutating invoice numbers");
+  // --- TEST GROUP 5: STRUCTURED AI INPUT (REQ 8) ---
+  console.log(
+    "\n[Test 5] Builds structured AI input payload with targeted evidence (No uncontrolled blobs)",
+  );
+  const aiPayload = StructuredAiPayloadBuilder.buildPayload({
+    documentId: "doc-clean-auth-001",
+    candidateFields: cleanCandidateFields,
+    supplierContext: "ESKOM",
+  });
+  assert(
+    aiPayload.documentId === "doc-clean-auth-001",
+    "Structured AI Input: documentId populated",
+  );
+  assert(
+    aiPayload.candidateFields.length === cleanCandidateFields.length,
+    "Structured AI Input: Contains targeted candidate fields",
+  );
+  assert(
+    aiPayload.metadata.detectedSupplier === "ESKOM",
+    "Structured AI Input: Supplier context attached",
+  );
+  assert(
+    typeof aiPayload.expectedOutputJsonSchema === "string",
+    "Structured AI Input: Output schema provided in prompt",
+  );
+
+  // --- TEST GROUP 6: STRUCTURED AI OUTPUT SCHEMA & REJECTION (REQ 9) ---
+  console.log("\n[Test 6] Validates structured AI JSON responses and rejects malformed outputs");
+  const validAiResponse = {
+    document_id: "doc-clean-auth-001",
+    overall_status: "VALID" as const,
+    overall_confidence: 0.96,
+    supplier_context: "ESKOM",
+    validated_fields: [
+      {
+        field: "billing_period",
+        status: "VALID" as const,
+        confidence: 0.96,
+        reason: "Two date references agree with the billing period shown on page 1",
+        evidence: [
+          {
+            page: 1,
+            source_text: "01 September 2026 - 30 September 2026",
+          },
+        ],
+      },
+    ],
+    anomalies_detected: [],
+  };
+
+  const validationResult = StructuredAiResponseValidator.validateResponse(
+    validAiResponse,
+    "doc-clean-auth-001",
+  );
+  assert(
+    validationResult.isValid === true,
+    "Structured AI Output: Valid response passed schema validation",
+  );
+  assert(
+    validationResult.data?.overall_status === "VALID",
+    "Structured AI Output: Overall status is VALID",
+  );
+
+  // Test Malformed JSON String Rejection
+  const malformedString = "{ invalid_json: missing_quotes ";
+  const malformedResult = StructuredAiResponseValidator.validateResponse(
+    malformedString,
+    "doc-clean-auth-001",
+  );
+  assert(malformedResult.isValid === false, "Structured AI Output: Malformed JSON string rejected");
+  assert(
+    malformedResult.errorMessage?.includes("MALFORMED_AI_OUTPUT") === true,
+    "Structured AI Output: Rejection error message matches",
+  );
+
+  // Test Schema Violation Rejection (Confidence out of bounds)
+  const schemaViolation = {
+    document_id: "doc-clean-auth-001",
+    overall_status: "VALID",
+    overall_confidence: 1.5, // Exceeds 1.0 limit
+    validated_fields: [],
+  };
+  const schemaViolationResult = StructuredAiResponseValidator.validateResponse(
+    schemaViolation,
+    "doc-clean-auth-001",
+  );
+  assert(
+    schemaViolationResult.isValid === false,
+    "Structured AI Output: Out-of-bounds confidence rejected by Zod schema",
+  );
+
+  // Test Document ID Mismatch Rejection
+  const idMismatch = {
+    ...validAiResponse,
+    document_id: "doc-different-999",
+  };
+  const idMismatchResult = StructuredAiResponseValidator.validateResponse(
+    idMismatch,
+    "doc-clean-auth-001",
+  );
+  assert(idMismatchResult.isValid === false, "Structured AI Output: Document ID mismatch rejected");
+
+  // Test Fallback Conversion
+  const fallback = StructuredAiResponseValidator.createFallbackResult(
+    "doc-clean-auth-001",
+    "Invalid Schema",
+  );
+  assert(
+    fallback.overallSemanticConsistency === "AMBIGUOUS",
+    "Structured AI Output: Fallback initiates safe AMBIGUOUS status",
+  );
+
+  // --- TEST GROUP 7: ARITHMETIC DISCREPANCY EXCEPTION HANDLING ---
+  console.log("\n[Test 7] Flags arithmetic discrepancies without mutating invoice numbers");
   const corruptedMathFields: CandidateFieldValidationInput[] = [
     ...cleanCandidateFields.filter((f) => f.fieldKey !== "totalAmountDue"),
     {
