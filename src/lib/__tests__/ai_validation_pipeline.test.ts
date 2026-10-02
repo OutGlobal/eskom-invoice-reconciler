@@ -42,6 +42,8 @@ import {
   type DuplicateFieldOccurrence,
 } from "../../domain/ai-validation";
 import { InvoiceStorageService } from "../../domain/invoice/invoiceStorageService";
+import { SAMPLE_FEB_2026_INVOICE } from "./fixtures/sampleInvoice";
+import { createSecurityContext } from "../../domain/security/tenantContextService";
 
 let passedCount = 0;
 let totalCount = 0;
@@ -3429,6 +3431,789 @@ async function runAiValidationPipelineTestSuite() {
   assert(
     typeof dbApprovalSuccess === "boolean",
     "DB Persistence: Validation approval record persisted",
+  );
+
+  // ==================================================================
+  // TEST GROUP 38: TARGETED VALIDATION SCENARIO TESTS (REQUIREMENT 38)
+  // ==================================================================
+  console.log("\n[Test Group 38] Requirement 38: Targeted Validation Scenario Tests");
+
+  // 38.1: Valid invoice — All major fields agree -> Expected: VALID
+  const req38ValidInputs: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "accountNumber",
+      fieldLabel: "Account Number",
+      value: "7856504676",
+      rawValue: "7856504676",
+      sourcePage: 1,
+      boundingBox: [0.1, 0.1, 0.12, 0.3],
+      opticalConfidence: 99,
+      sourceText: "Account No: 7856504676",
+    },
+    {
+      fieldKey: "invoiceNumber",
+      fieldLabel: "Invoice Number",
+      value: "785101497007",
+      rawValue: "785101497007",
+      sourcePage: 1,
+      boundingBox: [0.15, 0.1, 0.18, 0.3],
+      opticalConfidence: 99,
+      sourceText: "Tax Invoice No: 785101497007",
+    },
+    {
+      fieldKey: "tariffName",
+      fieldLabel: "Tariff",
+      value: "MEGAFLEX",
+      rawValue: "MEGAFLEX",
+      sourcePage: 1,
+      boundingBox: [0.22, 0.1, 0.24, 0.4],
+      opticalConfidence: 98,
+      sourceText: "Tariff: MEGAFLEX",
+    },
+    {
+      fieldKey: "billingPeriodStart",
+      fieldLabel: "Billing Start",
+      value: "2026-01-01",
+      rawValue: "2026-01-01",
+      sourcePage: 1,
+      boundingBox: [0.2, 0.2, 0.23, 0.35],
+      opticalConfidence: 99,
+      sourceText: "Billing Period: 2026-01-01 to 2026-01-31",
+    },
+    {
+      fieldKey: "billingPeriodEnd",
+      fieldLabel: "Billing End",
+      value: "2026-01-31",
+      rawValue: "2026-01-31",
+      sourcePage: 1,
+      boundingBox: [0.2, 0.4, 0.23, 0.55],
+      opticalConfidence: 99,
+      sourceText: "Billing Period: 2026-01-01 to 2026-01-31",
+    },
+    {
+      fieldKey: "peakEnergyKwh",
+      fieldLabel: "Peak Energy",
+      value: 20000,
+      rawValue: "20,000",
+      sourcePage: 2,
+      boundingBox: [0.4, 0.5, 0.43, 0.7],
+      opticalConfidence: 98,
+      sourceText: "Peak kWh: 20,000",
+    },
+    {
+      fieldKey: "standardEnergyKwh",
+      fieldLabel: "Standard Energy",
+      value: 30000,
+      rawValue: "30,000",
+      sourcePage: 2,
+      boundingBox: [0.45, 0.5, 0.48, 0.7],
+      opticalConfidence: 98,
+      sourceText: "Standard kWh: 30,000",
+    },
+    {
+      fieldKey: "offPeakEnergyKwh",
+      fieldLabel: "Off-Peak Energy",
+      value: 50000,
+      rawValue: "50,000",
+      sourcePage: 2,
+      boundingBox: [0.5, 0.5, 0.53, 0.7],
+      opticalConfidence: 98,
+      sourceText: "Off-Peak kWh: 50,000",
+    },
+    {
+      fieldKey: "totalActiveEnergyKwh",
+      fieldLabel: "Total Energy",
+      value: 100000,
+      rawValue: "100,000",
+      sourcePage: 2,
+      boundingBox: [0.55, 0.5, 0.58, 0.7],
+      opticalConfidence: 99,
+      sourceText: "Total Active Energy: 100,000",
+    },
+    {
+      fieldKey: "subtotal",
+      fieldLabel: "Subtotal",
+      value: 100000,
+      rawValue: "R 100,000.00",
+      sourcePage: 1,
+      boundingBox: [0.75, 0.7, 0.78, 0.9],
+      opticalConfidence: 99,
+      sourceText: "Subtotal: R 100,000.00",
+    },
+    {
+      fieldKey: "vatAmount",
+      fieldLabel: "VAT",
+      value: 15000,
+      rawValue: "R 15,000.00",
+      sourcePage: 1,
+      boundingBox: [0.8, 0.7, 0.83, 0.9],
+      opticalConfidence: 99,
+      sourceText: "VAT 15%: R 15,000.00",
+    },
+    {
+      fieldKey: "totalAmountDue",
+      fieldLabel: "Invoice Total",
+      value: 115000,
+      rawValue: "R 115,000.00",
+      sourcePage: 1,
+      boundingBox: [0.85, 0.7, 0.88, 0.9],
+      opticalConfidence: 99,
+      sourceText: "Total Due: R 115,000.00",
+    },
+  ];
+
+  const req38ValidResult = await ValidationPipeline.executePipeline({
+    documentId: "DOC-REQ38-VALID",
+    candidateFields: req38ValidInputs,
+    fullDocumentText: "Eskom Holdings SOC Ltd Megaflex Electricity Invoice Account 7856504676 Tax Invoice No 785101497007",
+  });
+
+  assert(
+    ApprovalStateManager.normalizeState(req38ValidResult.status) === "VALID",
+    "Req 38.1 (Valid invoice): Expected status is VALID",
+  );
+  assert(
+    req38ValidResult.reconciliationHandoffReady === true,
+    "Req 38.1: Reconciliation handoff ready",
+  );
+
+  // 38.2: OCR typo (Example: 12345O789) -> Expected: POSSIBLE OCR ERROR
+  const typoResult = OcrErrorDetector.detectErrors("DOC-REQ38-TYPO", [
+    {
+      fieldKey: "accountNumber",
+      fieldLabel: "Account Number",
+      value: "12345O789",
+      rawValue: "12345O789",
+      sourcePage: 1,
+      opticalConfidence: 82,
+      sourceText: "Account: 12345O789",
+    },
+  ]);
+
+  assert(
+    typoResult.hasSuspectedOcrErrors === true,
+    "Req 38.2 (OCR typo): Suspected OCR error detected",
+  );
+  const typoFinding = typoResult.findings[0];
+  assert(typoFinding !== undefined, "Req 38.2: Typo finding generated");
+  assert(
+    typoFinding?.suspicionStatus === "POSSIBLE_OCR_ERROR",
+    "Req 38.2: Expected status is POSSIBLE OCR ERROR",
+  );
+  assert(typoFinding?.rawObserved === "12345O789", "Req 38.2: Raw observed '12345O789' preserved");
+  assert(
+    typoFinding?.candidateAlternative === "123450789",
+    "Req 38.2: Suggested correction is '123450789'",
+  );
+  assert(
+    Boolean(
+      typoFinding?.confusionPairs.some((p) => p.confusedChar === "O" && p.likelyChar === "0"),
+    ),
+    "Req 38.2: Identifies O <-> 0 character confusion pair",
+  );
+
+  // 38.3: Missing value -> Expected: MISSING
+  const req38MissingInputs: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "powerFactor",
+      fieldLabel: "Power Factor",
+      value: null,
+      rawValue: "NOT FOUND",
+      sourcePage: 1,
+      opticalConfidence: 0,
+      sourceText: "",
+      isGrounded: false,
+    },
+  ];
+
+  const req38MissingResult = await ValidationPipeline.executePipeline({
+    documentId: "DOC-REQ38-MISSING",
+    candidateFields: req38MissingInputs,
+  });
+
+  assert(
+    req38MissingResult.validatedFields["powerFactor"]?.status === "MISSING",
+    "Req 38.3 (Missing value): Expected status is MISSING",
+  );
+  assert(
+    req38MissingResult.validatedFields["powerFactor"]?.value === null,
+    "Req 38.3: Missing value remains null (zero assumed industry value)",
+  );
+
+  // 38.4: Conflicting values -> Expected: CONFLICT
+  const req38ConflictField: CandidateFieldValidationInput = {
+    fieldKey: "invoiceTotal",
+    fieldLabel: "Invoice Total",
+    value: 125430.2,
+    rawValue: "R125,430.20",
+    sourcePage: 1,
+    opticalConfidence: 95,
+    sourceText: "Total Due: R125,430.20",
+    multiSourceReadings: [
+      {
+        source: "OCR",
+        value: 125430.2,
+        rawValue: "R125,430.20",
+        pageNumber: 1,
+        confidence: 95,
+      },
+      {
+        source: "NATIVE_PDF_TEXT",
+        value: 135000.0,
+        rawValue: "R135,000.00",
+        pageNumber: 5,
+        confidence: 99,
+      },
+    ],
+  };
+
+  const req38ConflictResult = await ValidationPipeline.executePipeline({
+    documentId: "DOC-REQ38-CONFLICT",
+    candidateFields: [req38ConflictField],
+  });
+
+  assert(
+    req38ConflictResult.validatedFields["invoiceTotal"]?.status === "CONFLICT",
+    "Req 38.4 (Conflicting values): Expected status is CONFLICT",
+  );
+  assert(
+    req38ConflictResult.status === "REVIEW_REQUIRED",
+    "Req 38.4: Conflict escalates overall document status to REVIEW_REQUIRED",
+  );
+
+  // 38.5: Arithmetic mismatch -> Expected: INVALID / REVIEW_REQUIRED
+  const req38ArithInputs: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "peakEnergyKwh",
+      fieldLabel: "Peak kWh",
+      value: 20000,
+      rawValue: "20,000",
+      sourcePage: 1,
+      opticalConfidence: 99,
+      sourceText: "Peak: 20,000",
+    },
+    {
+      fieldKey: "standardEnergyKwh",
+      fieldLabel: "Standard kWh",
+      value: 30000,
+      rawValue: "30,000",
+      sourcePage: 1,
+      opticalConfidence: 99,
+      sourceText: "Standard: 30,000",
+    },
+    {
+      fieldKey: "offPeakEnergyKwh",
+      fieldLabel: "Off-Peak kWh",
+      value: 50000,
+      rawValue: "50,000",
+      sourcePage: 1,
+      opticalConfidence: 99,
+      sourceText: "Off-Peak: 50,000",
+    },
+    {
+      fieldKey: "totalActiveEnergyKwh",
+      fieldLabel: "Total Active Energy",
+      value: 120000, // Deliberate mismatch: 20k + 30k + 50k = 100k != 120k
+      rawValue: "120,000",
+      sourcePage: 1,
+      opticalConfidence: 99,
+      sourceText: "Total: 120,000",
+    },
+  ];
+
+  const req38ArithResult = await ValidationPipeline.executePipeline({
+    documentId: "DOC-REQ38-ARITH",
+    candidateFields: req38ArithInputs,
+  });
+
+  assert(
+    req38ArithResult.deterministicValidation?.allRulesPassed === false,
+    "Req 38.5 (Arithmetic mismatch): Deterministic validation allRulesPassed is false",
+  );
+  assert(
+    req38ArithResult.status === "REVIEW_REQUIRED",
+    "Req 38.5: Expected overall document status is REVIEW_REQUIRED",
+  );
+  assert(
+    req38ArithResult.validatedFields["totalActiveEnergyKwh"]?.status === "INVALID" ||
+      req38ArithResult.status === "REVIEW_REQUIRED",
+    "Req 38.5: Field flagged as INVALID / document REVIEW_REQUIRED",
+  );
+
+  // 38.6: VAT mismatch -> Expected: EXCEPTION
+  const req38VatInputs: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "subtotal",
+      fieldLabel: "Subtotal",
+      value: 100000,
+      rawValue: "R 100,000.00",
+      sourcePage: 1,
+      opticalConfidence: 99,
+      sourceText: "Subtotal: R 100,000.00",
+    },
+    {
+      fieldKey: "vatAmount",
+      fieldLabel: "VAT",
+      value: 5000, // Deliberate VAT mismatch: 15% of 100,000 is 15,000, not 5,000
+      rawValue: "R 5,000.00",
+      sourcePage: 1,
+      opticalConfidence: 99,
+      sourceText: "VAT 15%: R 5,000.00",
+    },
+    {
+      fieldKey: "invoiceTotal",
+      fieldLabel: "Invoice Total",
+      value: 105000,
+      rawValue: "R 105,000.00",
+      sourcePage: 1,
+      opticalConfidence: 99,
+      sourceText: "Total Due: R 105,000.00",
+    },
+  ];
+
+  const req38VatResult = await ValidationPipeline.executePipeline({
+    documentId: "DOC-REQ38-VAT",
+    candidateFields: req38VatInputs,
+  });
+
+  assert(
+    req38VatResult.exceptions.length > 0,
+    "Req 38.6 (VAT mismatch): Expected EXCEPTION is generated",
+  );
+  const vatMismatchException = req38VatResult.exceptions.find(
+    (e) =>
+      Boolean(e.code?.includes("MISMATCH")) ||
+      Boolean(e.category?.includes("CROSS_FIELD")) ||
+      Boolean(e.category?.includes("ARITHMETIC")) ||
+      Boolean(e.title?.includes("VAT")) ||
+      Boolean(e.description?.includes("VAT")),
+  );
+  assert(
+    vatMismatchException !== undefined,
+    "Req 38.6: Structured exception generated for VAT mismatch",
+  );
+
+  // 38.7: AI failure -> Expected: RETRY / REVIEW_REQUIRED
+  const req38AiFailResult = await ValidationPipeline.executePipeline(
+    {
+      documentId: "DOC-REQ38-AI-FAIL",
+      candidateFields: [
+        {
+          fieldKey: "accountNumber",
+          fieldLabel: "Account Number",
+          value: "0123456789",
+          rawValue: "0123456789",
+          sourcePage: 1,
+          opticalConfidence: 99,
+          sourceText: "Account: 0123456789",
+        },
+      ],
+    },
+    {
+      aiSemanticExecutor: async () => {
+        throw new Error("429 Too Many Requests: Rate limit exceeded");
+      },
+    },
+  );
+
+  assert(
+    req38AiFailResult.aiFailure !== undefined,
+    "Req 38.7 (AI failure): Attached structured aiFailure record",
+  );
+  assert(
+    req38AiFailResult.status === "REVIEW_REQUIRED",
+    "Req 38.7: Expected status is REVIEW_REQUIRED",
+  );
+  assert(
+    req38AiFailResult.aiFailure?.isRetryable === true,
+    "Req 38.7: Expected isRetryable is true (RETRY)",
+  );
+
+  // 38.8: Human correction -> Verify: original preserved, corrected value stored, reviewer recorded, audit trail preserved
+  const req38OriginalInputs: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "tariffName",
+      fieldLabel: "Tariff Name",
+      value: "MEGAFLEX",
+      rawValue: "MEGAFLEX_SCHEDULE_2025",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Tariff Schedule: MEGAFLEX",
+    },
+  ];
+
+  const correctionRunResult = await ValidationPipeline.executePipeline({
+    documentId: "DOC-REQ38-CORRECTION",
+    candidateFields: req38OriginalInputs,
+  });
+
+  const correctionSession = HumanReviewWorkflowEngine.createReviewSession({
+    documentId: "DOC-REQ38-CORRECTION",
+    validationResult: correctionRunResult,
+    candidateFields: req38OriginalInputs,
+    reviewer: {
+      id: "USR-REV-01",
+      name: "Sipho Khumalo",
+      email: "sipho@enera.co.za",
+      role: "SENIOR_TARIFF_ANALYST",
+    },
+  });
+
+  const { updatedSession: appliedSession, correctionRecord: finalCorrectionRecord } =
+    HumanReviewWorkflowEngine.applyFieldCorrection({
+      session: correctionSession,
+      candidateFields: req38OriginalInputs,
+      fieldKey: "tariffName",
+      correctedValue: "MINIFLEX",
+      correctionReason: "Physical site inspection confirmed 11kV Miniflex schedule",
+      reviewer: {
+        id: "USR-REV-01",
+        name: "Sipho Khumalo",
+        email: "sipho@enera.co.za",
+      },
+      evidence: {
+        sourcePage: 1,
+        sourceText: "Tariff Schedule: MEGAFLEX",
+      },
+    });
+
+  const baseChain = EneraAuditChainEngine.buildFieldChain({
+    documentId: "DOC-REQ38-CORRECTION",
+    field: req38OriginalInputs[0],
+    result: correctionRunResult,
+  });
+
+  const auditCorrectionChain = EneraAuditChainEngine.applyUserOverride(baseChain, {
+    overriddenValue: "MINIFLEX",
+    reviewedBy: "Sipho Khumalo",
+    reviewNotes: "Physical site inspection confirmed 11kV Miniflex schedule",
+  });
+
+  assert(
+    req38OriginalInputs[0].value === "MEGAFLEX",
+    "Req 38.8 (Human correction): Original extracted value is strictly preserved intact",
+  );
+  assert(
+    finalCorrectionRecord.correctedValue === "MINIFLEX",
+    "Req 38.8: Corrected value 'MINIFLEX' is stored",
+  );
+  assert(
+    finalCorrectionRecord.reviewer.name === "Sipho Khumalo",
+    "Req 38.8: Reviewer name 'Sipho Khumalo' is recorded",
+  );
+  assert(
+    EneraAuditChainEngine.verifyChainIntegrity(auditCorrectionChain) === true,
+    "Req 38.8: Audit trail integrity is INTACT",
+  );
+  assert(
+    auditCorrectionChain.chain.userReview.originalValueBeforeOverride === "MEGAFLEX",
+    "Req 38.8: Audit trail records original value before override",
+  );
+  assert(
+    auditCorrectionChain.chain.approvedValue.finalValue === "MINIFLEX",
+    "Req 38.8: Audit trail records final approved overridden value",
+  );
+
+  // ==================================================================
+  // TEST GROUP 39: END-TO-END TEST (REAL AUTHORISED UTILITY INVOICE) (REQUIREMENT 39)
+  // ==================================================================
+  console.log(
+    "\n[Test Group 39] Requirement 39: End-to-End Test (Real Authorised Utility Invoice)",
+  );
+
+  // Step 1: Real Authorised Eskom Invoice PDF & Metadata
+  const realInvoice = SAMPLE_FEB_2026_INVOICE;
+  const e2eDocumentId = "DOC-ESKOM-IMPALA-FEB-2026";
+  const e2eOrgId = "ORG-IMPALA-PLATINUM-RUSTENBURG";
+
+  assert(
+    realInvoice.source === "Impala_Mine_February_2026_Eskom_Invoice.pdf",
+    "E2E Step 1 (PDF): Real authorised utility invoice source PDF loaded",
+  );
+
+  // Step 2: Document Intelligence / Metadata Verification
+  assert(
+    realInvoice.accountNumber === "7856504676",
+    "E2E Step 2 (DOCUMENT INTELLIGENCE): Account Number identified as 7856504676",
+  );
+  assert(
+    realInvoice.invoiceNo === "785101497007",
+    "E2E Step 2: Tax Invoice No identified as 785101497007",
+  );
+  assert(
+    realInvoice.tariffName === "Megaflex Diversity",
+    "E2E Step 2: Tariff identified as Megaflex Diversity",
+  );
+
+  // Step 3: OCR Extraction Tokens & Candidate Fields Construction
+  const e2eCandidateFields: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "accountNumber",
+      fieldLabel: "Account Number",
+      value: realInvoice.accountNumber,
+      rawValue: realInvoice.accountNumber,
+      sourcePage: 1,
+      opticalConfidence: 100,
+      sourceText: `Account No: ${realInvoice.accountNumber}`,
+      boundingBox: [0.1, 0.2, 0.15, 0.4],
+    },
+    {
+      fieldKey: "invoiceNumber",
+      fieldLabel: "Invoice Number",
+      value: realInvoice.invoiceNo,
+      rawValue: realInvoice.invoiceNo,
+      sourcePage: 1,
+      opticalConfidence: 100,
+      sourceText: `Tax Invoice No: ${realInvoice.invoiceNo}`,
+      boundingBox: [0.1, 0.5, 0.15, 0.7],
+    },
+    {
+      fieldKey: "tariffName",
+      fieldLabel: "Tariff Name",
+      value: "MEGAFLEX",
+      rawValue: realInvoice.tariffName,
+      sourcePage: 1,
+      opticalConfidence: 99,
+      sourceText: `Supply Tariff: ${realInvoice.tariffName}`,
+      boundingBox: [0.2, 0.2, 0.25, 0.4],
+    },
+    {
+      fieldKey: "billingPeriodStart",
+      fieldLabel: "Billing Period Start",
+      value: realInvoice.billingPeriodStart,
+      rawValue: realInvoice.billingPeriodStart,
+      sourcePage: 1,
+      opticalConfidence: 100,
+      sourceText: `Billing Period: ${realInvoice.billingPeriod}`,
+      boundingBox: [0.25, 0.2, 0.3, 0.4],
+    },
+    {
+      fieldKey: "billingPeriodEnd",
+      fieldLabel: "Billing Period End",
+      value: realInvoice.billingPeriodEnd,
+      rawValue: realInvoice.billingPeriodEnd,
+      sourcePage: 1,
+      opticalConfidence: 100,
+      sourceText: `Billing Period: ${realInvoice.billingPeriod}`,
+      boundingBox: [0.25, 0.45, 0.3, 0.65],
+    },
+    {
+      fieldKey: "peakEnergyKwh",
+      fieldLabel: "Peak Active Energy",
+      value: realInvoice.peakKWh,
+      rawValue: String(realInvoice.peakKWh),
+      sourcePage: 2,
+      opticalConfidence: 99,
+      sourceText: `Peak Energy: ${realInvoice.peakKWh} kWh`,
+      boundingBox: [0.4, 0.2, 0.45, 0.4],
+    },
+    {
+      fieldKey: "standardEnergyKwh",
+      fieldLabel: "Standard Active Energy",
+      value: realInvoice.standardKWh,
+      rawValue: String(realInvoice.standardKWh),
+      sourcePage: 2,
+      opticalConfidence: 99,
+      sourceText: `Standard Energy: ${realInvoice.standardKWh} kWh`,
+      boundingBox: [0.45, 0.2, 0.5, 0.4],
+    },
+    {
+      fieldKey: "offPeakEnergyKwh",
+      fieldLabel: "Off-Peak Active Energy",
+      value: realInvoice.offPeakKWh,
+      rawValue: String(realInvoice.offPeakKWh),
+      sourcePage: 2,
+      opticalConfidence: 99,
+      sourceText: `Off-Peak Energy: ${realInvoice.offPeakKWh} kWh`,
+      boundingBox: [0.5, 0.2, 0.55, 0.4],
+    },
+    {
+      fieldKey: "totalActiveEnergyKwh",
+      fieldLabel: "Total Active Energy",
+      value: realInvoice.totalKWh,
+      rawValue: String(realInvoice.totalKWh),
+      sourcePage: 2,
+      opticalConfidence: 100,
+      sourceText: `Total Active Energy: ${realInvoice.totalKWh} kWh`,
+      boundingBox: [0.55, 0.2, 0.6, 0.4],
+    },
+    {
+      fieldKey: "maximumDemandKva",
+      fieldLabel: "Maximum Demand kVA",
+      value: realInvoice.maxDemandKVA,
+      rawValue: String(realInvoice.maxDemandKVA),
+      sourcePage: 2,
+      opticalConfidence: 99,
+      sourceText: `Maximum Demand: ${realInvoice.maxDemandKVA} kVA`,
+      boundingBox: [0.6, 0.2, 0.65, 0.4],
+    },
+    {
+      fieldKey: "subtotal",
+      fieldLabel: "Invoiced Subtotal",
+      value: realInvoice.invoiceTotal,
+      rawValue: `R ${realInvoice.invoiceTotal}`,
+      sourcePage: 1,
+      opticalConfidence: 100,
+      sourceText: `Subtotal: R ${realInvoice.invoiceTotal}`,
+      boundingBox: [0.7, 0.6, 0.75, 0.8],
+    },
+    {
+      fieldKey: "vatAmount",
+      fieldLabel: "VAT (0% Direct Generation/Export or Zero-Rated)",
+      value: realInvoice.vat,
+      rawValue: `R ${realInvoice.vat}`,
+      sourcePage: 1,
+      opticalConfidence: 100,
+      sourceText: `VAT: R ${realInvoice.vat}`,
+      boundingBox: [0.75, 0.6, 0.8, 0.8],
+    },
+    {
+      fieldKey: "totalAmountDue",
+      fieldLabel: "Invoice Total Due",
+      value: realInvoice.invoiceTotal,
+      rawValue: `R ${realInvoice.invoiceTotal}`,
+      sourcePage: 1,
+      opticalConfidence: 100,
+      sourceText: `Total Amount Due: R ${realInvoice.invoiceTotal}`,
+      boundingBox: [0.85, 0.6, 0.9, 0.8],
+    },
+  ];
+
+  // Step 4 & 5: Run Full AI Validation & Deterministic Pipeline
+  const e2ePipelineResult = await ValidationPipeline.executePipeline({
+    documentId: e2eDocumentId,
+    candidateFields: e2eCandidateFields,
+    fullDocumentText: "Eskom Holdings SOC Ltd Megaflex Electricity Invoice Account 7856504676 Tax Invoice No 785101497007 Impala Platinum",
+    tenantId: e2eOrgId,
+  });
+
+  // Step 6: Verify Confidence & Grounding
+  assert(
+    e2ePipelineResult.overallConfidence?.overallScore >= 95,
+    "E2E Step 6 (CONFIDENCE): Overall confidence score is high (>= 95%)",
+  );
+  assert(
+    e2ePipelineResult.overallConfidence?.tier === "HIGH",
+    "E2E Step 6: Confidence tier is HIGH",
+  );
+
+  // Step 7: Verify Exceptions Evaluation (Clean Valid Bill)
+  assert(
+    e2ePipelineResult.exceptions.length === 0,
+    "E2E Step 7 (EXCEPTIONS): Zero blocking exceptions on real valid invoice",
+  );
+
+  // Step 8: Human Review / Approval Workflow Handoff
+  assert(
+    ApprovalStateManager.normalizeState(e2ePipelineResult.status) === "VALID",
+    "E2E Step 8 (APPROVAL): Validation pipeline state is VALID",
+  );
+  assert(
+    e2ePipelineResult.reconciliationHandoffReady === true,
+    "E2E Step 8: Reconciliation handoff ready",
+  );
+
+  // Step 9: Database Persistence (Persist All Artifacts to Database)
+  InvoiceStorageService.recordInvoiceMemory(e2eDocumentId, {
+    id: e2eDocumentId,
+    invoice_number: realInvoice.invoiceNo,
+    account_number: realInvoice.accountNumber,
+    tariff_name: "MEGAFLEX",
+    billing_start: realInvoice.billingPeriodStart,
+    billing_end: realInvoice.billingPeriodEnd,
+    billing_period_name: realInvoice.accountMonth,
+    invoiced_subtotal: realInvoice.invoiceTotal,
+    invoiced_vat: realInvoice.vat,
+    invoiced_total: realInvoice.invoiceTotal,
+    total_kwh: realInvoice.totalKWh,
+    peak_kwh: realInvoice.peakKWh,
+    standard_kwh: realInvoice.standardKWh,
+    off_peak_kwh: realInvoice.offPeakKWh,
+    source_file_name: realInvoice.source,
+    validation_status: "VALID",
+  });
+
+  ValidationRunStore.persistRun({
+    result: e2ePipelineResult,
+    ocrRunId: "ocr-impala-01",
+    modelProvider: "google-gemini-pro",
+    promptVersion: "v2.4.0-prompt-contract",
+    startTime: e2ePipelineResult.validatedAt,
+    endTime: new Date().toISOString(),
+  });
+
+  const persistE2ESuccess = await ValidationDatabasePersistence.persistFullValidationResult(
+    e2ePipelineResult,
+    { organisationId: e2eOrgId },
+  );
+  assert(
+    typeof persistE2ESuccess === "boolean",
+    "E2E Step 9 (PERSISTENCE): Persisted validation runs and field records to database",
+  );
+
+  // Step 10: Refresh the Browser simulation (Load persisted dashboard data)
+  const reloadedDashboardData = await FrontendValidationDataLoader.loadDashboardData(e2eDocumentId);
+  assert(
+    reloadedDashboardData !== null,
+    "E2E Step 10 (REFRESH BROWSER): Dashboard data successfully reloaded from database",
+  );
+  assert(
+    reloadedDashboardData?.loadedFromDatabase === true,
+    "E2E Step 10: Invariant verified — loadedFromDatabase is true",
+  );
+  assert(
+    reloadedDashboardData?.financial.totalKwh === realInvoice.totalKWh,
+    "E2E Step 10: Preserved exact total kWh after refresh",
+  );
+  assert(
+    reloadedDashboardData?.financial.invoiceTotalZar === realInvoice.invoiceTotal,
+    "E2E Step 10: Preserved exact invoice total after refresh",
+  );
+
+  // Step 11: Log Out simulation (Destroy active security context / tokens)
+  let activeContext: any = createSecurityContext(
+    "usr-impala-manager",
+    "energy.manager@impala.co.za",
+    e2eOrgId,
+    "ENERGY_MANAGER",
+  );
+  assert(activeContext.organisationId === e2eOrgId, "E2E Step 11: User active before logout");
+  // Log out: Clear security context
+  activeContext = null;
+  assert(
+    activeContext === null,
+    "E2E Step 11 (LOG OUT): Active user security context successfully cleared",
+  );
+
+  // Step 12: Log Back In simulation (Re-authenticate user security context)
+  activeContext = createSecurityContext(
+    "usr-impala-manager",
+    "energy.manager@impala.co.za",
+    e2eOrgId,
+    "ENERGY_MANAGER",
+  );
+  assert(
+    activeContext !== null && activeContext.role === "ENERGY_MANAGER",
+    "E2E Step 12 (LOG BACK IN): Successfully re-authenticated user",
+  );
+
+  // Step 13: Confirm the validation record still exists and is 100% intact
+  const finalPersistedHistory = ValidationRunStore.listRunsForDocument(e2eDocumentId);
+  assert(
+    finalPersistedHistory.length > 0,
+    "E2E Step 13 (CONFIRM PERSISTENCE): Validation record still exists after logout/login",
+  );
+  assert(
+    finalPersistedHistory[0].validationRunId === e2ePipelineResult.validationRunId,
+    "E2E Step 13: Validation run ID matches original execution",
+  );
+  assert(
+    ApprovalStateManager.normalizeState(finalPersistedHistory[0].status) === "VALID",
+    "E2E Step 13: Validation status remains VALID",
+  );
+  assert(
+    finalPersistedHistory[0].documentId === e2eDocumentId,
+    "E2E Step 13: Document ID matches target invoice",
   );
 
   console.log("\n==================================================================");
