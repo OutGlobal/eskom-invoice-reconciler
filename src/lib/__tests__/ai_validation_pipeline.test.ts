@@ -23,6 +23,7 @@ import {
   IdempotencyManager,
   ValidationRunStore,
   EneraAuditChainEngine,
+  HumanReviewWorkflowEngine,
   CanonicalInvoiceBuilder,
   StructuredAiPayloadBuilder,
   StructuredAiResponseValidator,
@@ -1982,6 +1983,204 @@ async function runAiValidationPipelineTestSuite() {
   assert(overriddenChain.chain.approvedValue.authoritativeSource === "OVERRIDE", "Audit Override: Authoritative source set to OVERRIDE");
   assert(overriddenChain.chainVerificationHash !== totalChain.chainVerificationHash, "Audit Hash: Verification hash reflects override mutation");
   assert(EneraAuditChainEngine.verifyChainIntegrity(overriddenChain) === true, "Audit Hash: New override chain integrity is valid");
+
+  assert(overriddenChain.chainVerificationHash !== totalChain.chainVerificationHash, "Audit Hash: Verification hash reflects override mutation");
+  assert(EneraAuditChainEngine.verifyChainIntegrity(overriddenChain) === true, "Audit Hash: New override chain integrity is valid");
+
+  // --- TEST GROUP 28: HUMAN REVIEW WORKSPACE & DUAL-PANE VIEW (REQ 28) ---
+  console.log("\n[Test Group 28] Human Review Workspace — Dual-Pane Layout, Findings Badges (✓/⚠/✗) & Evidence Inspection");
+
+  HumanReviewWorkflowEngine.clearStore();
+
+  const humanReviewCandidateInputs: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "accountNumber",
+      fieldLabel: "Account Number",
+      value: "0123456789",
+      rawValue: "0123456789",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Account No: 0123456789",
+      boundingBox: [0.1, 0.6, 0.15, 0.8],
+      wordTokens: [{ text: "0123456789", confidence: 98, boundingBox: [0.1, 0.6, 0.15, 0.8] }],
+    },
+    {
+      fieldKey: "billingPeriod",
+      fieldLabel: "Billing Period",
+      value: "2025-09-01 to 2025-09-30",
+      rawValue: "01/09/2025 - 30/09/2025",
+      sourcePage: 1,
+      opticalConfidence: 95,
+      sourceText: "Billing Period: 01/09/2025 - 30/09/2025",
+      boundingBox: [0.15, 0.6, 0.2, 0.8],
+    },
+    {
+      fieldKey: "tariffName",
+      fieldLabel: "Tariff",
+      value: "MEGAFLEX",
+      rawValue: "MEGAFLEX_NON_STANDARD",
+      sourcePage: 1,
+      opticalConfidence: 70, // Triggers warning ⚠
+      sourceText: "Tariff: MEGAFLEX_NON_STANDARD",
+      boundingBox: [0.2, 0.6, 0.25, 0.8],
+    },
+    {
+      fieldKey: "totalKwh",
+      fieldLabel: "Total kWh",
+      value: 100000,
+      rawValue: "100,000 kWh",
+      sourcePage: 1,
+      opticalConfidence: 99,
+      sourceText: "Active Energy: 100,000 kWh",
+      boundingBox: [0.3, 0.6, 0.35, 0.8],
+    },
+    {
+      fieldKey: "vatAmount",
+      fieldLabel: "VAT",
+      value: 15000,
+      rawValue: "R 15,000.00",
+      sourcePage: 1,
+      opticalConfidence: 75,
+      sourceText: "VAT 15%: R 15,000.00",
+      boundingBox: [0.75, 0.6, 0.8, 0.8],
+    },
+    {
+      fieldKey: "invoiceTotal",
+      fieldLabel: "Invoice Total",
+      value: 115000,
+      rawValue: "R 115,000.00",
+      sourcePage: 1,
+      opticalConfidence: 99,
+      sourceText: "Total Amount Due: R 115,000.00",
+      boundingBox: [0.85, 0.6, 0.9, 0.8],
+    },
+  ];
+
+  const reviewPipelineResult = await ValidationPipeline.executePipeline({
+    documentId: "DOC-REVIEW-01",
+    candidateFields: humanReviewCandidateInputs,
+  });
+
+  // 28.1: Initialize Human Review Session
+  const reviewSession = HumanReviewWorkflowEngine.createReviewSession({
+    documentId: "DOC-REVIEW-01",
+    validationResult: reviewPipelineResult,
+    candidateFields: humanReviewCandidateInputs,
+    reviewer: {
+      id: "usr-auditor-99",
+      name: "Sipho Khumalo",
+      email: "sipho.khumalo@enera.co.za",
+      role: "SENIOR_TARIFF_ANALYST",
+    },
+  });
+
+  assert(reviewSession.sessionId.startsWith("rev-sess-"), "Review Session: Created with unique sessionId");
+  assert(reviewSession.status === "IN_REVIEW", "Review Session: Status is IN_REVIEW");
+  assert(reviewSession.reviewer.name === "Sipho Khumalo", "Review Session: Reviewer name recorded");
+
+  // 28.2: Generate Dual-Pane Workspace ViewModel (Requirement 28 Layout)
+  const workspaceView = HumanReviewWorkflowEngine.generateWorkspaceViewModel({
+    session: reviewSession,
+    validationResult: reviewPipelineResult,
+    candidateFields: humanReviewCandidateInputs,
+    activeFieldKey: "tariffName",
+  });
+
+  assert(workspaceView.leftPane !== undefined, "Workspace View: Left pane (Original Document) present");
+  assert(workspaceView.leftPane.pageNumber === 1, "Workspace View: Left pane shows Page 1");
+  assert(workspaceView.leftPane.activeHighlightBoundingBox !== undefined, "Workspace View: Left pane highlights active field bounding box");
+  assert(workspaceView.rightPane !== undefined, "Workspace View: Right pane (Validation Findings) present");
+  assert(workspaceView.rightPane.fields.length === 6, "Workspace View: Right pane displays all 6 candidate fields");
+
+  // Verify finding badges
+  const accFieldView = workspaceView.rightPane.fields.find((f) => f.fieldKey === "accountNumber");
+  assert(accFieldView?.badge === "VALID_CHECK", "Workspace Badges: Account Number displays ✓ (VALID_CHECK)");
+
+  const totalKwhView = workspaceView.rightPane.fields.find((f) => f.fieldKey === "totalKwh");
+  assert(totalKwhView?.badge === "VALID_CHECK", "Workspace Badges: Total kWh displays ✓ (VALID_CHECK)");
+
+  const invoiceTotalView = workspaceView.rightPane.fields.find((f) => f.fieldKey === "invoiceTotal");
+  assert(invoiceTotalView?.badge === "VALID_CHECK", "Workspace Badges: Invoice Total displays ✓ (VALID_CHECK)");
+
+  // 28.3: Inspect Source Evidence
+  const inspected = HumanReviewWorkflowEngine.inspectFieldEvidence(
+    reviewSession,
+    humanReviewCandidateInputs,
+    "accountNumber",
+  );
+
+  assert(inspected.field.fieldKey === "accountNumber", "Evidence Inspection: Returns target candidate field");
+  assert(inspected.evidenceTokens.length > 0, "Evidence Inspection: Returns spatial OCR word tokens");
+  assert(inspected.sourceSnippet === "Account No: 0123456789", "Evidence Inspection: Returns verbatim source text snippet");
+  assert(reviewSession.fieldReviews["accountNumber"].inspectedEvidence === true, "Evidence Inspection: Marks field as inspected");
+
+  // 28.4: Confirm Field as verified
+  HumanReviewWorkflowEngine.confirmField(reviewSession, "accountNumber");
+  assert(reviewSession.fieldReviews["accountNumber"].status === "CONFIRMED", "Human Review: Field status transitions to CONFIRMED");
+
+  // --- TEST GROUP 29: CORRECTIONS & DOWNSTREAM RECONCILIATION HANDOFF (REQ 29) ---
+  console.log("\n[Test Group 29] Corrections — Non-Destructive Storage, Evidence Preservation & Authoritative Handoff");
+
+  // 29.1: Apply Human Review Correction (Reviewer corrects non-standard tariff name to 'MINIFLEX')
+  const { updatedSession, correctionRecord } = HumanReviewWorkflowEngine.applyFieldCorrection({
+    session: reviewSession,
+    candidateFields: humanReviewCandidateInputs,
+    fieldKey: "tariffName",
+    correctedValue: "MINIFLEX",
+    correctedRawValue: "MINIFLEX",
+    correctionReason: "Verified against meter configuration sheet: account is under Miniflex tariff schedule.",
+    userNote: "Confirmed with Eskom customer rep ref #EK-88219",
+  });
+
+  // Verify Requirement 29 Invariant 1: Original evidence is NEVER overwritten
+  const originalTariffCandidate = humanReviewCandidateInputs.find((f) => f.fieldKey === "tariffName");
+  assert(originalTariffCandidate?.value === "MEGAFLEX", "Corrections: Original candidate value is NEVER overwritten");
+  assert(originalTariffCandidate?.rawValue === "MEGAFLEX_NON_STANDARD", "Corrections: Original rawValue is preserved intact");
+
+  // Verify Requirement 29 Invariant 2: Stored correction record properties
+  assert(correctionRecord.originalValue === "MEGAFLEX", "Correction Record: Stores Original Value");
+  assert(correctionRecord.correctedValue === "MINIFLEX", "Correction Record: Stores Corrected Value");
+  assert(correctionRecord.correctionReason.includes("Miniflex tariff schedule"), "Correction Record: Stores Reason");
+  assert(correctionRecord.reviewer.name === "Sipho Khumalo", "Correction Record: Stores Reviewer");
+  assert(typeof correctionRecord.timestamp === "string", "Correction Record: Stores Timestamp");
+  assert(correctionRecord.evidence.sourcePage === 1, "Correction Record: Stores Evidence sourcePage");
+  assert(correctionRecord.evidence.boundingBox !== undefined, "Correction Record: Stores Evidence boundingBox");
+
+  // Verify updated session review state
+  assert(updatedSession.fieldReviews["tariffName"].status === "CORRECTED", "Review Session: Field status transitions to CORRECTED");
+  assert(updatedSession.fieldReviews["tariffName"].activeValue === "MINIFLEX", "Review Session: Active value updated to corrected value");
+  assert(updatedSession.corrections.length === 1, "Review Session: Corrections count is 1");
+
+  // 29.2: Historical corrections list retrieval
+  const docCorrectionsList = HumanReviewWorkflowEngine.listCorrectionsForDocument("DOC-REVIEW-01");
+  assert(docCorrectionsList.length === 1, "Corrections Store: Successfully lists corrections for document");
+  assert(docCorrectionsList[0].fieldKey === "tariffName", "Corrections Store: Corrected fieldKey is tariffName");
+
+  // 29.3: Approve Document & Produce Downstream Reconciliation Payload
+  const { updatedSession: finalSession, reconciliationPayload, auditSummary } =
+    HumanReviewWorkflowEngine.approveDocument({
+      session: updatedSession,
+      candidateFields: humanReviewCandidateInputs,
+      validationResult: reviewPipelineResult,
+      approvalNotes: "All 6 fields verified and reconciled with supply contract.",
+    });
+
+  assert(finalSession.status === "APPROVED", "Document Approval: Session status is APPROVED");
+  assert(finalSession.reconciliationPayloadReady === true, "Document Approval: reconciliationPayloadReady is true");
+
+  // Verify downstream reconciliation payload has approved values
+  assert(reconciliationPayload.approvedValues["tariffName"] === "MINIFLEX", "Downstream Payload: Approved tariffName is MINIFLEX");
+  assert(reconciliationPayload.approvedValues["invoiceTotal"] === 115000, "Downstream Payload: Approved invoiceTotal is 115000");
+  assert(reconciliationPayload.approvedBy === "Sipho Khumalo", "Downstream Payload: Approved by Sipho Khumalo");
+  assert(reconciliationPayload.approvalMethod === "MANUAL_REVIEW", "Downstream Payload: Approval method is MANUAL_REVIEW");
+  assert(reconciliationPayload.correctionsAppliedCount === 1, "Downstream Payload: Corrections applied count is 1");
+  assert(reconciliationPayload.auditTrailVerificationHash.startsWith("audit_"), "Downstream Payload: Audit verification hash present");
+
+  // Verify 7-stage audit chain summary reflects human override
+  const auditTariffChain = auditSummary.fieldChains["tariffName"];
+  assert(auditTariffChain.chain.userReview.reviewStatus === "HUMAN_OVERRIDDEN", "Audit Chain: Stage 6 reviewStatus is HUMAN_OVERRIDDEN");
+  assert(auditTariffChain.chain.approvedValue.authoritativeSource === "OVERRIDE", "Audit Chain: Stage 7 authoritativeSource is OVERRIDE");
+  assert(auditTariffChain.chain.extractedValue.extractedValue === "MEGAFLEX", "Audit Chain: Stage 3 original extracted value is preserved");
 
   console.log("\n==================================================================");
   console.log(`  🎉 ALL ${passedCount} / ${totalCount} AI VALIDATION TESTS PASSED CLEANLY!`);

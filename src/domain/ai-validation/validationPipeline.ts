@@ -318,7 +318,7 @@ export class ValidationPipeline {
       };
     }
 
-    const validationRunId = `val-run-${documentId}-${Date.now()}`;
+    const validationRunId = `val-run-${documentId}-${processingRunId}-v${validationVersion}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
     const idempotencyKey = IdempotencyManager.generateIdempotencyKey(
       documentId,
       processingRunId,

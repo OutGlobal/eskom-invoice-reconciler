@@ -716,3 +716,130 @@ export interface DocumentAuditTrailSummary {
   generatedAt: string;
 }
 
+// --- 15. HUMAN REVIEW WORKFLOW & CORRECTIONS (REQUIREMENTS 28 & 29) ---
+
+export type HumanReviewFieldStatus = "PENDING" | "CONFIRMED" | "CORRECTED" | "FLAGGED";
+
+export interface FieldCorrectionRecord {
+  correctionId: string;
+  documentId: string;
+  validationRunId: string;
+  fieldKey: string;
+  fieldLabel: string;
+  originalValue: string | number | null;
+  originalRawValue: string;
+  correctedValue: string | number | null;
+  correctedRawValue?: string;
+  correctionReason: string;
+  reviewer: {
+    id: string;
+    name: string;
+    email?: string;
+    role?: string;
+  };
+  timestamp: string;
+  evidence: {
+    sourcePage: number;
+    boundingBox?: [number, number, number, number];
+    sourceText?: string;
+    opticalConfidence?: number;
+    tokens?: Array<{
+      text: string;
+      confidence: number;
+      boundingBox?: [number, number, number, number];
+    }>;
+    userNote?: string;
+  };
+  reEvaluatedDeterministicResult?: DeterministicValidationResult;
+  isAuthoritativeForReconciliation: boolean;
+}
+
+export interface HumanReviewFieldViewModel {
+  fieldKey: string;
+  fieldLabel: string;
+  sourcePage: number;
+  boundingBox?: [number, number, number, number];
+  originalValue: string | number | null;
+  originalRawValue: string;
+  currentValue: string | number | null;
+  status: AiFieldValidationState;
+  reviewStatus: HumanReviewFieldStatus;
+  validationScore: number;
+  badge: "VALID_CHECK" | "WARNING" | "ERROR_CONFLICT";
+  hasExceptions: boolean;
+  exceptionMessages: string[];
+  inspectedEvidence: boolean;
+  isCorrected: boolean;
+  activeCorrection?: FieldCorrectionRecord;
+}
+
+export interface DualPaneWorkspaceViewModel {
+  documentId: string;
+  validationRunId: string;
+  filename: string;
+  pageCount: number;
+  activePage: number;
+  activeFieldKey?: string;
+  leftPane: {
+    pageNumber: number;
+    documentUrl?: string;
+    tokens: Array<{
+      text: string;
+      confidence: number;
+      boundingBox: [number, number, number, number];
+    }>;
+    activeHighlightBoundingBox?: [number, number, number, number];
+  };
+  rightPane: {
+    overallStatus: ValidationLifecycleStatus;
+    overallConfidenceScore: number;
+    fields: HumanReviewFieldViewModel[];
+    summaryBadges: {
+      validCount: number;
+      warningCount: number;
+      conflictCount: number;
+      correctedCount: number;
+    };
+  };
+}
+
+export interface HumanReviewSession {
+  sessionId: string;
+  documentId: string;
+  validationRunId: string;
+  ocrRunId: string;
+  reviewer: {
+    id: string;
+    name: string;
+    email?: string;
+  };
+  status: "IN_REVIEW" | "APPROVED" | "REJECTED" | "ESCALATED";
+  startedAt: string;
+  completedAt?: string;
+  fieldReviews: Record<
+    string,
+    {
+      fieldKey: string;
+      status: HumanReviewFieldStatus;
+      inspectedEvidence: boolean;
+      activeValue: string | number | null;
+      correctionId?: string;
+    }
+  >;
+  corrections: FieldCorrectionRecord[];
+  reconciliationPayloadReady: boolean;
+  reconciliationApprovedValues: Record<string, string | number | null>;
+}
+
+export interface DownstreamReconciliationPayload {
+  documentId: string;
+  validationRunId: string;
+  approvedBy: string;
+  approvedAt: string;
+  approvalMethod: "AUTOMATIC" | "MANUAL_REVIEW";
+  approvedValues: Record<string, string | number | null>;
+  correctionsAppliedCount: number;
+  auditTrailVerificationHash: string;
+}
+
+

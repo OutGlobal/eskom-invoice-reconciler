@@ -40,5 +40,7 @@ export { ValidationConfidenceCalculator } from "./validationConfidenceCalculator
 export { ExceptionGenerator } from "./exceptionGenerator";
 export { ValidationRunStore } from "./validationRunStore";
 export { EneraAuditChainEngine } from "./eneraAuditChain";
+export { HumanReviewWorkflowEngine } from "./humanReviewWorkflow";
 export { ValidationPipeline } from "./validationPipeline";
+
 
