@@ -1,6 +1,6 @@
-import * as tslibOriginal from "tslib/tslib.es6.mjs";
+import * as tslibOriginal from "../../node_modules/tslib/tslib.es6.mjs";
 
-export * from "tslib/tslib.es6.mjs";
+export * from "../../node_modules/tslib/tslib.es6.mjs";
 
 const defaultExport = {
   ...tslibOriginal,
