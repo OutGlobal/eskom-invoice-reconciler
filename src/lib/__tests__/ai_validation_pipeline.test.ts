@@ -24,6 +24,9 @@ import {
   ValidationRunStore,
   EneraAuditChainEngine,
   HumanReviewWorkflowEngine,
+  ApprovalStateManager,
+  ReconciliationGate,
+  ReconciliationGateError,
   CanonicalInvoiceBuilder,
   StructuredAiPayloadBuilder,
   StructuredAiResponseValidator,
@@ -2182,6 +2185,197 @@ async function runAiValidationPipelineTestSuite() {
   assert(auditTariffChain.chain.approvedValue.authoritativeSource === "OVERRIDE", "Audit Chain: Stage 7 authoritativeSource is OVERRIDE");
   assert(auditTariffChain.chain.extractedValue.extractedValue === "MEGAFLEX", "Audit Chain: Stage 3 original extracted value is preserved");
 
+  // --- TEST GROUP 30: APPROVAL STATES (REQ 30) ---
+  console.log("\n[Test Group 30] Approval States — 7 Formal Lifecycles & Strict Reconciliation Eligibility");
+
+  // 30.1: Validate all 7 approval states
+  assert(ApprovalStateManager.APPROVAL_STATES.length === 7, "Approval States: Exactly 7 formal states defined");
+  assert(ApprovalStateManager.APPROVAL_STATES.includes("PENDING_VALIDATION"), "Approval States: Includes PENDING_VALIDATION");
+  assert(ApprovalStateManager.APPROVAL_STATES.includes("VALIDATING"), "Approval States: Includes VALIDATING");
+  assert(ApprovalStateManager.APPROVAL_STATES.includes("VALID"), "Approval States: Includes VALID");
+  assert(ApprovalStateManager.APPROVAL_STATES.includes("PARTIALLY_VALID"), "Approval States: Includes PARTIALLY_VALID");
+  assert(ApprovalStateManager.APPROVAL_STATES.includes("REVIEW_REQUIRED"), "Approval States: Includes REVIEW_REQUIRED");
+  assert(ApprovalStateManager.APPROVAL_STATES.includes("APPROVED"), "Approval States: Includes APPROVED");
+  assert(ApprovalStateManager.APPROVAL_STATES.includes("REJECTED"), "Approval States: Includes REJECTED");
+
+  // 30.2: Reconciliation Eligibility Predicate
+  assert(ApprovalStateManager.isEligibleForReconciliation("APPROVED") === true, "Eligibility: APPROVED is eligible for reconciliation");
+  assert(ApprovalStateManager.isEligibleForReconciliation("VALID") === true, "Eligibility: VALID is eligible for reconciliation");
+  assert(ApprovalStateManager.isEligibleForReconciliation("PENDING_VALIDATION") === false, "Eligibility: PENDING_VALIDATION is NOT eligible");
+  assert(ApprovalStateManager.isEligibleForReconciliation("VALIDATING") === false, "Eligibility: VALIDATING is NOT eligible");
+  assert(ApprovalStateManager.isEligibleForReconciliation("PARTIALLY_VALID") === false, "Eligibility: PARTIALLY_VALID is NOT eligible");
+  assert(ApprovalStateManager.isEligibleForReconciliation("REVIEW_REQUIRED") === false, "Eligibility: REVIEW_REQUIRED is NOT eligible");
+  assert(ApprovalStateManager.isEligibleForReconciliation("REJECTED") === false, "Eligibility: REJECTED is NOT eligible");
+
+  // 30.3: State Transitions
+  const t1 = ApprovalStateManager.transitionState({
+    currentState: "PENDING_VALIDATION",
+    targetState: "VALIDATING",
+    actor: "SYSTEM_ORCHESTRATOR",
+    reason: "Document queued and OCR tokens loaded for AI validation pipeline",
+  });
+  assert(t1.success === true, "Transition: PENDING_VALIDATION -> VALIDATING is allowed");
+  assert(t1.newState === "VALIDATING", "Transition: Resulting state is VALIDATING");
+
+  const t2 = ApprovalStateManager.transitionState({
+    currentState: "VALIDATING",
+    targetState: "REVIEW_REQUIRED",
+    actor: "AI_VALIDATOR",
+    reason: "Cross-field tariff discrepancy detected",
+  });
+  assert(t2.success === true, "Transition: VALIDATING -> REVIEW_REQUIRED is allowed");
+  assert(t2.newState === "REVIEW_REQUIRED", "Transition: Resulting state is REVIEW_REQUIRED");
+
+  const t3 = ApprovalStateManager.transitionState({
+    currentState: "REVIEW_REQUIRED",
+    targetState: "APPROVED",
+    actor: "Sipho Khumalo",
+    reason: "Reviewer corrected tariff and verified schedule",
+  });
+  assert(t3.success === true, "Transition: REVIEW_REQUIRED -> APPROVED is allowed upon human review");
+  assert(t3.newState === "APPROVED", "Transition: Resulting state is APPROVED");
+
+  // Illegal transition attempt: PENDING_VALIDATION -> APPROVED directly
+  const illegalTransition = ApprovalStateManager.transitionState({
+    currentState: "PENDING_VALIDATION",
+    targetState: "APPROVED",
+    actor: "MALICIOUS_ACTOR",
+    reason: "Attempt to bypass validation",
+  });
+  assert(illegalTransition.success === false, "Transition: Illegal transition PENDING_VALIDATION -> APPROVED is BLOCKED");
+  assert(illegalTransition.newState === "PENDING_VALIDATION", "Transition: State unchanged on illegal transition");
+
+  // --- TEST GROUP 31: RECONCILIATION GATE (REQ 31) ---
+  console.log("\n[Test Group 31] Reconciliation Gate — Strict Boundary & Anti-Raw-OCR Enforcement");
+
+  // 31.1: Reject Raw OCR Input (Zero validation controls)
+  const rawOcrInput = {
+    rawOcrText: "ESKOM INVOICE TOTAL R125,430.20 ACCOUNT 0712345678",
+    wordTokens: [{ text: "ESKOM", boundingBox: [0, 0, 10, 10] }],
+    ocrPages: [{ pageNumber: 1 }],
+  };
+
+  const rawGateEvaluation = ReconciliationGate.evaluateGate(rawOcrInput);
+  assert(rawGateEvaluation.isPassed === false, "Reconciliation Gate: Raw OCR object is BLOCKED");
+  assert(rawGateEvaluation.gateStatus === "GATE_BLOCKED", "Reconciliation Gate: Status is GATE_BLOCKED");
+  assert(
+    rawGateEvaluation.violations.some((v) => v.code === "UNVALIDATED_RAW_OCR_DETECTED"),
+    "Reconciliation Gate: Violation code is UNVALIDATED_RAW_OCR_DETECTED",
+  );
+
+  let rawThrewException = false;
+  try {
+    ReconciliationGate.enforceGate(rawOcrInput);
+  } catch (err: any) {
+    rawThrewException = true;
+    assert(err instanceof ReconciliationGateError, "Reconciliation Gate: enforceGate throws ReconciliationGateError on raw OCR");
+    assert(err.code === "UNVALIDATED_RAW_OCR_DETECTED", "Reconciliation Gate: Error code matches UNVALIDATED_RAW_OCR_DETECTED");
+  }
+  assert(rawThrewException === true, "Reconciliation Gate: Throws exception when raw OCR attempts to enter reconciliation");
+
+  // 31.2: Reject Unapproved / In-Review Document
+  const unapprovedPayload = {
+    documentId: "DOC-GATE-01",
+    status: "REVIEW_REQUIRED",
+    validationRunId: "val-run-01",
+    approval: { status: "REVIEW_REQUIRED", blockingExceptionCount: 2 },
+    exceptions: [
+      { exceptionId: "EX-1", severity: "CRITICAL", title: "Arithmetic mismatch", category: "ARITHMETIC_MISMATCH" },
+    ],
+    validatedFields: {
+      accountNumber: { value: "0712345678" },
+      billingPeriodStart: { value: "2025-09-01" },
+      billingPeriodEnd: { value: "2025-09-30" },
+      tariffName: { value: "MINIFLEX" },
+      totalKwh: { value: 100000 },
+      invoiceTotal: { value: 115000 },
+    },
+  };
+
+  const unapprovedEval = ReconciliationGate.evaluateGate(unapprovedPayload);
+  assert(unapprovedEval.isPassed === false, "Reconciliation Gate: REVIEW_REQUIRED document is BLOCKED");
+  assert(
+    unapprovedEval.violations.some((v) => v.code === "INVALID_APPROVAL_STATE"),
+    "Reconciliation Gate: Flags INVALID_APPROVAL_STATE for unapproved doc",
+  );
+  assert(
+    unapprovedEval.violations.some((v) => v.code === "UNRESOLVED_BLOCKING_EXCEPTIONS"),
+    "Reconciliation Gate: Flags UNRESOLVED_BLOCKING_EXCEPTIONS for unapproved doc",
+  );
+
+  // 31.3: Reject Missing Mandatory Critical Fields
+  const missingFieldPayload = {
+    documentId: "DOC-GATE-02",
+    status: "APPROVED",
+    validationRunId: "val-run-02",
+    approval: { status: "APPROVED", blockingExceptionCount: 0 },
+    approvedValues: {
+      // Missing accountNumber and invoiceTotal
+      billingPeriodStart: "2025-09-01",
+      billingPeriodEnd: "2025-09-30",
+      tariffName: "MINIFLEX",
+      totalKwh: 100000,
+    },
+  };
+
+  const missingFieldEval = ReconciliationGate.evaluateGate(missingFieldPayload);
+  assert(missingFieldEval.isPassed === false, "Reconciliation Gate: Missing mandatory fields is BLOCKED");
+  assert(
+    missingFieldEval.violations.some((v) => v.fieldKey === "accountNumber"),
+    "Reconciliation Gate: Flags missing accountNumber",
+  );
+  assert(
+    missingFieldEval.violations.some((v) => v.fieldKey === "invoiceTotal"),
+    "Reconciliation Gate: Flags missing invoiceTotal",
+  );
+
+  // 31.4: Accept Validated & Approved Data and Produce Authoritative Input
+  const validApprovedPayload = {
+    documentId: "DOC-APPROVED-RECON-01",
+    organisationId: "ORG-MINING-CORP",
+    status: "APPROVED",
+    validationRunId: "val-run-approved-01",
+    approval: { status: "APPROVED", approvedBy: "Sipho Khumalo", blockingExceptionCount: 0 },
+    auditVerificationHash: "audit_sha256_verifiable_hash_proof_0123456789abcdef",
+    approvedValues: {
+      accountNumber: "0712345678",
+      invoiceNumber: "INV-2025-09-001",
+      billingPeriodStart: "2025-09-01",
+      billingPeriodEnd: "2025-09-30",
+      tariffName: "MINIFLEX",
+      peakKwh: 35000,
+      standardKwh: 45000,
+      offPeakKwh: 20000,
+      totalKwh: 100000,
+      maximumDemandKva: 450,
+      ratchetedDemandKva: 450,
+      reactiveEnergyKvarh: 12000,
+      powerFactor: 0.95,
+      subtotal: 100000,
+      vat: 15000,
+      invoiceTotal: 115000,
+    },
+  };
+
+  const approvedEval = ReconciliationGate.evaluateGate(validApprovedPayload);
+  assert(approvedEval.isPassed === true, "Reconciliation Gate: Approved document PASSES gate cleanly");
+  assert(approvedEval.gateStatus === "GATE_PASSED", "Reconciliation Gate: Status is GATE_PASSED");
+  assert(approvedEval.authoritativeInputReady === true, "Reconciliation Gate: authoritativeInputReady is true");
+
+  const authoritativeInput = ReconciliationGate.enforceGate(validApprovedPayload, {
+    tenantId: "TENANT-ESKOM-01",
+    telemetryBatchId: "BATCH-AMR-SEPT-2025",
+  });
+
+  assert(authoritativeInput.invoice_id === "DOC-APPROVED-RECON-01", "Authoritative Input: Correct invoice_id");
+  assert(authoritativeInput.account_number === "0712345678", "Authoritative Input: Correct account_number");
+  assert(authoritativeInput.tariff_version === "MINIFLEX", "Authoritative Input: Correct tariff_version");
+  assert(authoritativeInput.billed_total_kwh.toString() === "100000", "Authoritative Input: Exact Decimal total kWh (100000)");
+  assert(authoritativeInput.billed_total_zar.toString() === "115000", "Authoritative Input: Exact Decimal total ZAR (115000)");
+  assert(authoritativeInput.billed_peak_kwh.toString() === "35000", "Authoritative Input: Exact Decimal peak kWh (35000)");
+  assert(authoritativeInput.billed_vat_zar.toString() === "15000", "Authoritative Input: Exact Decimal VAT (15000)");
+  assert(authoritativeInput.telemetry_batch_id === "BATCH-AMR-SEPT-2025", "Authoritative Input: Telemetry batch attached");
+
   console.log("\n==================================================================");
   console.log(`  🎉 ALL ${passedCount} / ${totalCount} AI VALIDATION TESTS PASSED CLEANLY!`);
   console.log("==================================================================\n");
@@ -2191,6 +2385,7 @@ runAiValidationPipelineTestSuite().catch((err) => {
   console.error("AI Validation Test Suite Failed:", err);
   process.exit(1);
 });
+
 
 
 

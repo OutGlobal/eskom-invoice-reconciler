@@ -41,6 +41,9 @@ export { ExceptionGenerator } from "./exceptionGenerator";
 export { ValidationRunStore } from "./validationRunStore";
 export { EneraAuditChainEngine } from "./eneraAuditChain";
 export { HumanReviewWorkflowEngine } from "./humanReviewWorkflow";
+export { ApprovalStateManager } from "./approvalStateManager";
+export { ReconciliationGate, ReconciliationGateError } from "./reconciliationGate";
 export { ValidationPipeline } from "./validationPipeline";
+
 
 

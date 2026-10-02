@@ -497,24 +497,72 @@ export interface ValidationExceptionRecord {
   createdAt: string;
 }
 
-// --- 10. APPROVAL & REVIEW WORKFLOW ---
+// --- 10. APPROVAL STATES (REQUIREMENT 30) ---
+
+export type ApprovalState =
+  | "PENDING_VALIDATION"
+  | "VALIDATING"
+  | "VALID"
+  | "PARTIALLY_VALID"
+  | "REVIEW_REQUIRED"
+  | "APPROVED"
+  | "REJECTED";
+
+export interface ApprovalStateTransitionRecord {
+  fromState: ApprovalState;
+  toState: ApprovalState;
+  timestamp: string;
+  actor: string;
+  reason: string;
+  isAllowed: boolean;
+}
 
 export type ValidationLifecycleStatus =
+  | ApprovalState
   | "PENDING"
-  | "VALIDATING"
   | "AUTOMATICALLY_APPROVED"
-  | "REVIEW_REQUIRED"
-  | "MANUALLY_APPROVED"
-  | "REJECTED";
+  | "MANUALLY_APPROVED";
 
 export interface ValidationApprovalRecord {
   status: ValidationLifecycleStatus;
+  approvalState?: ApprovalState;
   approvedBy?: string;
   approvedAt?: string;
   approvalMethod: "AUTOMATIC" | "MANUAL" | "NONE";
   reviewNotes?: string;
   blockingExceptionCount: number;
 }
+
+// --- 10a. RECONCILIATION GATE (REQUIREMENT 31) ---
+
+export type ReconciliationGateStatus = "GATE_PASSED" | "GATE_BLOCKED";
+
+export type ReconciliationGateErrorCode =
+  | "UNVALIDATED_RAW_OCR_DETECTED"
+  | "INVALID_APPROVAL_STATE"
+  | "UNRESOLVED_BLOCKING_EXCEPTIONS"
+  | "AUDIT_CHAIN_INTEGRITY_FAILURE"
+  | "MISSING_MANDATORY_CRITICAL_FIELDS"
+  | "UNVERIFIED_FINANCIAL_ARITHMETIC";
+
+export interface ReconciliationGateViolation {
+  code: ReconciliationGateErrorCode;
+  message: string;
+  fieldKey?: string;
+  details?: Record<string, unknown>;
+}
+
+export interface ReconciliationGateEvaluation {
+  isPassed: boolean;
+  gateStatus: ReconciliationGateStatus;
+  approvalState: ApprovalState;
+  documentId: string;
+  violations: ReconciliationGateViolation[];
+  evaluatedAt: string;
+  auditHash?: string;
+  authoritativeInputReady: boolean;
+}
+
 
 // --- 11. FULL VALIDATION PIPELINE RESULT ---
 
