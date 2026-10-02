@@ -29,6 +29,8 @@ export * from "./structuredAiResponseValidator";
 export { EvidenceCheckEngine } from "./evidenceCheckEngine";
 export { MissingDataGuard, KNOWN_SYNTHETIC_INDUSTRY_DEFAULTS } from "./missingDataGuard";
 export { AiSemanticValidator } from "./aiSemanticValidator";
+export { AiFailureHandler } from "./aiFailureHandler";
+export { IdempotencyManager } from "./idempotencyManager";
 export { DeterministicRuleEngine } from "./deterministicRuleEngine";
 export { CrossFieldValidator } from "./crossFieldValidator";
 export { OcrErrorDetector } from "./ocrErrorDetector";
@@ -37,3 +39,4 @@ export { DuplicateFieldDetector } from "./duplicateFieldDetector";
 export { ValidationConfidenceCalculator } from "./validationConfidenceCalculator";
 export { ExceptionGenerator } from "./exceptionGenerator";
 export { ValidationPipeline } from "./validationPipeline";
+

@@ -208,6 +208,25 @@ export class ExceptionGenerator {
       }
     }
 
+    // 6c. AI Service Failure (Requirement 24)
+    if (semanticResult && semanticResult.aiFailure) {
+      const fail = semanticResult.aiFailure;
+      exceptions.push({
+        exceptionId: `exc-ai-failure-${documentId}-${fail.reason.toLowerCase()}-${Date.now()}`,
+        documentId,
+        category: "AI_FAILURE",
+        severity: "HIGH",
+        title: `AI Service Failure: ${fail.reason}`,
+        description: fail.errorMessage,
+        suggestedAction: fail.isRetryable
+          ? `Retry AI validation (attempt ${fail.attemptCount}/${fail.maxRetries}). OCR candidate evidence is preserved intact.`
+          : `Perform manual review of extracted candidate fields. AI service encountered non-retryable error.`,
+        observedValue: `Failure Reason: ${fail.reason}`,
+        expectedValue: "Successful AI Semantic Analysis",
+        createdAt: now,
+      });
+    }
+
     // 7. Critical Field Failures (Requirement 14)
     if (confidence.qualitySummary.hasFailingCriticalField) {
       for (const failure of confidence.qualitySummary.criticalFieldFailures) {

@@ -19,6 +19,8 @@ import {
   MultiEvidenceReconciler,
   DuplicateFieldDetector,
   MissingDataGuard,
+  AiFailureHandler,
+  IdempotencyManager,
   CanonicalInvoiceBuilder,
   StructuredAiPayloadBuilder,
   StructuredAiResponseValidator,
@@ -1657,6 +1659,197 @@ async function runAiValidationPipelineTestSuite() {
   const synthException = pipelineSynthResult.exceptions.find((e) => e.category === "SYNTHETIC_DEFAULT_REJECTED");
   assert(synthException !== undefined, "Pipeline: Generates SYNTHETIC_DEFAULT_REJECTED exception");
   assert(synthException?.severity === "HIGH", "Pipeline: SYNTHETIC_DEFAULT_REJECTED exception severity is HIGH");
+
+  // --- TEST GROUP 24: AI FAILURE HANDLING & CORRUPTION-PROOF RESILIENCE (REQ 24) ---
+  console.log("\n[Test Group 24] AI Failure Handling — Classifies All 7 Error Modes, Retains Evidence & Non-Destructive Fallback");
+
+  // 24.1: Error Classification for all 7 standard failure reasons
+  const timeoutErr = AiFailureHandler.classifyError(new Error("Request timed out after 15000ms deadline exceeded"));
+  assert(timeoutErr.reason === "TIMEOUT", "AI Failure: Correctly classifies TIMEOUT error");
+  assert(timeoutErr.isRetryable === true, "AI Failure: TIMEOUT error is flagged as retryable");
+
+  const rateLimitErr = AiFailureHandler.classifyError("429 Too Many Requests: Rate limit exceeded for organization");
+  assert(rateLimitErr.reason === "RATE_LIMIT", "AI Failure: Correctly classifies RATE_LIMIT error");
+  assert(rateLimitErr.isRetryable === true, "AI Failure: RATE_LIMIT error is flagged as retryable");
+
+  const providerErr = AiFailureHandler.classifyError(new Error("500 Internal Server Error: upstream provider error"));
+  assert(providerErr.reason === "PROVIDER_ERROR", "AI Failure: Correctly classifies PROVIDER_ERROR");
+
+  const invalidJsonErr = AiFailureHandler.classifyError(new SyntaxError("Unexpected token < in JSON at position 0"));
+  assert(invalidJsonErr.reason === "INVALID_RESPONSE", "AI Failure: Correctly classifies INVALID_RESPONSE (malformed JSON)");
+
+  const schemaErr = AiFailureHandler.classifyError(new Error("Zod validation error: missing required property 'fieldKey'"));
+  assert(schemaErr.reason === "SCHEMA_ERROR", "AI Failure: Correctly classifies SCHEMA_ERROR");
+
+  const tokenLimitErr = AiFailureHandler.classifyError(new Error("Model context exceeded maximum token limit (finish_reason length)"));
+  assert(tokenLimitErr.reason === "TOKEN_LIMIT", "AI Failure: Correctly classifies TOKEN_LIMIT error");
+
+  const networkErr = AiFailureHandler.classifyError(new Error("503 Service Unavailable: connect ECONNREFUSED 127.0.0.1:443 - offline"));
+  assert(networkErr.reason === "UNAVAILABLE", "AI Failure: Correctly classifies UNAVAILABLE error");
+
+  // 24.2: Evidence Preservation Verification
+  const originalCandidateInputs: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "invoiceTotal",
+      fieldLabel: "Invoice Total",
+      value: 125430.2,
+      rawValue: "R125,430.20",
+      sourcePage: 1,
+      opticalConfidence: 98,
+      sourceText: "Total: R125,430.20",
+      wordTokens: [{ text: "R125,430.20", confidence: 98, boundingBox: [0.8, 0.6, 0.85, 0.8] }],
+    },
+    {
+      fieldKey: "accountNumber",
+      fieldLabel: "Account Number",
+      value: "0123456789",
+      rawValue: "0123456789",
+      sourcePage: 1,
+      opticalConfidence: 95,
+      sourceText: "Account: 0123456789",
+      wordTokens: [{ text: "0123456789", confidence: 95, boundingBox: [0.1, 0.6, 0.15, 0.8] }],
+    },
+  ];
+
+  const failureRecord = AiFailureHandler.createAiFailureRecord({
+    documentId: "DOC-FAIL-01",
+    error: new Error("ETIMEDOUT: AI service connection timed out"),
+    candidateFields: originalCandidateInputs,
+    fullDocumentText: "Invoice sample document",
+  });
+
+  assert(failureRecord.reason === "TIMEOUT", "Failure Record: reason is TIMEOUT");
+  assert(failureRecord.evidencePreserved === true, "Failure Record: evidencePreserved is true");
+  assert(failureRecord.ocrEvidenceSummary.totalTokensPreserved === 2, "Failure Record: All word tokens preserved intact");
+  assert(failureRecord.ocrEvidenceSummary.totalCandidateFieldsPreserved === 2, "Failure Record: Candidate fields count preserved");
+
+  const fallbackSemantic = AiFailureHandler.createSafeFallbackSemanticResult({
+    documentId: "DOC-FAIL-01",
+    candidateFields: originalCandidateInputs,
+    failureRecord,
+  });
+
+  assert(fallbackSemantic.overallSemanticConsistency === "AMBIGUOUS", "Fallback Semantic: Sets consistency to AMBIGUOUS");
+  assert(fallbackSemantic.findings.length === 2, "Fallback Semantic: Preserves all candidate field findings");
+  assert(fallbackSemantic.aiFailure !== undefined, "Fallback Semantic: Attaches structured aiFailure record");
+
+  // 24.3: Pipeline Graceful Fallback Execution (AI failure does not crash pipeline or corrupt document)
+  const pipelineFailResult = await ValidationPipeline.executePipeline(
+    {
+      documentId: "DOC-FAIL-PIPE",
+      candidateFields: originalCandidateInputs,
+    },
+    {
+      aiSemanticExecutor: async () => {
+        throw new Error("429 Too Many Requests: Rate limit exceeded");
+      },
+    },
+  );
+
+  assert(pipelineFailResult.aiFailure !== undefined, "Pipeline: aiFailure record populated on AI error");
+  assert(pipelineFailResult.aiFailure?.reason === "RATE_LIMIT", "Pipeline: AI failure reason is RATE_LIMIT");
+  assert(pipelineFailResult.status === "REVIEW_REQUIRED", "Pipeline: Document status transitions to REVIEW_REQUIRED");
+  assert(pipelineFailResult.reconciliationHandoffReady === false, "Pipeline: Reconciliation handoff blocked on AI failure");
+  assert(pipelineFailResult.validatedFields["invoiceTotal"].value === 125430.2, "Pipeline: OCR invoice total value is NOT corrupted or modified");
+  assert(pipelineFailResult.validatedFields["accountNumber"].value === "0123456789", "Pipeline: OCR account number is NOT corrupted or modified");
+
+  const aiFailException = pipelineFailResult.exceptions.find((e) => e.category === "AI_FAILURE");
+  assert(aiFailException !== undefined, "Pipeline: Generates AI_FAILURE exception");
+  assert(aiFailException?.severity === "HIGH", "Pipeline: AI_FAILURE severity is HIGH");
+  assert(aiFailException?.suggestedAction.includes("Retry AI validation"), "Pipeline: Suggests retry with backoff");
+
+  // --- TEST GROUP 25: IDEMPOTENCY & VERSION LINEAGE (REQ 25) ---
+  console.log("\n[Test Group 25] Idempotency — Composite Key Management, Exact Replay & Clean Version Superseding");
+
+  IdempotencyManager.clearRegistry();
+
+  // 25.1: Composite Idempotency Key Generation
+  const key1 = IdempotencyManager.generateIdempotencyKey("DOC-100", "run-abc", 1);
+  assert(key1 === "val_DOC-100_run-abc_v1", "Idempotency: Generates correct composite key format");
+
+  const keyDefault = IdempotencyManager.generateIdempotencyKey("DOC-100");
+  assert(keyDefault === "val_DOC-100_default-run_v1", "Idempotency: Applies default run and version 1");
+
+  // 25.2: First Execution Creates Fresh Record
+  const docInput = {
+    documentId: "DOC-IDEM-01",
+    processingRunId: "run-001",
+    validationVersion: 1,
+    candidateFields: originalCandidateInputs,
+  };
+
+  const firstRunResult = await ValidationPipeline.executePipeline(docInput, {
+    processingRunId: "run-001",
+    validationVersion: 1,
+  });
+
+  assert(firstRunResult.isIdempotentReplay === false, "Idempotency: First execution is NOT a replay");
+  assert(firstRunResult.idempotencyKey === "val_DOC-IDEM-01_run-001_v1", "Idempotency: Attached correct idempotencyKey");
+
+  // 25.3: Exact Match Retry Replays Cached Record (Zero Duplicates Created)
+  const retryRunResult = await ValidationPipeline.executePipeline(docInput, {
+    processingRunId: "run-001",
+    validationVersion: 1,
+  });
+
+  assert(retryRunResult.isIdempotentReplay === true, "Idempotency: Exact retry is marked as isIdempotentReplay: true");
+  assert(retryRunResult.validationRunId === firstRunResult.validationRunId, "Idempotency: Reuses exact original validationRunId without creating duplicate");
+
+  const recordsForDoc = IdempotencyManager.listRecordsForDocument("DOC-IDEM-01");
+  assert(recordsForDoc.length === 1, "Idempotency Store: Exactly 1 record exists for (documentId, runId, v1)");
+
+  // 25.4: Incremented Version (v2) Supersedes v1 with Lineage Pointer
+  const v2RunResult = await ValidationPipeline.executePipeline(docInput, {
+    processingRunId: "run-001",
+    validationVersion: 2,
+  });
+
+  assert(v2RunResult.isIdempotentReplay === false, "Idempotency: Version 2 is a fresh execution");
+  assert(v2RunResult.validationVersion === 2, "Idempotency: v2 validationVersion is 2");
+
+  const allRecords = IdempotencyManager.listRecordsForDocument("DOC-IDEM-01");
+  assert(allRecords.length === 2, "Idempotency Store: 2 records exist (v1 and v2)");
+
+  const v1Record = IdempotencyManager.getRecord("val_DOC-IDEM-01_run-001_v1");
+  const v2Record = IdempotencyManager.getRecord("val_DOC-IDEM-01_run-001_v2");
+
+  assert(v1Record?.isCurrent === false, "Idempotency Lineage: v1 is marked as isCurrent: false");
+  assert(v1Record?.supersededBy === v2RunResult.validationRunId, "Idempotency Lineage: v1 supersededBy points to v2 run ID");
+  assert(v2Record?.isCurrent === true, "Idempotency Lineage: v2 is marked as isCurrent: true");
+  assert(v2Record?.previousRunId === firstRunResult.validationRunId, "Idempotency Lineage: v2 previousRunId points to v1 run ID");
+
+  // 25.5: Concurrent In-Flight Deduplication
+  let executionCount = 0;
+  const concurrentDocInput = {
+    documentId: "DOC-CONCURRENT-01",
+    processingRunId: "run-concurrent",
+    validationVersion: 1,
+    candidateFields: originalCandidateInputs,
+  };
+
+  const [resA, resB] = await Promise.all([
+    ValidationPipeline.executePipeline(concurrentDocInput, {
+      processingRunId: "run-concurrent",
+      validationVersion: 1,
+      aiSemanticExecutor: async (docId, cFields) => {
+        executionCount++;
+        await new Promise((r) => setTimeout(r, 50));
+        return AiSemanticValidator.validateSemantics(docId, cFields);
+      },
+    }),
+    ValidationPipeline.executePipeline(concurrentDocInput, {
+      processingRunId: "run-concurrent",
+      validationVersion: 1,
+      aiSemanticExecutor: async (docId, cFields) => {
+        executionCount++;
+        await new Promise((r) => setTimeout(r, 50));
+        return AiSemanticValidator.validateSemantics(docId, cFields);
+      },
+    }),
+  ]);
+
+  assert(executionCount === 1, "Concurrency: In-flight deduplication ensured AI was only executed once");
+  assert(resA.validationRunId === resB.validationRunId, "Concurrency: Both callers received identical validationRunId");
 
   console.log("\n==================================================================");
   console.log(`  🎉 ALL ${passedCount} / ${totalCount} AI VALIDATION TESTS PASSED CLEANLY!`);

@@ -7,7 +7,7 @@
  *         ↓
  *   Evidence Check
  *         ↓
- *   AI Semantic Validation
+ *   AI Semantic Validation (with Failure Handling — Req 24)
  *         ↓
  *   Deterministic Rules
  *         ↓
@@ -18,6 +18,9 @@
  *   Exception Generation
  *         ↓
  *   Approval / Review
+ *
+ * IDEMPOTENCY (Req 25):
+ *   document_id + processing_run_id + validation_version
  *
  * STRICT SEPARATION OF CONCERNS:
  * - Extraction: "What information appears in the document?" (OCR / Native text)
@@ -32,6 +35,8 @@ import type {
   ValidationApprovalRecord,
   ValidationLifecycleStatus,
   ValidationConfidenceThresholds,
+  AiSemanticValidationResult,
+  IdempotencyValidationOptions,
 } from "./types";
 import type {
   AiValidationStructuredPackage,
@@ -40,6 +45,8 @@ import type {
 import { EvidenceCheckEngine } from "./evidenceCheckEngine";
 import { MissingDataGuard } from "./missingDataGuard";
 import { AiSemanticValidator } from "./aiSemanticValidator";
+import { AiFailureHandler } from "./aiFailureHandler";
+import { IdempotencyManager } from "./idempotencyManager";
 import { DeterministicRuleEngine } from "./deterministicRuleEngine";
 import { CrossFieldValidator } from "./crossFieldValidator";
 import { OcrErrorDetector } from "./ocrErrorDetector";
@@ -50,12 +57,21 @@ import { ExceptionGenerator } from "./exceptionGenerator";
 
 export interface ValidationPipelineExecutionOptions {
   thresholds?: Partial<ValidationConfidenceThresholds>;
+  processingRunId?: string;
+  validationVersion?: number;
+  forceRerun?: boolean;
+  aiSemanticExecutor?: (
+    documentId: string,
+    candidateFields: CandidateFieldValidationInput[],
+    fullDocumentText: string,
+  ) => Promise<AiSemanticValidationResult>;
 }
 
 export class ValidationPipeline {
   /**
-   * Executes the full 8-stage AI and deterministic validation pipeline with OCR Error Detection,
-   * Multi-Source Reconciliation, Duplicate Field Detection, and Missing Data Integrity Guarding.
+   * Executes the full AI and deterministic validation pipeline with idempotency guarantees,
+   * AI failure handling, OCR Error Detection, Multi-Source Reconciliation, Duplicate Field Detection,
+   * and Missing Data Integrity Guarding.
    */
   public static async executePipeline(
     inputPackage:
@@ -63,10 +79,57 @@ export class ValidationPipeline {
       | {
           documentId: string;
           organisationId?: string;
+          processingRunId?: string;
+          validationVersion?: number;
           candidateFields: CandidateFieldValidationInput[];
           fullDocumentText?: string;
         },
     options?: ValidationPipelineExecutionOptions,
+  ): Promise<CompleteValidationResult> {
+    const documentId = inputPackage.documentId;
+    const processingRunId =
+      options?.processingRunId ||
+      ("processingRunId" in inputPackage ? inputPackage.processingRunId : undefined) ||
+      "run-default";
+    const validationVersion =
+      options?.validationVersion ||
+      ("validationVersion" in inputPackage ? inputPackage.validationVersion : undefined) ||
+      1;
+    const forceRerun = options?.forceRerun ?? false;
+
+    const idempotencyOptions: IdempotencyValidationOptions = {
+      documentId,
+      processingRunId,
+      validationVersion,
+      forceRerun,
+    };
+
+    return IdempotencyManager.executeIdempotently(
+      idempotencyOptions,
+      inputPackage,
+      async () => {
+        return this.runPipelineInternal(inputPackage, options, processingRunId, validationVersion);
+      },
+    );
+  }
+
+  /**
+   * Internal pipeline execution logic without external idempotency wrapper.
+   */
+  private static async runPipelineInternal(
+    inputPackage:
+      | AiValidationStructuredPackage
+      | {
+          documentId: string;
+          organisationId?: string;
+          processingRunId?: string;
+          validationVersion?: number;
+          candidateFields: CandidateFieldValidationInput[];
+          fullDocumentText?: string;
+        },
+    options?: ValidationPipelineExecutionOptions,
+    processingRunId: string = "run-default",
+    validationVersion: number = 1,
   ): Promise<CompleteValidationResult> {
     const now = new Date().toISOString();
     const documentId = inputPackage.documentId;
@@ -89,7 +152,7 @@ export class ValidationPipeline {
           opticalConfidence: f.confidence,
           wordTokens: f.ocrEvidence.wordTokens,
           sourceText: f.ocrEvidence.sourceText,
-          processingRunId: f.ocrEvidence.processingRunId,
+          processingRunId: f.ocrEvidence.processingRunId || processingRunId,
         }),
       );
       fullDocumentText = inputPackage.promptContextSummary || "";
@@ -124,12 +187,38 @@ export class ValidationPipeline {
       candidateFields,
     );
 
-    // --- STAGE 3: AI SEMANTIC VALIDATION ---
-    const semanticValidation = AiSemanticValidator.validateSemantics(
-      documentId,
-      candidateFields,
-      fullDocumentText,
-    );
+    // --- STAGE 3: AI SEMANTIC VALIDATION (WITH ROBUST FAILURE HANDLING — REQ 24) ---
+    let semanticValidation: AiSemanticValidationResult;
+    try {
+      if (options?.aiSemanticExecutor) {
+        semanticValidation = await options.aiSemanticExecutor(
+          documentId,
+          candidateFields,
+          fullDocumentText,
+        );
+      } else {
+        semanticValidation = AiSemanticValidator.validateSemantics(
+          documentId,
+          candidateFields,
+          fullDocumentText,
+        );
+      }
+    } catch (aiError) {
+      const failureRecord = AiFailureHandler.createAiFailureRecord({
+        documentId,
+        processingRunId,
+        validationVersion,
+        error: aiError,
+        candidateFields,
+        fullDocumentText,
+      });
+
+      semanticValidation = AiFailureHandler.createSafeFallbackSemanticResult({
+        documentId,
+        candidateFields,
+        failureRecord,
+      });
+    }
 
     // --- STAGE 4: DETERMINISTIC RULES ---
     const deterministicValidation = DeterministicRuleEngine.evaluateRules(
@@ -177,7 +266,13 @@ export class ValidationPipeline {
     let approvalMethod: "AUTOMATIC" | "MANUAL" | "NONE" = "NONE";
     let approvedAt: string | undefined = undefined;
 
-    if (confidence.isReliable && blockingExceptionsCount === 0 && exceptions.length === 0) {
+    // Automatic approval only if reliable, zero exceptions, zero AI failures, and zero blocking exceptions
+    if (
+      confidence.isReliable &&
+      blockingExceptionsCount === 0 &&
+      exceptions.length === 0 &&
+      !semanticValidation.aiFailure
+    ) {
       status = "AUTOMATICALLY_APPROVED";
       approvalMethod = "AUTOMATIC";
       approvedAt = now;
@@ -224,11 +319,20 @@ export class ValidationPipeline {
     }
 
     const validationRunId = `val-run-${documentId}-${Date.now()}`;
+    const idempotencyKey = IdempotencyManager.generateIdempotencyKey(
+      documentId,
+      processingRunId,
+      validationVersion,
+    );
 
     return {
       validationRunId,
       documentId,
       organisationId,
+      processingRunId,
+      validationVersion,
+      idempotencyKey,
+      isIdempotentReplay: false,
       validatedAt: now,
       status,
       overallConfidence: confidence,
@@ -245,6 +349,7 @@ export class ValidationPipeline {
       multiSourceReconciliation,
       duplicateFieldDetection,
       missingDataAudit,
+      aiFailure: semanticValidation.aiFailure,
       exceptions,
       approval,
       validatedFields,

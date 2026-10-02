@@ -152,6 +152,39 @@ export interface AiSemanticValidationResult {
   findings: SemanticValidationFinding[];
   summaryNotes: string;
   unresolvedAmbiguities: string[];
+  aiFailure?: AiFailureRecord;
+}
+
+// --- 5a. AI FAILURE HANDLING (REQUIREMENT 24) ---
+
+export type AiFailureReason =
+  | "TIMEOUT"
+  | "RATE_LIMIT"
+  | "PROVIDER_ERROR"
+  | "INVALID_RESPONSE"
+  | "SCHEMA_ERROR"
+  | "TOKEN_LIMIT"
+  | "UNAVAILABLE";
+
+export interface AiFailureRecord {
+  failureId: string;
+  documentId: string;
+  processingRunId?: string;
+  validationVersion: number;
+  reason: AiFailureReason;
+  errorMessage: string;
+  rawErrorDetails?: unknown;
+  timestamp: string;
+  isRetryable: boolean;
+  retryAfterMs?: number;
+  attemptCount: number;
+  maxRetries: number;
+  evidencePreserved: boolean;
+  ocrEvidenceSummary: {
+    totalTokensPreserved: number;
+    totalCandidateFieldsPreserved: number;
+    documentTextPreserved: boolean;
+  };
 }
 
 // --- 6. DETERMINISTIC RULES & ARITHMETIC ---
@@ -445,7 +478,8 @@ export type ExceptionCategory =
   | "POSSIBLE_OCR_ERROR"
   | "MULTI_SOURCE_CONFLICT"
   | "DUPLICATE_FIELD_CONFLICT"
-  | "SYNTHETIC_DEFAULT_REJECTED";
+  | "SYNTHETIC_DEFAULT_REJECTED"
+  | "AI_FAILURE";
 
 export interface ValidationExceptionRecord {
   exceptionId: string;
@@ -488,6 +522,10 @@ export interface CompleteValidationResult {
   validationRunId: string;
   documentId: string;
   organisationId?: string;
+  processingRunId?: string;
+  validationVersion?: number;
+  idempotencyKey?: string;
+  isIdempotentReplay?: boolean;
   validatedAt: string;
   status: ValidationLifecycleStatus;
   overallConfidence: ValidationConfidenceBreakdown;
@@ -504,6 +542,7 @@ export interface CompleteValidationResult {
   multiSourceReconciliation?: MultiSourceReconciliationResult;
   duplicateFieldDetection?: DuplicateFieldDetectionResult;
   missingDataAudit?: MissingDataAuditResult;
+  aiFailure?: AiFailureRecord;
   exceptions: ValidationExceptionRecord[];
   approval: ValidationApprovalRecord;
   validatedFields: Record<
@@ -523,4 +562,27 @@ export interface CompleteValidationResult {
     }
   >;
   reconciliationHandoffReady: boolean;
+}
+
+// --- 12. IDEMPOTENCY RECORD & STORE (REQUIREMENT 25) ---
+
+export interface ValidationIdempotencyRecord {
+  idempotencyKey: string;
+  documentId: string;
+  processingRunId: string;
+  validationVersion: number;
+  payloadHash: string;
+  createdAt: string;
+  updatedAt: string;
+  result: CompleteValidationResult;
+  isCurrent: boolean;
+  supersededBy?: string;
+  previousRunId?: string;
+}
+
+export interface IdempotencyValidationOptions {
+  documentId: string;
+  processingRunId?: string;
+  validationVersion?: number;
+  forceRerun?: boolean;
 }
