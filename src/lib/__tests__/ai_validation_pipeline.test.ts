@@ -1,7 +1,7 @@
 /**
  * ENERA AI VALIDATION & INTELLIGENT DOCUMENT VERIFICATION — TEST SUITE
  * =====================================================================
- * Verifies Requirements 4 & 5:
+ * Verifies Requirements 4, 5, 6 & 7:
  * 1. Strict Separation of Concerns:
  *    - Extraction: "What information appears in the document?"
  *    - AI Validation: "Does the extracted information agree with available evidence?"
@@ -10,17 +10,17 @@
  * 2. 8-Stage Validation Pipeline:
  *    Candidate Data -> Evidence Check -> AI Semantic Validation -> Deterministic Rules ->
  *    Cross-Field Validation -> Confidence Calculation -> Exception Generation -> Approval/Review
- * 3. Core Principle: Zero hallucination, non-invention, fallback to UNKNOWN/REVIEW_REQUIRED.
+ * 3. Canonical Invoice Record & Field-Level Evidence:
+ *    - 8 Functional Domains: Document, Customer, Meter, Tariff, Energy, Demand, Reactive, Financial
+ *    - 100% Traceable Provenance: document_id, page, text, bounding_box, extraction_method, confidence
+ * 4. Core Principle: Zero hallucination, non-invention, fallback to UNKNOWN/REVIEW_REQUIRED.
  */
 
 import {
   ValidationPipeline,
   EvidenceCheckEngine,
-  AiSemanticValidator,
   DeterministicRuleEngine,
-  CrossFieldValidator,
-  ValidationConfidenceCalculator,
-  ExceptionGenerator,
+  CanonicalInvoiceBuilder,
   type CandidateFieldValidationInput,
 } from "../../domain/ai-validation";
 
@@ -94,6 +94,36 @@ async function runAiValidationPipelineTestSuite() {
       wordTokens: [{ text: "0123456789", confidence: 96, boundingBox: [0.15, 0.65, 0.18, 0.85] }],
     },
     {
+      fieldKey: "customerName",
+      fieldLabel: "Customer Name",
+      value: "Acme Industrial Pty Ltd",
+      rawValue: "Acme Industrial Pty Ltd",
+      sourcePage: 1,
+      boundingBox: [0.12, 0.1, 0.14, 0.4],
+      opticalConfidence: 95,
+      sourceText: "Customer: Acme Industrial Pty Ltd",
+    },
+    {
+      fieldKey: "meterNumber",
+      fieldLabel: "Meter Number",
+      value: "MTR-998822",
+      rawValue: "MTR-998822",
+      sourcePage: 1,
+      boundingBox: [0.25, 0.1, 0.28, 0.3],
+      opticalConfidence: 96,
+      sourceText: "Meter No: MTR-998822",
+    },
+    {
+      fieldKey: "tariffName",
+      fieldLabel: "Tariff Name",
+      value: "Megaflex Non-Local Transmission",
+      rawValue: "Megaflex Non-Local",
+      sourcePage: 1,
+      boundingBox: [0.22, 0.1, 0.24, 0.4],
+      opticalConfidence: 93,
+      sourceText: "Tariff: Megaflex Non-Local Transmission",
+    },
+    {
       fieldKey: "billingPeriodStart",
       fieldLabel: "Billing Period Start",
       value: "2026-02-01",
@@ -112,6 +142,56 @@ async function runAiValidationPipelineTestSuite() {
       boundingBox: [0.2, 0.4, 0.23, 0.55],
       opticalConfidence: 94,
       sourceText: "to 28/02/2026",
+    },
+    {
+      fieldKey: "peakEnergyKwh",
+      fieldLabel: "Peak Active Energy",
+      value: 25000.0,
+      rawValue: "25,000.00 kWh",
+      sourcePage: 2,
+      boundingBox: [0.4, 0.5, 0.43, 0.7],
+      opticalConfidence: 96,
+      sourceText: "Peak Energy: 25000 kWh",
+    },
+    {
+      fieldKey: "standardEnergyKwh",
+      fieldLabel: "Standard Active Energy",
+      value: 45000.0,
+      rawValue: "45,000.00 kWh",
+      sourcePage: 2,
+      boundingBox: [0.45, 0.5, 0.48, 0.7],
+      opticalConfidence: 96,
+      sourceText: "Standard Energy: 45000 kWh",
+    },
+    {
+      fieldKey: "offPeakEnergyKwh",
+      fieldLabel: "Off-Peak Active Energy",
+      value: 30000.0,
+      rawValue: "30,000.00 kWh",
+      sourcePage: 2,
+      boundingBox: [0.5, 0.5, 0.53, 0.7],
+      opticalConfidence: 96,
+      sourceText: "Off-Peak Energy: 30000 kWh",
+    },
+    {
+      fieldKey: "totalActiveEnergyKwh",
+      fieldLabel: "Total Active Energy",
+      value: 100000.0,
+      rawValue: "100,000.00 kWh",
+      sourcePage: 2,
+      boundingBox: [0.55, 0.5, 0.58, 0.7],
+      opticalConfidence: 98,
+      sourceText: "Total Active Energy: 100000 kWh",
+    },
+    {
+      fieldKey: "maximumDemandKva",
+      fieldLabel: "Maximum Demand",
+      value: 450.0,
+      rawValue: "450.00 kVA",
+      sourcePage: 2,
+      boundingBox: [0.6, 0.5, 0.63, 0.7],
+      opticalConfidence: 95,
+      sourceText: "Maximum Demand: 450 kVA",
     },
     {
       fieldKey: "subtotal",
@@ -154,8 +234,8 @@ async function runAiValidationPipelineTestSuite() {
 
   // Verify Stage 1 & 2: Evidence Check
   assert(
-    cleanResult.evidenceCheck.groundedFieldsCount === 6,
-    "Stage 2 (Evidence Check): All 6 candidate fields verified as grounded",
+    cleanResult.evidenceCheck.groundedFieldsCount === cleanCandidateFields.length,
+    `Stage 2 (Evidence Check): All ${cleanCandidateFields.length} candidate fields verified as grounded`,
   );
   assert(
     cleanResult.evidenceCheck.ungroundedFieldsCount === 0,
@@ -218,8 +298,127 @@ async function runAiValidationPipelineTestSuite() {
     "Stage 8 (Approval): Ready for downstream reconciliation handoff",
   );
 
-  // --- TEST GROUP 4: ARITHMETIC DISCREPANCY EXCEPTION HANDLING ---
-  console.log("\n[Test 4] Flags arithmetic discrepancies without mutating invoice numbers");
+  // --- TEST GROUP 4: CANONICAL INVOICE RECORD & FIELD EVIDENCE PROVENANCE (REQS 6 & 7) ---
+  console.log(
+    "\n[Test 4] Builds Canonical Invoice Record supporting 8 functional sections with field-level evidence provenance",
+  );
+  const canonicalRecord = CanonicalInvoiceBuilder.fromValidationResult(
+    cleanResult,
+    cleanCandidateFields,
+  );
+
+  // 1. Document Section
+  assert(
+    canonicalRecord.document.documentId.value === "doc-clean-auth-001",
+    "Canonical Document: documentId matches",
+  );
+  assert(
+    canonicalRecord.document.billingPeriodStart.value === "2026-02-01",
+    "Canonical Document: billingPeriodStart populated",
+  );
+  assert(
+    canonicalRecord.document.billingPeriodEnd.value === "2026-02-28",
+    "Canonical Document: billingPeriodEnd populated",
+  );
+
+  // 2. Customer Section
+  assert(
+    canonicalRecord.customer.accountNumber.value === "0123456789",
+    "Canonical Customer: accountNumber is populated",
+  );
+  assert(
+    canonicalRecord.customer.customerName.value === "Acme Industrial Pty Ltd",
+    "Canonical Customer: customerName populated",
+  );
+
+  // 3. Meter Section
+  assert(
+    canonicalRecord.meter.meterNumber.value === "MTR-998822",
+    "Canonical Meter: meterNumber populated",
+  );
+  assert(
+    canonicalRecord.meter.previousReading.value === null,
+    "Canonical Meter: unextracted previousReading remains null (not invented)",
+  );
+
+  // 4. Tariff Section
+  assert(
+    canonicalRecord.tariff.tariffName.value === "Megaflex Non-Local Transmission",
+    "Canonical Tariff: tariffName populated",
+  );
+
+  // 5. Energy Section
+  assert(canonicalRecord.energy.peakKwh.value === 25000, "Canonical Energy: peakKwh is 25,000");
+  assert(
+    canonicalRecord.energy.standardKwh.value === 45000,
+    "Canonical Energy: standardKwh is 45,000",
+  );
+  assert(
+    canonicalRecord.energy.offPeakKwh.value === 30000,
+    "Canonical Energy: offPeakKwh is 30,000",
+  );
+  assert(canonicalRecord.energy.totalKwh.value === 100000, "Canonical Energy: totalKwh is 100,000");
+
+  // 6. Demand Section
+  assert(
+    canonicalRecord.demand.maximumDemandKva.value === 450,
+    "Canonical Demand: maximumDemandKva is 450",
+  );
+
+  // 7. Reactive Section
+  assert(
+    canonicalRecord.reactive.reactiveEnergyKvarh.value === null,
+    "Canonical Reactive: unbilled reactive remains null (not invented)",
+  );
+
+  // 8. Financial Section
+  assert(
+    canonicalRecord.financial.subtotalZar.value === 100000,
+    "Canonical Financial: subtotal is R 100,000",
+  );
+  assert(canonicalRecord.financial.vatZar.value === 15000, "Canonical Financial: VAT is R 15,000");
+  assert(
+    canonicalRecord.financial.invoiceTotalZar.value === 115000,
+    "Canonical Financial: invoice total is R 115,000",
+  );
+
+  // Provenance Verification (Requirement 7)
+  const accSource = canonicalRecord.customer.accountNumber.source;
+  assert(accSource !== null, "Field-level evidence: accountNumber has non-null source provenance");
+  assert(
+    accSource?.document_id === "doc-clean-auth-001",
+    "Field-level evidence: source document_id matches",
+  );
+  assert(accSource?.page === 1, "Field-level evidence: source page is 1");
+  assert(
+    accSource?.text === "Account Number: 0123456789",
+    "Field-level evidence: source text preserved verbatim",
+  );
+  assert(
+    Array.isArray(accSource?.bounding_box) && accSource?.bounding_box.length === 4,
+    "Field-level evidence: bounding box is 4-element coordinate tuple",
+  );
+  assert(
+    accSource?.extraction_method === "ocr",
+    "Field-level evidence: extraction_method is 'ocr'",
+  );
+  assert(
+    canonicalRecord.customer.accountNumber.confidence === 0.96,
+    "Field-level evidence: confidence is 0.96",
+  );
+
+  // Immutability & Status
+  assert(
+    canonicalRecord.isImmutable === true,
+    "Canonical record marked immutable upon automatic approval",
+  );
+  assert(
+    canonicalRecord.provenanceSummary.groundedFieldsCount > 0,
+    "Provenance summary confirms grounded fields count",
+  );
+
+  // --- TEST GROUP 5: ARITHMETIC DISCREPANCY EXCEPTION HANDLING ---
+  console.log("\n[Test 5] Flags arithmetic discrepancies without mutating invoice numbers");
   const corruptedMathFields: CandidateFieldValidationInput[] = [
     ...cleanCandidateFields.filter((f) => f.fieldKey !== "totalAmountDue"),
     {
