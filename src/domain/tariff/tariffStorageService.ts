@@ -401,7 +401,9 @@ export class TariffStorageService {
             effectiveDate: version.header.effective_date,
           },
         });
-      } catch {}
+      } catch {
+        // Audit log error fallback
+      }
     } catch (e: any) {
       console.warn("[TariffStorageService] Background Supabase persist warning:", e?.message);
     }

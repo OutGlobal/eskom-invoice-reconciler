@@ -50,46 +50,94 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
 
     if (!hasInitialFields) {
       try {
-        const rawAscii = new TextDecoder().decode(bytes.slice(0, 50000));
-        const layeredDoc = await LayeredExtractor.extractDocument({
-          filename: file.name,
-          pageTexts: [rawAscii],
-          sha256Hash: `hash-${jobId}`,
-          isScanned: true,
-        });
-
-        const acc = String(layeredDoc.account_number.value || "");
-        const invNo = String(layeredDoc.invoice_number.value || "");
-        const custName = String(layeredDoc.customer_name.value || "");
-        const accMatch = rawAscii.match(/\b(785\d{7,9}|\d{10,12})\b/);
-
-        if (acc || invNo || custName || accMatch) {
-          pdfRes = {
-            invoice: {
-              accountNumber: acc || (accMatch ? accMatch[1] : ""),
-              invoiceNumber: invNo,
-              customerName: custName,
-              billingPeriod: `${layeredDoc.billing_period_start.value} - ${layeredDoc.billing_period_end.value}`,
-              billingPeriodStart: String(layeredDoc.billing_period_start.value || ""),
-              billingPeriodEnd: String(layeredDoc.billing_period_end.value || ""),
-              tariffName: String(layeredDoc.tariff_name.value || "Megaflex"),
-              meterNumber: String(layeredDoc.meter_number.value || ""),
-              premiseId: String(layeredDoc.premise_id.value || ""),
-              totalKwh: Number(layeredDoc.determinants.total_kwh.value || 0),
-              peakKwh: Number(layeredDoc.determinants.peak_kwh.value || 0),
-              standardKwh: Number(layeredDoc.determinants.standard_kwh.value || 0),
-              offPeakKwh: Number(layeredDoc.determinants.off_peak_kwh.value || 0),
-              maximumDemandKva: Number(layeredDoc.determinants.maximum_demand.value || 0),
-              totalInvoice: Number(layeredDoc.financials.total_invoice_amount.value || 0),
-              vat: Number(layeredDoc.financials.vat_amount.value || 0),
-            },
-            chargeLines: {},
-            lineItems: [],
-            rawText: rawAscii,
-          };
+        const { HybridDocumentProcessor } = await import("../../ocr/hybridDocumentProcessor");
+        const ocrRes = await HybridDocumentProcessor.processDocument(
+          { name: file.name, bytes, mimeType: file.type },
+          { documentId: jobId },
+        );
+        if (ocrRes.invoiceDeterminants) {
+          const d = ocrRes.invoiceDeterminants;
+          if (d.accountNumber.value || d.invoiceNumber.value || d.totalAmountDue.value !== null) {
+            pdfRes = {
+              invoice: {
+                accountNumber: d.accountNumber.value || "",
+                invoiceNumber: d.invoiceNumber.value || "",
+                customerName: d.customerName.value || "",
+                billingPeriod:
+                  d.billingPeriodStart.value && d.billingPeriodEnd.value
+                    ? `${d.billingPeriodStart.value} - ${d.billingPeriodEnd.value}`
+                    : "",
+                billingPeriodStart: d.billingPeriodStart.value || "",
+                billingPeriodEnd: d.billingPeriodEnd.value || "",
+                tariffName: d.tariffName?.value || d.tariffCode.value || "Megaflex",
+                meterNumber: d.meterNumber.value || "",
+                premiseId: "",
+                totalKwh: d.activeEnergyTotalKwh.value,
+                peakKwh: d.activeEnergyPeakKwh.value,
+                standardKwh: d.activeEnergyStandardKwh.value,
+                offPeakKwh: d.activeEnergyOffPeakKwh.value,
+                maximumDemandKva: d.maximumDemandKva.value,
+                totalInvoice: d.totalAmountDue.value,
+                vat: d.vatAmount.value,
+              },
+              chargeLines: {},
+              lineItems: (d.lineItems || []).map((li) => ({
+                description: li.lineDescription,
+                amount: li.amount ?? 0,
+                rate: li.rate ?? undefined,
+                quantity: li.quantity ?? undefined,
+              })),
+              rawText: ocrRes.rawFullText,
+            };
+          }
         }
       } catch {
-        // Fallback inspection ignore
+        // Fallback to layered extractor
+      }
+
+      if (!pdfRes?.invoice?.accountNumber && !pdfRes?.invoice?.invoiceNumber) {
+        try {
+          const rawAscii = new TextDecoder().decode(bytes.slice(0, 50000));
+          const layeredDoc = await LayeredExtractor.extractDocument({
+            filename: file.name,
+            pageTexts: [rawAscii],
+            sha256Hash: `hash-${jobId}`,
+            isScanned: true,
+          });
+
+          const acc = String(layeredDoc.account_number.value || "");
+          const invNo = String(layeredDoc.invoice_number.value || "");
+          const custName = String(layeredDoc.customer_name.value || "");
+          const accMatch = rawAscii.match(/\b(785\d{7,9}|\d{10,12})\b/);
+
+          if (acc || invNo || custName || accMatch) {
+            pdfRes = {
+              invoice: {
+                accountNumber: acc || (accMatch ? accMatch[1] : ""),
+                invoiceNumber: invNo,
+                customerName: custName,
+                billingPeriod: `${layeredDoc.billing_period_start.value} - ${layeredDoc.billing_period_end.value}`,
+                billingPeriodStart: String(layeredDoc.billing_period_start.value || ""),
+                billingPeriodEnd: String(layeredDoc.billing_period_end.value || ""),
+                tariffName: String(layeredDoc.tariff_name.value || "Megaflex"),
+                meterNumber: String(layeredDoc.meter_number.value || ""),
+                premiseId: String(layeredDoc.premise_id.value || ""),
+                totalKwh: Number(layeredDoc.total_kwh?.value || 0),
+                peakKwh: Number(layeredDoc.peak_kwh?.value || 0),
+                standardKwh: Number(layeredDoc.standard_kwh?.value || 0),
+                offPeakKwh: Number(layeredDoc.off_peak_kwh?.value || 0),
+                maximumDemandKva: Number(layeredDoc.maximum_demand?.value || 0),
+                totalInvoice: Number(layeredDoc.total_invoice_amount?.value || 0),
+                vat: Number(layeredDoc.vat_amount?.value || 0),
+              },
+              chargeLines: {},
+              lineItems: [],
+              rawText: rawAscii,
+            };
+          }
+        } catch {
+          // Fallback inspection ignore
+        }
       }
     }
 

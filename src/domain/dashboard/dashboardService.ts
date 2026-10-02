@@ -333,7 +333,7 @@ export class DashboardService {
     }
     const { data: runs } = await runQuery;
 
-    let mergedRuns: any[] = runs ? [...runs] : [];
+    const mergedRuns: any[] = runs ? [...runs] : [];
     try {
       const memRuns = await ReconciliationStorageService.queryRuns(
         filters.organisationId ? { organisationId: filters.organisationId } : {},
@@ -346,7 +346,9 @@ export class DashboardService {
           invoice_record_id: r.invoice_id,
         });
       }
-    } catch {}
+    } catch {
+      // In-memory reconciliation query fallback
+    }
 
     // Query discrepancy_events
     const discQuery = supabase.from("discrepancy_events").select("*");

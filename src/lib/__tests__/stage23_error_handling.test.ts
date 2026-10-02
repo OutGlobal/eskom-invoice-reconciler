@@ -87,7 +87,7 @@ describe("Stage 23 — Error Handling & Safe Pipeline Failure", () => {
 
     // 2. Binary bytes remain in storage vault and match original SHA-256 hash
     const downloadRes = await FileStorageSecurityService.downloadOriginalFile(
-      result.uploadRecord?.storageLocation!,
+      result.uploadRecord!.storageLocation,
     );
     expect(downloadRes.success).toBe(true);
     expect(downloadRes.data).toBeDefined();

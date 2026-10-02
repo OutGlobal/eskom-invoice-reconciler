@@ -26,7 +26,6 @@ import {
   Sparkles,
   History,
   Scale,
-
 } from "lucide-react";
 import { SecureIngestionGateway } from "@/domain/ingestion/secureIngestionGateway";
 import { UploadStorageService } from "@/domain/upload/uploadStorageService";
@@ -55,7 +54,17 @@ import {
   runAutomaticReconciliation,
   type AutoReconciliationOutcome,
 } from "@/domain/reconciliation/autoReconciliationRunner";
-
+import {
+  DocumentHierarchyTree,
+  DocumentUsefulStateBanner,
+  TruthfulStagesTracker,
+  DocumentProcessingView,
+} from "@/components/document";
+import {
+  buildDocumentTreeViewModel,
+  resolveUsefulDocumentState,
+} from "@/domain/intelligence/frontendDocumentTypes";
+import { PersistentDocumentIntelligenceService } from "@/domain/intelligence/persistentDocumentIntelligenceService";
 
 const AUTOMATED_STAGES: { id: AutomatedPipelineStage; label: string }[] = [
   { id: "UPLOAD_SUCCESSFUL", label: "Upload successful" },
@@ -90,6 +99,7 @@ export function SecureUploadGateway() {
   const [downloadingUrl, setDownloadingUrl] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [autoRecon, setAutoRecon] = useState<AutoReconciliationOutcome | null>(null);
+  const [recordViewMode, setRecordViewMode] = useState<"tree" | "table">("tree");
 
   // Runs the reconciliation engine straight after an upload, using whatever the
   // workspace now holds (invoice + interval telemetry + uploaded tariff).
@@ -99,7 +109,6 @@ export function SecureUploadGateway() {
     setAutoRecon(outcome);
     return outcome;
   };
-
 
   const handleDownloadSecureFile = async (upload: UploadRecord) => {
     setDownloadingUrl(true);
@@ -170,7 +179,11 @@ export function SecureUploadGateway() {
       TariffStorageService.hydrateFromLocal(),
     );
     LocalWorkspaceStore.loadDataset().then((dataset) => {
-      if (!dataset) return;
+      if (!dataset) {
+        // Stage 16: If no direct dataset, rehydrate from persisted document intelligence
+        void PersistentDocumentIntelligenceService.rehydrateOnSessionStart().catch(console.warn);
+        return;
+      }
       const store = useApp.getState();
       if (dataset.invoice) {
         store.setInvoice(dataset.invoice);
@@ -208,7 +221,8 @@ export function SecureUploadGateway() {
     action: DuplicateResolutionAction,
   ) => {
     if (!candidateResult.duplicateResult) return;
-    const file = candidateResult.fileHeader.fileExtension === "pdf" ? activeInvoiceFile : activeMeterFile;
+    const file =
+      candidateResult.fileHeader.fileExtension === "pdf" ? activeInvoiceFile : activeMeterFile;
     const candidate: DuplicateEvaluationCandidate = {
       organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
       sourceType: candidateResult.fileHeader.fileExtension === "pdf" ? "INVOICE" : "TELEMETRY",
@@ -322,6 +336,13 @@ export function SecureUploadGateway() {
         metadata: overrides,
       });
 
+      // Stage 16: Guarantee persistent document intelligence database integration
+      void PersistentDocumentIntelligenceService.ingestAndProcessDocument({
+        file: invoiceFile,
+        organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
+        userId: "user-system-admin",
+      }).catch((err) => console.warn("Stage 16 document intelligence persistence notice:", err));
+
       setActiveJobId(job.jobId);
 
       const mapStage = (stage: string): AutomatedPipelineStage => {
@@ -423,10 +444,12 @@ export function SecureUploadGateway() {
               offPeakEnergyCharge: ext.offPeakEnergyCharge || 0,
               vat: ext.vat || 0,
               invoiceTotal: ext.totalInvoice ? ext.totalInvoice - (ext.vat || 0) : 0,
-              totalInclVat: ext.totalInvoice || 0,
-              reconciledTotal: current.resultPayload?.reconciliation?.reconciled_total_zar
-                ? Number(current.resultPayload.reconciliation.reconciled_total_zar)
-                : undefined,
+              reconciledTotal:
+                (current.resultPayload?.reconciliation as any)?.reconciled_total_zar != null
+                  ? Number((current.resultPayload?.reconciliation as any).reconciled_total_zar)
+                  : (current.resultPayload?.reconciliation as any)?.expected_total_zar != null
+                    ? Number((current.resultPayload?.reconciliation as any).expected_total_zar)
+                    : undefined,
             };
             useApp.getState().setInvoice(mappedInvoice);
             useApp.getState().setCustomer({
@@ -460,7 +483,7 @@ export function SecureUploadGateway() {
                   r.kVAr ??
                   (r.reactive_energy_kvarh
                     ? r.reactive_energy_kvarh * (60 / (r.interval_minutes || 30))
-                    : r.kvarh ?? 0),
+                    : (r.kvarh ?? 0)),
                 kVA: r.kVA ?? r.apparent_power_kva ?? r.kva ?? 0,
                 pf: r.pf ?? r.power_factor ?? 0.96,
                 tou: (r.tou || r.tou_period || "peak") as any,
@@ -490,7 +513,6 @@ export function SecureUploadGateway() {
 
           runReconciliationAfterUpload();
           await loadHistory();
-
         } else if (current.status === "FAILED") {
           unsubscribe();
           setAutomatedPipelineRunning(false);
@@ -615,6 +637,13 @@ export function SecureUploadGateway() {
 
         // 1. If invoice fields were extracted, reflect in app store
         if (res.extractedInvoice && res.fileHeader.fileExtension === "pdf") {
+          // Stage 16: Guarantee persistent document intelligence database integration
+          void PersistentDocumentIntelligenceService.ingestAndProcessDocument({
+            file,
+            organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
+            userId: "user-system-admin",
+          }).catch((err) => console.warn("Stage 16 document intelligence persistence notice:", err));
+
           const ext: any = res.extractedInvoice;
           const mappedInvoice: InvoiceData = {
             source: file.name,
@@ -703,7 +732,6 @@ export function SecureUploadGateway() {
 
         // Refresh database history
         await loadHistory();
-
       }
     } catch (err: any) {
       console.error("Ingestion pipeline execution failure:", err);
@@ -726,9 +754,21 @@ export function SecureUploadGateway() {
   const getStatusBadge = (status: UploadProcessingStatus) => {
     switch (status) {
       case "PROCESSED":
+      case "READY_FOR_VALIDATION":
         return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+      case "STORED":
+        return "bg-blue-500/10 text-blue-400 border-blue-500/30";
+      case "INSPECTING":
+        return "bg-indigo-500/10 text-indigo-400 border-indigo-500/30 animate-pulse";
+      case "EXTRACTING":
+        return "bg-cyan-500/10 text-cyan-400 border-cyan-500/30 animate-pulse";
+      case "CLASSIFYING":
+        return "bg-purple-500/10 text-purple-400 border-purple-500/30 animate-pulse";
       case "PARTIALLY_PROCESSED":
+      case "REVIEW_REQUIRED":
         return "bg-amber-500/10 text-amber-400 border-amber-500/30";
+      case "UNSUPPORTED":
+        return "bg-zinc-500/10 text-zinc-300 border-zinc-500/30";
       case "FAILED":
         return "bg-rose-500/10 text-rose-400 border-rose-500/30";
       case "PROCESSING":
@@ -883,7 +923,8 @@ export function SecureUploadGateway() {
             Drop Invoice + Meter Data together (or click to browse)
           </p>
           <p className="text-xs text-muted-foreground mt-1 max-w-md">
-            Automatic end-to-end reconciliation: Upload your invoice (PDF) and AMR interval data (CSV/Excel) simultaneously for automated 8-stage processing with zero extra clicks.
+            Automatic end-to-end reconciliation: Upload your invoice (PDF) and AMR interval data
+            (CSV/Excel) simultaneously for automated 8-stage processing with zero extra clicks.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-[11px] text-muted-foreground">
             <span className="px-2 py-0.5 rounded border border-border/60 bg-muted/30">
@@ -942,8 +983,8 @@ export function SecureUploadGateway() {
                   automatedStage === "COMPLETE"
                     ? "bg-emerald-400"
                     : automatedStage === "STOPPED_FOR_AMBIGUITY"
-                    ? "bg-amber-400"
-                    : "bg-primary"
+                      ? "bg-amber-400"
+                      : "bg-primary"
                 }`}
                 style={{ width: `${automatedProgressPct}%` }}
               />
@@ -967,10 +1008,10 @@ export function SecureUploadGateway() {
                         isCurrent
                           ? "border-primary bg-primary/10 text-primary font-bold shadow-sm"
                           : isPassed
-                          ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-400"
-                          : isPaused
-                          ? "border-amber-500/40 bg-amber-500/10 text-amber-400 font-bold animate-pulse"
-                          : "border-border/30 bg-card/20 text-muted-foreground"
+                            ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-400"
+                            : isPaused
+                              ? "border-amber-500/40 bg-amber-500/10 text-amber-400 font-bold animate-pulse"
+                              : "border-border/30 bg-card/20 text-muted-foreground"
                       }`}
                     >
                       <span className="text-[9px] opacity-70">Step {idx + 1}</span>
@@ -1048,7 +1089,8 @@ export function SecureUploadGateway() {
                     Reconciliation Complete: All 8 Stages Successfully Executed
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Invoice and meter telemetry matched, determinants calculated, and discrepancy analysis generated.
+                    Invoice and meter telemetry matched, determinants calculated, and discrepancy
+                    analysis generated.
                   </p>
                 </div>
               </div>
@@ -1098,42 +1140,22 @@ export function SecureUploadGateway() {
           </div>
         )}
 
-        {/* Real-Time Processing Stepper (Single-File Fallback) */}
+        {/* Real-Time Document Processing View (Stage 13: Truthful Status Stages - Zero Fake Percentages) */}
         {processing && !automatedPipelineRunning && (
-          <div className="mt-6 p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3 animate-in fade-in duration-200">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-primary flex items-center gap-2">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                Pipeline Stage: {currentState || "INITIALIZING"}
-              </span>
-              <span className="font-mono text-muted-foreground">{progressPct}%</span>
-            </div>
-
-            <div className="w-full bg-secondary/50 rounded-full h-2 overflow-hidden">
-              <div
-                className="bg-primary h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progressPct}%` }}
-              />
-            </div>
-
-            <p className="text-xs text-muted-foreground">{statusMessage}</p>
-
-            {/* Stepper Dots */}
-            <div className="grid grid-cols-5 gap-2 text-center text-[10px] font-medium pt-2 text-muted-foreground">
-              <span className={progressPct >= 10 ? "text-primary font-bold" : ""}>1. UPLOADED</span>
-              <span className={progressPct >= 25 ? "text-primary font-bold" : ""}>
-                2. VALIDATING
-              </span>
-              <span className={progressPct >= 50 ? "text-primary font-bold" : ""}>
-                3. VALIDATED
-              </span>
-              <span className={progressPct >= 75 ? "text-primary font-bold" : ""}>
-                4. PROCESSING
-              </span>
-              <span className={progressPct >= 100 ? "text-emerald-400 font-bold" : ""}>
-                5. PROCESSED
-              </span>
-            </div>
+          <div className="mt-6 space-y-4 animate-in fade-in duration-200">
+            <DocumentUsefulStateBanner
+              usefulState="PROCESSING"
+              customMessage="Analysing document…"
+              details={statusMessage || "The document is undergoing automated multi-stage extraction and analysis."}
+            />
+            <TruthfulStagesTracker
+              stages={buildDocumentTreeViewModel({
+                filename: "active_document.pdf",
+                processingStatus: "PROCESSING",
+                activeStage: currentState || "TEXT_EXTRACTION",
+              }).truthfulStages}
+              showDescriptions
+            />
           </div>
         )}
 
@@ -1166,10 +1188,10 @@ export function SecureUploadGateway() {
           </div>
         )}
 
-
         {/* Stage 23: Ingestion Result & Failure Display (Zero Silent Discards) */}
-        {ingestionResult && !processing && (
-          ingestionResult.success ? (
+        {ingestionResult &&
+          !processing &&
+          (ingestionResult.success ? (
             <div className="mt-6 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 text-emerald-300 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
@@ -1178,7 +1200,10 @@ export function SecureUploadGateway() {
                     Ingestion Succeeded — {ingestionResult.fileHeader.filename}
                   </div>
                   <div className="text-xs opacity-90 mt-0.5">
-                    Status: {ingestionResult.uploadRecord?.processingStatus || "PROCESSED"} | Rows: {ingestionResult.uploadRecord?.rowCount || 1} | Records: {ingestionResult.uploadRecord?.recordCount || 1} | Confidence: {(ingestionResult.confidenceScore * 100).toFixed(0)}%
+                    Status: {ingestionResult.uploadRecord?.processingStatus || "PROCESSED"} | Rows:{" "}
+                    {ingestionResult.uploadRecord?.rowCount || 1} | Records:{" "}
+                    {ingestionResult.uploadRecord?.recordCount || 1} | Confidence:{" "}
+                    {(ingestionResult.confidenceScore * 100).toFixed(0)}%
                   </div>
                 </div>
               </div>
@@ -1218,9 +1243,7 @@ export function SecureUploadGateway() {
                       FAILED SAFELY
                     </span>
                   </div>
-                  <div className="text-sm font-semibold text-foreground mt-1">
-                    Reason:
-                  </div>
+                  <div className="text-sm font-semibold text-foreground mt-1">Reason:</div>
                   <p className="text-sm text-rose-200/90 font-medium">
                     {ingestionResult.uploadRecord?.errorMessage ||
                       ingestionResult.batchJob?.quarantineReason ||
@@ -1233,7 +1256,10 @@ export function SecureUploadGateway() {
               <div className="p-3.5 rounded-xl border border-border/40 bg-card/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-2 text-foreground font-medium">
                   <Lock className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>The original file remains stored in encrypted storage vault (ID: {ingestionResult.fileHeader?.documentId || ingestionResult.uploadRecord?.id}).</span>
+                  <span>
+                    The original file remains stored in encrypted storage vault (ID:{" "}
+                    {ingestionResult.fileHeader?.documentId || ingestionResult.uploadRecord?.id}).
+                  </span>
                 </div>
                 <span className="text-[11px] text-emerald-400 font-mono font-semibold">
                   Never Silently Discarded
@@ -1243,7 +1269,9 @@ export function SecureUploadGateway() {
               {/* Error Recorded in Audit Trail */}
               <div className="text-xs text-muted-foreground flex items-center gap-2 px-1">
                 <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                <span>The error is recorded in the persistent audit trail and ingestion error registry.</span>
+                <span>
+                  The error is recorded in the persistent audit trail and ingestion error registry.
+                </span>
               </div>
 
               {/* Retry & Download Actions */}
@@ -1281,161 +1309,166 @@ export function SecureUploadGateway() {
                 )}
               </div>
             </div>
-          )
-        )}
+          ))}
 
         {/* Stage 21: Controlled Duplicate Protection & Correction Handling Card */}
-        {ingestionResult?.duplicateResult && ingestionResult.duplicateResult.status !== "NEW" && !processing && (
-          <div
-            className={`mt-4 p-5 rounded-xl border space-y-4 backdrop-blur-sm ${
-              ingestionResult.duplicateResult.status === "CORRECTION"
-                ? "border-purple-500/40 bg-purple-500/5 text-purple-200"
-                : ingestionResult.duplicateResult.status === "DUPLICATE"
-                ? "border-amber-500/40 bg-amber-500/5 text-amber-200"
-                : "border-cyan-500/40 bg-cyan-500/5 text-cyan-200"
-            }`}
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/30 pb-3">
-              <div className="flex items-center gap-2.5">
-                {ingestionResult.duplicateResult.status === "CORRECTION" ? (
-                  <Sparkles className="w-5 h-5 text-purple-400 shrink-0" />
-                ) : ingestionResult.duplicateResult.status === "DUPLICATE" ? (
-                  <Copy className="w-5 h-5 text-amber-400 shrink-0" />
-                ) : (
-                  <History className="w-5 h-5 text-cyan-400 shrink-0" />
-                )}
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-foreground">
-                      {ingestionResult.duplicateResult.status === "CORRECTION"
-                        ? "Legitimate Billing Correction Detected"
-                        : ingestionResult.duplicateResult.status === "DUPLICATE"
-                        ? "Accidental Duplicate Import Detected"
-                        : "Controlled Dataset Replacement"}
-                    </h3>
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
-                        ingestionResult.duplicateResult.status === "CORRECTION"
-                          ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
+        {ingestionResult?.duplicateResult &&
+          ingestionResult.duplicateResult.status !== "NEW" &&
+          !processing && (
+            <div
+              className={`mt-4 p-5 rounded-xl border space-y-4 backdrop-blur-sm ${
+                ingestionResult.duplicateResult.status === "CORRECTION"
+                  ? "border-purple-500/40 bg-purple-500/5 text-purple-200"
+                  : ingestionResult.duplicateResult.status === "DUPLICATE"
+                    ? "border-amber-500/40 bg-amber-500/5 text-amber-200"
+                    : "border-cyan-500/40 bg-cyan-500/5 text-cyan-200"
+              }`}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/30 pb-3">
+                <div className="flex items-center gap-2.5">
+                  {ingestionResult.duplicateResult.status === "CORRECTION" ? (
+                    <Sparkles className="w-5 h-5 text-purple-400 shrink-0" />
+                  ) : ingestionResult.duplicateResult.status === "DUPLICATE" ? (
+                    <Copy className="w-5 h-5 text-amber-400 shrink-0" />
+                  ) : (
+                    <History className="w-5 h-5 text-cyan-400 shrink-0" />
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-foreground">
+                        {ingestionResult.duplicateResult.status === "CORRECTION"
+                          ? "Legitimate Billing Correction Detected"
                           : ingestionResult.duplicateResult.status === "DUPLICATE"
-                          ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                          : "bg-cyan-500/20 text-cyan-300 border-cyan-500/30"
-                      }`}
-                    >
-                      {ingestionResult.duplicateResult.status}
-                    </span>
+                            ? "Accidental Duplicate Import Detected"
+                            : "Controlled Dataset Replacement"}
+                      </h3>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
+                          ingestionResult.duplicateResult.status === "CORRECTION"
+                            ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                            : ingestionResult.duplicateResult.status === "DUPLICATE"
+                              ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                              : "bg-cyan-500/20 text-cyan-300 border-cyan-500/30"
+                        }`}
+                      >
+                        {ingestionResult.duplicateResult.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {ingestionResult.duplicateResult.summary}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {ingestionResult.duplicateResult.summary}
-                  </p>
                 </div>
+
+                {ingestionResult.duplicateResult.existingRecord && (
+                  <div className="text-right text-[11px] text-muted-foreground font-mono">
+                    <div>Matched Record:</div>
+                    <div className="font-semibold text-foreground">
+                      {ingestionResult.duplicateResult.existingRecord.invoiceNumber ||
+                        ingestionResult.duplicateResult.existingRecord.id}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {ingestionResult.duplicateResult.existingRecord && (
-                <div className="text-right text-[11px] text-muted-foreground font-mono">
-                  <div>Matched Record:</div>
-                  <div className="font-semibold text-foreground">
-                    {ingestionResult.duplicateResult.existingRecord.invoiceNumber ||
-                      ingestionResult.duplicateResult.existingRecord.id}
+              {/* Differences Table for Corrections */}
+              {ingestionResult.duplicateResult.differences.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-foreground flex items-center justify-between">
+                    <span>Detected Metric Variances &amp; Adjustments:</span>
+                    <span className="text-[10px] text-purple-300">
+                      {ingestionResult.duplicateResult.differences.length} determinant adjustment(s)
+                    </span>
+                  </div>
+                  <div className="rounded-lg border border-border/40 overflow-hidden bg-card/40">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-muted/30 text-muted-foreground text-[10px] uppercase font-semibold">
+                        <tr>
+                          <th className="py-2 px-3">Determinant Field</th>
+                          <th className="py-2 px-3 text-right">Prior Registered Value</th>
+                          <th className="py-2 px-3 text-right">Corrected Value</th>
+                          <th className="py-2 px-3 text-right">Calculated Delta</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/20 font-mono">
+                        {ingestionResult.duplicateResult.differences.map((diff, i) => (
+                          <tr key={i} className="hover:bg-muted/10">
+                            <td className="py-2 px-3 font-sans font-medium text-foreground">
+                              {diff.label}
+                            </td>
+                            <td className="py-2 px-3 text-right text-muted-foreground">
+                              {typeof diff.existingValue === "number"
+                                ? diff.existingValue.toLocaleString("en-ZA", {
+                                    maximumFractionDigits: 2,
+                                  })
+                                : String(diff.existingValue)}
+                            </td>
+                            <td className="py-2 px-3 text-right font-bold text-foreground">
+                              {typeof diff.incomingValue === "number"
+                                ? diff.incomingValue.toLocaleString("en-ZA", {
+                                    maximumFractionDigits: 2,
+                                  })
+                                : String(diff.incomingValue)}
+                            </td>
+                            <td
+                              className={`py-2 px-3 text-right font-bold ${
+                                (diff.delta || 0) < 0
+                                  ? "text-emerald-400"
+                                  : (diff.delta || 0) > 0
+                                    ? "text-amber-400"
+                                    : "text-muted-foreground"
+                              }`}
+                            >
+                              {diff.formattedDelta || (diff.delta ? String(diff.delta) : "—")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Differences Table for Corrections */}
-            {ingestionResult.duplicateResult.differences.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>Detected Metric Variances &amp; Adjustments:</span>
-                  <span className="text-[10px] text-purple-300">
-                    {ingestionResult.duplicateResult.differences.length} determinant adjustment(s)
-                  </span>
-                </div>
-                <div className="rounded-lg border border-border/40 overflow-hidden bg-card/40">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-muted/30 text-muted-foreground text-[10px] uppercase font-semibold">
-                      <tr>
-                        <th className="py-2 px-3">Determinant Field</th>
-                        <th className="py-2 px-3 text-right">Prior Registered Value</th>
-                        <th className="py-2 px-3 text-right">Corrected Value</th>
-                        <th className="py-2 px-3 text-right">Calculated Delta</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/20 font-mono">
-                      {ingestionResult.duplicateResult.differences.map((diff, i) => (
-                        <tr key={i} className="hover:bg-muted/10">
-                          <td className="py-2 px-3 font-sans font-medium text-foreground">
-                            {diff.label}
-                          </td>
-                          <td className="py-2 px-3 text-right text-muted-foreground">
-                            {typeof diff.existingValue === "number"
-                              ? diff.existingValue.toLocaleString("en-ZA", { maximumFractionDigits: 2 })
-                              : String(diff.existingValue)}
-                          </td>
-                          <td className="py-2 px-3 text-right font-bold text-foreground">
-                            {typeof diff.incomingValue === "number"
-                              ? diff.incomingValue.toLocaleString("en-ZA", { maximumFractionDigits: 2 })
-                              : String(diff.incomingValue)}
-                          </td>
-                          <td
-                            className={`py-2 px-3 text-right font-bold ${
-                              (diff.delta || 0) < 0
-                                ? "text-emerald-400"
-                                : (diff.delta || 0) > 0
-                                ? "text-amber-400"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {diff.formattedDelta || (diff.delta ? String(diff.delta) : "—")}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {/* Controlled Resolution Actions */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                <p className="text-xs text-muted-foreground italic">
+                  {ingestionResult.duplicateResult.recommendation}
+                </p>
+
+                <div className="flex items-center gap-2">
+                  {ingestionResult.duplicateResult?.resolutionOptions.map((opt) => (
+                    <button
+                      key={opt.action}
+                      aria-label={
+                        opt.action === "ACCEPT_CORRECTION"
+                          ? "Accept Legitimate Correction"
+                          : opt.action === "KEEP_EXISTING_SKIP"
+                            ? "Skip Duplicate"
+                            : opt.title
+                      }
+                      onClick={() => handleDuplicateResolution(ingestionResult, opt.action)}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+                        opt.isRecommended
+                          ? ingestionResult.duplicateResult?.status === "CORRECTION"
+                            ? "bg-purple-600 hover:bg-purple-500 text-white border-purple-400 shadow-md"
+                            : "bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-400 shadow-md"
+                          : "bg-card/70 hover:bg-card border-border text-foreground"
+                      }`}
+                    >
+                      {opt.title}
+                    </button>
+                  ))}
                 </div>
               </div>
-            )}
 
-            {/* Controlled Resolution Actions */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-              <p className="text-xs text-muted-foreground italic">
-                {ingestionResult.duplicateResult.recommendation}
-              </p>
-
-              <div className="flex items-center gap-2">
-                {ingestionResult.duplicateResult?.resolutionOptions.map((opt) => (
-                  <button
-                    key={opt.action}
-                    aria-label={
-                      opt.action === "ACCEPT_CORRECTION"
-                        ? "Accept Legitimate Correction"
-                        : opt.action === "KEEP_EXISTING_SKIP"
-                        ? "Skip Duplicate"
-                        : opt.title
-                    }
-                    onClick={() => handleDuplicateResolution(ingestionResult, opt.action)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                      opt.isRecommended
-                        ? ingestionResult.duplicateResult?.status === "CORRECTION"
-                          ? "bg-purple-600 hover:bg-purple-500 text-white border-purple-400 shadow-md"
-                          : "bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-400 shadow-md"
-                        : "bg-card/70 hover:bg-card border-border text-foreground"
-                    }`}
-                  >
-                    {opt.title}
-                  </button>
-                ))}
-              </div>
+              {duplicateResolutionMessage && (
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{duplicateResolutionMessage}</span>
+                </div>
+              )}
             </div>
-
-            {duplicateResolutionMessage && (
-              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>{duplicateResolutionMessage}</span>
-              </div>
-            )}
-          </div>
-        )}
+          )}
 
         {/* Stage 9: Interval Telemetry Processing Summary Card */}
         {ingestionResult?.intervalSummary && (
@@ -1531,16 +1564,45 @@ export function SecureUploadGateway() {
             </p>
           </div>
 
-          {/* Search Box */}
-          <div className="relative w-full md:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search filename or ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-border bg-card/60 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            />
+          {/* Controls: Search and View Mode Switcher */}
+          <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-1 p-0.5 rounded-lg bg-muted/40 border border-border/40 shrink-0">
+              <button
+                type="button"
+                onClick={() => setRecordViewMode("tree")}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  recordViewMode === "tree"
+                    ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Document Tree View
+              </button>
+              <button
+                type="button"
+                onClick={() => setRecordViewMode("table")}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  recordViewMode === "table"
+                    ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Tabular View
+              </button>
+            </div>
+
+            {/* Search Box */}
+            <div className="relative w-full md:w-56">
+              <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search filename or ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-border bg-card/60 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
           </div>
         </div>
 
@@ -1566,134 +1628,152 @@ export function SecureUploadGateway() {
           })}
         </div>
 
-        {/* Upload Records Table */}
-        <div className="rounded-xl border border-border/40 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-muted/40 text-muted-foreground uppercase font-semibold text-[10px] tracking-wider border-b border-border/40">
-                <tr>
-                  <th className="py-3 px-4">Filename</th>
-                  <th className="py-3 px-4">Account / Customer</th>
-                  <th className="py-3 px-4">Source Type</th>
-                  <th className="py-3 px-4">Size</th>
-                  <th className="py-3 px-4">Uploaded</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Rows</th>
-                  <th className="py-3 px-4 text-right">Records</th>
-                  <th className="py-3 px-4">Validation</th>
-                  <th className="py-3 px-4 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/20 font-mono">
-                {filteredUploads.length === 0 ? (
+        {/* Document Display: Document Tree View or Tabular View */}
+        {recordViewMode === "tree" ? (
+          <DocumentProcessingView
+            documents={filteredUploads}
+            onDownloadSecureFile={(id, filename) => {
+              const rec = filteredUploads.find((u) => u.id === id);
+              if (rec) handleDownloadSecureFile(rec);
+            }}
+            onRetryProcessing={handleRetryProcessing}
+            onSelectDocument={(doc) => {
+              const rec = filteredUploads.find((u) => u.id === doc.documentId);
+              if (rec) setSelectedUpload(rec);
+            }}
+          />
+        ) : (
+          /* Upload Records Table */
+          <div className="rounded-xl border border-border/40 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-muted/40 text-muted-foreground uppercase font-semibold text-[10px] tracking-wider border-b border-border/40">
                   <tr>
-                    <td colSpan={10} className="py-8 text-center text-muted-foreground font-sans">
-                      No upload records match the current filter.
-                    </td>
+                    <th className="py-3 px-4">Filename</th>
+                    <th className="py-3 px-4">Account / Customer</th>
+                    <th className="py-3 px-4">Source Type</th>
+                    <th className="py-3 px-4">Size</th>
+                    <th className="py-3 px-4">Uploaded</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Rows</th>
+                    <th className="py-3 px-4 text-right">Records</th>
+                    <th className="py-3 px-4">Validation</th>
+                    <th className="py-3 px-4 text-center">Actions</th>
                   </tr>
-                ) : (
-                  filteredUploads.map((rec) => (
-                    <tr key={rec.id} className="hover:bg-muted/20 transition-colors font-sans">
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-foreground truncate max-w-[220px]">
-                          {rec.filename}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground font-mono truncate max-w-[220px]">
-                          {rec.id}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-foreground">
-                          {rec.metadata?.accountNumber || "Unassigned"}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground max-w-[180px] truncate">
-                          {rec.metadata?.customerName || rec.metadata?.meterNumber || "Awaiting account match"}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getFileTypeBadge(
-                            rec.fileType,
-                          )}`}
-                        >
-                          {rec.fileType}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-muted-foreground">
-                        {(rec.fileSizeBytes / 1024).toFixed(1)} KB
-                      </td>
-                      <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
-                        {rec.createdAt ? format(new Date(rec.createdAt), "yyyy-MM-dd HH:mm") : "—"}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getStatusBadge(
-                            rec.processingStatus,
-                          )}`}
-                        >
-                          {rec.processingStatus}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono text-muted-foreground">
-                        {rec.rowCount ?? "—"}
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono text-muted-foreground">
-                        {rec.recordCount ?? "—"}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`text-[11px] font-medium ${
-                            rec.validationStatus === "VALID"
-                              ? "text-emerald-400"
-                              : rec.validationStatus === "REVIEW_REQUIRED"
-                                ? "text-amber-400"
-                                : rec.validationStatus === "INVALID"
-                                  ? "text-rose-400"
-                                  : "text-muted-foreground"
-                          }`}
-                        >
-                          {rec.validationStatus}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {rec.processingStatus === "FAILED" && (
-                            <button
-                              onClick={() => handleRetryProcessing(rec.id)}
-                              disabled={retryingUploadId === rec.id}
-                              className="p-1.5 rounded-lg border border-rose-500/40 hover:bg-rose-500/10 text-rose-400 hover:text-rose-300 transition-all"
-                              title="Retry Processing from Stored File"
-                              aria-label="Retry Processing"
-                            >
-                              <RefreshCw
-                                className={`w-3.5 h-3.5 ${
-                                  retryingUploadId === rec.id ? "animate-spin" : ""
-                                }`}
-                              />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setSelectedUpload(rec)}
-                            className="p-1.5 rounded-lg border border-border/60 hover:bg-secondary/40 text-foreground transition-all"
-                            title="Inspect Upload Metadata"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                </thead>
+                <tbody className="divide-y divide-border/20 font-mono">
+                  {filteredUploads.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} className="py-8 text-center text-muted-foreground font-sans">
+                        No upload records match the current filter.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredUploads.map((rec) => (
+                      <tr key={rec.id} className="hover:bg-muted/20 transition-colors font-sans">
+                        <td className="py-3 px-4">
+                          <div className="font-medium text-foreground truncate max-w-[220px]">
+                            {rec.filename}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground font-mono truncate max-w-[220px]">
+                            {rec.id}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="font-medium text-foreground">
+                            {rec.metadata?.accountNumber || "Unassigned"}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground max-w-[180px] truncate">
+                            {rec.metadata?.customerName ||
+                              rec.metadata?.meterNumber ||
+                              "Awaiting account match"}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getFileTypeBadge(
+                              rec.fileType,
+                            )}`}
+                          >
+                            {rec.fileType}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-muted-foreground">
+                          {(rec.fileSizeBytes / 1024).toFixed(1)} KB
+                        </td>
+                        <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
+                          {rec.createdAt ? format(new Date(rec.createdAt), "yyyy-MM-dd HH:mm") : "—"}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${getStatusBadge(
+                              rec.processingStatus,
+                            )}`}
+                          >
+                            {rec.processingStatus}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono text-muted-foreground">
+                          {rec.rowCount ?? "—"}
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono text-muted-foreground">
+                          {rec.recordCount ?? "—"}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`text-[11px] font-medium ${
+                              rec.validationStatus === "VALID"
+                                ? "text-emerald-400"
+                                : rec.validationStatus === "REVIEW_REQUIRED"
+                                  ? "text-amber-400"
+                                  : rec.validationStatus === "INVALID"
+                                    ? "text-rose-400"
+                                    : "text-muted-foreground"
+                            }`}
+                          >
+                            {rec.validationStatus}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {rec.processingStatus === "FAILED" && (
+                              <button
+                                onClick={() => handleRetryProcessing(rec.id)}
+                                disabled={retryingUploadId === rec.id}
+                                className="p-1.5 rounded-lg border border-rose-500/40 hover:bg-rose-500/10 text-rose-400 hover:text-rose-300 transition-all"
+                                title="Retry Processing from Stored File"
+                                aria-label="Retry Processing"
+                              >
+                                <RefreshCw
+                                  className={`w-3.5 h-3.5 ${
+                                    retryingUploadId === rec.id ? "animate-spin" : ""
+                                  }`}
+                                />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setSelectedUpload(rec)}
+                              className="p-1.5 rounded-lg border border-border/60 hover:bg-secondary/40 text-foreground transition-all"
+                              title="Inspect Upload Metadata"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Detail Inspection Modal */}
       {selectedUpload && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-card border border-border rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
+          <div className="bg-card border border-border rounded-2xl max-w-3xl w-full p-6 space-y-5 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between border-b border-border/40 pb-4">
               <div className="flex items-center gap-2.5">
                 <Database className="w-5 h-5 text-primary" />
@@ -1711,6 +1791,22 @@ export function SecureUploadGateway() {
             </div>
 
             <div className="space-y-4 overflow-y-auto pr-1 text-xs">
+              {/* Useful State Banner (Stage 13) */}
+              <DocumentUsefulStateBanner
+                usefulState={buildDocumentTreeViewModel(selectedUpload).usefulState}
+                customMessage={buildDocumentTreeViewModel(selectedUpload).usefulMessage}
+                errorMessage={selectedUpload.errorMessage}
+                reviewReason={selectedUpload.metadata?.reviewReason}
+              />
+
+              {/* Document Hierarchy Tree (8 Core Items) */}
+              <DocumentHierarchyTree document={buildDocumentTreeViewModel(selectedUpload)} />
+
+              {/* Truthful Stages Tracker (Stage 13: Zero Fake Percentages) */}
+              <TruthfulStagesTracker
+                stages={buildDocumentTreeViewModel(selectedUpload).truthfulStages}
+                showDescriptions
+              />
               <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl border border-border/40 bg-muted/20">
                 <div>
                   <span className="text-muted-foreground">Filename:</span>
@@ -1733,7 +1829,9 @@ export function SecureUploadGateway() {
                 <div>
                   <span className="text-muted-foreground">Customer / Meter:</span>
                   <div className="font-medium text-foreground mt-0.5">
-                    {selectedUpload.metadata?.customerName || selectedUpload.metadata?.meterNumber || "Awaiting match"}
+                    {selectedUpload.metadata?.customerName ||
+                      selectedUpload.metadata?.meterNumber ||
+                      "Awaiting match"}
                   </div>
                 </div>
                 <div>

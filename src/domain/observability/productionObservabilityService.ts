@@ -155,7 +155,9 @@ export class ProductionObservabilityService {
             userTitle: userFacing.title,
           },
         });
-      } catch {}
+      } catch {
+        // Audit log error fallback
+      }
     }
 
     return userFacing;

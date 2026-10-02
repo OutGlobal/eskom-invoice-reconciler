@@ -658,7 +658,9 @@ export class EndToEndVerificationEngine {
       authContextAlpha = null;
       try {
         await supabase.auth.signOut();
-      } catch {}
+      } catch {
+        // Sign-out error resilience
+      }
       const isSignedOut = authContextAlpha === null;
       recordStep(
         20,

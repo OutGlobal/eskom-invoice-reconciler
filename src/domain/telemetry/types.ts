@@ -312,4 +312,3 @@ export interface IntervalIngestionOptions {
 }
 
 export * from "./canonicalEnergyRecord";
-export * from "./energyDataNormalizationEngine";

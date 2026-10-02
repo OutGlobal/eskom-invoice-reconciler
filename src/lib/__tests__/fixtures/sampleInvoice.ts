@@ -1,6 +1,6 @@
-import type { InvoiceData } from "./store";
-import { CHARGE_LABELS } from "./chargeLabels";
-import type { InvoiceLineItem } from "./pdfInvoice";
+import type { InvoiceData } from "../../store";
+import { CHARGE_LABELS } from "../../chargeLabels";
+import type { InvoiceLineItem } from "../../pdfInvoice";
 
 export const SAMPLE_FEB_2026_INVOICE: InvoiceData = {
   source: "Impala_Mine_February_2026_Eskom_Invoice.pdf",

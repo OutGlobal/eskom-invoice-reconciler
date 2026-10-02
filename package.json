@@ -102,5 +102,17 @@
     "typescript-eslint": "^8.56.1",
     "vite": "^8.0.16",
     "vitest": "^5.0.0"
+  },
+  "allowScripts": {
+    "core-js": true,
+    "esbuild": true,
+    "tesseract.js": true
+  },
+  "lavamoat": {
+    "allowScripts": {
+      "core-js": true,
+      "esbuild": true,
+      "tesseract.js": true
+    }
   }
 }

@@ -423,7 +423,7 @@ export class ChartDataService {
     timestamp: string,
   ): Promise<ChartDatasetResult<SiteComparisonPoint>> {
     // Query database sites
-    let sitesMap = new Map<string, string>();
+    const sitesMap = new Map<string, string>();
     try {
       let siteQuery = supabase.from("sites").select("id, site_code, site_name");
       if (filters.siteId) {
