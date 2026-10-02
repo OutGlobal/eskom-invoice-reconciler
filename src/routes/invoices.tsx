@@ -166,7 +166,11 @@ function InvoicesPage() {
         tariffName: String(
           extracted.tariff_name.value || pdfRes?.invoice?.tariffName || "Megaflex",
         ),
-        voltage: String(extracted.voltage?.value || pdfRes?.invoice?.voltage || "132 kV"),
+        voltage: String(
+          (extracted.metadata?.supply_voltage ? `${extracted.metadata.supply_voltage} V` : "") ||
+            pdfRes?.invoice?.voltage ||
+            "",
+        ),
         nmd: Number(extracted.notified_maximum_demand.value || pdfRes?.invoice?.nmd || 0),
         billingPeriod: String(
           extracted.billing_period_start.value && extracted.billing_period_end.value
