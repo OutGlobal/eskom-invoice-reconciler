@@ -12,6 +12,8 @@ import type {
   AiSemanticValidationResult,
   DeterministicValidationResult,
   CrossFieldValidationResult,
+  OcrErrorDetectionResult,
+  MultiSourceReconciliationResult,
   ValidationConfidenceBreakdown,
   ValidationExceptionRecord,
   ExceptionSeverity,
@@ -28,6 +30,8 @@ export class ExceptionGenerator {
     semanticResult: AiSemanticValidationResult;
     deterministicResult: DeterministicValidationResult;
     crossFieldResult: CrossFieldValidationResult;
+    ocrErrorResult?: OcrErrorDetectionResult;
+    multiSourceResult?: MultiSourceReconciliationResult;
     confidence: ValidationConfidenceBreakdown;
   }): ValidationExceptionRecord[] {
     const {
@@ -36,6 +40,8 @@ export class ExceptionGenerator {
       semanticResult,
       deterministicResult,
       crossFieldResult,
+      ocrErrorResult,
+      multiSourceResult,
       confidence,
     } = params;
 
@@ -118,7 +124,46 @@ export class ExceptionGenerator {
       }
     }
 
-    // 5. Critical Field Failures (Requirement 14)
+    // 5. Suspected OCR Optical Errors (Requirement 18)
+    if (ocrErrorResult && ocrErrorResult.findings.length > 0) {
+      for (const ocr of ocrErrorResult.findings) {
+        exceptions.push({
+          exceptionId: `exc-ocr-${documentId}-${ocr.fieldKey}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          documentId,
+          fieldKey: ocr.fieldKey,
+          category: "POSSIBLE_OCR_ERROR",
+          severity: ocr.requiresUserConfirmation ? "HIGH" : "MEDIUM",
+          title: `Possible OCR Error: '${ocr.fieldLabel || ocr.fieldKey}' (${ocr.errorType})`,
+          description: ocr.explanation,
+          suggestedAction:
+            "Review original document image to confirm whether OCR character substitution or decimal shift occurred. Do not auto-overwrite without user confirmation.",
+          observedValue: ocr.rawObserved,
+          expectedValue: ocr.candidateAlternative ?? null,
+          createdAt: now,
+        });
+      }
+    }
+
+    // 6. Multi-Source Evidence Conflicts (Requirement 19)
+    if (multiSourceResult && multiSourceResult.conflictList.length > 0) {
+      for (const conf of multiSourceResult.conflictList) {
+        exceptions.push({
+          exceptionId: `exc-multisource-${documentId}-${conf.fieldKey}-${Date.now()}`,
+          documentId,
+          fieldKey: conf.fieldKey,
+          category: "MULTI_SOURCE_CONFLICT",
+          severity: "CRITICAL",
+          title: `Multi-Source Evidence Conflict: '${conf.fieldLabel || conf.fieldKey}'`,
+          description: conf.reasoning,
+          suggestedAction:
+            "Compare conflicting candidate values across OCR Result, Native PDF Text, and Table Extraction. Arbitrary selection prohibited; human verification required.",
+          observedValue: conf.readings.map((r) => `${r.source}: ${r.rawValue}`).join(" | "),
+          createdAt: now,
+        });
+      }
+    }
+
+    // 7. Critical Field Failures (Requirement 14)
     if (confidence.qualitySummary.hasFailingCriticalField) {
       for (const failure of confidence.qualitySummary.criticalFieldFailures) {
         exceptions.push({
@@ -135,7 +180,7 @@ export class ExceptionGenerator {
       }
     }
 
-    // 6. Low Overall Confidence Warning
+    // 8. Low Overall Confidence Warning
     if (confidence.tier === "LOW") {
       exceptions.push({
         exceptionId: `exc-conf-${documentId}-${Date.now()}`,

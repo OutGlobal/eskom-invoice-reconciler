@@ -15,12 +15,15 @@ import {
   EvidenceCheckEngine,
   DeterministicRuleEngine,
   CrossFieldValidator,
+  OcrErrorDetector,
+  MultiEvidenceReconciler,
   CanonicalInvoiceBuilder,
   StructuredAiPayloadBuilder,
   StructuredAiResponseValidator,
   VALIDATION_TOLERANCES,
   ValidationToleranceEvaluator,
   type CandidateFieldValidationInput,
+  type EvidenceStreamReading,
 } from "../../domain/ai-validation";
 
 let passedCount = 0;
@@ -1228,6 +1231,239 @@ async function runAiValidationPipelineTestSuite() {
   const deltaFinding = crossResult.findings.find((f) => f.ruleCode === "CONSUMPTION_METER_READINGS_DELTA");
   assert(deltaFinding !== undefined && deltaFinding.isConsistent === true, "Cross-Field 7: Consumption ↔ (Current - Previous) * Multiplier confirmed");
 
+  // ==================================================================
+  // TEST GROUP 18: OCR ERROR DETECTION (REQUIREMENT 18)
+  // ==================================================================
+  console.log("\n[Test Group 18] OCR Error Detection — Character Confusions, Decimal Anomalies, and Non-Destructive Workflow");
+
+  // 18.1: Account Number Character Confusions (O->0, S->5, B->8, I->1)
+  const ocrCorruptedAccountInput: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "accountNumber",
+      fieldLabel: "Account Number",
+      value: "O1234S678B",
+      rawValue: "O1234S678B",
+      sourcePage: 1,
+      opticalConfidence: 75,
+      sourceText: "Account No: O1234S678B",
+    },
+  ];
+
+  const ocrAccountResult = OcrErrorDetector.detectErrors("DOC-OCR-01", ocrCorruptedAccountInput);
+  assert(ocrAccountResult.hasSuspectedOcrErrors === true, "OCR Detector: Flags suspected OCR error in account number");
+  assert(ocrAccountResult.findings.length === 1, "OCR Detector: Exactly 1 OCR error finding generated");
+
+  const accOcrFinding = ocrAccountResult.findings[0];
+  assert(accOcrFinding.errorType === "INCORRECT_ACCOUNT_NUMBER", "OCR Detector: Error type is INCORRECT_ACCOUNT_NUMBER");
+  assert(accOcrFinding.suspicionStatus === "POSSIBLE_OCR_ERROR", "OCR Detector: Status is explicitly POSSIBLE_OCR_ERROR");
+  assert(accOcrFinding.workflowStage === "EVIDENCE_REVIEW", "OCR Detector: Workflow stage is EVIDENCE_REVIEW");
+  assert(accOcrFinding.rawObserved === "O1234S678B", "OCR Detector: Non-destructive raw observed value is strictly preserved");
+  assert(accOcrFinding.candidateAlternative === "0123456788", "OCR Detector: Suggests clean candidate alternative '0123456788'");
+  assert(accOcrFinding.confusionPairs.length === 3, "OCR Detector: Identifies exactly 3 character confusion pairs (O, S, B)");
+  assert(accOcrFinding.requiresUserConfirmation === true, "OCR Detector: Requires user confirmation before accepting candidate");
+
+  // 18.2: Monetary Character Confusion & Decimal Shifts
+  const ocrFinancialFields: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "subtotal",
+      fieldLabel: "Subtotal",
+      value: 500,
+      rawValue: "R S00.00", // 'S' in place of '5'
+      sourcePage: 1,
+      opticalConfidence: 80,
+    },
+    {
+      fieldKey: "vatAmount",
+      fieldLabel: "VAT Amount",
+      value: 12345.67,
+      rawValue: "12.345.67", // multiple decimal points
+      sourcePage: 1,
+      opticalConfidence: 70,
+    },
+    {
+      fieldKey: "totalAmountDue",
+      fieldLabel: "Total Amount Due",
+      value: 142500, // missing decimal (142500 cents vs R 1425.00)
+      rawValue: "142500",
+      sourcePage: 1,
+      opticalConfidence: 85,
+    },
+  ];
+
+  const ocrFinResult = OcrErrorDetector.detectErrors("DOC-OCR-02", ocrFinancialFields);
+  assert(ocrFinResult.hasSuspectedOcrErrors === true, "OCR Detector: Flags financial character confusion and decimal shifts");
+
+  const sSubtotalFinding = ocrFinResult.findings.find((f) => f.fieldKey === "subtotal");
+  assert(sSubtotalFinding !== undefined, "OCR Detector: Found subtotal 'S' confusion finding");
+  assert(sSubtotalFinding?.errorType === "CHARACTER_CONFUSION", "OCR Detector: Subtotal error type is CHARACTER_CONFUSION");
+
+  const decShiftFinding = ocrFinResult.findings.find((f) => f.fieldKey === "vatAmount");
+  assert(decShiftFinding !== undefined, "OCR Detector: Found VAT amount multiple decimal points");
+  assert(decShiftFinding?.errorType === "DECIMAL_SHIFT", "OCR Detector: VAT amount error type is DECIMAL_SHIFT");
+
+  const missingDecFinding = ocrFinResult.findings.find((f) => f.fieldKey === "totalAmountDue");
+  assert(missingDecFinding !== undefined, "OCR Detector: Found totalAmountDue missing decimal point");
+  assert(missingDecFinding?.errorType === "MISSING_DECIMAL", "OCR Detector: Total amount error type is MISSING_DECIMAL");
+  assert(missingDecFinding?.candidateAlternative === 1425, "OCR Detector: Candidate alternative is R 1,425.00");
+
+  // 18.3: Impossible Calendar Dates & Year Corruptions
+  const ocrDateFields: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "billingPeriodStart",
+      fieldLabel: "Billing Period Start",
+      value: "2026-02-31", // February 31st (impossible)
+      rawValue: "31/02/2026",
+      sourcePage: 1,
+      opticalConfidence: 75,
+    },
+    {
+      fieldKey: "billingPeriodEnd",
+      fieldLabel: "Billing Period End",
+      value: "202S-09-30", // Year '202S' instead of '2025'
+      rawValue: "202S-09-30",
+      sourcePage: 1,
+      opticalConfidence: 78,
+    },
+  ];
+
+  const ocrDateResult = OcrErrorDetector.detectErrors("DOC-OCR-03", ocrDateFields);
+  assert(ocrDateResult.hasSuspectedOcrErrors === true, "OCR Detector: Flags impossible date and year digit corruption");
+
+  const febFinding = ocrDateResult.findings.find((f) => f.fieldKey === "billingPeriodStart");
+  assert(febFinding !== undefined, "OCR Detector: Identified impossible February 31 date");
+  assert(febFinding?.errorType === "INCORRECT_DATE", "OCR Detector: Error type is INCORRECT_DATE");
+
+  const yearFinding = ocrDateResult.findings.find((f) => f.fieldKey === "billingPeriodEnd");
+  assert(yearFinding !== undefined, "OCR Detector: Identified corrupted year 202S");
+  assert(yearFinding?.candidateAlternative === "2025-09-30", "OCR Detector: Candidate alternative is 2025-09-30");
+
+  // 18.4: Word Token OCR Confusion (e.g. ESK0M, 1NVOICE)
+  const ocrTokenFields: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "supplierName",
+      fieldLabel: "Supplier Name",
+      value: "ESKOM",
+      rawValue: "ESK0M",
+      sourcePage: 1,
+      opticalConfidence: 85,
+      wordTokens: [{ text: "ESK0M", confidence: 85, boundingBox: [0.05, 0.05, 0.08, 0.15] }],
+    },
+  ];
+  const ocrTokenResult = OcrErrorDetector.detectErrors("DOC-OCR-04", ocrTokenFields);
+  assert(ocrTokenResult.hasSuspectedOcrErrors === true, "OCR Detector: Flags digit 0 in 'ESK0M'");
+  assert(ocrTokenResult.findings[0].candidateAlternative === "ESKOM", "OCR Detector: Correct candidate word is 'ESKOM'");
+
+  // ==================================================================
+  // TEST GROUP 19: MULTIPLE EVIDENCE SOURCES RECONCILIATION (REQUIREMENT 19)
+  // ==================================================================
+  console.log("\n[Test Group 19] Multiple Evidence Sources — Cross-Stream Agreement Boosting & Conflict Enforcement");
+
+  // 19.1: Multi-Source Agreement Boost (OCR + Native PDF + Table Extraction agree)
+  const agreeingMultiSourceField: CandidateFieldValidationInput = {
+    fieldKey: "invoiceTotal",
+    fieldLabel: "Invoice Total",
+    value: 575000,
+    rawValue: "R 575,000.00",
+    sourcePage: 1,
+    opticalConfidence: 88,
+    multiSourceReadings: [
+      {
+        source: "NATIVE_PDF_TEXT",
+        value: 575000,
+        rawValue: "R 575,000.00",
+        confidence: 99,
+      },
+      {
+        source: "TABLE_EXTRACTION",
+        value: 575000,
+        rawValue: "575000.00",
+        confidence: 95,
+      },
+      {
+        source: "DOCUMENT_CONTEXT",
+        value: 575000,
+        rawValue: "Total Due: R 575,000.00",
+        confidence: 90,
+      },
+    ],
+  };
+
+  const multiAgreedResult = MultiEvidenceReconciler.reconcileSources("DOC-MULTI-01", [agreeingMultiSourceField]);
+  assert(multiAgreedResult.isFullyAgreed === true, "Multi-Source: All 4 evidence streams agree on invoice total");
+  assert(multiAgreedResult.hasConflicts === false, "Multi-Source: Zero conflicts detected");
+  assert(multiAgreedResult.comparisons.length === 1, "Multi-Source: 1 field comparison generated");
+
+  const totalComparison = multiAgreedResult.comparisons[0];
+  assert(totalComparison.status === "AGREED", "Multi-Source: Comparison status is AGREED");
+  assert(totalComparison.agreementCount === 4, "Multi-Source: Exactly 4 participating streams agree");
+  assert(totalComparison.hasAgreementBoost === true, "Multi-Source: Agreement boost is activated");
+  assert(totalComparison.confidenceAdjustment > 0, "Multi-Source: Positive confidence adjustment applied (+15%)");
+
+  // 19.2: Multi-Source Conflict Enforcement (Zero Arbitrary Selection)
+  const conflictingMultiSourceField: CandidateFieldValidationInput = {
+    fieldKey: "totalDue",
+    fieldLabel: "Total Due",
+    value: 12845.00, // OCR optical read
+    rawValue: "R 12 845.00",
+    sourcePage: 1,
+    opticalConfidence: 82,
+    multiSourceReadings: [
+      {
+        source: "NATIVE_PDF_TEXT",
+        value: 12345.00, // Native PDF stream read (conflicts with OCR!)
+        rawValue: "R 12,345.00",
+        confidence: 99,
+      },
+      {
+        source: "TABLE_EXTRACTION",
+        value: 12345.00, // Table extractor read
+        rawValue: "12345.00",
+        confidence: 95,
+      },
+    ],
+  };
+
+  const multiConflictResult = MultiEvidenceReconciler.reconcileSources("DOC-MULTI-02", [conflictingMultiSourceField]);
+  assert(multiConflictResult.isFullyAgreed === false, "Multi-Source: Disagreement detected between OCR and Native PDF");
+  assert(multiConflictResult.hasConflicts === true, "Multi-Source: hasConflicts is true");
+  assert(multiConflictResult.conflictedFieldsCount === 1, "Multi-Source: Exactly 1 conflicting field found");
+
+  const conflictComp = multiConflictResult.conflictList[0];
+  assert(conflictComp.status === "CONFLICT", "Multi-Source: Field comparison status is CONFLICT");
+  assert(conflictComp.arbitrarySelectionPrevented === true, "Multi-Source: Strict rule enforced — system refuses arbitrary value selection");
+  assert(conflictComp.conflictingCandidates !== undefined && conflictComp.conflictingCandidates.length === 3, "Multi-Source: Preserves all 3 competing candidates");
+  assert(conflictComp.confidenceAdjustment < 0, "Multi-Source: Negative confidence adjustment applied (-30%)");
+
+  // 19.3: Full Pipeline Integration with Multi-Source Conflict
+  const pipelineConflictInput = [
+    {
+      fieldKey: "accountNumber",
+      fieldLabel: "Account Number",
+      value: "0123456789",
+      rawValue: "0123456789",
+      sourcePage: 1,
+      boundingBox: [0.1, 0.6, 0.15, 0.8] as [number, number, number, number],
+      opticalConfidence: 95,
+      sourceText: "0123456789",
+    },
+    conflictingMultiSourceField,
+  ];
+
+  const pipelineConflictResult = await ValidationPipeline.executePipeline({
+    documentId: "DOC-MULTI-PIPE",
+    candidateFields: pipelineConflictInput,
+  });
+
+  assert(pipelineConflictResult.multiSourceReconciliation !== undefined, "Pipeline: multiSourceReconciliation is populated in result");
+  assert(pipelineConflictResult.multiSourceReconciliation.hasConflicts === true, "Pipeline: Detects multi-source conflict in execution");
+  assert(pipelineConflictResult.validatedFields["totalDue"].status === "CONFLICT", "Pipeline: Validated field 'totalDue' state is CONFLICT");
+  assert(pipelineConflictResult.status === "REVIEW_REQUIRED", "Pipeline: Status is demoted to REVIEW_REQUIRED due to evidence conflict");
+  assert(pipelineConflictResult.reconciliationHandoffReady === false, "Pipeline: Reconciliation handoff is BLOCKED");
+
+  const conflictException = pipelineConflictResult.exceptions.find((e) => e.category === "MULTI_SOURCE_CONFLICT");
+  assert(conflictException !== undefined, "Pipeline: Generates MULTI_SOURCE_CONFLICT exception");
+  assert(conflictException?.severity === "CRITICAL", "Pipeline: MULTI_SOURCE_CONFLICT exception severity is CRITICAL");
+
   console.log("\n==================================================================");
   console.log(`  🎉 ALL ${passedCount} / ${totalCount} AI VALIDATION TESTS PASSED CLEANLY!`);
   console.log("==================================================================\n");
@@ -1237,6 +1473,7 @@ runAiValidationPipelineTestSuite().catch((err) => {
   console.error("AI Validation Test Suite Failed:", err);
   process.exit(1);
 });
+
 
 
 

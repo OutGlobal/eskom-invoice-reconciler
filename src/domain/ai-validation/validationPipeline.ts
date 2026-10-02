@@ -41,6 +41,8 @@ import { EvidenceCheckEngine } from "./evidenceCheckEngine";
 import { AiSemanticValidator } from "./aiSemanticValidator";
 import { DeterministicRuleEngine } from "./deterministicRuleEngine";
 import { CrossFieldValidator } from "./crossFieldValidator";
+import { OcrErrorDetector } from "./ocrErrorDetector";
+import { MultiEvidenceReconciler } from "./multiEvidenceReconciler";
 import { ValidationConfidenceCalculator } from "./validationConfidenceCalculator";
 import { ExceptionGenerator } from "./exceptionGenerator";
 
@@ -50,7 +52,7 @@ export interface ValidationPipelineExecutionOptions {
 
 export class ValidationPipeline {
   /**
-   * Executes the full 8-stage AI and deterministic validation pipeline.
+   * Executes the full 8-stage AI and deterministic validation pipeline with OCR Error Detection & Multi-Source Reconciliation.
    */
   public static async executePipeline(
     inputPackage:
@@ -96,6 +98,15 @@ export class ValidationPipeline {
     // --- STAGE 2: EVIDENCE CHECK ---
     const evidenceCheck = EvidenceCheckEngine.verifyGrounding(candidateFields);
 
+    // --- STAGE 2a: OCR ERROR DETECTION (REQ 18) ---
+    const ocrErrorDetection = OcrErrorDetector.detectErrors(documentId, candidateFields);
+
+    // --- STAGE 2b: MULTI-SOURCE EVIDENCE RECONCILIATION (REQ 19) ---
+    const multiSourceReconciliation = MultiEvidenceReconciler.reconcileSources(
+      documentId,
+      candidateFields,
+    );
+
     // --- STAGE 3: AI SEMANTIC VALIDATION ---
     const semanticValidation = AiSemanticValidator.validateSemantics(
       documentId,
@@ -119,6 +130,8 @@ export class ValidationPipeline {
       semanticResult: semanticValidation,
       deterministicResult: deterministicValidation,
       crossFieldResult: crossFieldValidation,
+      ocrErrorResult: ocrErrorDetection,
+      multiSourceResult: multiSourceReconciliation,
       thresholds: options?.thresholds,
     });
 
@@ -130,6 +143,8 @@ export class ValidationPipeline {
       semanticResult: semanticValidation,
       deterministicResult: deterministicValidation,
       crossFieldResult: crossFieldValidation,
+      ocrErrorResult: ocrErrorDetection,
+      multiSourceResult: multiSourceReconciliation,
       confidence,
     });
 
@@ -205,6 +220,8 @@ export class ValidationPipeline {
       semanticValidation,
       deterministicValidation,
       crossFieldValidation,
+      ocrErrorDetection,
+      multiSourceReconciliation,
       exceptions,
       approval,
       validatedFields,

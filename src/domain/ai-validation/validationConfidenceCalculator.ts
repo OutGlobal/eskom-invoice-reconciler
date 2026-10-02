@@ -23,6 +23,8 @@ import {
   type AiSemanticValidationResult,
   type DeterministicValidationResult,
   type CrossFieldValidationResult,
+  type OcrErrorDetectionResult,
+  type MultiSourceReconciliationResult,
   type ValidationConfidenceBreakdown,
   type ValidationConfidenceTier,
   type FieldValidationConfidenceScore,
@@ -46,6 +48,8 @@ export class ValidationConfidenceCalculator {
     semanticResult: AiSemanticValidationResult;
     deterministicResult: DeterministicValidationResult;
     crossFieldResult: CrossFieldValidationResult;
+    ocrErrorResult?: OcrErrorDetectionResult;
+    multiSourceResult?: MultiSourceReconciliationResult;
     thresholds?: Partial<ValidationConfidenceThresholds>;
   }): ValidationConfidenceBreakdown {
     const {
@@ -54,6 +58,8 @@ export class ValidationConfidenceCalculator {
       semanticResult,
       deterministicResult,
       crossFieldResult,
+      ocrErrorResult,
+      multiSourceResult,
       thresholds: userThresholds,
     } = params;
 
@@ -71,9 +77,16 @@ export class ValidationConfidenceCalculator {
       const detFails = deterministicResult.evaluations.filter(
         (e) => !e.isPassed && e.evaluatedFields.includes(field.fieldKey),
       );
+      const ocrFinding = ocrErrorResult?.findings.find((f) => f.fieldKey === field.fieldKey);
+      const multiComparison = multiSourceResult?.comparisons.find(
+        (c) => c.fieldKey === field.fieldKey,
+      );
 
-      // 1a. Optical Token Clarity
-      const opticalClarity = field.value !== null ? field.opticalConfidence || 85 : 0;
+      // 1a. Optical Token Clarity (with OCR error penalty if detected)
+      let opticalClarity = field.value !== null ? field.opticalConfidence || 85 : 0;
+      if (ocrFinding) {
+        opticalClarity = Math.max(10, opticalClarity - ocrFinding.confidencePenalty);
+      }
 
       // 1b. Spatial Bounding Box Presence
       const spatialBounding = evidence?.spatialBoundingBoxPresent ? 100 : 0;
@@ -102,9 +115,18 @@ export class ValidationConfidenceCalculator {
             semanticAgreement * 0.2 +
             deterministicAgreement * 0.2,
         );
+
+        // Multi-Source Adjustment (Req 19)
+        if (multiComparison) {
+          if (multiComparison.status === "AGREED") {
+            fieldScore = Math.min(100, fieldScore + multiComparison.confidenceAdjustment);
+          } else if (multiComparison.status === "CONFLICT") {
+            fieldScore = Math.max(10, fieldScore + multiComparison.confidenceAdjustment);
+          }
+        }
       }
 
-      // Determine Field State (Requirement 10)
+      // Determine Field State (Requirement 10 & 19)
       let status: AiFieldValidationState = "VALID";
       let reasoning = `Field '${field.fieldKey}' verified with ${fieldScore}% validation confidence.`;
 
@@ -112,15 +134,23 @@ export class ValidationConfidenceCalculator {
         status = "MISSING";
         fieldScore = 0;
         reasoning = `Field '${field.fieldKey}' is not present in document evidence (MISSING).`;
+      } else if (multiComparison?.status === "CONFLICT") {
+        status = "CONFLICT";
+        reasoning = multiComparison.reasoning;
       } else if (detFails.length > 0 || evidence?.groundedStatus === "UNGROUNDED") {
         status = "INVALID";
         reasoning = `Field '${field.fieldKey}' failed deterministic arithmetic or grounding checks.`;
+      } else if (ocrFinding) {
+        status = "UNCERTAIN";
+        reasoning = ocrFinding.explanation;
       } else if (semantic?.consistencyLevel === "AMBIGUOUS" || opticalClarity < 75) {
         status = "UNCERTAIN";
         reasoning = `Field '${field.fieldKey}' exhibits optical ambiguity or lower clarity (${opticalClarity}%).`;
       } else if (fieldScore < thresholds.highThreshold) {
         status = "REVIEW_REQUIRED";
         reasoning = `Field '${field.fieldKey}' validation score (${fieldScore}%) is below high threshold (${thresholds.highThreshold}%).`;
+      } else if (multiComparison?.status === "AGREED") {
+        reasoning = multiComparison.reasoning;
       }
 
       fieldScores[field.fieldKey] = {

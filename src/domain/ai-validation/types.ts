@@ -71,6 +71,25 @@ export interface FieldValidationConfidenceScore {
 
 export type GroundedStatus = "FULLY_GROUNDED" | "PARTIALLY_GROUNDED" | "UNGROUNDED" | "UNKNOWN";
 
+// --- 4a. MULTI-SOURCE EVIDENCE STREAM TYPES (REQUIREMENT 19) ---
+
+export type EvidenceSourceType =
+  | "OCR_RESULT"
+  | "NATIVE_PDF_TEXT"
+  | "TABLE_EXTRACTION"
+  | "DOCUMENT_CONTEXT";
+
+export interface EvidenceStreamReading {
+  source: EvidenceSourceType;
+  value: string | number | null;
+  rawValue: string;
+  confidence?: number;
+  pageNumber?: number;
+  boundingBox?: [number, number, number, number];
+  extractedAt?: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface CandidateFieldValidationInput {
   fieldKey: string;
   fieldLabel: string;
@@ -82,6 +101,7 @@ export interface CandidateFieldValidationInput {
   wordTokens?: AiValidationWordEvidence[];
   sourceText?: string;
   processingRunId?: string;
+  multiSourceReadings?: EvidenceStreamReading[];
 }
 
 export interface GroundedEvidenceCheckResult {
@@ -260,6 +280,85 @@ export interface ValidationConfidenceBreakdown {
   fieldScores: Record<string, FieldValidationConfidenceScore>;
 }
 
+// --- 8a. OCR ERROR DETECTION (REQUIREMENT 18) ---
+
+export type OcrErrorType =
+  | "CHARACTER_CONFUSION"
+  | "DECIMAL_SHIFT"
+  | "MISSING_DECIMAL"
+  | "INCORRECT_DATE"
+  | "INCORRECT_ACCOUNT_NUMBER"
+  | "SUSPICIOUS_TOKEN_PATTERN";
+
+export type OcrWorkflowStage =
+  | "POSSIBLE_OCR_ERROR"
+  | "EVIDENCE_REVIEW"
+  | "VALIDATION"
+  | "USER_CONFIRMATION_IF_NECESSARY";
+
+export interface OcrConfusionPair {
+  confusedChar: string;
+  likelyChar: string;
+  position: number;
+  patternName: string; // e.g. "O_TO_0", "I_TO_1", "S_TO_5", "B_TO_8", "Z_TO_2", "G_TO_6"
+}
+
+export interface OcrErrorDetectionFinding {
+  fieldKey: string;
+  fieldLabel: string;
+  errorType: OcrErrorType;
+  suspicionStatus: "POSSIBLE_OCR_ERROR";
+  workflowStage: OcrWorkflowStage;
+  rawObserved: string;
+  candidateAlternative?: string | number;
+  confusionPairs: OcrConfusionPair[];
+  confidencePenalty: number;
+  requiresUserConfirmation: boolean;
+  explanation: string;
+}
+
+export interface OcrErrorDetectionResult {
+  documentId: string;
+  hasSuspectedOcrErrors: boolean;
+  totalFindingsCount: number;
+  findings: OcrErrorDetectionFinding[];
+  workflowSummary: string;
+}
+
+// --- 8b. MULTIPLE EVIDENCE SOURCES RECONCILIATION (REQUIREMENT 19) ---
+
+export type MultiSourceReconciliationStatus =
+  | "AGREED"
+  | "CONFLICT"
+  | "SINGLE_SOURCE"
+  | "NO_EVIDENCE";
+
+export interface MultiSourceFieldComparison {
+  fieldKey: string;
+  fieldLabel: string;
+  status: MultiSourceReconciliationStatus;
+  participatingSources: EvidenceSourceType[];
+  agreementCount: number;
+  conflictCount: number;
+  readings: EvidenceStreamReading[];
+  hasAgreementBoost: boolean;
+  confidenceAdjustment: number; // e.g. +10 for agreement, -30 for conflict
+  conflictingCandidates?: EvidenceStreamReading[];
+  arbitrarySelectionPrevented: boolean;
+  reasoning: string;
+}
+
+export interface MultiSourceReconciliationResult {
+  documentId: string;
+  isFullyAgreed: boolean;
+  hasConflicts: boolean;
+  totalFieldsEvaluated: number;
+  agreedFieldsCount: number;
+  conflictedFieldsCount: number;
+  comparisons: MultiSourceFieldComparison[];
+  conflictList: MultiSourceFieldComparison[];
+}
+
 // --- 9. EXCEPTION GENERATION ---
 
 export type ExceptionSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
@@ -271,7 +370,9 @@ export type ExceptionCategory =
   | "MISSING_MANDATORY_FIELD"
   | "SEMANTIC_INCONSISTENCY"
   | "CROSS_FIELD_CONFLICT"
-  | "LOW_CONFIDENCE";
+  | "LOW_CONFIDENCE"
+  | "POSSIBLE_OCR_ERROR"
+  | "MULTI_SOURCE_CONFLICT";
 
 export interface ValidationExceptionRecord {
   exceptionId: string;
@@ -326,6 +427,8 @@ export interface CompleteValidationResult {
   semanticValidation: AiSemanticValidationResult;
   deterministicValidation: DeterministicValidationResult;
   crossFieldValidation: CrossFieldValidationResult;
+  ocrErrorDetection?: OcrErrorDetectionResult;
+  multiSourceReconciliation?: MultiSourceReconciliationResult;
   exceptions: ValidationExceptionRecord[];
   approval: ValidationApprovalRecord;
   validatedFields: Record<

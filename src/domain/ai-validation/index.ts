@@ -30,6 +30,8 @@ export { EvidenceCheckEngine } from "./evidenceCheckEngine";
 export { AiSemanticValidator } from "./aiSemanticValidator";
 export { DeterministicRuleEngine } from "./deterministicRuleEngine";
 export { CrossFieldValidator } from "./crossFieldValidator";
+export { OcrErrorDetector } from "./ocrErrorDetector";
+export { MultiEvidenceReconciler } from "./multiEvidenceReconciler";
 export { ValidationConfidenceCalculator } from "./validationConfidenceCalculator";
 export { ExceptionGenerator } from "./exceptionGenerator";
 export { ValidationPipeline } from "./validationPipeline";
