@@ -424,8 +424,8 @@ export function SecureUploadGateway() {
               vat: ext.vat || 0,
               invoiceTotal: ext.totalInvoice ? ext.totalInvoice - (ext.vat || 0) : 0,
               totalInclVat: ext.totalInvoice || 0,
-              reconciledTotal: current.resultPayload?.reconciliation?.reconciled_total_zar
-                ? Number(current.resultPayload.reconciliation.reconciled_total_zar)
+              reconciledTotal: current.resultPayload?.reconciliation?.billed_total_zar
+                ? Number(current.resultPayload.reconciliation.billed_total_zar)
                 : undefined,
             };
             useApp.getState().setInvoice(mappedInvoice);
