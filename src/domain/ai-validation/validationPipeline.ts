@@ -38,11 +38,13 @@ import type {
   AiValidationFieldEvidence,
 } from "../intelligence/aiValidationInputBuilder";
 import { EvidenceCheckEngine } from "./evidenceCheckEngine";
+import { MissingDataGuard } from "./missingDataGuard";
 import { AiSemanticValidator } from "./aiSemanticValidator";
 import { DeterministicRuleEngine } from "./deterministicRuleEngine";
 import { CrossFieldValidator } from "./crossFieldValidator";
 import { OcrErrorDetector } from "./ocrErrorDetector";
 import { MultiEvidenceReconciler } from "./multiEvidenceReconciler";
+import { DuplicateFieldDetector } from "./duplicateFieldDetector";
 import { ValidationConfidenceCalculator } from "./validationConfidenceCalculator";
 import { ExceptionGenerator } from "./exceptionGenerator";
 
@@ -52,7 +54,8 @@ export interface ValidationPipelineExecutionOptions {
 
 export class ValidationPipeline {
   /**
-   * Executes the full 8-stage AI and deterministic validation pipeline with OCR Error Detection & Multi-Source Reconciliation.
+   * Executes the full 8-stage AI and deterministic validation pipeline with OCR Error Detection,
+   * Multi-Source Reconciliation, Duplicate Field Detection, and Missing Data Integrity Guarding.
    */
   public static async executePipeline(
     inputPackage:
@@ -70,12 +73,12 @@ export class ValidationPipeline {
     const organisationId = inputPackage.organisationId;
 
     // --- STAGE 1: CANDIDATE DATA NORMALIZATION ---
-    let candidateFields: CandidateFieldValidationInput[] = [];
+    let rawCandidateFields: CandidateFieldValidationInput[] = [];
     let fullDocumentText = "";
 
     if ("hierarchy" in inputPackage) {
       // Input from AiValidationStructuredPackage
-      candidateFields = inputPackage.hierarchy.candidateFields.map(
+      rawCandidateFields = inputPackage.hierarchy.candidateFields.map(
         (f: AiValidationFieldEvidence) => ({
           fieldKey: f.fieldKey,
           fieldLabel: f.fieldLabel,
@@ -91,18 +94,32 @@ export class ValidationPipeline {
       );
       fullDocumentText = inputPackage.promptContextSummary || "";
     } else {
-      candidateFields = inputPackage.candidateFields;
+      rawCandidateFields = inputPackage.candidateFields;
       fullDocumentText = inputPackage.fullDocumentText || "";
     }
 
     // --- STAGE 2: EVIDENCE CHECK ---
-    const evidenceCheck = EvidenceCheckEngine.verifyGrounding(candidateFields);
+    const evidenceCheck = EvidenceCheckEngine.verifyGrounding(rawCandidateFields);
 
-    // --- STAGE 2a: OCR ERROR DETECTION (REQ 18) ---
+    // --- STAGE 2a: MISSING DATA INTEGRITY & ANTI-DEFAULT GUARD (REQ 21) ---
+    const { guardedFields: candidateFields, auditResult: missingDataAudit } =
+      MissingDataGuard.auditAndGuardMissingData(
+        documentId,
+        rawCandidateFields,
+        evidenceCheck.results,
+      );
+
+    // --- STAGE 2b: OCR ERROR DETECTION (REQ 18) ---
     const ocrErrorDetection = OcrErrorDetector.detectErrors(documentId, candidateFields);
 
-    // --- STAGE 2b: MULTI-SOURCE EVIDENCE RECONCILIATION (REQ 19) ---
+    // --- STAGE 2c: MULTI-SOURCE EVIDENCE RECONCILIATION (REQ 19) ---
     const multiSourceReconciliation = MultiEvidenceReconciler.reconcileSources(
+      documentId,
+      candidateFields,
+    );
+
+    // --- STAGE 2d: DUPLICATE FIELD CROSS-PAGE DETECTION (REQ 20) ---
+    const duplicateFieldDetection = DuplicateFieldDetector.detectDuplicates(
       documentId,
       candidateFields,
     );
@@ -132,6 +149,8 @@ export class ValidationPipeline {
       crossFieldResult: crossFieldValidation,
       ocrErrorResult: ocrErrorDetection,
       multiSourceResult: multiSourceReconciliation,
+      duplicateFieldResult: duplicateFieldDetection,
+      missingDataAudit,
       thresholds: options?.thresholds,
     });
 
@@ -145,6 +164,8 @@ export class ValidationPipeline {
       crossFieldResult: crossFieldValidation,
       ocrErrorResult: ocrErrorDetection,
       multiSourceResult: multiSourceReconciliation,
+      duplicateFieldResult: duplicateFieldDetection,
+      missingDataAudit,
       confidence,
     });
 
@@ -222,6 +243,8 @@ export class ValidationPipeline {
       crossFieldValidation,
       ocrErrorDetection,
       multiSourceReconciliation,
+      duplicateFieldDetection,
+      missingDataAudit,
       exceptions,
       approval,
       validatedFields,

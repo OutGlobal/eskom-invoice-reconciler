@@ -17,6 +17,8 @@ import {
   CrossFieldValidator,
   OcrErrorDetector,
   MultiEvidenceReconciler,
+  DuplicateFieldDetector,
+  MissingDataGuard,
   CanonicalInvoiceBuilder,
   StructuredAiPayloadBuilder,
   StructuredAiResponseValidator,
@@ -24,6 +26,7 @@ import {
   ValidationToleranceEvaluator,
   type CandidateFieldValidationInput,
   type EvidenceStreamReading,
+  type DuplicateFieldOccurrence,
 } from "../../domain/ai-validation";
 
 let passedCount = 0;
@@ -1464,6 +1467,197 @@ async function runAiValidationPipelineTestSuite() {
   assert(conflictException !== undefined, "Pipeline: Generates MULTI_SOURCE_CONFLICT exception");
   assert(conflictException?.severity === "CRITICAL", "Pipeline: MULTI_SOURCE_CONFLICT exception severity is CRITICAL");
 
+  // ==================================================================
+  // TEST GROUP 20: DUPLICATE FIELD DETECTION (REQUIREMENT 20)
+  // ==================================================================
+  console.log("\n[Test Group 20] Duplicate Field Detection — Multi-Page Agreement vs Conflict & Zero Arbitrary Selection");
+
+  // 20.1: Cross-Page Duplicate Agreement (e.g. Page 1: R 125,430.20, Page 5: R 125,430.20)
+  const duplicateAgreedField: CandidateFieldValidationInput = {
+    fieldKey: "invoiceTotal",
+    fieldLabel: "Invoice Total",
+    value: 125430.20,
+    rawValue: "R 125,430.20",
+    sourcePage: 1,
+    opticalConfidence: 94,
+    duplicateOccurrences: [
+      {
+        occurrenceId: "inv-tot-p1",
+        fieldKey: "invoiceTotal",
+        pageNumber: 1,
+        locationLabel: "Page 1 - Summary Box",
+        value: 125430.20,
+        rawValue: "R 125,430.20",
+        opticalConfidence: 95,
+      },
+      {
+        occurrenceId: "inv-tot-p5",
+        fieldKey: "invoiceTotal",
+        pageNumber: 5,
+        locationLabel: "Page 5 - Remittance Advice",
+        value: 125430.20,
+        rawValue: "R 125,430.20",
+        opticalConfidence: 93,
+      },
+    ],
+  };
+
+  const dupAgreedResult = DuplicateFieldDetector.detectDuplicates("DOC-DUP-01", [duplicateAgreedField]);
+  assert(dupAgreedResult.hasDuplicates === true, "Duplicate Detector: Detects multi-page duplicate occurrences");
+  assert(dupAgreedResult.hasConflicts === false, "Duplicate Detector: Zero conflicts when occurrences agree");
+  assert(dupAgreedResult.agreedDuplicatesCount === 1, "Duplicate Detector: Exactly 1 agreed duplicate field");
+
+  const dupAgreedComp = dupAgreedResult.comparisons[0];
+  assert(dupAgreedComp.status === "AGREED", "Duplicate Detector: Comparison status is AGREED");
+  assert(dupAgreedComp.occurrencesCount === 3, "Duplicate Detector: 3 matching occurrences recorded across pages");
+  assert(dupAgreedComp.evidenceStrengthBonus > 0, "Duplicate Detector: Evidence strength bonus activated (+15%)");
+  assert(dupAgreedComp.isAgreed === true, "Duplicate Detector: isAgreed is true");
+
+  // 20.2: Cross-Page Duplicate Disagreement / Conflict (e.g. Page 1: R 125,430.20 vs Page 5: R 120,000.00)
+  const duplicateConflictField: CandidateFieldValidationInput = {
+    fieldKey: "invoiceTotal",
+    fieldLabel: "Invoice Total",
+    value: 125430.20,
+    rawValue: "R 125,430.20",
+    sourcePage: 1,
+    opticalConfidence: 94,
+    duplicateOccurrences: [
+      {
+        occurrenceId: "inv-tot-p1",
+        fieldKey: "invoiceTotal",
+        pageNumber: 1,
+        locationLabel: "Page 1 - Summary Box",
+        value: 125430.20,
+        rawValue: "R 125,430.20",
+        opticalConfidence: 95,
+      },
+      {
+        occurrenceId: "inv-tot-p5",
+        fieldKey: "invoiceTotal",
+        pageNumber: 5,
+        locationLabel: "Page 5 - Remittance Advice",
+        value: 120000.00, // Disagrees with Page 1!
+        rawValue: "R 120,000.00",
+        opticalConfidence: 93,
+      },
+    ],
+  };
+
+  const dupConflictResult = DuplicateFieldDetector.detectDuplicates("DOC-DUP-02", [duplicateConflictField]);
+  assert(dupConflictResult.hasConflicts === true, "Duplicate Detector: Detects cross-page discrepancy between Page 1 and Page 5");
+  assert(dupConflictResult.conflictedDuplicatesCount === 1, "Duplicate Detector: Exactly 1 conflicting duplicate field");
+
+  const dupConflictComp = dupConflictResult.conflictList[0];
+  assert(dupConflictComp.status === "CONFLICT", "Duplicate Detector: Status is explicitly CONFLICT");
+  assert(dupConflictComp.arbitrarySelectionPrevented === true, "Duplicate Detector: Strict rule enforced — system refuses arbitrary page selection");
+  assert(dupConflictComp.distinctValuesCount === 2, "Duplicate Detector: Identifies 2 conflicting distinct values");
+
+  // 20.3: Pipeline Execution with Duplicate Conflict
+  const pipelineDupResult = await ValidationPipeline.executePipeline({
+    documentId: "DOC-DUP-PIPE",
+    candidateFields: [duplicateConflictField],
+  });
+  assert(pipelineDupResult.duplicateFieldDetection !== undefined, "Pipeline: duplicateFieldDetection is populated in result");
+  assert(pipelineDupResult.duplicateFieldDetection.hasConflicts === true, "Pipeline: Flags cross-page duplicate conflict in pipeline");
+  assert(pipelineDupResult.validatedFields["invoiceTotal"].status === "CONFLICT", "Pipeline: Validated field 'invoiceTotal' status is CONFLICT");
+  assert(pipelineDupResult.status === "REVIEW_REQUIRED", "Pipeline: Status is demoted to REVIEW_REQUIRED due to duplicate conflict");
+
+  const dupException = pipelineDupResult.exceptions.find((e) => e.category === "DUPLICATE_FIELD_CONFLICT");
+  assert(dupException !== undefined, "Pipeline: Generates DUPLICATE_FIELD_CONFLICT exception");
+  assert(dupException?.severity === "CRITICAL", "Pipeline: DUPLICATE_FIELD_CONFLICT severity is CRITICAL");
+
+  // ==================================================================
+  // TEST GROUP 21: MISSING DATA INTEGRITY & ANTI-DEFAULT GUARD (REQUIREMENT 21)
+  // ==================================================================
+  console.log("\n[Test Group 21] Missing Data Integrity — Missing Must Remain Missing & Rejection of Industry Defaults");
+
+  // 21.1: Legitimate Missing Field Remains Missing (Power Factor: NOT FOUND -> null)
+  const legitimateMissingInputs: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "powerFactor",
+      fieldLabel: "Power Factor",
+      value: null,
+      rawValue: "NOT FOUND",
+      sourcePage: 1,
+      opticalConfidence: 0,
+    },
+    {
+      fieldKey: "reactiveEnergyKvarh",
+      fieldLabel: "Reactive Energy",
+      value: null,
+      rawValue: "",
+      sourcePage: 1,
+      opticalConfidence: 0,
+    },
+  ];
+
+  const evidenceCheckMissing = EvidenceCheckEngine.verifyGrounding(legitimateMissingInputs);
+  const { guardedFields: legitGuarded, auditResult: legitAudit } =
+    MissingDataGuard.auditAndGuardMissingData("DOC-MISSING-01", legitimateMissingInputs, evidenceCheckMissing.results);
+
+  assert(legitAudit.isIntegrityPreserved === true, "Missing Guard: Preserves missing data integrity");
+  assert(legitAudit.totalMissingCount === 2, "Missing Guard: Identifies exactly 2 missing fields");
+  assert(legitAudit.syntheticDefaultsPreventedCount === 0, "Missing Guard: Zero synthetic defaults in clean missing fields");
+  assert(legitGuarded[0].value === null, "Missing Guard: Power Factor remains strictly null (NOT FOUND)");
+  assert(legitGuarded[1].value === null, "Missing Guard: Reactive Energy remains strictly null");
+
+  // 21.2: Synthetic Default Rejection (AI / Heuristic attempts to inject Power Factor: 0.96 without grounding)
+  const syntheticInjectedInputs: CandidateFieldValidationInput[] = [
+    {
+      fieldKey: "powerFactor",
+      fieldLabel: "Power Factor",
+      value: 0.96, // Assumed standard industry default (0.96)!
+      rawValue: "0.96",
+      sourcePage: 1,
+      opticalConfidence: 0, // Ungrounded, no tokens!
+    },
+    {
+      fieldKey: "meterMultiplier",
+      fieldLabel: "Meter Multiplier",
+      value: 100, // Assumed multiplier (100) without token grounding!
+      rawValue: "100",
+      sourcePage: 1,
+      opticalConfidence: 0,
+    },
+    {
+      fieldKey: "accountNumber",
+      fieldLabel: "Account Number",
+      value: "0123456789",
+      rawValue: "0123456789",
+      sourcePage: 1,
+      boundingBox: [0.1, 0.6, 0.15, 0.8],
+      opticalConfidence: 95,
+      sourceText: "0123456789",
+      wordTokens: [{ text: "0123456789", confidence: 95, boundingBox: [0.1, 0.6, 0.15, 0.8] }],
+    },
+  ];
+
+  const evidenceCheckSynth = EvidenceCheckEngine.verifyGrounding(syntheticInjectedInputs);
+  const { guardedFields: synthGuarded, auditResult: synthAudit } =
+    MissingDataGuard.auditAndGuardMissingData("DOC-SYNTH-01", syntheticInjectedInputs, evidenceCheckSynth.results);
+
+  assert(synthAudit.syntheticDefaultsPreventedCount === 2, "Missing Guard: Successfully intercepts 2 ungrounded synthetic defaults");
+  assert(synthGuarded[0].value === null, "Missing Guard: Power Factor 0.96 is REVERTED to null (NOT FOUND)");
+  assert(synthGuarded[0].rawValue === "NOT FOUND", "Missing Guard: Power Factor rawValue set to NOT FOUND");
+  assert(synthGuarded[1].value === null, "Missing Guard: Multiplier 100 is REVERTED to null (NOT FOUND)");
+  assert(synthGuarded[2].value === "0123456789", "Missing Guard: Grounded Account Number remains intact");
+
+  // 21.3: Pipeline Execution Intercepts Synthetic Default and Generates Exceptions
+  const pipelineSynthResult = await ValidationPipeline.executePipeline({
+    documentId: "DOC-SYNTH-PIPE",
+    candidateFields: syntheticInjectedInputs,
+  });
+
+  assert(pipelineSynthResult.missingDataAudit !== undefined, "Pipeline: missingDataAudit is populated in result");
+  assert(pipelineSynthResult.missingDataAudit.syntheticDefaultsPreventedCount === 2, "Pipeline: Intercepts 2 synthetic defaults in pipeline execution");
+  assert(pipelineSynthResult.validatedFields["powerFactor"].value === null, "Pipeline: Validated Power Factor field is strictly null");
+  assert(pipelineSynthResult.validatedFields["powerFactor"].status === "MISSING", "Pipeline: Validated Power Factor state is MISSING");
+  assert(pipelineSynthResult.validatedFields["powerFactor"].validationScore.score === 0, "Pipeline: Missing Power Factor score is strictly 0%");
+
+  const synthException = pipelineSynthResult.exceptions.find((e) => e.category === "SYNTHETIC_DEFAULT_REJECTED");
+  assert(synthException !== undefined, "Pipeline: Generates SYNTHETIC_DEFAULT_REJECTED exception");
+  assert(synthException?.severity === "HIGH", "Pipeline: SYNTHETIC_DEFAULT_REJECTED exception severity is HIGH");
+
   console.log("\n==================================================================");
   console.log(`  🎉 ALL ${passedCount} / ${totalCount} AI VALIDATION TESTS PASSED CLEANLY!`);
   console.log("==================================================================\n");
@@ -1473,6 +1667,7 @@ runAiValidationPipelineTestSuite().catch((err) => {
   console.error("AI Validation Test Suite Failed:", err);
   process.exit(1);
 });
+
 
 
 

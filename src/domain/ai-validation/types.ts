@@ -90,6 +90,18 @@ export interface EvidenceStreamReading {
   metadata?: Record<string, unknown>;
 }
 
+export interface DuplicateFieldOccurrence {
+  occurrenceId: string;
+  fieldKey: string;
+  pageNumber: number;
+  locationLabel?: string; // e.g. "Page 1 - Summary Box", "Page 5 - Remittance Advice"
+  value: string | number | null;
+  rawValue: string;
+  opticalConfidence: number;
+  boundingBox?: [number, number, number, number];
+  sourceText?: string;
+}
+
 export interface CandidateFieldValidationInput {
   fieldKey: string;
   fieldLabel: string;
@@ -102,6 +114,7 @@ export interface CandidateFieldValidationInput {
   sourceText?: string;
   processingRunId?: string;
   multiSourceReadings?: EvidenceStreamReading[];
+  duplicateOccurrences?: DuplicateFieldOccurrence[];
 }
 
 export interface GroundedEvidenceCheckResult {
@@ -359,6 +372,64 @@ export interface MultiSourceReconciliationResult {
   conflictList: MultiSourceFieldComparison[];
 }
 
+// --- 8c. DUPLICATE FIELD DETECTION (REQUIREMENT 20) ---
+
+export type DuplicateFieldStatus =
+  | "SINGLE_OCCURRENCE"
+  | "AGREED"
+  | "CONFLICT"
+  | "NOT_FOUND";
+
+export interface DuplicateFieldComparison {
+  fieldKey: string;
+  fieldLabel: string;
+  status: DuplicateFieldStatus;
+  occurrencesCount: number;
+  occurrences: DuplicateFieldOccurrence[];
+  distinctValuesCount: number;
+  isAgreed: boolean;
+  evidenceStrengthBonus: number; // e.g. +10..+15 when agreed across multiple pages
+  hasConflict: boolean;
+  arbitrarySelectionPrevented: boolean;
+  reasoning: string;
+}
+
+export interface DuplicateFieldDetectionResult {
+  documentId: string;
+  hasDuplicates: boolean;
+  hasConflicts: boolean;
+  totalFieldsEvaluated: number;
+  agreedDuplicatesCount: number;
+  conflictedDuplicatesCount: number;
+  comparisons: DuplicateFieldComparison[];
+  conflictList: DuplicateFieldComparison[];
+  agreedList: DuplicateFieldComparison[];
+  summary: string;
+}
+
+// --- 8d. MISSING DATA INTEGRITY & ANTI-DEFAULT GUARD (REQUIREMENT 21) ---
+
+export interface MissingDataAuditFinding {
+  fieldKey: string;
+  fieldLabel: string;
+  status: "MISSING" | "UNGROUNDED_SYNTHETIC_REJECTED" | "PRESENT_GROUNDED";
+  isMissing: boolean;
+  extractedValue: string | number | null;
+  wasSyntheticDefaultAttempted: boolean;
+  rejectedDefaultValue?: string | number;
+  reasoning: string;
+  auditRule: "MISSING_DATA_MUST_REMAIN_MISSING_NO_INDUSTRY_DEFAULTS";
+}
+
+export interface MissingDataAuditResult {
+  documentId: string;
+  totalMissingCount: number;
+  syntheticDefaultsPreventedCount: number;
+  findings: MissingDataAuditFinding[];
+  isIntegrityPreserved: boolean;
+  summary: string;
+}
+
 // --- 9. EXCEPTION GENERATION ---
 
 export type ExceptionSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
@@ -372,7 +443,9 @@ export type ExceptionCategory =
   | "CROSS_FIELD_CONFLICT"
   | "LOW_CONFIDENCE"
   | "POSSIBLE_OCR_ERROR"
-  | "MULTI_SOURCE_CONFLICT";
+  | "MULTI_SOURCE_CONFLICT"
+  | "DUPLICATE_FIELD_CONFLICT"
+  | "SYNTHETIC_DEFAULT_REJECTED";
 
 export interface ValidationExceptionRecord {
   exceptionId: string;
@@ -429,6 +502,8 @@ export interface CompleteValidationResult {
   crossFieldValidation: CrossFieldValidationResult;
   ocrErrorDetection?: OcrErrorDetectionResult;
   multiSourceReconciliation?: MultiSourceReconciliationResult;
+  duplicateFieldDetection?: DuplicateFieldDetectionResult;
+  missingDataAudit?: MissingDataAuditResult;
   exceptions: ValidationExceptionRecord[];
   approval: ValidationApprovalRecord;
   validatedFields: Record<

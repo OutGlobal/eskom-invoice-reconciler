@@ -25,6 +25,8 @@ import {
   type CrossFieldValidationResult,
   type OcrErrorDetectionResult,
   type MultiSourceReconciliationResult,
+  type DuplicateFieldDetectionResult,
+  type MissingDataAuditResult,
   type ValidationConfidenceBreakdown,
   type ValidationConfidenceTier,
   type FieldValidationConfidenceScore,
@@ -50,6 +52,8 @@ export class ValidationConfidenceCalculator {
     crossFieldResult: CrossFieldValidationResult;
     ocrErrorResult?: OcrErrorDetectionResult;
     multiSourceResult?: MultiSourceReconciliationResult;
+    duplicateFieldResult?: DuplicateFieldDetectionResult;
+    missingDataAudit?: MissingDataAuditResult;
     thresholds?: Partial<ValidationConfidenceThresholds>;
   }): ValidationConfidenceBreakdown {
     const {
@@ -60,6 +64,8 @@ export class ValidationConfidenceCalculator {
       crossFieldResult,
       ocrErrorResult,
       multiSourceResult,
+      duplicateFieldResult,
+      missingDataAudit,
       thresholds: userThresholds,
     } = params;
 
@@ -80,6 +86,12 @@ export class ValidationConfidenceCalculator {
       const ocrFinding = ocrErrorResult?.findings.find((f) => f.fieldKey === field.fieldKey);
       const multiComparison = multiSourceResult?.comparisons.find(
         (c) => c.fieldKey === field.fieldKey,
+      );
+      const duplicateComparison = duplicateFieldResult?.comparisons.find(
+        (c) => c.fieldKey === field.fieldKey,
+      );
+      const missingFinding = missingDataAudit?.findings.find(
+        (f) => f.fieldKey === field.fieldKey,
       );
 
       // 1a. Optical Token Clarity (with OCR error penalty if detected)
@@ -108,7 +120,7 @@ export class ValidationConfidenceCalculator {
 
       // Weighted Field-Level Validation Score
       let fieldScore = 0;
-      if (field.value !== null) {
+      if (field.value !== null && (!missingFinding || !missingFinding.isMissing)) {
         fieldScore = Math.round(
           opticalClarity * 0.35 +
             spatialBounding * 0.25 +
@@ -124,19 +136,33 @@ export class ValidationConfidenceCalculator {
             fieldScore = Math.max(10, fieldScore + multiComparison.confidenceAdjustment);
           }
         }
+
+        // Duplicate Field Cross-Page Adjustment (Req 20)
+        if (duplicateComparison) {
+          if (duplicateComparison.status === "AGREED") {
+            fieldScore = Math.min(100, fieldScore + duplicateComparison.evidenceStrengthBonus);
+          } else if (duplicateComparison.status === "CONFLICT") {
+            fieldScore = Math.max(10, fieldScore + duplicateComparison.evidenceStrengthBonus);
+          }
+        }
       }
 
-      // Determine Field State (Requirement 10 & 19)
+      // Determine Field State (Requirements 10, 19, 20 & 21)
       let status: AiFieldValidationState = "VALID";
       let reasoning = `Field '${field.fieldKey}' verified with ${fieldScore}% validation confidence.`;
 
-      if (field.value === null || field.rawValue === "") {
+      if (field.value === null || field.rawValue === "" || missingFinding?.isMissing) {
         status = "MISSING";
         fieldScore = 0;
-        reasoning = `Field '${field.fieldKey}' is not present in document evidence (MISSING).`;
+        reasoning =
+          missingFinding?.reasoning ||
+          `Field '${field.fieldKey}' is not present in document evidence (MISSING).`;
       } else if (multiComparison?.status === "CONFLICT") {
         status = "CONFLICT";
         reasoning = multiComparison.reasoning;
+      } else if (duplicateComparison?.status === "CONFLICT") {
+        status = "CONFLICT";
+        reasoning = duplicateComparison.reasoning;
       } else if (detFails.length > 0 || evidence?.groundedStatus === "UNGROUNDED") {
         status = "INVALID";
         reasoning = `Field '${field.fieldKey}' failed deterministic arithmetic or grounding checks.`;
@@ -149,6 +175,8 @@ export class ValidationConfidenceCalculator {
       } else if (fieldScore < thresholds.highThreshold) {
         status = "REVIEW_REQUIRED";
         reasoning = `Field '${field.fieldKey}' validation score (${fieldScore}%) is below high threshold (${thresholds.highThreshold}%).`;
+      } else if (duplicateComparison?.status === "AGREED") {
+        reasoning = duplicateComparison.reasoning;
       } else if (multiComparison?.status === "AGREED") {
         reasoning = multiComparison.reasoning;
       }

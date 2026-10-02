@@ -14,6 +14,8 @@ import type {
   CrossFieldValidationResult,
   OcrErrorDetectionResult,
   MultiSourceReconciliationResult,
+  DuplicateFieldDetectionResult,
+  MissingDataAuditResult,
   ValidationConfidenceBreakdown,
   ValidationExceptionRecord,
   ExceptionSeverity,
@@ -32,6 +34,8 @@ export class ExceptionGenerator {
     crossFieldResult: CrossFieldValidationResult;
     ocrErrorResult?: OcrErrorDetectionResult;
     multiSourceResult?: MultiSourceReconciliationResult;
+    duplicateFieldResult?: DuplicateFieldDetectionResult;
+    missingDataAudit?: MissingDataAuditResult;
     confidence: ValidationConfidenceBreakdown;
   }): ValidationExceptionRecord[] {
     const {
@@ -42,6 +46,8 @@ export class ExceptionGenerator {
       crossFieldResult,
       ocrErrorResult,
       multiSourceResult,
+      duplicateFieldResult,
+      missingDataAudit,
       confidence,
     } = params;
 
@@ -158,6 +164,45 @@ export class ExceptionGenerator {
           suggestedAction:
             "Compare conflicting candidate values across OCR Result, Native PDF Text, and Table Extraction. Arbitrary selection prohibited; human verification required.",
           observedValue: conf.readings.map((r) => `${r.source}: ${r.rawValue}`).join(" | "),
+          createdAt: now,
+        });
+      }
+    }
+
+    // 6a. Cross-Page Duplicate Field Conflicts (Requirement 20)
+    if (duplicateFieldResult && duplicateFieldResult.conflictList.length > 0) {
+      for (const dup of duplicateFieldResult.conflictList) {
+        exceptions.push({
+          exceptionId: `exc-dupfield-${documentId}-${dup.fieldKey}-${Date.now()}`,
+          documentId,
+          fieldKey: dup.fieldKey,
+          category: "DUPLICATE_FIELD_CONFLICT",
+          severity: "CRITICAL",
+          title: `Cross-Page Duplicate Conflict: '${dup.fieldLabel || dup.fieldKey}'`,
+          description: dup.reasoning,
+          suggestedAction:
+            "Compare occurrences across pages. Do not arbitrarily choose one page's value; human reconciliation required.",
+          observedValue: dup.occurrences.map((o) => `${o.locationLabel || `Page ${o.pageNumber}`}: ${o.rawValue}`).join(" | "),
+          createdAt: now,
+        });
+      }
+    }
+
+    // 6b. Rejected Synthetic Industry Defaults (Requirement 21)
+    if (missingDataAudit && missingDataAudit.syntheticDefaultsPreventedCount > 0) {
+      for (const finding of missingDataAudit.findings.filter((f) => f.wasSyntheticDefaultAttempted)) {
+        exceptions.push({
+          exceptionId: `exc-synthetic-${documentId}-${finding.fieldKey}-${Date.now()}`,
+          documentId,
+          fieldKey: finding.fieldKey,
+          category: "SYNTHETIC_DEFAULT_REJECTED",
+          severity: "HIGH",
+          title: `Synthetic Default Rejected: '${finding.fieldLabel || finding.fieldKey}'`,
+          description: finding.reasoning,
+          suggestedAction:
+            "Verify whether field was actually present on document. Missing data must remain missing (null) rather than filled with industry defaults.",
+          observedValue: finding.rejectedDefaultValue !== undefined ? String(finding.rejectedDefaultValue) : null,
+          expectedValue: "NOT FOUND (null)",
           createdAt: now,
         });
       }
