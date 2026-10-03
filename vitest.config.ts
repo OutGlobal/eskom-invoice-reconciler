@@ -78,6 +78,7 @@ export default defineConfig({
       "src/lib/__tests__/stage15_prepare_ocr_handoff.test.ts",
       "src/lib/__tests__/stage16_database_integration.test.ts",
       "src/lib/__tests__/stage18_real_documents.test.ts",
+      "src/lib/__tests__/reconciliation_inputs_and_coverage.test.ts",
     ],
     testTimeout: 60000,
     fileParallelism: false,
