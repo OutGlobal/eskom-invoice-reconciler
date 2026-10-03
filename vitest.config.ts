@@ -80,6 +80,7 @@ export default defineConfig({
       "src/lib/__tests__/stage18_real_documents.test.ts",
       "src/lib/__tests__/reconciliation_inputs_and_coverage.test.ts",
       "src/lib/__tests__/reconciliation_data_coverage_and_amr_validation.test.ts",
+      "src/lib/__tests__/reconciliation_amr_model_and_timezone.test.ts",
     ],
     testTimeout: 60000,
     fileParallelism: false,
