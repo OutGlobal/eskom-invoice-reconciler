@@ -83,6 +83,7 @@ export default defineConfig({
       "src/lib/__tests__/reconciliation_amr_model_and_timezone.test.ts",
       "src/lib/__tests__/meter_reading_calculation_and_unit_normalisation.test.ts",
       "src/lib/__tests__/reconciliation_power_factor_and_tou_mapping.test.ts",
+      "src/lib/__tests__/energy_and_demand_reconciliation.test.ts",
     ],
     testTimeout: 60000,
     fileParallelism: false,

@@ -15,5 +15,7 @@ export * from "./toleranceEngine";
 export * from "./rootCauseInferenceEngine";
 export * from "./powerFactorEngine";
 export * from "./touMappingEngine";
+export * from "./energyReconciliationEngine";
+export * from "./demandReconciliationEngine";
 export * from "./reconciliationStorageService";
 export * from "./autoReconciliationRunner";
