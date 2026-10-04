@@ -15,6 +15,7 @@ import type {
   IntervalClassificationExplanation,
   TouIntervalAggregation,
 } from "./types";
+import { TimezoneNormalizationEngine } from "../reconciliation/timezoneNormalizationEngine";
 
 export const DEFAULT_SA_HOLIDAYS: CalendarHolidayConfig[] = [
   // 2024 Holidays
@@ -70,42 +71,32 @@ export class DeterministicCalendarEngine {
    * If the input timestamp represents an exact hour interval boundary (e.g. 06:00:00.000),
    * subtract 1ms so interval-end timestamps evaluate the ending 30-min block (05:30-06:00).
    */
-  public static getSastComponents(timestampUtc: string | Date): SastTimeComponents {
-    const rawDate =
-      typeof timestampUtc === "string" ? new Date(timestampUtc) : new Date(timestampUtc.getTime());
+  public static getSastComponents(
+    timestampUtc: string | Date | number,
+    timezone: string = "Africa/Johannesburg",
+  ): SastTimeComponents {
+    const norm = TimezoneNormalizationEngine.normalizeTimestamp(timestampUtc, timezone);
 
-    // Adjust 1ms back if exact top-of-hour to evaluate ending block
+    // Adjust 1ms back if exact top-of-hour to evaluate ending block (e.g. 06:00:00.000 belongs to 05:30-06:00)
     const isExactTopOfHour =
-      rawDate.getUTCMinutes() === 0 &&
-      rawDate.getUTCSeconds() === 0 &&
-      rawDate.getUTCMilliseconds() === 0;
-    const evalDate = isExactTopOfHour ? new Date(rawDate.getTime() - 1) : rawDate;
+      norm.localMinute === 0 &&
+      norm.localSecond === 0 &&
+      norm.epochMs % 1000 === 0;
 
-    // SAST is UTC + 2 hours (2 * 3600 * 1000 ms)
-    const sastMs = evalDate.getTime() + 2 * 60 * 60 * 1000;
-    const sastDate = new Date(sastMs);
-
-    const year = sastDate.getUTCFullYear();
-    const month = sastDate.getUTCMonth() + 1; // 1..12
-    const day = sastDate.getUTCDate();
-    const dow = sastDate.getUTCDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
-    const hour = sastDate.getUTCHours();
-    const minute = sastDate.getUTCMinutes();
-    const second = sastDate.getUTCSeconds();
-
-    const local_date_str = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const local_time_str = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:${String(second).padStart(2, "0")}`;
+    const evalNorm = isExactTopOfHour
+      ? TimezoneNormalizationEngine.normalizeTimestamp(norm.epochMs - 1, timezone)
+      : norm;
 
     return {
-      year,
-      month,
-      day,
-      day_of_week: dow,
-      hour,
-      minute,
-      second,
-      local_date_str,
-      local_time_str,
+      year: evalNorm.localYear,
+      month: evalNorm.localMonth,
+      day: evalNorm.localDay,
+      day_of_week: evalNorm.dayOfWeek,
+      hour: evalNorm.localHour,
+      minute: evalNorm.localMinute,
+      second: evalNorm.localSecond,
+      local_date_str: evalNorm.localDate,
+      local_time_str: evalNorm.localTime,
     };
   }
 

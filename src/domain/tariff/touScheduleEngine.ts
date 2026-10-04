@@ -4,24 +4,26 @@
  */
 
 import type { DayType, SeasonType, TouPeriodType, TariffVersionDefinition } from "./types";
+import { TimezoneNormalizationEngine } from "../reconciliation/timezoneNormalizationEngine";
 
 export class TouScheduleEngine {
+  public static readonly DEFAULT_TIMEZONE = "Africa/Johannesburg";
+
   /**
-   * Determine High Season (Jun-Aug) or Low Season (Sep-May) for a given date
+   * Determine High Season (Jun-Aug) or Low Season (Sep-May) for a given date.
+   * Explicitly evaluates in Africa/Johannesburg timezone.
    */
-  public static getSeason(date: Date): SeasonType {
-    const month = date.getMonth() + 1; // 1-indexed (1..12)
-    return month >= 6 && month <= 8 ? "high" : "low";
+  public static getSeason(date: Date, timezone: string = this.DEFAULT_TIMEZONE): SeasonType {
+    const norm = TimezoneNormalizationEngine.normalizeTimestamp(date, timezone);
+    return norm.localMonth >= 6 && norm.localMonth <= 8 ? "high" : "low";
   }
 
   /**
-   * Formats date to YYYY-MM-DD string
+   * Formats date to YYYY-MM-DD string in Africa/Johannesburg timezone
    */
-  public static formatDateStr(date: Date): string {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
+  public static formatDateStr(date: Date, timezone: string = this.DEFAULT_TIMEZONE): string {
+    const norm = TimezoneNormalizationEngine.normalizeTimestamp(date, timezone);
+    return norm.localDate;
   }
 
   /**
@@ -30,8 +32,10 @@ export class TouScheduleEngine {
   public static isPublicHoliday(
     date: Date,
     holidayList: TariffVersionDefinition["public_holidays"],
+    timezone: string = this.DEFAULT_TIMEZONE,
   ): boolean {
-    const dateStr = this.formatDateStr(date);
+    const norm = TimezoneNormalizationEngine.normalizeTimestamp(date, timezone);
+    const dateStr = norm.localDate;
 
     // Direct holiday match
     if (holidayList.some((h) => h.date === dateStr)) {
@@ -39,14 +43,12 @@ export class TouScheduleEngine {
     }
 
     // Check Sunday-to-Monday substitution rule:
-    // If yesterday was a Sunday and yesterday was a public holiday, today (Monday) is an observed public holiday
-    const dow = date.getDay(); // 1 = Monday
-    if (dow === 1) {
-      const yesterday = new Date(date.getTime() - 86400000);
-      if (yesterday.getDay() === 0) {
-        // Sunday
-        const yesterdayStr = this.formatDateStr(yesterday);
-        if (holidayList.some((h) => h.date === yesterdayStr)) {
+    // If today is Monday (dow = 1), check if yesterday was Sunday and a holiday
+    if (norm.dayOfWeek === 1) {
+      const yesterdayMs = norm.epochMs - 86400000;
+      const yesterdayNorm = TimezoneNormalizationEngine.normalizeTimestamp(yesterdayMs, timezone);
+      if (yesterdayNorm.dayOfWeek === 0) {
+        if (holidayList.some((h) => h.date === yesterdayNorm.localDate)) {
           return true;
         }
       }
@@ -61,26 +63,35 @@ export class TouScheduleEngine {
   public static getDayType(
     date: Date,
     holidayList: TariffVersionDefinition["public_holidays"],
+    timezone: string = this.DEFAULT_TIMEZONE,
   ): DayType {
-    if (this.isPublicHoliday(date, holidayList)) {
+    if (this.isPublicHoliday(date, holidayList, timezone)) {
       return "public_holiday";
     }
 
-    const dow = date.getDay(); // 0 = Sun, 6 = Sat
-    if (dow === 0) return "sunday";
-    if (dow === 6) return "saturday";
+    const norm = TimezoneNormalizationEngine.normalizeTimestamp(date, timezone);
+    if (norm.dayOfWeek === 0) return "sunday";
+    if (norm.dayOfWeek === 6) return "saturday";
     return "weekday";
   }
 
   /**
-   * Resolves the TOU Period (Peak, Standard, Off-Peak) for a given date and hour
+   * Resolves the TOU Period (Peak, Standard, Off-Peak) for a given date and hour.
+   * Explicitly evaluates wall-clock hours in Africa/Johannesburg (UTC+2) with zero DST contamination.
    */
-  public static resolveTouPeriod(date: Date, tariffDef: TariffVersionDefinition): TouPeriodType {
+  public static resolveTouPeriod(
+    date: Date,
+    tariffDef: TariffVersionDefinition,
+    timezone: string = this.DEFAULT_TIMEZONE,
+  ): TouPeriodType {
     // Subtract 1ms so interval-end timestamps (e.g. 06:00) evaluate the ending block (05:30-06:00)
-    const block = new Date(date.getTime() - 1);
-    const season = this.getSeason(block);
-    const dayType = this.getDayType(block, tariffDef.public_holidays);
-    const hour = block.getHours(); // 0..23
+    const blockMs = date.getTime() - 1;
+    const norm = TimezoneNormalizationEngine.normalizeTimestamp(blockMs, timezone);
+
+    const blockDate = new Date(blockMs);
+    const season = this.getSeason(blockDate, timezone);
+    const dayType = this.getDayType(blockDate, tariffDef.public_holidays, timezone);
+    const hour = norm.localHour; // 0..23 in explicit timezone (e.g. Africa/Johannesburg)
 
     const seasonConfig = tariffDef.tou_schedule.find((s) => s.season === season);
     if (!seasonConfig) return "off_peak";

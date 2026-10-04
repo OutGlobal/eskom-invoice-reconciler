@@ -13,5 +13,7 @@ export * from "./amrDataModelEngine";
 export * from "./timezoneNormalizationEngine";
 export * from "./toleranceEngine";
 export * from "./rootCauseInferenceEngine";
+export * from "./powerFactorEngine";
+export * from "./touMappingEngine";
 export * from "./reconciliationStorageService";
 export * from "./autoReconciliationRunner";

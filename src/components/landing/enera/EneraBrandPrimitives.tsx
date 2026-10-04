@@ -52,7 +52,7 @@ export function EneraBrandMark({
       {/* ENERA AI Logo Mark */}
       <div className={`shrink-0 ${imgSizeClasses}`}>
         <img
-          src="/images/enera-ai-logo.jpg"
+          src="/images/enera-icon.png"
           alt="ENERA AI Logo"
           className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(6,182,212,0.35)]"
           draggable={false}

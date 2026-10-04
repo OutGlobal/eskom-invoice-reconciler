@@ -149,21 +149,15 @@ export function EneraNav() {
           {/* Left: ENERA Brand Logo */}
           <Link
             to="/"
-            className="flex items-center gap-2.5 focus-ring-enera rounded py-1 shrink-0"
+            className="flex items-center gap-2 focus-ring-enera rounded py-1 shrink-0 group"
             aria-label="ENERA AI Technologies Homepage"
           >
             <img
-              src="/images/enera-ai-logo.jpg"
+              src="/images/enera-ai-logo.png"
               alt="ENERA AI"
-              className="w-7 h-7 object-contain drop-shadow-[0_0_6px_rgba(6,182,212,0.4)]"
+              className="h-8 sm:h-9 w-auto object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.4)] transition-transform duration-300 group-hover:scale-105"
               draggable={false}
             />
-            <span className="text-base font-bold tracking-[0.24em] text-white font-mono">
-              E N E R A
-            </span>
-            <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-semibold hidden sm:inline">
-              AI
-            </span>
           </Link>
 
           {/* Center: Simplified 6-Item Information Architecture */}

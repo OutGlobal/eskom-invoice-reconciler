@@ -81,6 +81,8 @@ export default defineConfig({
       "src/lib/__tests__/reconciliation_inputs_and_coverage.test.ts",
       "src/lib/__tests__/reconciliation_data_coverage_and_amr_validation.test.ts",
       "src/lib/__tests__/reconciliation_amr_model_and_timezone.test.ts",
+      "src/lib/__tests__/meter_reading_calculation_and_unit_normalisation.test.ts",
+      "src/lib/__tests__/reconciliation_power_factor_and_tou_mapping.test.ts",
     ],
     testTimeout: 60000,
     fileParallelism: false,

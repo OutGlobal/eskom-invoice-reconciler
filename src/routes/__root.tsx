@@ -99,7 +99,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "ENERA transforms complex energy and billing information into clear, actionable intelligence for better financial and operational decisions.",
       },
       { property: "og:site_name", content: "ENERA AI" },
-      { property: "og:url", content: "https://eskom-invoice-reconciler.vercel.app" },
+      { property: "og:url", content: "https://enera-ai.com" },
       { property: "og:title", content: "ENERA AI | Energy Financial Intelligence" },
       {
         property: "og:description",
@@ -116,19 +116,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/52505294-a8b7-405f-bd46-268d13880296/id-preview-99af2560--d4e14f91-1593-4534-bd09-833873bc7bd1.lovable.app-1785402555429.png",
+        content: "https://enera-ai.com/images/enera-ai-logo.png",
       },
       {
         name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/52505294-a8b7-405f-bd46-268d13880296/id-preview-99af2560--d4e14f91-1593-4534-bd09-833873bc7bd1.lovable.app-1785402555429.png",
+        content: "https://enera-ai.com/images/enera-ai-logo.png",
       },
     ],
     links: [
-      { rel: "canonical", href: "https://eskom-invoice-reconciler.vercel.app" },
+      { rel: "canonical", href: "https://enera-ai.com" },
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.png", type: "image/png", sizes: "32x32" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,

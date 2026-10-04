@@ -11,6 +11,7 @@ import { EneraTrustSection } from "@/components/landing/enera/EneraTrustSection"
 import { EneraContactSection } from "@/components/landing/enera/EneraContactSection";
 import { EneraFaqSection } from "@/components/landing/enera/EneraFaqSection";
 import { EneraFooter } from "@/components/landing/enera/EneraFooter";
+import { EneraBrandLoader } from "@/components/landing/enera/EneraBrandLoader";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -71,6 +72,9 @@ export const Route = createFileRoute("/")({
 function EneraLandingPage() {
   return (
     <div className="min-h-screen bg-white text-slate-900 selection:bg-cyan-500/20 selection:text-cyan-950 font-sans antialiased overflow-x-hidden">
+      {/* Cinematic Site Name Loading Sequence */}
+      <EneraBrandLoader />
+
       {/* Keyboard Accessibility Skip Link */}
       <a
         href="#main-content"

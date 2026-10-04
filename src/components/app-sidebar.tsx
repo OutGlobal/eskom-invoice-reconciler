@@ -103,8 +103,13 @@ export function AppSidebar() {
             className="flex items-center gap-2 group w-full focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded-md"
             title="Back to ENERA Public Landing Page"
           >
-            <div className="h-8 w-8 shrink-0 rounded-md bg-gradient-to-br from-cyan-950 via-[#0d1117] to-slate-900 border border-cyan-500/40 flex items-center justify-center text-cyan-400 font-mono font-bold text-sm shadow-[0_0_12px_rgba(6,182,212,0.3)]">
-              E
+            <div className="h-8 w-8 shrink-0 rounded-md bg-gradient-to-br from-cyan-950 via-[#0d1117] to-slate-900 border border-cyan-500/40 flex items-center justify-center p-1 shadow-[0_0_12px_rgba(6,182,212,0.3)]">
+              <img
+                src="/images/enera-icon.png"
+                alt="ENERA"
+                className="w-full h-full object-contain"
+                draggable={false}
+              />
             </div>
             {!collapsed && (
               <div className="min-w-0 flex-1">
