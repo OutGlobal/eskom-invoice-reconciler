@@ -17,5 +17,7 @@ export * from "./powerFactorEngine";
 export * from "./touMappingEngine";
 export * from "./energyReconciliationEngine";
 export * from "./demandReconciliationEngine";
+export * from "./reactiveEnergyReconciliationEngine";
+export * from "./invoiceChargeReconciliationEngine";
 export * from "./reconciliationStorageService";
 export * from "./autoReconciliationRunner";
