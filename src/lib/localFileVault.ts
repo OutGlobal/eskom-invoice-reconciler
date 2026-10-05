@@ -1,3 +1,4 @@
+import { scopedDatabaseName } from "./workspaceIdentity";
 /**
  * Local File Vault
  * Durable browser-side storage (IndexedDB) for original uploaded source documents.
@@ -26,7 +27,7 @@ function isAvailable(): boolean {
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    const req = indexedDB.open(scopedDatabaseName(DB_NAME), DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -46,7 +47,18 @@ function tx<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBReque
       new Promise<T>((resolve, reject) => {
         const transaction = db.transaction(STORE_NAME, mode);
         const request = fn(transaction.objectStore(STORE_NAME));
-        request.onsuccess = () => resolve(request.result);
+        let value: T;
+        request.onsuccess = () => {
+          value = request.result;
+        };
+        transaction.oncomplete = () => {
+          db.close();
+          resolve(value);
+        };
+        transaction.onabort = () => {
+          db.close();
+          reject(transaction.error || new Error("File cache transaction aborted"));
+        };
         request.onerror = () => reject(request.error);
       }),
   );

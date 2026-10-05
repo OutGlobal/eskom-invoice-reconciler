@@ -1,4 +1,12 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { identityFromVerifiedUser } from "@/domain/security/verifiedIdentity";
+
+async function currentWorkspaceIdentity() {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) throw new Error("Please sign in again");
+  return identityFromVerifiedUser(data.user);
+}
 import { format } from "date-fns";
 import {
   Upload,
@@ -210,7 +218,7 @@ export function SecureUploadGateway() {
     if (!candidateResult.duplicateResult) return;
     const file = candidateResult.fileHeader.fileExtension === "pdf" ? activeInvoiceFile : activeMeterFile;
     const candidate: DuplicateEvaluationCandidate = {
-      organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
+      organisationId: (await currentWorkspaceIdentity()).organisationId,
       sourceType: candidateResult.fileHeader.fileExtension === "pdf" ? "INVOICE" : "TELEMETRY",
       sourceFile: {
         name: file?.name || candidateResult.fileHeader.filename,
@@ -310,15 +318,15 @@ export function SecureUploadGateway() {
     setAutomatedResult(null);
     setAutomatedStage("UPLOAD_SUCCESSFUL");
     setAutomatedProgressPct(10);
-    setAutomatedMessage("Upload successful: Processing job submitted to backend engine");
+    setAutomatedMessage("Upload successful: Local processing started; keep this tab open");
 
     try {
-      // Stage 16: Asynchronous Server-Side Processing Job Execution
+      // Stage 16: Asynchronous Local processing (not a durable background worker)
       const job = await ProcessingJobEngine.submitJob({
         invoiceFile,
         meterFile,
-        organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
-        userId: "user-system-admin",
+        organisationId: (await currentWorkspaceIdentity()).organisationId,
+        userId: (await currentWorkspaceIdentity()).userId,
         metadata: overrides,
       });
 
@@ -508,8 +516,8 @@ export function SecureUploadGateway() {
           {
             invoiceFile,
             meterFile,
-            tenantId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
-            userId: "user-system-admin",
+            tenantId: (await currentWorkspaceIdentity()).organisationId,
+            userId: (await currentWorkspaceIdentity()).userId,
             ...overrides,
           },
           (stage, pct, msg, ambiguity) => {
@@ -592,8 +600,8 @@ export function SecureUploadGateway() {
       const res = await SecureIngestionGateway.processUpload(
         file,
         file.name,
-        "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
-        "user-system-admin",
+        (await currentWorkspaceIdentity()).organisationId,
+        (await currentWorkspaceIdentity()).userId,
         (state, pct, msg) => {
           setCurrentState(state);
           setProgressPct(pct);
@@ -799,7 +807,7 @@ export function SecureUploadGateway() {
             <Database className="w-4 h-4 text-primary" />
           </div>
           <div className="text-2xl font-bold text-foreground mt-2">{uploadRecords.length}</div>
-          <div className="text-xs text-muted-foreground mt-1">Persistent registry records</div>
+          <div className="text-xs text-muted-foreground mt-1">Workspace registry records</div>
         </div>
 
         <div className="rounded-xl border border-border/40 bg-card/60 p-4 backdrop-blur-sm">
@@ -1568,6 +1576,10 @@ export function SecureUploadGateway() {
 
         {/* Upload Records Table */}
         <div className="rounded-xl border border-border/40 overflow-hidden">
+      <p role="status" className="rounded-md border border-amber-500/30 p-3 text-xs text-muted-foreground">
+        Processing runs in this tab. Keep it open until completion. Browser-cached files are not a backup;
+        remote persistence must be verified before using another device.
+      </p>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-muted/40 text-muted-foreground uppercase font-semibold text-[10px] tracking-wider border-b border-border/40">
@@ -1597,6 +1609,9 @@ export function SecureUploadGateway() {
                       <td className="py-3 px-4">
                         <div className="font-medium text-foreground truncate max-w-[220px]">
                           {rec.filename}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {rec.metadata?.persistence === "remote" ? "Registry save confirmed remotely" : "Local registry only — not backed up"}
                         </div>
                         <div className="text-[10px] text-muted-foreground font-mono truncate max-w-[220px]">
                           {rec.id}

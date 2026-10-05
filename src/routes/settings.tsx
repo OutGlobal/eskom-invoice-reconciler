@@ -18,7 +18,8 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-import { GovernanceAdminWorkspace } from "@/components/governance/GovernanceAdminWorkspace";
+import { useSupabaseSession } from "@/components/AuthGate";
+import { identityFromVerifiedUser } from "@/domain/security/verifiedIdentity";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Commercial Platform Settings — Eskom Bill Balancer" }] }),
@@ -26,6 +27,15 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
+  const { session } = useSupabaseSession();
+  let organisationId = "";
+  if (session) {
+    try {
+      organisationId = identityFromVerifiedUser(session.user).organisationId;
+    } catch {}
+  }
+  const [saving, setSaving] = useState(false);
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const rows = useApp((s) => s.rows);
   const uploads = useApp((s) => s.uploads);
   const setRows = useApp((s) => s.setRows);
@@ -40,7 +50,67 @@ function SettingsPage() {
   const [companyName, setCompanyName] = useState<string>("Enterprise Client");
   const [currency, setCurrency] = useState<string>("ZAR (R)");
   const [vatRate, setVatRate] = useState<number>(15.0);
-  const [autoSync, setAutoSync] = useState<boolean>(true);
+  useEffect(() => {
+    if (!session || !organisationId) return;
+    let active = true;
+    setPreferencesLoaded(false);
+    supabase
+      .from("workspace_preferences")
+      .select("company_name,currency,vat_rate")
+      .eq("user_id", session.user.id)
+      .eq("organisation_id", organisationId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          toast.error("Preferences unavailable. Database migration may be required.");
+          return;
+        }
+        if (data) {
+          setCompanyName(data.company_name);
+          setCurrency(data.currency);
+          setVatRate(Number(data.vat_rate));
+        }
+        setPreferencesLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [session?.user.id, organisationId]);
+
+  const savePreferences = async () => {
+    if (!session || !organisationId || !preferencesLoaded) return;
+    if (
+      !companyName.trim() ||
+      !currency.trim() ||
+      !Number.isFinite(vatRate) ||
+      vatRate < 0 ||
+      vatRate > 100
+    ) {
+      toast.error("Enter valid organisation, currency and VAT values.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("workspace_preferences").upsert(
+        {
+          user_id: session.user.id,
+          organisation_id: organisationId,
+          company_name: companyName.trim(),
+          currency: currency.trim(),
+          vat_rate: vatRate,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,organisation_id" },
+      );
+      if (error) throw error;
+      toast.success("Reporting preferences saved. These do not override tariff calculations.");
+    } catch {
+      toast.error("Preferences were not saved. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     checkDatabaseConnection();
@@ -51,10 +121,11 @@ function SettingsPage() {
     try {
       const invs = await fetchSupabaseInvoices();
       const recs = await fetchSupabaseRecoveries();
-      const { count } = await supabase
+      const { count, error } = await supabase
         .from("raw_documents")
         .select("*", { count: "exact", head: true });
 
+      if (error) throw error;
       setInvoiceCount(invs.length);
       setRecoveryCount(recs.length);
       setRawDocsCount(count || 0);
@@ -105,7 +176,10 @@ function SettingsPage() {
       </div>
 
       {/* Enterprise Governance Administration Workspace */}
-      <GovernanceAdminWorkspace />
+      <p className="text-xs text-muted-foreground">
+        Organisation roles and access must be provisioned by your administrator. Reporting
+        preferences below do not change organisation permissions or billing rules.
+      </p>
 
       {/* Telemetry & Ledger Synchronization Panel */}
       <Panel
@@ -160,14 +234,14 @@ function SettingsPage() {
             <div className="p-3 rounded-lg border border-border bg-muted/20">
               <div className="text-muted-foreground text-[11px]">Raw Audit Documents</div>
               <div className="text-lg font-bold text-foreground">{rawDocsCount} Documents</div>
-              <div className="text-[10px] text-emerald-400 font-mono">Status: Immutable</div>
+              <div className="text-[10px] text-emerald-400 font-mono">Status: Retrieved</div>
             </div>
             <div className="p-3 rounded-lg border border-border bg-muted/20">
               <div className="text-muted-foreground text-[11px]">Active Meter Intervals</div>
               <div className="text-lg font-bold text-foreground">
                 {rows.length.toLocaleString()} Intervals
               </div>
-              <div className="text-[10px] text-emerald-400 font-mono">Status: Synchronized</div>
+              <div className="text-[10px] text-emerald-400 font-mono">Status: Local workspace</div>
             </div>
           </div>
         </div>
@@ -185,7 +259,7 @@ function SettingsPage() {
                 <Globe className="h-4 w-4 text-primary" /> Automated Utility Ingestion Gateway
               </div>
               <span className="text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded">
-                Active &amp; Ready
+                Not configured
               </span>
             </div>
             <p className="text-muted-foreground">
@@ -195,7 +269,7 @@ function SettingsPage() {
             <div className="p-2.5 bg-muted/60 rounded font-mono text-[11px] text-primary flex flex-col sm:flex-row sm:items-center justify-between gap-1 overflow-x-auto">
               <span>Channel: Enterprise Ingestion Gateway (Direct Utility Statement Stream)</span>
               <span className="text-muted-foreground text-[10px]">
-                Authentication: Enterprise Key Vault Protected
+                Connection requires administrator configuration
               </span>
             </div>
           </div>
@@ -208,23 +282,23 @@ function SettingsPage() {
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={autoSync}
-                  onChange={(e) => setAutoSync(e.target.checked)}
+                  checked={false}
+                  disabled
+                  aria-label="Notifications unavailable until a delivery provider is configured"
                   className="sr-only peer"
                 />
                 <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
               </label>
             </div>
             <p className="text-muted-foreground">
-              Automatically trigger email &amp; Slack notifications whenever an overcharge claim
-              exceeding R 50,000 is detected.
+              Email and Slack delivery are not configured. Notifications cannot be enabled yet.
             </p>
           </div>
         </div>
       </Panel>
 
       {/* Enterprise Organization & Audit Parameters */}
-      <Panel title="Enterprise Organization &amp; Audit Parameters">
+      <Panel title="Reporting Preferences">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
           <div>
             <label className="block text-muted-foreground mb-1">Company / Account Name</label>
@@ -252,12 +326,20 @@ function SettingsPage() {
               type="number"
               step="0.1"
               value={vatRate}
-              onChange={(e) => setVatRate(Number(e.target.value) || 15.0)}
+              onChange={(e) => setVatRate(Number(e.target.value))}
               className="w-full bg-transparent border border-border rounded px-3 py-2 text-sm"
             />
           </div>
         </div>
       </Panel>
+
+      <button
+        onClick={savePreferences}
+        disabled={saving || !preferencesLoaded}
+        className="rounded-md bg-primary px-4 py-2 text-xs disabled:opacity-50"
+      >
+        {saving ? "Saving…" : "Save Reporting Preferences"}
+      </button>
 
       {/* Data Management */}
       <Panel title="Data Management &amp; Cache Control">

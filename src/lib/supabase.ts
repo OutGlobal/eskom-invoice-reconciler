@@ -15,13 +15,27 @@ const SUPABASE_ANON_KEY =
 
 export const isSupabaseConfigured =
   Boolean(
-    (typeof import.meta !== "undefined" && (import.meta.env?.VITE_SUPABASE_URL || import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY)) ||
-    (typeof process !== "undefined" && (process.env?.VITE_SUPABASE_URL || process.env?.SUPABASE_URL))
+    (typeof import.meta !== "undefined" &&
+      (import.meta.env?.VITE_SUPABASE_URL || import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY)) ||
+    (typeof process !== "undefined" &&
+      (process.env?.VITE_SUPABASE_URL || process.env?.SUPABASE_URL)),
   ) &&
   !SUPABASE_URL.includes("placeholder-project.supabase.co") &&
   SUPABASE_ANON_KEY !== "placeholder-anon-key";
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const defaultClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let serverClientResolver: (() => typeof defaultClient | undefined) | undefined;
+/** Installed only by the server entry; AsyncLocalStorage prevents request crossover. */
+export function setServerClientResolver(resolver: () => typeof defaultClient | undefined): void {
+  serverClientResolver = resolver;
+}
+export const supabase: typeof defaultClient = new Proxy(defaultClient, {
+  get(_target, property) {
+    const client = serverClientResolver?.() || defaultClient;
+    const value = Reflect.get(client, property, client);
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});
 
 export interface SupabaseInvoice {
   id?: string;
@@ -75,12 +89,12 @@ export async function fetchSupabaseInvoices(): Promise<SupabaseInvoice[]> {
 
     if (error) {
       console.warn("Supabase fetchInvoices notice:", error.message);
-      return [];
+      throw error;
     }
     return data || [];
   } catch (err) {
     console.warn("Supabase connection error:", err);
-    return [];
+    throw err;
   }
 }
 
@@ -94,12 +108,12 @@ export async function fetchSupabaseRecoveries(): Promise<SupabaseRecovery[]> {
 
     if (error) {
       console.warn("Supabase fetchRecoveries notice:", error.message);
-      return [];
+      throw error;
     }
     return data || [];
   } catch (err) {
     console.warn("Supabase fetchRecoveries connection error:", err);
-    return [];
+    throw err;
   }
 }
 
@@ -122,7 +136,10 @@ export async function syncInvoiceToSupabase(inv: any): Promise<any> {
 }
 
 /** Sync interval meter readings to Supabase database */
-export async function syncMeterReadingsToSupabase(invoiceNumber: string, measurements: any[]): Promise<void> {
+export async function syncMeterReadingsToSupabase(
+  invoiceNumber: string,
+  measurements: any[],
+): Promise<void> {
   if (!isSupabaseConfigured || !measurements || measurements.length === 0) return;
   try {
     const payload = measurements.slice(0, 500).map((m: any) => ({
@@ -168,7 +185,13 @@ export async function saveValidationResults(results: any): Promise<any> {
 }
 
 /** Log pipeline step execution */
-export async function saveProcessingLog(uploadId: string, stage: string, level: string, message: string, details?: any): Promise<void> {
+export async function saveProcessingLog(
+  uploadId: string,
+  stage: string,
+  level: string,
+  message: string,
+  details?: any,
+): Promise<void> {
   if (!isSupabaseConfigured) return;
   try {
     await supabase.from("processing_logs").insert({
@@ -182,4 +205,3 @@ export async function saveProcessingLog(uploadId: string, stage: string, level: 
     // Silent fallback
   }
 }
-

@@ -40,7 +40,10 @@ export class UploadStorageService {
       validationStatus: row.validation_status,
       errorStatus: row.error_status,
       errorMessage: row.error_message,
-      metadata: typeof row.metadata === "object" ? row.metadata : {},
+      metadata: {
+        ...(typeof row.metadata === "object" ? row.metadata : {}),
+        persistence: "remote",
+      },
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -96,7 +99,7 @@ export class UploadStorageService {
       validationStatus: input.validationStatus || "PENDING",
       errorStatus: input.errorStatus || "NONE",
       errorMessage: input.errorMessage || null,
-      metadata: input.metadata || {},
+      metadata: { ...(input.metadata || {}), persistence: "local" },
       createdAt: now,
       updatedAt: now,
     };
@@ -133,6 +136,7 @@ export class UploadStorageService {
       )) as any;
       if (!error && data) {
         const persisted = this.mapRowToRecord(data);
+        persisted.metadata = { ...persisted.metadata, persistence: "remote" };
         this.memoryStore.set(id, persisted);
         await LocalWorkspaceStore.saveUpload(persisted).catch(() => undefined);
         return persisted;
@@ -209,6 +213,7 @@ export class UploadStorageService {
 
       if (!error && data) {
         const persisted = this.mapRowToRecord(data);
+        persisted.metadata = { ...persisted.metadata, persistence: "remote" };
         this.memoryStore.set(uploadId, persisted);
         await LocalWorkspaceStore.saveUpload(persisted).catch(() => undefined);
         return persisted;
