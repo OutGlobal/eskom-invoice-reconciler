@@ -27,6 +27,29 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [backupMessage, setBackupMessage] = useState("");
+  const handleBackup = async (restore: boolean) => {
+    if (
+      restore &&
+      !confirm(
+        "Replace this account's local workspace with its latest remote backup? Unsaved local changes will be overwritten.",
+      )
+    )
+      return;
+    setBackupBusy(true);
+    setBackupMessage("");
+    try {
+      const { backupWorkspace, restoreWorkspace } = await import("@/lib/workspaceBackup");
+      const date = restore ? await restoreWorkspace() : await backupWorkspace();
+      setBackupMessage(`${restore ? "Restored" : "Remote backup confirmed"}: ${date}`);
+      if (restore) window.location.reload();
+    } catch (error) {
+      setBackupMessage(error instanceof Error ? error.message : "Backup operation failed");
+    } finally {
+      setBackupBusy(false);
+    }
+  };
   const { session } = useSupabaseSession();
   let organisationId = "";
   if (session) {
@@ -340,6 +363,31 @@ function SettingsPage() {
       >
         {saving ? "Saving…" : "Save Reporting Preferences"}
       </button>
+
+      <Panel
+        title="Remote Workspace Backup"
+        subtitle="Explicit account-scoped snapshots, including source files. 25 MB maximum; not automatic synchronization or background processing."
+      >
+        <div className="flex gap-3">
+          <button
+            disabled={backupBusy}
+            onClick={() => handleBackup(false)}
+            className="rounded-md border px-3 py-2 text-xs disabled:opacity-50"
+          >
+            Back Up Workspace
+          </button>
+          <button
+            disabled={backupBusy}
+            onClick={() => handleBackup(true)}
+            className="rounded-md border px-3 py-2 text-xs disabled:opacity-50"
+          >
+            Restore Latest Backup
+          </button>
+        </div>
+        <p role="status" className="mt-3 text-xs">
+          {backupBusy ? "Working… keep this tab open" : backupMessage}
+        </p>
+      </Panel>
 
       {/* Data Management */}
       <Panel title="Data Management &amp; Cache Control">

@@ -45,3 +45,26 @@
 - Interrupted processing is explicitly local until the durable-worker follow-up lands.
 
 Production is unchanged by this PR. Review and deploy only after provisioning, migration and acceptance checks.
+
+## Follow-up: explicit remote workspace snapshots
+
+Settings now has Back Up Workspace and Restore Latest Backup. These store immutable
+JSON snapshots in a private Supabase bucket, including invoice/interval state,
+upload records, customer links, tariff records and original source-file bytes.
+This is user-initiated disaster recovery/cross-device restore, not automatic sync,
+an authoritative audit ledger, or durable job execution. Limit: 25 MB encoded snapshot.
+Restore replaces the selected account's browser workspace after confirmation and
+checks the backup identity and structure before writing. Database transactions are
+atomic within each local database; workspace changes are rolled back if file-vault
+import fails. Close/reload during restoration can still interrupt the operation;
+retry restore before using the workspace if interrupted.
+
+Apply `20261005010000_workspace_backups.sql` before trying these controls. Check all
+existing storage policies for overly broad grants, verify the bucket is private,
+and test separate users/organisations. Establish storage retention/cleanup and costs;
+this migration intentionally does not let clients overwrite/delete prior snapshots.
+Back up the originating device before attempting restore elsewhere. Only data
+present in that browser is included; historical database-only records are not exported.
+
+Durable worker integration remains a separate prerequisite. This patch does not
+pretend that saving a snapshot makes the local processing engine restart-safe.

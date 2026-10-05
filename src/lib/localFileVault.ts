@@ -65,6 +65,33 @@ function tx<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBReque
 }
 
 export class LocalFileVault {
+  public static async exportFiles(): Promise<VaultedFile[]> {
+    if (!isAvailable()) throw new Error("Browser file storage unavailable");
+    return tx<VaultedFile[]>("readonly", (store) => store.getAll());
+  }
+
+  public static async importFiles(files: VaultedFile[]): Promise<void> {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, "readwrite");
+      const store = transaction.objectStore(STORE_NAME);
+      store.clear();
+      files.forEach((file) => store.put(file));
+      transaction.oncomplete = () => {
+        db.close();
+        resolve();
+      };
+      transaction.onabort = () => {
+        db.close();
+        reject(transaction.error || new Error("File restore failed"));
+      };
+      transaction.onerror = () => {
+        db.close();
+        reject(transaction.error);
+      };
+    });
+  }
+
   /** Persist an original uploaded file so it can always be downloaded again. */
   public static async store(
     file: File | Blob,

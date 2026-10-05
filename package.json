@@ -9,7 +9,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "test": "tsx src/lib/__tests__/comprehensive_enterprise_test_suite.test.ts",
-    "test:security": "vitest run src/lib/__tests__/production_hardening.test.ts",
+    "test:security": "vitest run src/lib/__tests__/production_hardening.test.ts src/lib/__tests__/workspace_backup.test.ts",
     "test:all": "tsx src/lib/__tests__/run-tests.ts",
     "test:vitest": "vitest run",
     "lint": "eslint src/",
