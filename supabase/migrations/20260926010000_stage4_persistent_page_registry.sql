@@ -131,7 +131,7 @@ WITH CHECK (
 );
 
 -- 4. Canonical Updatable View: public.page_registry
-CREATE OR REPLACE VIEW public.page_registry AS
+CREATE OR REPLACE VIEW public.page_registry WITH (security_invoker = true) AS
 SELECT
     dp.id,
     dp.document_id,
