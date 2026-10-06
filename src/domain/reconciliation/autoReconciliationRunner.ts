@@ -7,6 +7,7 @@
  * reconciliation result exists without any manual action.
  */
 import Decimal from "decimal.js-light";
+import { computeTotals } from "@/lib/reconciliation";
 import {
   DeterministicReconciliationEngine,
   DEFAULT_TOLERANCE_CONFIG,
@@ -16,17 +17,10 @@ import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
 import type { InvoiceData } from "@/lib/store";
 import type { Measurement } from "@/lib/parseMeter";
 
-import {
-  ALL_PRODUCTION_TARIFF_FIXTURES,
-  ESKOM_MEGAFLEX_2025_2026,
-} from "@/domain/tariff/tariffFixtures";
+import { ALL_PRODUCTION_TARIFF_FIXTURES } from "@/domain/tariff/tariffFixtures";
 
 export type AutoReconciliationStatus =
-  | "COMPLETED"
-  | "AWAITING_INVOICE"
-  | "AWAITING_METER_DATA"
-  | "AWAITING_TARIFF"
-  | "FAILED";
+  "COMPLETED" | "AWAITING_INVOICE" | "AWAITING_METER_DATA" | "AWAITING_TARIFF" | "FAILED";
 
 export interface AutoReconciliationOutcome {
   status: AutoReconciliationStatus;
@@ -39,7 +33,7 @@ export function runAutomaticReconciliation(
   rows: Measurement[] | null | undefined,
   tolerance: ToleranceConfig = DEFAULT_TOLERANCE_CONFIG,
 ): AutoReconciliationOutcome {
-  if (!invoice || !(invoice.invoiceNumber || invoice.invoiceNo)) {
+  if (!invoice || !(invoice.invoiceNumber || invoice.invoiceNo || invoice.accountNumber)) {
     return {
       status: "AWAITING_INVOICE",
       message: "Reconciliation is waiting for an invoice to be uploaded.",
@@ -55,10 +49,9 @@ export function runAutomaticReconciliation(
     };
   }
 
-  let tariffVersion =
-    (invoice.tariffName
-      ? TariffStorageService.getVersionForDate(invoice.tariffName, invoice.billingPeriodStart || "")
-      : null) || TariffStorageService.getAnyVersionForDate(invoice.billingPeriodStart || "");
+  let tariffVersion = invoice.tariffName
+    ? TariffStorageService.getVersionForDate(invoice.tariffName, invoice.billingPeriodStart || "")
+    : null;
 
   // If no custom uploaded tariff is active, resolve against gazetted NERSA production fixtures
   if (!tariffVersion) {
@@ -84,31 +77,6 @@ export function runAutomaticReconciliation(
           const exp = v.header.expiry_date || "2099-12-31";
           return targetIso >= eff && targetIso <= exp;
         }) || null;
-
-      if (!tariffVersion) {
-        tariffVersion =
-          ALL_PRODUCTION_TARIFF_FIXTURES.find((v) => {
-            const code = v.header.tariff_code.toLowerCase();
-            const name = v.header.tariff_name.toLowerCase();
-            const family = v.header.tariff_family.toLowerCase();
-            return (
-              code.includes(query) ||
-              name.includes(query) ||
-              family.includes(query) ||
-              query.includes(family)
-            );
-          }) || null;
-      }
-    }
-
-    if (!tariffVersion) {
-      tariffVersion =
-        ALL_PRODUCTION_TARIFF_FIXTURES.find((v) => {
-          if (v.header.tariff_family !== "megaflex") return false;
-          const eff = v.header.effective_date;
-          const exp = v.header.expiry_date || "2099-12-31";
-          return targetIso >= eff && targetIso <= exp;
-        }) || ESKOM_MEGAFLEX_2025_2026;
     }
   }
 
@@ -122,9 +90,33 @@ export function runAutomaticReconciliation(
   }
 
   try {
+    const validRows = rows
+      .map((r) => ({ ...r, ts: new Date(r.ts) }))
+      .filter(
+        (r) => Number.isFinite(r.ts.getTime()) && Number.isFinite(r.kW) && Number.isFinite(r.kVA),
+      );
+    if (!validRows.length)
+      return {
+        status: "AWAITING_METER_DATA",
+        message: "No valid interval measurements are available. Review the uploaded meter data.",
+        payload: null,
+      };
+    const totals = computeTotals(validRows);
     const input = {
-      invoice_id: invoice.invoiceNumber || invoice.invoiceNo || "",
-      invoice_number: invoice.invoiceNumber || invoice.invoiceNo || "",
+      calc_peak_kwh: new Decimal(totals.peakKWh),
+      calc_standard_kwh: new Decimal(totals.standardKWh),
+      calc_off_peak_kwh: new Decimal(totals.offPeakKWh),
+      calc_total_kwh: new Decimal(totals.totalKWh),
+      calc_maximum_demand_kva: new Decimal(totals.maxDemandKVA),
+      calc_reactive_energy_kvarh: new Decimal(
+        validRows.reduce((sum, r) => sum + (Number.isFinite(r.kVAr) ? r.kVAr * 0.5 : 0), 0),
+      ),
+      calc_power_factor: new Decimal(
+        validRows.reduce((sum, r) => sum + (Number.isFinite(r.pf) ? r.pf : 0), 0) /
+          validRows.length,
+      ),
+      invoice_id: invoice.invoiceNumber || invoice.invoiceNo || invoice.accountNumber || "",
+      invoice_number: invoice.invoiceNumber || invoice.invoiceNo || invoice.accountNumber || "",
       account_number: invoice.accountNumber || "",
       billing_start: invoice.billingPeriodStart || "",
       billing_end: invoice.billingPeriodEnd || "",
@@ -155,7 +147,8 @@ export function runAutomaticReconciliation(
     const payload = DeterministicReconciliationEngine.reconcile(input, tolerance);
     return {
       status: "COMPLETED",
-      message: "Reconciliation completed automatically for the uploaded documents.",
+      message:
+        "Reconciliation calculated from available 30-minute meter intervals. Partial coverage is not a complete billing-period verification.",
       payload,
     };
   } catch (err: any) {
