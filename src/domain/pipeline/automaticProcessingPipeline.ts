@@ -13,10 +13,7 @@ import { DeterministicReconciliationEngine } from "../reconciliation/reconciliat
 import { DeterministicDiagnosticsEngine } from "../discrepancy/deterministicDiagnosticsEngine";
 import { EnergyDataNormalizationEngine } from "../telemetry/energyDataNormalizationEngine";
 import { TariffStorageService } from "../tariff/tariffStorageService";
-import {
-  ALL_PRODUCTION_TARIFF_FIXTURES,
-  ESKOM_MEGAFLEX_2025_2026,
-} from "../tariff/tariffFixtures";
+import { ALL_PRODUCTION_TARIFF_FIXTURES, ESKOM_MEGAFLEX_2025_2026 } from "../tariff/tariffFixtures";
 import type {
   AutomatedPipelineInput,
   AutomatedPipelineResult,
@@ -298,25 +295,15 @@ export class AutomaticProcessingPipeline {
             (extractedInvoice as any).kvarh?.toString() ||
             "0",
         ),
-        billed_energy_charges_zar: new Decimal(
-          extractedInvoice.energyCharges?.toString() || "0",
-        ),
-        billed_demand_charges_zar: new Decimal(
-          extractedInvoice.demandCharges?.toString() || "0",
-        ),
-        billed_network_charges_zar: new Decimal(
-          extractedInvoice.networkCharges?.toString() || "0",
-        ),
-        billed_service_charges_zar: new Decimal(
-          extractedInvoice.serviceCharges?.toString() || "0",
-        ),
+        billed_energy_charges_zar: new Decimal(extractedInvoice.energyCharges?.toString() || "0"),
+        billed_demand_charges_zar: new Decimal(extractedInvoice.demandCharges?.toString() || "0"),
+        billed_network_charges_zar: new Decimal(extractedInvoice.networkCharges?.toString() || "0"),
+        billed_service_charges_zar: new Decimal(extractedInvoice.serviceCharges?.toString() || "0"),
         billed_ancillary_charges_zar: new Decimal(
           extractedInvoice.ancillaryCharges?.toString() || "0",
         ),
         billed_vat_zar: new Decimal(extractedInvoice.vat?.toString() || "0"),
-        billed_total_invoice_zar: new Decimal(
-          extractedInvoice.totalInvoice?.toString() || "0",
-        ),
+        billed_total_invoice_zar: new Decimal(extractedInvoice.totalInvoice?.toString() || "0"),
 
         // Calculated Telemetry from Normalized Summary
         calc_peak_kwh: new Decimal(normalizedSummary.peakKwh.toString()),
@@ -423,24 +410,12 @@ export class AutomaticProcessingPipeline {
    */
   private static buildFallbackInvoice(filename: string) {
     return {
-      accountNumber: "9182374650",
-      meterNumber: "MTR-90210",
-      tariff: "Megaflex High Voltage",
-      billingPeriod: "January 2025",
-      billingStart: "2025-01-01",
-      billingEnd: "2025-01-31",
-      peakKwh: 125000,
-      standardKwh: 340000,
-      offPeakKwh: 510000,
-      totalKwh: 975000,
-      billedMaximumDemand: 1850,
-      energyCharges: 2450000,
-      demandCharges: 350000,
-      networkCharges: 220000,
-      serviceCharges: 15000,
-      ancillaryCharges: 45000,
-      vat: 462000,
-      totalInvoice: 3542000,
+      accountNumber: "",
+      meterNumber: "",
+      tariff: "",
+      billingPeriod: "",
+      billingStart: "",
+      billingEnd: "",
     };
   }
 }
