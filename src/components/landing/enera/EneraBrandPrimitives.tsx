@@ -26,54 +26,23 @@ export function EneraBrandMark({
   showDescriptor = true,
   className = "",
 }: EneraBrandMarkProps) {
-  const imgSizeClasses = {
-    sm: "w-6 h-6",
-    md: "w-9 h-9",
-    lg: "w-12 h-12",
-  }[size];
-
-  const textSizeClasses = {
-    sm: {
-      logo: "text-sm tracking-[0.2em]",
-      descriptor: "text-[8px] tracking-[0.18em]",
-    },
-    md: {
-      logo: "text-base sm:text-lg tracking-[0.25em]",
-      descriptor: "text-[9px] tracking-[0.2em]",
-    },
-    lg: {
-      logo: "text-2xl tracking-[0.3em]",
-      descriptor: "text-[10px] tracking-[0.25em]",
-    },
-  }[size];
+  const widthClasses = { sm: "w-28", md: "w-40", lg: "w-56" }[size];
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      {/* ENERA AI Logo Mark */}
-      <div className={`shrink-0 ${imgSizeClasses}`}>
-        <img
-          src="/images/enera-ai-logo.jpg"
-          alt="ENERA AI Logo"
-          className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(6,182,212,0.35)]"
-          draggable={false}
-        />
-      </div>
-
-      <div className="flex flex-col">
-        <div className="flex items-center gap-2">
-          <span className={`font-mono font-bold text-white ${textSizeClasses.logo}`}>E N E R A</span>
-          <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-semibold">
-            AI
-          </span>
-        </div>
-        {showDescriptor && (
-          <span
-            className={`uppercase text-slate-400 font-medium font-mono ${textSizeClasses.descriptor}`}
-          >
-            Energy Financial Intelligence
-          </span>
-        )}
-      </div>
+    <div className={`inline-flex flex-col gap-2 ${className}`}>
+      <img
+        src="/images/enera-ai-logo.png"
+        alt="ENERA AI"
+        width={1585}
+        height={310}
+        className={`${widthClasses} h-auto object-contain rounded bg-[#030712] p-1`}
+        draggable={false}
+      />
+      {showDescriptor && (
+        <span className="uppercase text-slate-400 font-medium font-mono text-[9px] tracking-[0.18em]">
+          Energy Financial Intelligence
+        </span>
+      )}
     </div>
   );
 }

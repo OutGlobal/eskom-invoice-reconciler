@@ -1,3 +1,4 @@
+import { EneraBrandMark } from "@/components/landing/enera/EneraBrandPrimitives";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
@@ -206,6 +207,7 @@ export function SignInScreen({ onBypass }: { onBypass?: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg space-y-4">
+        <EneraBrandMark size="lg" showDescriptor={false} />
         <div>
           <div className="flex items-center gap-2 text-cyan-400">
             <ShieldCheck className="h-5 w-5 text-cyan-400" />
