@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "npm run test && vite build",
+    "build": "npm run test && npm run test:charges && vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "test": "tsx src/lib/__tests__/comprehensive_enterprise_test_suite.test.ts",
+    "test:charges": "tsx src/lib/__tests__/charge_comparison.test.ts",
     "test:all": "tsx src/lib/__tests__/run-tests.ts",
     "test:vitest": "vitest run",
     "lint": "eslint src/",
