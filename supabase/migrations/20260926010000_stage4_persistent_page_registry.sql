@@ -124,14 +124,10 @@ FOR ALL
 USING (
     organisation_id = auth.jwt() ->> 'organisation_id'::text
     OR organisation_id::text = current_setting('request.jwt.claim.organisation_id', true)
-    OR auth.role() = 'service_role'
-    OR auth.role() = 'authenticated'
 )
 WITH CHECK (
     organisation_id = auth.jwt() ->> 'organisation_id'::text
     OR organisation_id::text = current_setting('request.jwt.claim.organisation_id', true)
-    OR auth.role() = 'service_role'
-    OR auth.role() = 'authenticated'
 );
 
 -- 4. Canonical Updatable View: public.page_registry
