@@ -321,7 +321,7 @@ ALTER TABLE public.uploads ADD CONSTRAINT check_uploads_storage_path_safe CHECK 
     storage_path IS NULL OR (
         storage_path ~ '^tenants/[a-zA-Z0-9_-]+/.*$' AND
         storage_path NOT LIKE '%..%' AND
-        storage_path NOT LIKE '%\%' AND
+        position(E'\\\\' in storage_path) = 0 AND
         storage_path NOT LIKE '%//%' AND
         storage_path NOT LIKE '%' || chr(0) || '%'
     )
@@ -333,7 +333,7 @@ ALTER TABLE public.uploads ADD CONSTRAINT check_uploads_filename_safe CHECK (
     original_filename IS NULL OR (
         original_filename NOT LIKE '%..%' AND
         original_filename NOT LIKE '%/%' AND
-        original_filename NOT LIKE '%\%' AND
+        position(E'\\\\' in original_filename) = 0 AND
         original_filename NOT LIKE '%' || chr(0) || '%'
     )
 );
