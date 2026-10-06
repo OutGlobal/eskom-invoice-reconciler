@@ -210,48 +210,56 @@ USING (
 );
 
 -- (B) public.document_pages
-IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_pages') THEN
-    DROP POLICY IF EXISTS "Tenant select isolation for document_pages" ON public.document_pages;
-    CREATE POLICY "Tenant select isolation for document_pages"
-    ON public.document_pages
-    FOR SELECT
-    TO authenticated
-    USING (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    );
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_pages') THEN
+        EXECUTE 'DROP POLICY IF EXISTS "Tenant select isolation for document_pages" ON public.document_pages';
+        EXECUTE 'CREATE POLICY "Tenant select isolation for document_pages"
+        ON public.document_pages
+        FOR SELECT
+        TO authenticated
+        USING (
+            organisation_id = public.auth_user_organisation_id()
+            OR public.is_super_admin()
+        )';
 
-    DROP POLICY IF EXISTS "Tenant insert/update isolation for document_pages" ON public.document_pages;
-    CREATE POLICY "Tenant insert/update isolation for document_pages"
-    ON public.document_pages
-    FOR ALL
-    TO authenticated
-    USING (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    )
-    WITH CHECK (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    );
-END IF;
+        EXECUTE 'DROP POLICY IF EXISTS "Tenant insert/update isolation for document_pages" ON public.document_pages';
+        EXECUTE 'CREATE POLICY "Tenant insert/update isolation for document_pages"
+        ON public.document_pages
+        FOR ALL
+        TO authenticated
+        USING (
+            organisation_id = public.auth_user_organisation_id()
+            OR public.is_super_admin()
+        )
+        WITH CHECK (
+            organisation_id = public.auth_user_organisation_id()
+            OR public.is_super_admin()
+        )';
+    END IF;
+END
+$$;
 
 -- (C) public.document_field_evidence
-IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_field_evidence') THEN
-    DROP POLICY IF EXISTS "Tenant isolation for document_field_evidence" ON public.document_field_evidence;
-    CREATE POLICY "Tenant isolation for document_field_evidence"
-    ON public.document_field_evidence
-    FOR ALL
-    TO authenticated
-    USING (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    )
-    WITH CHECK (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    );
-END IF;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_field_evidence') THEN
+        EXECUTE 'DROP POLICY IF EXISTS "Tenant isolation for document_field_evidence" ON public.document_field_evidence';
+        EXECUTE 'CREATE POLICY "Tenant isolation for document_field_evidence"
+        ON public.document_field_evidence
+        FOR ALL
+        TO authenticated
+        USING (
+            organisation_id = public.auth_user_organisation_id()
+            OR public.is_super_admin()
+        )
+        WITH CHECK (
+            organisation_id = public.auth_user_organisation_id()
+            OR public.is_super_admin()
+        )';
+    END IF;
+END
+$$;
 
 -- (D) public.document_extraction_runs
 IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_extraction_runs') THEN
