@@ -175,6 +175,18 @@ COMMENT ON VIEW public.page_registry IS
 CREATE OR REPLACE FUNCTION public.fn_page_registry_insert()
 RETURNS TRIGGER AS $$
 BEGIN
+    IF NEW.organisation_id IS NULL OR NEW.organisation_id <> auth.uid() THEN
+        RAISE EXCEPTION 'organisation_id does not match authenticated user context';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM public.uploads u
+        WHERE u.id = NEW.document_id
+          AND u.organisation_id = NEW.organisation_id
+    ) THEN
+        RAISE EXCEPTION 'document_id is not accessible for organisation_id %', NEW.organisation_id;
+    END IF;
     INSERT INTO public.document_pages (
         id,
         document_id,
@@ -264,7 +276,7 @@ BEGIN
     RETURNING * INTO NEW;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 DROP TRIGGER IF EXISTS trg_page_registry_insert ON public.page_registry;
 CREATE TRIGGER trg_page_registry_insert
@@ -275,6 +287,19 @@ FOR EACH ROW EXECUTE FUNCTION public.fn_page_registry_insert();
 CREATE OR REPLACE FUNCTION public.fn_page_registry_update()
 RETURNS TRIGGER AS $$
 BEGIN
+    IF NEW.organisation_id IS NULL OR NEW.organisation_id <> auth.uid() THEN
+        RAISE EXCEPTION 'organisation_id does not match authenticated user context';
+    END IF;
+
+    IF NEW.document_id IS NOT NULL AND NOT EXISTS (
+        SELECT 1
+        FROM public.uploads u
+        WHERE u.id = NEW.document_id
+          AND u.organisation_id = NEW.organisation_id
+    ) THEN
+        RAISE EXCEPTION 'document_id is not accessible for organisation_id %', NEW.organisation_id;
+    END IF;
+
     UPDATE public.document_pages SET
         width = COALESCE(NEW.width, width),
         height = COALESCE(NEW.height, height),
@@ -300,11 +325,12 @@ BEGIN
         page_hash_sha256 = COALESCE(NEW.page_hash_sha256, page_hash_sha256),
         processing_timestamp = COALESCE(NEW.processing_timestamp, processing_timestamp),
         updated_at = now()
-    WHERE id = OLD.id OR (document_id = OLD.document_id AND page_number = OLD.page_number)
+    WHERE (id = OLD.id OR (document_id = OLD.document_id AND page_number = OLD.page_number))
+      AND organisation_id = auth.uid()
     RETURNING * INTO NEW;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 DROP TRIGGER IF EXISTS trg_page_registry_update ON public.page_registry;
 CREATE TRIGGER trg_page_registry_update
