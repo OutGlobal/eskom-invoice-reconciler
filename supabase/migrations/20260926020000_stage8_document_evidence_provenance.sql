@@ -51,11 +51,7 @@ CREATE POLICY "tenant_isolation_select_document_field_evidence"
     ON public.document_field_evidence
     FOR SELECT
     USING (
-        organisation_id = COALESCE(
-            current_setting('app.current_organisation_id', true),
-            '00000000-0000-0000-0000-000000000001'
-        )
-        OR organisation_id = '00000000-0000-0000-0000-000000000001'
+        organisation_id = public.auth_user_organisation_id()
     );
 
 DROP POLICY IF EXISTS "tenant_isolation_insert_document_field_evidence" ON public.document_field_evidence;
@@ -63,11 +59,7 @@ CREATE POLICY "tenant_isolation_insert_document_field_evidence"
     ON public.document_field_evidence
     FOR INSERT
     WITH CHECK (
-        organisation_id = COALESCE(
-            current_setting('app.current_organisation_id', true),
-            '00000000-0000-0000-0000-000000000001'
-        )
-        OR organisation_id = '00000000-0000-0000-0000-000000000001'
+        organisation_id = public.auth_user_organisation_id()
     );
 
 DROP POLICY IF EXISTS "tenant_isolation_update_document_field_evidence" ON public.document_field_evidence;
@@ -75,9 +67,5 @@ CREATE POLICY "tenant_isolation_update_document_field_evidence"
     ON public.document_field_evidence
     FOR UPDATE
     USING (
-        organisation_id = COALESCE(
-            current_setting('app.current_organisation_id', true),
-            '00000000-0000-0000-0000-000000000001'
-        )
-        OR organisation_id = '00000000-0000-0000-0000-000000000001'
+        organisation_id = public.auth_user_organisation_id()
     );
