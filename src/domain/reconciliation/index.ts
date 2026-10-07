@@ -27,3 +27,5 @@ export * from "./reconciliationStorageService";
 export * from "./autoReconciliationRunner";
 export * from "./reconciliationExceptions";
 export * from "./reconciliationStatus";
+export * from "./reconciliationAuditModel";
+export * from "./calculationVersioningEngine";

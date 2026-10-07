@@ -441,11 +441,12 @@ export class ReconciliationExceptionFactory {
     tolerance_threshold?: string;
     [key: string]: any;
   }): ReconciliationException {
+    const compCode = (evidence.component_code || "active_energy").toString();
     return this.create({
       code: "ENERGY_VARIANCE",
       severity: "HIGH",
-      affected_field: evidence.component_code.toLowerCase(),
-      description: `Energy variance on ${evidence.component_code}: Billed ${evidence.billed_kwh} kWh vs AMR ${evidence.amr_kwh} kWh (diff: ${evidence.absolute_variance} kWh) exceeds tolerance.`,
+      affected_field: compCode.toLowerCase(),
+      description: `Energy variance on ${compCode}: Billed ${evidence.billed_kwh ?? 0} kWh vs AMR ${evidence.amr_kwh ?? evidence.expected_kwh ?? 0} kWh (diff: ${evidence.absolute_variance ?? evidence.variance_kwh ?? 0} kWh) exceeds tolerance.`,
       evidence,
       source: "ENERGY_RECONCILIATION",
     });
