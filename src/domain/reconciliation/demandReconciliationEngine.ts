@@ -26,6 +26,7 @@ import {
   TariffPeriodDefinition,
   TouPeriod,
 } from "./touMappingEngine";
+import { VarianceEngine, type VariancePercentageStatus } from "./varianceEngine";
 
 export type DemandMeasurementUnit = "kVA" | "kW";
 
@@ -118,7 +119,8 @@ export interface DemandReconciliationResult {
 
   // Variances against applicable billed demand
   absolute_variance: Decimal; // invoice_demand - utilised_billing_demand
-  percentage_variance: Decimal; // (absolute_variance / utilised_billing_demand) * 100
+  percentage_variance: Decimal | null; // (absolute_variance / utilised_billing_demand) * 100; null when baseline = 0
+  percentage_variance_status: VariancePercentageStatus;
   variance_direction: "OVERBILLED" | "UNDERBILLED" | "EXACT_MATCH";
 
   // "Record the configured tolerance separately. Do not hide small variances."
@@ -351,14 +353,9 @@ export class DemandReconciliationEngine {
 
     // 6. Compare with Invoice Demand
     const invDemand = this.parseDecimal(input.invoice_demand_value);
-    const absoluteVariance = invDemand.minus(utilisedBillingDemand);
-
-    let percentageVariance = new Decimal(0);
-    if (!utilisedBillingDemand.isZero()) {
-      percentageVariance = absoluteVariance.dividedBy(utilisedBillingDemand).times(100);
-    } else if (!invDemand.isZero()) {
-      percentageVariance = new Decimal(100);
-    }
+    const variance = VarianceEngine.calculate(invDemand, utilisedBillingDemand);
+    const absoluteVariance = variance.absolute_variance;
+    const percentageVariance = variance.variance_percentage; // null when baseline is 0 (Req 21)
 
     // Direction
     let direction: "OVERBILLED" | "UNDERBILLED" | "EXACT_MATCH" = "EXACT_MATCH";
@@ -380,12 +377,10 @@ export class DemandReconciliationEngine {
     const tolSource = input.tolerance?.tolerance_rule_source ?? "DEFAULT_UTILITY_POLICY";
 
     const absVarianceMag = absoluteVariance.abs();
-    const pctVarianceMag = utilisedBillingDemand.isZero()
-      ? new Decimal(0)
-      : absVarianceMag.dividedBy(utilisedBillingDemand);
-
     const isWithinAbs = absVarianceMag.lessThanOrEqualTo(absTol);
-    const isWithinPct = pctVarianceMag.lessThanOrEqualTo(pctTol);
+    const isWithinPct = utilisedBillingDemand.isZero()
+      ? false
+      : absVarianceMag.dividedBy(utilisedBillingDemand).lessThanOrEqualTo(pctTol);
     const isWithinTolerance = isWithinAbs || isWithinPct;
 
     let discrepancyClassification: DiscrepancyClassification = "MATERIAL_DISCREPANCY";
@@ -397,7 +392,7 @@ export class DemandReconciliationEngine {
 
     const explanation = absoluteVariance.isZero()
       ? `Exact match: Invoice demand (${invDemand.toString()} ${unit}) matches AMR-derived utilised billing demand.`
-      : `Variance of ${absoluteVariance.toString()} ${unit} (${percentageVariance.toDecimalPlaces(4).toString()}%) ` +
+      : `Variance of ${absoluteVariance.toString()} ${unit} (${percentageVariance !== null ? percentageVariance.toDecimalPlaces(4).toString() + "%" : "percentage undefined: baseline is 0"}) ` +
         `against utilised billing demand (${utilisedBillingDemand.toString()} ${unit}). ` +
         `Configured tolerance: Absolute ${absTol.toString()} ${unit}, Percentage ${pctTol.times(100).toString()}%. ` +
         `Classification: ${discrepancyClassification}.`;
@@ -416,6 +411,7 @@ export class DemandReconciliationEngine {
       has_nmd_exceedance: hasNmdExceedance,
       absolute_variance: absoluteVariance,
       percentage_variance: percentageVariance,
+      percentage_variance_status: variance.percentage_status,
       variance_direction: direction,
       configured_tolerance: {
         absolute_tolerance: absTol,

@@ -260,7 +260,7 @@ async function runMasterTestSuite() {
   // Scenario 11: DST transition = correct (SAST UTC+2 constant)
   console.log("--- Scenario 11: DST transition = correct ---");
   const sastTou = TouScheduleEngine.resolveTouPeriod(
-    new Date("2025-07-02T08:00:00"),
+    new Date("2025-07-02T08:00:00+02:00"),
     ESKOM_MEGAFLEX_2025_2026,
   );
   assert(sastTou === "peak", "SAST timezone has zero DST shifts (08:00 is Peak in High Season)");
@@ -270,7 +270,7 @@ async function runMasterTestSuite() {
   // Scenario 12: Public holiday = correct
   console.log("--- Scenario 12: Public holiday = correct ---");
   const isFreedomDayObserved = TouScheduleEngine.isPublicHoliday(
-    new Date("2025-04-28T10:00:00"),
+    new Date("2025-04-28T10:00:00+02:00"),
     ESKOM_MEGAFLEX_2025_2026.public_holidays,
   ); // Monday after Freedom Day Sunday
   assert(
@@ -282,8 +282,8 @@ async function runMasterTestSuite() {
 
   // Scenario 13: Season transition = correct
   console.log("--- Scenario 13: Season transition = correct ---");
-  const lowSeasonTou = TouScheduleEngine.getSeason(new Date("2025-05-31T23:59:59"));
-  const highSeasonTou = TouScheduleEngine.getSeason(new Date("2025-06-01T00:00:00"));
+  const lowSeasonTou = TouScheduleEngine.getSeason(new Date("2025-05-31T23:59:59+02:00"));
+  const highSeasonTou = TouScheduleEngine.getSeason(new Date("2025-06-01T00:00:00+02:00"));
   assert(
     lowSeasonTou === "low" && highSeasonTou === "high",
     "May 31 Low Season vs Jun 1 High Season transition resolved",

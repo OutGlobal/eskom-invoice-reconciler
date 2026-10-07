@@ -26,6 +26,7 @@ import {
   TariffPeriodDefinition,
   TouConsumptionSummary,
 } from "./touMappingEngine";
+import { VarianceEngine, type VariancePercentageStatus } from "./varianceEngine";
 
 export type EnergyComponentCode =
   | "PEAK_KWH"
@@ -53,7 +54,8 @@ export interface EnergyComponentComparison {
   invoice_value: Decimal;
   amr_value: Decimal;
   absolute_variance: Decimal; // invoice_value - amr_value
-  percentage_variance: Decimal; // (absolute_variance / amr_value) * 100
+  percentage_variance: Decimal | null; // (absolute_variance / amr_value) * 100; null when amr_value = 0 (undefined)
+  percentage_variance_status: VariancePercentageStatus;
   unit_of_measure: "kWh" | "kVArh";
   variance_direction: VarianceDirection;
 
@@ -110,7 +112,7 @@ export interface EnergyReconciliationSummary {
   total_invoice_kwh: Decimal;
   total_amr_kwh: Decimal;
   net_active_kwh_variance: Decimal;
-  net_active_kwh_percentage_variance: Decimal;
+  net_active_kwh_percentage_variance: Decimal | null;
 
   has_material_discrepancy: boolean;
   all_components_within_tolerance: boolean;
@@ -200,17 +202,12 @@ export class EnergyReconciliationEngine {
 
     const tolSource = customTolerance?.source ?? defaultTol.tolerance_rule_source ?? "DEFAULT_UTILITY_POLICY";
 
-    // 1. Calculate absolute variance (invoice - amr)
+    // 1-2. Absolute and percentage variance via VarianceEngine (Requirement 21).
     // Positive means utility billed more energy than meter registered.
-    const absoluteVariance = invoiceVal.minus(amrVal);
-
-    // 2. Calculate percentage variance (relative to AMR registered energy)
-    let percentageVariance = new Decimal(0);
-    if (!amrVal.isZero()) {
-      percentageVariance = absoluteVariance.dividedBy(amrVal).times(100);
-    } else if (!invoiceVal.isZero()) {
-      percentageVariance = new Decimal(100); // Billed with zero AMR registered
-    }
+    // Percentage is null (never manufactured) when AMR registered energy is zero.
+    const variance = VarianceEngine.calculate(invoiceVal, amrVal);
+    const absoluteVariance = variance.absolute_variance;
+    const percentageVariance = variance.variance_percentage;
 
     // 3. Direction
     let direction: VarianceDirection = "EXACT_MATCH";
@@ -221,13 +218,12 @@ export class EnergyReconciliationEngine {
     }
 
     // 4. Tolerance check (evaluated against configured tolerance without hiding the variance)
+    // Percentage tolerance is not applicable when the percentage is undefined.
     const absVarianceMag = absoluteVariance.abs();
-    const pctVarianceMag = amrVal.isZero()
-      ? new Decimal(0)
-      : absVarianceMag.dividedBy(amrVal);
-
     const isWithinAbs = absVarianceMag.lessThanOrEqualTo(absTol);
-    const isWithinPct = pctVarianceMag.lessThanOrEqualTo(pctTol);
+    const isWithinPct = amrVal.isZero()
+      ? false
+      : absVarianceMag.dividedBy(amrVal).lessThanOrEqualTo(pctTol);
     const isWithinTolerance = isWithinAbs || isWithinPct;
 
     let discrepancyClassification: DiscrepancyClassification = "MATERIAL_DISCREPANCY";
@@ -240,7 +236,7 @@ export class EnergyReconciliationEngine {
     // 5. Plain-English audit explanation preserving full mathematical details
     const explanation = absoluteVariance.isZero()
       ? `Exact match: Invoice ${name} equals AMR registered ${name} (${amrVal.toString()} ${unit}).`
-      : `Variance of ${absoluteVariance.toString()} ${unit} (${percentageVariance.toDecimalPlaces(4).toString()}%) ` +
+      : `Variance of ${absoluteVariance.toString()} ${unit} (${percentageVariance !== null ? percentageVariance.toDecimalPlaces(4).toString() + "%" : "percentage undefined: AMR baseline is 0"}) ` +
         `evaluated against configured tolerance (Absolute: ${absTol.toString()} ${unit}, Percentage: ${pctTol.times(100).toString()}%). ` +
         `Classification: ${discrepancyClassification}.`;
 
@@ -251,6 +247,7 @@ export class EnergyReconciliationEngine {
       amr_value: amrVal,
       absolute_variance: absoluteVariance,
       percentage_variance: percentageVariance,
+      percentage_variance_status: variance.percentage_status,
       unit_of_measure: unit,
       variance_direction: direction,
       configured_tolerance: {
@@ -361,10 +358,7 @@ export class EnergyReconciliationEngine {
 
     // Net active variance and percentage
     const netActiveVariance = invTotal.minus(amrTotal);
-    let netActivePctVariance = new Decimal(0);
-    if (!amrTotal.isZero()) {
-      netActivePctVariance = netActiveVariance.dividedBy(amrTotal).times(100);
-    }
+    const netActivePctVariance = VarianceEngine.calculate(invTotal, amrTotal).variance_percentage;
 
     const hasMaterialDiscrepancy = allComponents.some(
       (c) => c.discrepancy_classification === "MATERIAL_DISCREPANCY"

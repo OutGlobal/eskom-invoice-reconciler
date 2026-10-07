@@ -85,6 +85,7 @@ export default defineConfig({
       "src/lib/__tests__/reconciliation_power_factor_and_tou_mapping.test.ts",
       "src/lib/__tests__/energy_and_demand_reconciliation.test.ts",
       "src/lib/__tests__/reactive_energy_and_charge_reconciliation.test.ts",
+      "src/lib/__tests__/expected_vs_billed_and_variance_engine.test.ts",
     ],
     testTimeout: 60000,
     fileParallelism: false,

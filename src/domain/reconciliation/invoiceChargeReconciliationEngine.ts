@@ -31,6 +31,7 @@ import type {
   SeasonType,
   TouPeriodType,
 } from "../tariff/types";
+import { VarianceEngine } from "./varianceEngine";
 
 /**
  * Interface 1: Tariff Engine Output Contract
@@ -86,7 +87,7 @@ export interface ExpectedChargeItem {
   expected_charge_zar: Decimal;
   billed_charge_zar?: Decimal;
   charge_variance_zar?: Decimal; // billed - expected
-  percentage_variance?: Decimal; // (variance / expected) * 100
+  percentage_variance?: Decimal | null; // (variance / expected) * 100; null when expected = 0 (undefined)
   is_within_tolerance?: boolean;
   discrepancy_classification?: "EXACT_MATCH" | "WITHIN_TOLERANCE" | "MATERIAL_DISCREPANCY";
   rate_lineage: {
@@ -341,27 +342,22 @@ export class InvoiceChargeReconciliationEngine {
 
       let billedCharge: Decimal | undefined;
       let chargeVar: Decimal | undefined;
-      let pctVar: Decimal | undefined;
+      let pctVar: Decimal | null | undefined;
       let isWithinTol: boolean | undefined;
       let classification: "EXACT_MATCH" | "WITHIN_TOLERANCE" | "MATERIAL_DISCREPANCY" | undefined;
 
       if (det.billed_amount_zar !== undefined && det.billed_amount_zar !== null) {
         billedCharge = this.parseDecimal(det.billed_amount_zar);
-        chargeVar = billedCharge.minus(expectedCharge);
-
-        if (!expectedCharge.isZero()) {
-          pctVar = chargeVar.dividedBy(expectedCharge).times(100);
-        } else if (!billedCharge.isZero()) {
-          pctVar = new Decimal(100);
-        } else {
-          pctVar = new Decimal(0);
-        }
+        const variance = VarianceEngine.calculate(billedCharge, expectedCharge);
+        chargeVar = variance.absolute_variance;
+        pctVar = variance.variance_percentage; // null when expected = 0 (Req 21)
 
         const absVarMag = chargeVar.abs();
-        const pctVarMag = expectedCharge.isZero() ? new Decimal(0) : absVarMag.dividedBy(expectedCharge);
-
         const isAbsOk = absVarMag.lessThanOrEqualTo(absTol);
-        const isPctOk = pctVarMag.lessThanOrEqualTo(pctTol);
+        // Percentage tolerance is not applicable when the percentage is undefined
+        const isPctOk = expectedCharge.isZero()
+          ? false
+          : absVarMag.dividedBy(expectedCharge).lessThanOrEqualTo(pctTol);
         isWithinTol = isAbsOk || isPctOk;
 
         if (chargeVar.isZero()) {

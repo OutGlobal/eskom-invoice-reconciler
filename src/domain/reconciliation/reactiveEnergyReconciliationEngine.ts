@@ -20,6 +20,7 @@ import {
   PowerFactorAuditRecord,
   PowerFactorDirection,
 } from "./powerFactorEngine";
+import { VarianceEngine, type VariancePercentageStatus } from "./varianceEngine";
 
 export type ReactivePenaltyStatus =
   | "SKIPPED_NO_TARIFF_RULE"
@@ -68,7 +69,8 @@ export interface ReactiveEnergyComparison {
   invoice_kvarh?: Decimal;
   amr_kvarh?: Decimal;
   absolute_variance?: Decimal; // invoice - amr
-  percentage_variance?: Decimal; // (absolute / amr) * 100
+  percentage_variance?: Decimal | null; // (absolute / amr) * 100; null when amr = 0 (undefined)
+  percentage_variance_status?: VariancePercentageStatus;
   is_significant_difference: boolean;
   variance_direction?: "OVERBILLED" | "UNDERBILLED" | "EXACT_MATCH";
   kvarh_data_available: boolean;
@@ -194,13 +196,9 @@ export class ReactiveEnergyReconciliationEngine {
     let kvarhComp: ReactiveEnergyComparison;
 
     if (invKvarh !== null && amrKvarh !== null) {
-      const absVar = invKvarh.minus(amrKvarh);
-      let pctVar = new Decimal(0);
-      if (!amrKvarh.isZero()) {
-        pctVar = absVar.dividedBy(amrKvarh).times(100);
-      } else if (!invKvarh.isZero()) {
-        pctVar = new Decimal(100);
-      }
+      const variance = VarianceEngine.calculate(invKvarh, amrKvarh);
+      const absVar = variance.absolute_variance;
+      const pctVar = variance.variance_percentage; // null when AMR kVArh = 0 (Req 21)
 
       let dir: "OVERBILLED" | "UNDERBILLED" | "EXACT_MATCH" = "EXACT_MATCH";
       if (absVar.greaterThan(0)) dir = "OVERBILLED";
@@ -208,12 +206,13 @@ export class ReactiveEnergyReconciliationEngine {
 
       const isSignificant =
         absVar.abs().greaterThan(kvarhAbsThreshold) &&
-        (amrKvarh.isZero() || pctVar.abs().dividedBy(100).greaterThan(kvarhPctThreshold));
+        (pctVar === null || pctVar.abs().dividedBy(100).greaterThan(kvarhPctThreshold));
 
       if (isSignificant) {
         flaggedReasons.push(
           `Significant reactive energy variance: Invoice (${invKvarh.toString()} kVArh) vs ` +
-            `AMR (${amrKvarh.toString()} kVArh), difference of ${absVar.toString()} kVArh (${pctVar.toDecimalPlaces(2).toString()}%).`
+            `AMR (${amrKvarh.toString()} kVArh), difference of ${absVar.toString()} kVArh ` +
+            `(${pctVar !== null ? pctVar.toDecimalPlaces(2).toString() + "%" : "percentage undefined: AMR kVArh is 0"}).`
         );
       }
 
@@ -222,6 +221,7 @@ export class ReactiveEnergyReconciliationEngine {
         amr_kvarh: amrKvarh,
         absolute_variance: absVar,
         percentage_variance: pctVar,
+        percentage_variance_status: variance.percentage_status,
         is_significant_difference: isSignificant,
         variance_direction: dir,
         kvarh_data_available: true,
