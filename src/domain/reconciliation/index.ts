@@ -25,3 +25,5 @@ export * from "./varianceEngine";
 export * from "./expectedVsBilledModel";
 export * from "./reconciliationStorageService";
 export * from "./autoReconciliationRunner";
+export * from "./reconciliationExceptions";
+export * from "./reconciliationStatus";
