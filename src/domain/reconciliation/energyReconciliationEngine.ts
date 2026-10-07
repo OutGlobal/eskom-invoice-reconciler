@@ -27,6 +27,11 @@ import {
   TouConsumptionSummary,
 } from "./touMappingEngine";
 import { VarianceEngine, type VariancePercentageStatus } from "./varianceEngine";
+import type { VarianceStatus } from "./varianceStatus";
+import {
+  CentralToleranceRegistry,
+  type RecordedTolerance,
+} from "./toleranceModel";
 
 export type EnergyComponentCode =
   | "PEAK_KWH"
@@ -66,6 +71,10 @@ export interface EnergyComponentComparison {
     tolerance_rule_source: string;
   };
   is_within_tolerance: boolean;
+  /** Authoritative business variance status (Requirement 22) */
+  variance_status: VarianceStatus;
+  /** Recorded tolerance snapshot used for this comparison (Requirement 23) */
+  recorded_tolerance: RecordedTolerance;
   discrepancy_classification: DiscrepancyClassification;
   explanation: string;
 }
@@ -116,6 +125,10 @@ export interface EnergyReconciliationSummary {
 
   has_material_discrepancy: boolean;
   all_components_within_tolerance: boolean;
+  /** Authoritative overall variance status (Requirement 22) */
+  overall_variance_status: VarianceStatus;
+  /** Recorded tolerance snapshots used for every component (Requirement 23) */
+  recorded_tolerances: RecordedTolerance[];
   summation_integrity: {
     invoice_components_sum: Decimal;
     invoice_stated_total: Decimal;
@@ -200,14 +213,24 @@ export class EnergyReconciliationEngine {
       ? new Decimal(String(customTolerance.percentage))
       : defaultTol.percentage_tolerance;
 
-    const tolSource = customTolerance?.source ?? defaultTol.tolerance_rule_source ?? "DEFAULT_UTILITY_POLICY";
+    // 1-2. Centrally evaluate against energy_quantity or reactive_energy dimension (Requirement 22 & 23)
+    const dimEval = CentralToleranceRegistry.evaluateDimension(
+      code === "REACTIVE_KVARH" ? "reactive_energy" : "energy_quantity",
+      invoiceVal,
+      amrVal,
+      {
+        customAbsolute: customTolerance?.absolute,
+        customPercentage: customTolerance?.percentage,
+        customUnit: unit,
+      }
+    );
 
-    // 1-2. Absolute and percentage variance via VarianceEngine (Requirement 21).
-    // Positive means utility billed more energy than meter registered.
-    // Percentage is null (never manufactured) when AMR registered energy is zero.
-    const variance = VarianceEngine.calculate(invoiceVal, amrVal);
+    const variance = dimEval.variance;
     const absoluteVariance = variance.absolute_variance;
     const percentageVariance = variance.variance_percentage;
+    const isWithinTolerance = dimEval.is_within_tolerance;
+    const varianceStatus = dimEval.status;
+    const recordedTolerance = dimEval.recorded_tolerance;
 
     // 3. Direction
     let direction: VarianceDirection = "EXACT_MATCH";
@@ -217,28 +240,19 @@ export class EnergyReconciliationEngine {
       direction = "UNDERBILLED";
     }
 
-    // 4. Tolerance check (evaluated against configured tolerance without hiding the variance)
-    // Percentage tolerance is not applicable when the percentage is undefined.
-    const absVarianceMag = absoluteVariance.abs();
-    const isWithinAbs = absVarianceMag.lessThanOrEqualTo(absTol);
-    const isWithinPct = amrVal.isZero()
-      ? false
-      : absVarianceMag.dividedBy(amrVal).lessThanOrEqualTo(pctTol);
-    const isWithinTolerance = isWithinAbs || isWithinPct;
-
     let discrepancyClassification: DiscrepancyClassification = "MATERIAL_DISCREPANCY";
-    if (absoluteVariance.isZero()) {
+    if (varianceStatus === "MATCH") {
       discrepancyClassification = "EXACT_MATCH";
-    } else if (isWithinTolerance) {
+    } else if (varianceStatus === "WITHIN_TOLERANCE") {
       discrepancyClassification = "WITHIN_TOLERANCE";
     }
 
-    // 5. Plain-English audit explanation preserving full mathematical details
+    // 4. Plain-English audit explanation preserving full mathematical details
     const explanation = absoluteVariance.isZero()
-      ? `Exact match: Invoice ${name} equals AMR registered ${name} (${amrVal.toString()} ${unit}).`
+      ? `Exact match: Invoice ${name} equals AMR registered ${name} (${amrVal.toString()} ${unit}). Status: MATCH.`
       : `Variance of ${absoluteVariance.toString()} ${unit} (${percentageVariance !== null ? percentageVariance.toDecimalPlaces(4).toString() + "%" : "percentage undefined: AMR baseline is 0"}) ` +
-        `evaluated against configured tolerance (Absolute: ${absTol.toString()} ${unit}, Percentage: ${pctTol.times(100).toString()}%). ` +
-        `Classification: ${discrepancyClassification}.`;
+        `evaluated against centrally recorded tolerance (${recordedTolerance.applied_rule}). ` +
+        `Status: ${varianceStatus}. Classification: ${discrepancyClassification}.`;
 
     return {
       component_code: code,
@@ -251,11 +265,13 @@ export class EnergyReconciliationEngine {
       unit_of_measure: unit,
       variance_direction: direction,
       configured_tolerance: {
-        absolute_tolerance: absTol,
-        percentage_tolerance: pctTol,
-        tolerance_rule_source: tolSource,
+        absolute_tolerance: recordedTolerance.absolute_threshold ?? absTol,
+        percentage_tolerance: recordedTolerance.percentage_threshold ?? pctTol,
+        tolerance_rule_source: recordedTolerance.source,
       },
       is_within_tolerance: isWithinTolerance,
+      variance_status: varianceStatus,
+      recorded_tolerance: recordedTolerance,
       discrepancy_classification: discrepancyClassification,
       explanation,
     };
@@ -366,6 +382,22 @@ export class EnergyReconciliationEngine {
 
     const allWithinTolerance = allComponents.every((c) => c.is_within_tolerance);
 
+    // Derive overall authoritative variance status (Requirement 22)
+    let overallStatus: VarianceStatus = "MATCH";
+    if (allComponents.some((c) => c.variance_status === "OUTSIDE_TOLERANCE")) {
+      overallStatus = "OUTSIDE_TOLERANCE";
+    } else if (allComponents.some((c) => c.variance_status === "UNRESOLVED")) {
+      overallStatus = "UNRESOLVED";
+    } else if (allComponents.some((c) => c.variance_status === "INSUFFICIENT_DATA")) {
+      overallStatus = "INSUFFICIENT_DATA";
+    } else if (allComponents.some((c) => c.variance_status === "WITHIN_TOLERANCE")) {
+      overallStatus = "WITHIN_TOLERANCE";
+    }
+
+    const recordedTolerances: RecordedTolerance[] = allComponents.map(
+      (c) => c.recorded_tolerance
+    );
+
     // Summation integrity cross-check
     const invoiceComponentsSum = invPeak.plus(invStd).plus(invOff);
     const invoiceSumMatches = invoiceComponentsSum.equals(invTotal);
@@ -386,6 +418,8 @@ export class EnergyReconciliationEngine {
       net_active_kwh_percentage_variance: netActivePctVariance,
       has_material_discrepancy: hasMaterialDiscrepancy,
       all_components_within_tolerance: allWithinTolerance,
+      overall_variance_status: overallStatus,
+      recorded_tolerances: recordedTolerances,
       summation_integrity: {
         invoice_components_sum: invoiceComponentsSum,
         invoice_stated_total: invTotal,

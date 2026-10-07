@@ -27,6 +27,11 @@ import {
   TouPeriod,
 } from "./touMappingEngine";
 import { VarianceEngine, type VariancePercentageStatus } from "./varianceEngine";
+import type { VarianceStatus } from "./varianceStatus";
+import {
+  CentralToleranceRegistry,
+  type RecordedTolerance,
+} from "./toleranceModel";
 
 export type DemandMeasurementUnit = "kVA" | "kW";
 
@@ -130,6 +135,10 @@ export interface DemandReconciliationResult {
     tolerance_rule_source: string;
   };
   is_within_tolerance: boolean;
+  /** Authoritative business variance status (Requirement 22) */
+  variance_status: VarianceStatus;
+  /** Recorded tolerance snapshot used for this reconciliation (Requirement 23) */
+  recorded_tolerance: RecordedTolerance;
   discrepancy_classification: DiscrepancyClassification;
 
   // Breakdown across TOU periods
@@ -351,11 +360,25 @@ export class DemandReconciliationEngine {
       }
     }
 
-    // 6. Compare with Invoice Demand
+    // 6. Centrally evaluate against demand dimension (Requirement 22 & 23)
     const invDemand = this.parseDecimal(input.invoice_demand_value);
-    const variance = VarianceEngine.calculate(invDemand, utilisedBillingDemand);
+    const dimEval = CentralToleranceRegistry.evaluateDimension(
+      "demand",
+      invDemand,
+      utilisedBillingDemand,
+      {
+        customAbsolute: input.tolerance?.absolute_tolerance,
+        customPercentage: input.tolerance?.percentage_tolerance,
+        customUnit: unit,
+      }
+    );
+
+    const variance = dimEval.variance;
     const absoluteVariance = variance.absolute_variance;
     const percentageVariance = variance.variance_percentage; // null when baseline is 0 (Req 21)
+    const isWithinTolerance = dimEval.is_within_tolerance;
+    const varianceStatus = dimEval.status;
+    const recordedTolerance = dimEval.recorded_tolerance;
 
     // Direction
     let direction: "OVERBILLED" | "UNDERBILLED" | "EXACT_MATCH" = "EXACT_MATCH";
@@ -365,37 +388,19 @@ export class DemandReconciliationEngine {
       direction = "UNDERBILLED";
     }
 
-    // 7. Tolerance Evaluation
-    const absTol = input.tolerance?.absolute_tolerance !== undefined
-      ? new Decimal(String(input.tolerance.absolute_tolerance))
-      : this.DEFAULT_ABSOLUTE_TOLERANCE;
-
-    const pctTol = input.tolerance?.percentage_tolerance !== undefined
-      ? new Decimal(String(input.tolerance.percentage_tolerance))
-      : this.DEFAULT_PERCENTAGE_TOLERANCE;
-
-    const tolSource = input.tolerance?.tolerance_rule_source ?? "DEFAULT_UTILITY_POLICY";
-
-    const absVarianceMag = absoluteVariance.abs();
-    const isWithinAbs = absVarianceMag.lessThanOrEqualTo(absTol);
-    const isWithinPct = utilisedBillingDemand.isZero()
-      ? false
-      : absVarianceMag.dividedBy(utilisedBillingDemand).lessThanOrEqualTo(pctTol);
-    const isWithinTolerance = isWithinAbs || isWithinPct;
-
     let discrepancyClassification: DiscrepancyClassification = "MATERIAL_DISCREPANCY";
-    if (absoluteVariance.isZero()) {
+    if (varianceStatus === "MATCH") {
       discrepancyClassification = "EXACT_MATCH";
-    } else if (isWithinTolerance) {
+    } else if (varianceStatus === "WITHIN_TOLERANCE") {
       discrepancyClassification = "WITHIN_TOLERANCE";
     }
 
     const explanation = absoluteVariance.isZero()
-      ? `Exact match: Invoice demand (${invDemand.toString()} ${unit}) matches AMR-derived utilised billing demand.`
+      ? `Exact match: Invoice demand (${invDemand.toString()} ${unit}) matches AMR-derived utilised billing demand. Status: MATCH.`
       : `Variance of ${absoluteVariance.toString()} ${unit} (${percentageVariance !== null ? percentageVariance.toDecimalPlaces(4).toString() + "%" : "percentage undefined: baseline is 0"}) ` +
         `against utilised billing demand (${utilisedBillingDemand.toString()} ${unit}). ` +
-        `Configured tolerance: Absolute ${absTol.toString()} ${unit}, Percentage ${pctTol.times(100).toString()}%. ` +
-        `Classification: ${discrepancyClassification}.`;
+        `Centrally recorded tolerance: ${recordedTolerance.applied_rule}. ` +
+        `Status: ${varianceStatus}. Classification: ${discrepancyClassification}.`;
 
     return {
       invoice_demand: invDemand,
@@ -414,11 +419,13 @@ export class DemandReconciliationEngine {
       percentage_variance_status: variance.percentage_status,
       variance_direction: direction,
       configured_tolerance: {
-        absolute_tolerance: absTol,
-        percentage_tolerance: pctTol,
-        tolerance_rule_source: tolSource,
+        absolute_tolerance: recordedTolerance.absolute_threshold ?? absTol,
+        percentage_tolerance: recordedTolerance.percentage_threshold ?? pctTol,
+        tolerance_rule_source: recordedTolerance.source,
       },
       is_within_tolerance: isWithinTolerance,
+      variance_status: varianceStatus,
+      recorded_tolerance: recordedTolerance,
       discrepancy_classification: discrepancyClassification,
       tou_demand_breakdown: touBreakdown,
       methodology_record: {

@@ -59,8 +59,13 @@ export type ToleranceOutcome =
   /** No tolerance configured; a non-zero variance cannot be classified as acceptable */
   | "NO_TOLERANCE_CONFIGURED";
 
+import type { VarianceStatus } from "./varianceStatus";
+export type { VarianceStatus };
+
 export interface ToleranceEvaluation {
   outcome: ToleranceOutcome;
+  /** Authoritative business variance status (Requirement 22) */
+  status: VarianceStatus;
   within_absolute: boolean | null;
   within_percentage: boolean | null;
   absolute_tolerance: Decimal | null;
@@ -166,18 +171,24 @@ export class VarianceEngine {
     const rule = ruleParts.length ? ruleParts.join(" OR ") : "No tolerance configured";
 
     let outcome: ToleranceOutcome;
+    let status: VarianceStatus;
     if (variance.absolute_variance.isZero()) {
       outcome = "EXACT_MATCH";
+      status = "MATCH";
     } else if (!absTol && !pctTol) {
       outcome = "NO_TOLERANCE_CONFIGURED";
+      status = "OUTSIDE_TOLERANCE";
     } else if (withinAbs === true || withinPct === true) {
       outcome = "WITHIN_TOLERANCE";
+      status = "WITHIN_TOLERANCE";
     } else {
       outcome = "OUTSIDE_TOLERANCE";
+      status = "OUTSIDE_TOLERANCE";
     }
 
     return {
       outcome,
+      status,
       within_absolute: withinAbs,
       within_percentage: withinPct,
       absolute_tolerance: absTol,

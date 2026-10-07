@@ -5,6 +5,8 @@
 
 import Decimal from "decimal.js-light";
 import type { ComponentTolerance, ReconciliationConfig } from "./types";
+import { type VarianceStatus, resolveVarianceStatus } from "./varianceStatus";
+import { CentralToleranceRegistry, type RecordedTolerance } from "./toleranceModel";
 
 export class ToleranceEngine {
   /**
@@ -133,7 +135,14 @@ export class ToleranceEngine {
     billed: Decimal,
     calculated: Decimal,
     tolerance: ComponentTolerance,
-  ): { isWithinTolerance: boolean; isRoundingOnly: boolean; absVar: Decimal; pctVar: Decimal } {
+  ): {
+    isWithinTolerance: boolean;
+    isRoundingOnly: boolean;
+    absVar: Decimal;
+    pctVar: Decimal;
+    status: VarianceStatus;
+    recorded_tolerance: RecordedTolerance;
+  } {
     const absVar = billed.sub(calculated).abs();
 
     let pctVar = new Decimal(0);
@@ -149,11 +158,34 @@ export class ToleranceEngine {
     const isWithinTolerance = isAbsOK || isPctOK;
     const isRoundingOnly = absVar.gt(0) && absVar.lte(new Decimal("0.10"));
 
+    const status: VarianceStatus = resolveVarianceStatus({
+      hasSufficientData: true,
+      isExactMatch: absVar.isZero(),
+      isWithinTolerance,
+    });
+
+    const recordedTolerance: RecordedTolerance = CentralToleranceRegistry.recordTolerance(
+      tolerance.unit === "kWh"
+        ? "energy_quantity"
+        : tolerance.unit === "kVA" || tolerance.unit === "kW"
+          ? "demand"
+          : tolerance.unit === "kVARh" || tolerance.unit === "kVArh"
+            ? "reactive_energy"
+            : "financial_amount",
+      {
+        customAbsolute: tolerance.absolute_tolerance_zar,
+        customPercentage: tolerance.percentage_tolerance.times(100),
+        customUnit: tolerance.unit,
+      }
+    );
+
     return {
       isWithinTolerance,
       isRoundingOnly,
       absVar,
       pctVar,
+      status,
+      recorded_tolerance: recordedTolerance,
     };
   }
 }

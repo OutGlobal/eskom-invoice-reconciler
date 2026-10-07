@@ -19,6 +19,8 @@ export * from "./energyReconciliationEngine";
 export * from "./demandReconciliationEngine";
 export * from "./reactiveEnergyReconciliationEngine";
 export * from "./invoiceChargeReconciliationEngine";
+export * from "./varianceStatus";
+export * from "./toleranceModel";
 export * from "./varianceEngine";
 export * from "./expectedVsBilledModel";
 export * from "./reconciliationStorageService";

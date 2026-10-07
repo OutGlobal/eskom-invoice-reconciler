@@ -21,6 +21,11 @@ import {
   PowerFactorDirection,
 } from "./powerFactorEngine";
 import { VarianceEngine, type VariancePercentageStatus } from "./varianceEngine";
+import type { VarianceStatus } from "./varianceStatus";
+import {
+  CentralToleranceRegistry,
+  type RecordedTolerance,
+} from "./toleranceModel";
 
 export type ReactivePenaltyStatus =
   | "SKIPPED_NO_TARIFF_RULE"
@@ -74,6 +79,10 @@ export interface ReactiveEnergyComparison {
   is_significant_difference: boolean;
   variance_direction?: "OVERBILLED" | "UNDERBILLED" | "EXACT_MATCH";
   kvarh_data_available: boolean;
+  /** Authoritative business variance status (Requirement 22) */
+  variance_status: VarianceStatus;
+  /** Recorded tolerance snapshot used for this comparison (Requirement 23) */
+  recorded_tolerance: RecordedTolerance;
 }
 
 export interface PowerFactorComparison {
@@ -86,6 +95,10 @@ export interface PowerFactorComparison {
   has_direction_mismatch: boolean; // e.g. invoice claims lagging when meter shows leading
   pf_data_available: boolean;
   amr_pf_audit?: PowerFactorAuditRecord;
+  /** Authoritative business variance status (Requirement 22) */
+  variance_status: VarianceStatus;
+  /** Recorded tolerance snapshot used for this comparison (Requirement 23) */
+  recorded_tolerance: RecordedTolerance;
 }
 
 export interface ReactivePenaltyResult {
@@ -104,6 +117,10 @@ export interface ReactiveEnergyReconciliationResult {
   reactive_penalty: ReactivePenaltyResult;
   has_significant_discrepancy: boolean;
   flagged_reasons: string[];
+  /** Authoritative overall variance status (Requirement 22) */
+  overall_variance_status: VarianceStatus;
+  /** Recorded tolerance snapshots used for every component (Requirement 23) */
+  recorded_tolerances: RecordedTolerance[];
   audit_timestamp: string;
 }
 
@@ -196,7 +213,18 @@ export class ReactiveEnergyReconciliationEngine {
     let kvarhComp: ReactiveEnergyComparison;
 
     if (invKvarh !== null && amrKvarh !== null) {
-      const variance = VarianceEngine.calculate(invKvarh, amrKvarh);
+      const dimEval = CentralToleranceRegistry.evaluateDimension(
+        "reactive_energy",
+        invKvarh,
+        amrKvarh,
+        {
+          customAbsolute: input.significance_thresholds?.kvarh_absolute_threshold,
+          customPercentage: input.significance_thresholds?.kvarh_percentage_threshold,
+          customUnit: "kVArh",
+        }
+      );
+
+      const variance = dimEval.variance;
       const absVar = variance.absolute_variance;
       const pctVar = variance.variance_percentage; // null when AMR kVArh = 0 (Req 21)
 
@@ -204,15 +232,14 @@ export class ReactiveEnergyReconciliationEngine {
       if (absVar.greaterThan(0)) dir = "OVERBILLED";
       else if (absVar.lessThan(0)) dir = "UNDERBILLED";
 
-      const isSignificant =
-        absVar.abs().greaterThan(kvarhAbsThreshold) &&
-        (pctVar === null || pctVar.abs().dividedBy(100).greaterThan(kvarhPctThreshold));
+      const isSignificant = !dimEval.is_within_tolerance && !variance.absolute_variance.isZero();
 
       if (isSignificant) {
         flaggedReasons.push(
           `Significant reactive energy variance: Invoice (${invKvarh.toString()} kVArh) vs ` +
             `AMR (${amrKvarh.toString()} kVArh), difference of ${absVar.toString()} kVArh ` +
-            `(${pctVar !== null ? pctVar.toDecimalPlaces(2).toString() + "%" : "percentage undefined: AMR kVArh is 0"}).`
+            `(${pctVar !== null ? pctVar.toDecimalPlaces(2).toString() + "%" : "percentage undefined: AMR kVArh is 0"}). ` +
+            `Status: ${dimEval.status}.`
         );
       }
 
@@ -225,13 +252,20 @@ export class ReactiveEnergyReconciliationEngine {
         is_significant_difference: isSignificant,
         variance_direction: dir,
         kvarh_data_available: true,
+        variance_status: dimEval.status,
+        recorded_tolerance: dimEval.recorded_tolerance,
       };
     } else {
+      const recordedTolerance = CentralToleranceRegistry.recordTolerance("reactive_energy", {
+        customUnit: "kVArh",
+      });
       kvarhComp = {
         invoice_kvarh: invKvarh ?? undefined,
         amr_kvarh: amrKvarh ?? undefined,
         is_significant_difference: false,
         kvarh_data_available: false,
+        variance_status: "INSUFFICIENT_DATA",
+        recorded_tolerance: recordedTolerance,
       };
     }
 
@@ -244,14 +278,6 @@ export class ReactiveEnergyReconciliationEngine {
     let pfComp: PowerFactorComparison;
     if (invPf !== null && amrPf !== null) {
       const pfDiff = invPf.minus(amrPf);
-      const isSignificantPf = pfDiff.abs().greaterThan(pfDiffThreshold);
-
-      if (isSignificantPf) {
-        flaggedReasons.push(
-          `Significant power factor difference: Invoice PF (${invPf.toString()}) vs ` +
-            `AMR-derived PF (${amrPf.toString()}), variance of ${pfDiff.toString()} exceeds threshold of ${pfDiffThreshold.toString()}.`
-        );
-      }
 
       // Check quadrant/direction mismatch (e.g. capacitive vs inductive)
       let directionMismatch = false;
@@ -269,6 +295,29 @@ export class ReactiveEnergyReconciliationEngine {
         );
       }
 
+      const dimEval = CentralToleranceRegistry.evaluateDimension(
+        "reactive_energy",
+        invPf,
+        amrPf,
+        {
+          customAbsolute: pfDiffThreshold,
+          customUnit: "PF",
+          unresolvedReason: directionMismatch
+            ? `Power factor direction mismatch: Invoice states ${invDirection.toUpperCase()}, but AMR telemetry registers ${amrDirection.toUpperCase()}.`
+            : undefined,
+        }
+      );
+
+      const isSignificantPf = !dimEval.is_within_tolerance && !pfDiff.isZero();
+
+      if (isSignificantPf) {
+        flaggedReasons.push(
+          `Significant power factor difference: Invoice PF (${invPf.toString()}) vs ` +
+            `AMR-derived PF (${amrPf.toString()}), variance of ${pfDiff.toString()} exceeds threshold of ${pfDiffThreshold.toString()}. ` +
+            `Status: ${dimEval.status}.`
+        );
+      }
+
       pfComp = {
         invoice_pf: invPf,
         amr_pf: amrPf,
@@ -279,8 +328,13 @@ export class ReactiveEnergyReconciliationEngine {
         has_direction_mismatch: directionMismatch,
         pf_data_available: true,
         amr_pf_audit: amrPfAudit,
+        variance_status: dimEval.status,
+        recorded_tolerance: dimEval.recorded_tolerance,
       };
     } else {
+      const recordedTolerance = CentralToleranceRegistry.recordTolerance("reactive_energy", {
+        customUnit: "PF",
+      });
       pfComp = {
         invoice_pf: invPf ?? undefined,
         amr_pf: amrPf ?? undefined,
@@ -288,6 +342,8 @@ export class ReactiveEnergyReconciliationEngine {
         has_direction_mismatch: false,
         pf_data_available: false,
         amr_pf_audit: amrPfAudit,
+        variance_status: "INSUFFICIENT_DATA",
+        recorded_tolerance: recordedTolerance,
       };
     }
 
@@ -365,12 +421,32 @@ export class ReactiveEnergyReconciliationEngine {
       pfComp.is_significant_difference ||
       pfComp.has_direction_mismatch;
 
+    // Overall status across reactive components (Requirement 22)
+    let overallStatus: VarianceStatus = "MATCH";
+    const componentStatuses = [kvarhComp.variance_status, pfComp.variance_status];
+    if (componentStatuses.includes("OUTSIDE_TOLERANCE")) {
+      overallStatus = "OUTSIDE_TOLERANCE";
+    } else if (componentStatuses.includes("UNRESOLVED")) {
+      overallStatus = "UNRESOLVED";
+    } else if (componentStatuses.includes("WITHIN_TOLERANCE")) {
+      overallStatus = "WITHIN_TOLERANCE";
+    } else if (componentStatuses.every((s) => s === "INSUFFICIENT_DATA")) {
+      overallStatus = "INSUFFICIENT_DATA";
+    }
+
+    const recordedTolerances: RecordedTolerance[] = [
+      kvarhComp.recorded_tolerance,
+      pfComp.recorded_tolerance,
+    ];
+
     return {
       kvarh_comparison: kvarhComp,
       power_factor_comparison: pfComp,
       reactive_penalty: penaltyResult,
       has_significant_discrepancy: hasSignificant,
       flagged_reasons: flaggedReasons,
+      overall_variance_status: overallStatus,
+      recorded_tolerances: recordedTolerances,
       audit_timestamp: new Date().toISOString(),
     };
   }

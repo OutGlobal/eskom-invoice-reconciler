@@ -13,7 +13,27 @@
  *   - Do not manufacture a percentage where it is mathematically undefined.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+
+const expect = (actual: any) => ({
+  toBe: (expected: any) => assert.equal(actual, expected),
+  toEqual: (expected: any) => assert.deepEqual(actual, expected),
+  toBeNull: () => assert.equal(actual, null),
+  toBeGreaterThan: (val: any) => assert.ok(actual > val),
+  toThrow: (regex?: RegExp | string) => {
+    assert.throws(actual, regex);
+  },
+  toBeDefined: () => assert.ok(actual !== undefined),
+  toMatch: (regex: RegExp) => assert.match(String(actual), regex),
+  toContain: (sub: string) => assert.ok(String(actual).includes(sub)),
+  toHaveLength: (len: number) => assert.equal(actual.length, len),
+  not: {
+    toThrow: () => {
+      assert.doesNotThrow(actual);
+    },
+  },
+});
 import Decimal from "decimal.js-light";
 import { VarianceEngine } from "../../domain/reconciliation/varianceEngine";
 import {

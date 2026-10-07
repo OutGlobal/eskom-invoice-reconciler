@@ -40,6 +40,13 @@ import type {
   InvoiceChargeReconciliationSummary,
   ExpectedChargeItem,
 } from "./invoiceChargeReconciliationEngine";
+import type { VarianceStatus } from "./varianceStatus";
+import {
+  CentralToleranceRegistry,
+  type RecordedTolerance,
+} from "./toleranceModel";
+
+export type { VarianceStatus, RecordedTolerance };
 
 export type ChargeComparisonStatus =
   | "MATCH"
@@ -90,6 +97,7 @@ export interface ChargeComparisonEvidence {
   variance_methodology: string;
   percentage_status: VariancePercentageStatus;
   tolerance: ToleranceEvaluation;
+  recorded_tolerance: RecordedTolerance;
   notes: string[];
 }
 
@@ -141,6 +149,10 @@ export interface ChargeComparisonRow {
   rate_variance: VarianceResult | null;
 
   status: ChargeComparisonStatus;
+  /** Authoritative business variance status (Requirement 22) */
+  variance_status: VarianceStatus;
+  /** Recorded tolerance snapshot used for this comparison (Requirement 23) */
+  recorded_tolerance: RecordedTolerance;
   evidence: ChargeComparisonEvidence;
 }
 
@@ -257,6 +269,28 @@ export class ExpectedVsBilledModel {
       notes.push(`Rate differs: billed ${billedRate!.toString()} vs expected ${expectedRate!.toString()} ${input.rate_unit}.`);
     }
 
+    let varianceStatus: VarianceStatus;
+    if (!billedAmount) {
+      varianceStatus = "INSUFFICIENT_DATA";
+    } else if (amountVariance?.direction === "MATCH") {
+      varianceStatus = "MATCH";
+    } else if (expectedAmount.isZero()) {
+      varianceStatus = "UNRESOLVED";
+    } else if (tolerance.outcome === "WITHIN_TOLERANCE") {
+      varianceStatus = "WITHIN_TOLERANCE";
+    } else {
+      varianceStatus = "OUTSIDE_TOLERANCE";
+    }
+
+    const recordedTolerance: RecordedTolerance = CentralToleranceRegistry.recordTolerance(
+      "financial_amount",
+      {
+        customAbsolute: input.tolerance?.absolute,
+        customPercentage: input.tolerance?.percentage,
+        customUnit: "ZAR",
+      },
+    );
+
     const rowId =
       "CMP-" +
       this.fnv1a(
@@ -289,12 +323,15 @@ export class ExpectedVsBilledModel {
       quantity_variance: quantityVariance,
       rate_variance: rateVariance,
       status,
+      variance_status: varianceStatus,
+      recorded_tolerance: recordedTolerance,
       evidence: {
         billed: { ...input.billed_evidence },
         expected: { ...input.expected_evidence },
         variance_methodology: amountVariance?.methodology ?? "Not computed: billed amount missing.",
         percentage_status: amountVariance?.percentage_status ?? "UNDEFINED_ZERO_BASELINE_NO_VARIANCE",
         tolerance,
+        recorded_tolerance: recordedTolerance,
         notes,
       },
     };

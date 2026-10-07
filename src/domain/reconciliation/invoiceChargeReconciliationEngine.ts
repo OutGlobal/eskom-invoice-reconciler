@@ -32,6 +32,11 @@ import type {
   TouPeriodType,
 } from "../tariff/types";
 import { VarianceEngine } from "./varianceEngine";
+import type { VarianceStatus } from "./varianceStatus";
+import {
+  CentralToleranceRegistry,
+  type RecordedTolerance,
+} from "./toleranceModel";
 
 /**
  * Interface 1: Tariff Engine Output Contract
@@ -90,6 +95,10 @@ export interface ExpectedChargeItem {
   percentage_variance?: Decimal | null; // (variance / expected) * 100; null when expected = 0 (undefined)
   is_within_tolerance?: boolean;
   discrepancy_classification?: "EXACT_MATCH" | "WITHIN_TOLERANCE" | "MATERIAL_DISCREPANCY";
+  /** Authoritative business variance status (Requirement 22) */
+  variance_status?: VarianceStatus;
+  /** Recorded tolerance snapshot used for this charge line (Requirement 23) */
+  recorded_tolerance?: RecordedTolerance;
   rate_lineage: {
     rule_id: string;
     tariff_code: string;
@@ -126,6 +135,10 @@ export interface InvoiceChargeReconciliationSummary {
   total_variance_zar?: Decimal;
   has_material_discrepancy: boolean;
   all_items_within_tolerance: boolean;
+  /** Authoritative overall variance status (Requirement 22) */
+  overall_variance_status: VarianceStatus;
+  /** Recorded tolerance snapshots used for every charge item (Requirement 23) */
+  recorded_tolerances: RecordedTolerance[];
   tolerance_applied: {
     absolute_tolerance_zar: Decimal;
     percentage_tolerance: Decimal;
@@ -345,28 +358,38 @@ export class InvoiceChargeReconciliationEngine {
       let pctVar: Decimal | null | undefined;
       let isWithinTol: boolean | undefined;
       let classification: "EXACT_MATCH" | "WITHIN_TOLERANCE" | "MATERIAL_DISCREPANCY" | undefined;
+      let itemVarianceStatus: VarianceStatus = "INSUFFICIENT_DATA";
+      let itemRecordedTolerance: RecordedTolerance;
 
       if (det.billed_amount_zar !== undefined && det.billed_amount_zar !== null) {
         billedCharge = this.parseDecimal(det.billed_amount_zar);
-        const variance = VarianceEngine.calculate(billedCharge, expectedCharge);
-        chargeVar = variance.absolute_variance;
-        pctVar = variance.variance_percentage; // null when expected = 0 (Req 21)
+        const dimEval = CentralToleranceRegistry.evaluateDimension(
+          "financial_amount",
+          billedCharge,
+          expectedCharge,
+          {
+            customAbsolute: input.tolerance?.absolute_tolerance_zar,
+            customPercentage: input.tolerance?.percentage_tolerance,
+            customUnit: "ZAR",
+          }
+        );
+        chargeVar = dimEval.variance.absolute_variance;
+        pctVar = dimEval.variance.variance_percentage; // null when expected = 0 (Req 21)
+        isWithinTol = dimEval.is_within_tolerance;
+        itemVarianceStatus = dimEval.status;
+        itemRecordedTolerance = dimEval.recorded_tolerance;
 
-        const absVarMag = chargeVar.abs();
-        const isAbsOk = absVarMag.lessThanOrEqualTo(absTol);
-        // Percentage tolerance is not applicable when the percentage is undefined
-        const isPctOk = expectedCharge.isZero()
-          ? false
-          : absVarMag.dividedBy(expectedCharge).lessThanOrEqualTo(pctTol);
-        isWithinTol = isAbsOk || isPctOk;
-
-        if (chargeVar.isZero()) {
+        if (itemVarianceStatus === "MATCH") {
           classification = "EXACT_MATCH";
-        } else if (isWithinTol) {
+        } else if (itemVarianceStatus === "WITHIN_TOLERANCE") {
           classification = "WITHIN_TOLERANCE";
         } else {
           classification = "MATERIAL_DISCREPANCY";
         }
+      } else {
+        itemRecordedTolerance = CentralToleranceRegistry.recordTolerance("financial_amount", {
+          customUnit: "ZAR",
+        });
       }
 
       items.push({
@@ -382,6 +405,8 @@ export class InvoiceChargeReconciliationEngine {
         percentage_variance: pctVar,
         is_within_tolerance: isWithinTol,
         discrepancy_classification: classification,
+        variance_status: itemVarianceStatus,
+        recorded_tolerance: itemRecordedTolerance,
         rate_lineage: {
           rule_id: rateItem.rule_id,
           tariff_code: rateItem.tariff_code,
@@ -420,6 +445,23 @@ export class InvoiceChargeReconciliationEngine {
       (it) => it.is_within_tolerance === undefined || it.is_within_tolerance === true
     );
 
+    // Derive overall authoritative variance status (Requirement 22)
+    const itemStatuses = items.map((it) => it.variance_status).filter((s): s is VarianceStatus => Boolean(s));
+    let overallStatus: VarianceStatus = "MATCH";
+    if (itemStatuses.includes("OUTSIDE_TOLERANCE")) {
+      overallStatus = "OUTSIDE_TOLERANCE";
+    } else if (itemStatuses.includes("UNRESOLVED")) {
+      overallStatus = "UNRESOLVED";
+    } else if (itemStatuses.includes("WITHIN_TOLERANCE")) {
+      overallStatus = "WITHIN_TOLERANCE";
+    } else if (itemStatuses.every((s) => s === "INSUFFICIENT_DATA")) {
+      overallStatus = "INSUFFICIENT_DATA";
+    }
+
+    const recordedTolerances: RecordedTolerance[] = items
+      .map((it) => it.recorded_tolerance)
+      .filter((rt): rt is RecordedTolerance => Boolean(rt));
+
     return {
       tariff_code: rateSchedule.tariff_code,
       tariff_version: rateSchedule.tariff_version,
@@ -435,6 +477,8 @@ export class InvoiceChargeReconciliationEngine {
       total_variance_zar: totalVar,
       has_material_discrepancy: hasMaterialDiscrepancy,
       all_items_within_tolerance: allWithinTol,
+      overall_variance_status: overallStatus,
+      recorded_tolerances: recordedTolerances,
       tolerance_applied: {
         absolute_tolerance_zar: absTol,
         percentage_tolerance: pctTol,
