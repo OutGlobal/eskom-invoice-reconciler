@@ -6,7 +6,7 @@
  */
 
 import Decimal from "decimal.js-light";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import {
   type TariffVersionDefinition,
   type TariffFamilyType,
@@ -84,6 +84,8 @@ export class TariffStorageService {
     if (this.store.size > 0) {
       return Array.from(this.store.values());
     }
+
+    if (!isSupabaseConfigured) return [];
 
     try {
       const { data: dbVersions, error } = await supabase
@@ -320,7 +322,8 @@ export class TariffStorageService {
     }
 
     // Persist to Supabase in background
-    try {
+    if (isSupabaseConfigured) {
+      try {
       const serialisedComponents = version.components.map((c) => ({
         code: c.component_code,
         name: c.component_name,
@@ -406,6 +409,7 @@ export class TariffStorageService {
     } catch (e: any) {
       console.warn("[TariffStorageService] Background Supabase persist warning:", e?.message);
     }
+  }
 
     return {
       success: true,

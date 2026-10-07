@@ -5,7 +5,7 @@
  */
 
 import Decimal from "decimal.js-light";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import type { UserSecurityContext } from "../security/types";
 import { TenantIsolationViolationError } from "../security/tenantContextService";
 import {
@@ -149,56 +149,58 @@ export class ReconciliationStorageService {
         });
       }
 
-      try {
-        const { error: runErr } = await supabase
-          .from("reconciliation_runs")
-          .upsert(runRecord as any, {
-            onConflict: "run_id",
-          });
+      if (isSupabaseConfigured) {
+        try {
+          const { error: runErr } = await supabase
+            .from("reconciliation_runs")
+            .upsert(runRecord as any, {
+              onConflict: "run_id",
+            });
 
-        if (runErr) {
+          if (runErr) {
+            console.warn(
+              "[ReconciliationStorageService] Supabase unavailable, cached in-memory:",
+              runErr.message,
+            );
+          }
+
+          const rawComparisons = payload.determinant_comparisons || payload.comparisons || [];
+          const determinantRows = rawComparisons.map((c: any) => ({
+            run_id: runId,
+            determinant_code: c.determinant_code || c.component_code,
+            determinant_name: c.determinant_name || c.component_name,
+            billed_value:
+              c.billed_value instanceof Decimal
+                ? c.billed_value.toNumber()
+                : Number(c.billed_value || 0),
+            calculated_value:
+              c.calculated_value instanceof Decimal
+                ? c.calculated_value.toNumber()
+                : Number(c.calculated_value || 0),
+            variance_value:
+              (c.variance_value || c.absolute_variance) instanceof Decimal
+                ? (c.variance_value || c.absolute_variance).toNumber()
+                : Number(c.variance_value || c.absolute_variance || 0),
+            variance_percentage:
+              (c.variance_percentage || c.percentage_variance) instanceof Decimal
+                ? (c.variance_percentage || c.percentage_variance).toNumber()
+                : Number(c.variance_percentage || c.percentage_variance || 0),
+            unit_of_measure: c.unit_of_measure || c.unit,
+            classification: c.classification || c.status,
+            calculation_explanation: c.explanation || c.root_cause_description || "",
+          }));
+
+          if (determinantRows.length > 0) {
+            await supabase
+              .from("reconciliation_determinant_comparisons")
+              .insert(determinantRows as any);
+          }
+        } catch (dbErr) {
           console.warn(
-            "[ReconciliationStorageService] Supabase unavailable, cached in-memory:",
-            runErr.message,
+            "[ReconciliationStorageService] Supabase write failed, retained in-memory:",
+            dbErr,
           );
         }
-
-        const rawComparisons = payload.determinant_comparisons || payload.comparisons || [];
-        const determinantRows = rawComparisons.map((c: any) => ({
-          run_id: runId,
-          determinant_code: c.determinant_code || c.component_code,
-          determinant_name: c.determinant_name || c.component_name,
-          billed_value:
-            c.billed_value instanceof Decimal
-              ? c.billed_value.toNumber()
-              : Number(c.billed_value || 0),
-          calculated_value:
-            c.calculated_value instanceof Decimal
-              ? c.calculated_value.toNumber()
-              : Number(c.calculated_value || 0),
-          variance_value:
-            (c.variance_value || c.absolute_variance) instanceof Decimal
-              ? (c.variance_value || c.absolute_variance).toNumber()
-              : Number(c.variance_value || c.absolute_variance || 0),
-          variance_percentage:
-            (c.variance_percentage || c.percentage_variance) instanceof Decimal
-              ? (c.variance_percentage || c.percentage_variance).toNumber()
-              : Number(c.variance_percentage || c.percentage_variance || 0),
-          unit_of_measure: c.unit_of_measure || c.unit,
-          classification: c.classification || c.status,
-          calculation_explanation: c.explanation || c.root_cause_description || "",
-        }));
-
-        if (determinantRows.length > 0) {
-          await supabase
-            .from("reconciliation_determinant_comparisons")
-            .insert(determinantRows as any);
-        }
-      } catch (dbErr) {
-        console.warn(
-          "[ReconciliationStorageService] Supabase write failed, retained in-memory:",
-          dbErr,
-        );
       }
 
       // Stage 20: Broadcast reconciliation completion for automatic dashboard & chart refresh
@@ -263,6 +265,17 @@ export class ReconciliationStorageService {
   public static async getAllRuns(
     context?: UserSecurityContext,
   ): Promise<AuthoritativeReconciliationPayload[]> {
+    if (!isSupabaseConfigured) {
+      let inMemory = Array.from(this.inMemoryRuns.values());
+      if (context && context.role !== "SUPER_ADMIN") {
+        inMemory = inMemory.filter(
+          (r: any) =>
+            r.organisation_id === context.organisationId ||
+            r.tenant_id === context.organisationId,
+        );
+      }
+      return inMemory;
+    }
     try {
       let query = supabase
         .from("reconciliation_runs")

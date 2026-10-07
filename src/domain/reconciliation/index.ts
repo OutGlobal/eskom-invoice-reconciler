@@ -29,3 +29,4 @@ export * from "./reconciliationExceptions";
 export * from "./reconciliationStatus";
 export * from "./reconciliationAuditModel";
 export * from "./calculationVersioningEngine";
+export * from "./automaticProcessingPipeline";

@@ -18,6 +18,8 @@ import {
   ALL_PRODUCTION_TARIFF_FIXTURES,
   ESKOM_MEGAFLEX_2025_2026,
 } from "@/domain/tariff/tariffFixtures";
+import { computeTotals } from "@/lib/reconciliation";
+import { PowerFactorEngine } from "./powerFactorEngine";
 
 export type AutoReconciliationStatus =
   "COMPLETED" | "AWAITING_INVOICE" | "AWAITING_METER_DATA" | "AWAITING_TARIFF" | "FAILED";
@@ -116,6 +118,33 @@ export function runAutomaticReconciliation(
   }
 
   try {
+    // -------------------------------------------------------------
+    // AUTOMATIC PROCESSING (Zero Manual Entry): Aggregate AMR rows
+    // -------------------------------------------------------------
+    const bStart = invoice.billingPeriodStart ? new Date(invoice.billingPeriodStart).getTime() : 0;
+    const bEnd = invoice.billingPeriodEnd ? new Date(invoice.billingPeriodEnd).getTime() + 86400000 : Infinity;
+    const inPeriodRows = rows.filter((r) => {
+      const t = r.ts.getTime();
+      return t >= bStart && t <= bEnd;
+    });
+    const activeRows = inPeriodRows.length > 0 ? inPeriodRows : rows;
+
+    const totals = computeTotals(activeRows, invoice.nmd || 0);
+
+    let totalReactiveKvarh = new Decimal(0);
+    for (const r of activeRows) {
+      if ((r as any).kVAR !== undefined) {
+        totalReactiveKvarh = totalReactiveKvarh.plus(new Decimal((r as any).kVAR || 0).mul(0.5));
+      } else if ((r as any).kvarh !== undefined) {
+        totalReactiveKvarh = totalReactiveKvarh.plus(new Decimal((r as any).kvarh || 0));
+      }
+    }
+
+    const pfRecord = PowerFactorEngine.calculatePowerFactor({
+      kWh: totals.totalKWh,
+      kVArh: totalReactiveKvarh,
+    });
+
     const input = {
       invoice_id: invoice.invoiceNumber || invoice.invoiceNo || "",
       invoice_number: invoice.invoiceNumber || invoice.invoiceNo || "",
@@ -144,6 +173,16 @@ export function runAutomaticReconciliation(
       billed_ancillary_charges_zar: new Decimal(invoice.ancillary || 0),
       billed_vat_zar: new Decimal(invoice.vat || 0),
       billed_total_invoice_zar: new Decimal(invoice.totalInclVat || invoice.invoiceTotal || 0),
+
+      // Derived Calculated Telemetry Determinants
+      calc_peak_kwh: new Decimal(totals.peakKWh),
+      calc_standard_kwh: new Decimal(totals.standardKWh),
+      calc_off_peak_kwh: new Decimal(totals.offPeakKWh),
+      calc_total_kwh: new Decimal(totals.totalKWh),
+      calc_maximum_demand_kva: new Decimal(totals.maxDemandKVA),
+      calc_ratcheted_demand_kva: new Decimal(totals.maxDemandKVA),
+      calc_reactive_energy_kvarh: totalReactiveKvarh,
+      calc_power_factor: pfRecord.calculated_pf,
     };
 
     const payload = DeterministicReconciliationEngine.reconcile(input, tolerance);

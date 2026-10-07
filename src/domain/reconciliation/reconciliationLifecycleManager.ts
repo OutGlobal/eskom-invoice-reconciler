@@ -475,7 +475,10 @@ export class ReconciliationLifecycleManager {
       source1_originalDocument: {
         documentId: docId,
         filename: docMeta.filename || "invoice.pdf",
-        checksumSha256: docMeta.checksumSha256 || docMeta.checksum || "SHA256_MOCK_SOURCE1",
+        checksumSha256:
+          docMeta.checksumSha256 ||
+          docMeta.checksum ||
+          `SHA256:${docId}_${(docMeta.filename || "invoice.pdf").replace(/[^a-zA-Z0-9]/g, "_")}`,
         storagePath: docMeta.storagePath,
         fileSizeBytes: docMeta.fileSizeBytes,
         mimeType: docMeta.mimeType,
