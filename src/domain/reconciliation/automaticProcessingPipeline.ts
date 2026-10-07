@@ -1,22 +1,27 @@
 /**
- * ENERA AUTOMATIC PROCESSING PIPELINE (REQUIREMENT 29)
- * ====================================================
+ * ENERA AUTOMATIC PROCESSING PIPELINE (REQUIREMENTS 29, 30, 31)
+ * =============================================================
  * End-to-end automated orchestration for invoice-telemetry reconciliation:
  *
  *   VALIDATED INVOICE
  *           ↓
- *       MATCH AMR
+ *       MATCH AMR (MatchingEngine: account, site, meter, billing period)
  *           ↓
- *   CREATE RECONCILIATION JOB
+ *   CREATE RECONCILIATION JOB (Deterministic Idempotency Check)
  *           ↓
- *        PROCESS
+ *        PROCESS (Deterministic Derived Determinants & Variances)
  *           ↓
- *      SAVE RESULTS
+ *      SAVE RESULTS (Zero duplicate financial results)
  *           ↓
- *     UPDATE DASHBOARD
+ *     UPDATE DASHBOARD (Real-time Broadcast)
  *
- * Guarantees zero manual data entry: calculated values, TOU aggregations,
- * determinants, and variances are derived deterministically.
+ * GUARANTEES:
+ * - Explicit multi-candidate matching: returns AMBIGUOUS_MATCH when >1 candidate matches.
+ *   Strictly avoids arbitrary or random candidate selection.
+ * - Deterministic idempotency: running the same reconciliation twice does not create duplicate
+ *   financial ledger results or redundant database comparisons.
+ * - Deliberate version transitions: creating a new calculation version produces a new run
+ *   while leaving historical runs unchanged.
  */
 
 import Decimal from "decimal.js-light";
@@ -37,11 +42,21 @@ import { ReconciliationStorageService } from "./reconciliationStorageService";
 import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
 import { AuditLedgerService } from "@/domain/audit/auditLedgerService";
 import { ReconciliationAuditModelBuilder, type ReconciliationAuditModel } from "./reconciliationAuditModel";
-import { CALCULATION_ENGINE_V2 } from "./calculationVersioningEngine";
+import { CALCULATION_ENGINE_V2, type CalculationEngineVersion } from "./calculationVersioningEngine";
 import { ReconciliationExceptionFactory, type ReconciliationException } from "./reconciliationExceptions";
 import { computeTotals } from "@/lib/reconciliation";
 import type { InvoiceData } from "@/lib/store";
 import type { Measurement } from "@/lib/parseMeter";
+import {
+  MatchingEngine,
+  type InvoiceMatchTarget,
+  type AmrDatasetCandidate,
+  type MatchingResult,
+} from "./matchingEngine";
+import {
+  ReconciliationIdempotencyEngine,
+  type DeterministicIdentitySource,
+} from "./idempotencyEngine";
 
 export type AutomatedPipelineStatus =
   | "PENDING"
@@ -52,6 +67,7 @@ export type AutomatedPipelineStatus =
   | "AWAITING_AMR_DATA"
   | "AWAITING_INVOICE_VALIDATION"
   | "AWAITING_TARIFF"
+  | "AMBIGUOUS_MATCH"
   | "FAILED";
 
 export interface AutomatedProcessingJobResult {
@@ -78,6 +94,8 @@ export interface AutomatedProcessingJobResult {
   exceptions: ReconciliationException[];
   dashboardNotified: boolean;
   persisted: boolean;
+  isIdempotentReplay?: boolean;
+  matchingResult?: MatchingResult | null;
 }
 
 export class AutomaticProcessingPipeline {
@@ -86,7 +104,11 @@ export class AutomaticProcessingPipeline {
    */
   public static async execute(params: {
     invoice: Partial<InvoiceData> | null | undefined;
-    telemetryRows: Measurement[] | null | undefined;
+    telemetryRows?: Measurement[] | null | undefined;
+    amrCandidates?: AmrDatasetCandidate[] | null | undefined;
+    selectedCandidateId?: string;
+    calculationEngineVersion?: CalculationEngineVersion;
+    forceNewCalculationVersion?: boolean;
     tolerance?: ToleranceConfig;
     organisationId?: string;
     userId?: string;
@@ -94,6 +116,10 @@ export class AutomaticProcessingPipeline {
     const {
       invoice,
       telemetryRows,
+      amrCandidates,
+      selectedCandidateId,
+      calculationEngineVersion = CALCULATION_ENGINE_V2,
+      forceNewCalculationVersion = false,
       tolerance = DEFAULT_TOLERANCE_CONFIG,
       organisationId = "DEFAULT_TENANT",
       userId = "SYSTEM_AUTOMATION",
@@ -121,30 +147,89 @@ export class AutomaticProcessingPipeline {
     const bEnd = invoice.billingPeriodEnd || "";
 
     // ------------------------------------------------------------------------
-    // STAGE 2: MATCH AMR
+    // STAGE 2: MATCH AMR (REQUIREMENT 30)
     // ------------------------------------------------------------------------
-    if (!telemetryRows || telemetryRows.length === 0) {
-      return this.buildAwaitingResult({
-        jobId,
-        status: "AWAITING_AMR_DATA",
-        message: `No AMR interval telemetry records matched for meter '${meterId}' during period ${bStart} - ${bEnd}.`,
+    let matchingResult: MatchingResult | null = null;
+    let activeIntervals: Measurement[] = (telemetryRows || []).slice();
+
+    if (amrCandidates && amrCandidates.length > 0) {
+      const matchTarget: InvoiceMatchTarget = {
         invoiceId,
-        meterId,
-        billingPeriod: { start: bStart, end: bEnd },
-      });
+        invoiceNumber: invoiceId,
+        accountNumber: invoice.accountNumber || "",
+        siteId: invoice.siteName || invoice.premiseId,
+        meterNumber: meterId,
+        billingPeriodStart: bStart,
+        billingPeriodEnd: bEnd,
+        tenantId: organisationId,
+      };
+
+      matchingResult = MatchingEngine.matchInvoiceToAmrCandidates(matchTarget, amrCandidates);
+
+      // Rule: If multiple candidates match, AMBIGUOUS_MATCH. Do NOT select one randomly.
+      if (matchingResult.decision === "AMBIGUOUS_MATCH" && !selectedCandidateId) {
+        return {
+          ...this.buildAwaitingResult({
+            jobId,
+            status: "AMBIGUOUS_MATCH",
+            message: matchingResult.explanation,
+            invoiceId,
+            meterId,
+            billingPeriod: { start: bStart, end: bEnd },
+          }),
+          matchingResult,
+        };
+      }
+
+      if (matchingResult.decision === "NO_MATCH" && (!telemetryRows || telemetryRows.length === 0)) {
+        return {
+          ...this.buildAwaitingResult({
+            jobId,
+            status: "AWAITING_AMR_DATA",
+            message: matchingResult.explanation,
+            invoiceId,
+            meterId,
+            billingPeriod: { start: bStart, end: bEnd },
+          }),
+          matchingResult,
+        };
+      }
+
+      // If user selected an explicit candidate or an exact unambiguous match was found
+      const selected = selectedCandidateId
+        ? amrCandidates.find((c) => c.datasetId === selectedCandidateId) || matchingResult.matchedCandidate
+        : matchingResult.matchedCandidate;
+
+      if (selected && activeIntervals.length === 0 && selected.metadata?.intervals) {
+        activeIntervals = selected.metadata.intervals;
+      }
+    }
+
+    if (activeIntervals.length === 0) {
+      return {
+        ...this.buildAwaitingResult({
+          jobId,
+          status: "AWAITING_AMR_DATA",
+          message: `No AMR interval telemetry records matched for meter '${meterId}' during period ${bStart} - ${bEnd}.`,
+          invoiceId,
+          meterId,
+          billingPeriod: { start: bStart, end: bEnd },
+        }),
+        matchingResult,
+      };
     }
 
     // Filter matching intervals within the invoice billing window
     const startTimeMs = bStart ? new Date(bStart).getTime() : 0;
     const endTimeMs = bEnd ? new Date(bEnd).getTime() + 86400000 : Infinity;
 
-    const matchedIntervals = telemetryRows.filter((row) => {
+    const matchedIntervals = activeIntervals.filter((row) => {
       const t = row.ts.getTime();
       return t >= startTimeMs && t <= endTimeMs;
     });
 
-    const activeIntervals = matchedIntervals.length > 0 ? matchedIntervals : telemetryRows;
-    const totalIntervals = activeIntervals.length;
+    const intervalsToProcess = matchedIntervals.length > 0 ? matchedIntervals : activeIntervals;
+    const totalIntervals = intervalsToProcess.length;
 
     // Resolve Applicable Tariff
     let tariffVersion =
@@ -168,9 +253,59 @@ export class AutomaticProcessingPipeline {
         }) || ESKOM_MEGAFLEX_2025_2026;
     }
 
+    const tariffVerId = `${tariffVersion.header.tariff_code}_${tariffVersion.header.version}`;
+
     // ------------------------------------------------------------------------
-    // STAGE 3: CREATE RECONCILIATION JOB
+    // STAGE 3: CREATE RECONCILIATION JOB & IDEMPOTENCY CHECK (REQUIREMENT 31)
     // ------------------------------------------------------------------------
+    const amrChecksum = await ReconciliationIdempotencyEngine.computeTelemetryChecksum(intervalsToProcess);
+    const identitySource: DeterministicIdentitySource = {
+      tenantId: organisationId,
+      invoiceId,
+      meterId,
+      billingPeriodStart: bStart,
+      billingPeriodEnd: bEnd,
+      amrSourceChecksum: amrChecksum,
+      tariffVersionId: tariffVerId,
+      calculationEngineVersion,
+      toleranceProfileName: tolerance.profile_name || "DEFAULT_PROFILE",
+    };
+
+    const deterministicRunId = await ReconciliationIdempotencyEngine.generateDeterministicRunId(identitySource);
+
+    // IDEMPOTENCY EVALUATION:
+    // If the same reconciliation runs twice under the same calculation version, reuse results!
+    const existingRun = ReconciliationStorageService.getRun(deterministicRunId);
+    if (existingRun && !forceNewCalculationVersion) {
+      return {
+        jobId,
+        reconciliationId: deterministicRunId,
+        status: existingRun.status === "COMPLETED" ? "COMPLETED" : "REVIEW_REQUIRED",
+        message: `Idempotent replay: Deterministic reconciliation run '${deterministicRunId}' already exists under calculation version '${calculationEngineVersion}'. Reused existing results without duplicate financial ledger entries.`,
+        invoiceId,
+        meterId,
+        billingPeriod: { start: bStart, end: bEnd },
+        telemetryIntervalsProcessed: totalIntervals,
+        calculatedValues: {
+          peakKwh: (existingRun.determinant_comparisons?.find((c: any) => c.determinant_code === "PEAK_KWH")?.calculated_value || 0).toString(),
+          standardKwh: (existingRun.determinant_comparisons?.find((c: any) => c.determinant_code === "STANDARD_KWH")?.calculated_value || 0).toString(),
+          offPeakKwh: (existingRun.determinant_comparisons?.find((c: any) => c.determinant_code === "OFF_PEAK_KWH")?.calculated_value || 0).toString(),
+          totalKwh: (existingRun.determinant_comparisons?.find((c: any) => c.determinant_code === "TOTAL_KWH")?.calculated_value || 0).toString(),
+          maximumDemandKva: (existingRun.determinant_comparisons?.find((c: any) => c.determinant_code === "MAXIMUM_DEMAND_KVA")?.calculated_value || 0).toString(),
+          reactiveEnergyKvarh: (existingRun.determinant_comparisons?.find((c: any) => c.determinant_code === "REACTIVE_ENERGY_KVARH")?.calculated_value || 0).toString(),
+          vectorPowerFactor: "1.0000",
+          calculatedTotalZar: (existingRun.calculated_total_zar || 0).toString(),
+        },
+        reconciliationPayload: existingRun,
+        auditModel: null,
+        exceptions: [],
+        dashboardNotified: false,
+        persisted: true,
+        isIdempotentReplay: true,
+        matchingResult,
+      };
+    }
+
     try {
       void AuditLedgerService.logEvent(
         "RECONCILIATION_JOB_CREATED",
@@ -178,9 +313,11 @@ export class AutomaticProcessingPipeline {
         jobId,
         {
           jobId,
+          runId: deterministicRunId,
           invoiceId,
           meterId,
           organisationId,
+          calculationEngineVersion,
           matchedIntervalCount: totalIntervals,
         },
         userId,
@@ -192,10 +329,10 @@ export class AutomaticProcessingPipeline {
     // ------------------------------------------------------------------------
     // STAGE 4: PROCESS (Deterministic Derived Values & Variance Calculation)
     // ------------------------------------------------------------------------
-    const totals = computeTotals(activeIntervals, invoice.nmd || 0);
+    const totals = computeTotals(intervalsToProcess, invoice.nmd || 0);
 
     let totalReactiveKvarh = new Decimal(0);
-    for (const r of activeIntervals) {
+    for (const r of intervalsToProcess) {
       if ((r as any).kVAR !== undefined) {
         totalReactiveKvarh = totalReactiveKvarh.plus(new Decimal((r as any).kVAR || 0).mul(0.5));
       } else if ((r as any).kvarh !== undefined) {
@@ -210,6 +347,8 @@ export class AutomaticProcessingPipeline {
     const derivedVectorPf = pfRecord.calculated_pf;
 
     const reconInput: AuthoritativeReconciliationInput = {
+      run_id: deterministicRunId,
+      calculation_engine_version: calculationEngineVersion,
       tenant_id: organisationId,
       invoice_id: invoiceId,
       invoice_number: invoiceId,
@@ -272,7 +411,7 @@ export class AutomaticProcessingPipeline {
     const calculatedTotalZar = reconciliationPayload.calculated_total_zar.toFixed(2);
 
     // ------------------------------------------------------------------------
-    // STAGE 5: SAVE RESULTS
+    // STAGE 5: SAVE RESULTS (REQUIREMENT 31)
     // ------------------------------------------------------------------------
     await ReconciliationStorageService.saveRun(reconciliationPayload);
 
@@ -301,7 +440,7 @@ export class AutomaticProcessingPipeline {
       amr_file: {
         amr_file_id: `AMR-${Date.now()}`,
         amr_file_name: "amr_telemetry.csv",
-        amr_file_hash_sha256: `SHA256:TELEMETRY-${Date.now()}`,
+        amr_file_hash_sha256: amrChecksum,
         ingested_at: timestamp,
         interval_count: totalIntervals,
         interval_length_minutes: 30,
@@ -315,16 +454,16 @@ export class AutomaticProcessingPipeline {
         timezone: "Africa/Johannesburg",
       },
       tariff_version: {
-        tariff_id: `${tariffVersion.header.tariff_code}_${tariffVersion.header.version}`,
+        tariff_id: tariffVerId,
         tariff_code: tariffVersion.header.tariff_code,
         tariff_version: tariffVersion.header.version,
         effective_from: tariffVersion.header.effective_date,
       },
       calculation_version: {
-        calculation_engine_version: CALCULATION_ENGINE_V2,
+        calculation_engine_version: calculationEngineVersion,
       },
       tolerance: {
-        profile_name: "DEFAULT_PROFILE",
+        profile_name: tolerance.profile_name || "DEFAULT_PROFILE",
         thresholds: {
           energy_quantity: { percentage: "0.50", max_kwh: "100.00" },
           demand: { percentage: "1.00", max_kva: "10.00" },
@@ -388,6 +527,8 @@ export class AutomaticProcessingPipeline {
       exceptions,
       dashboardNotified: true,
       persisted: true,
+      isIdempotentReplay: false,
+      matchingResult,
     };
   }
 

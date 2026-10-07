@@ -64,6 +64,7 @@ export interface AuthoritativeReconciliationPayload {
   tariff_version_id: string;
   calendar_version_id: string;
   engine_version: string;
+  calculation_engine_version?: string;
   configuration_version: string;
   created_at: string;
   completed_at: string;

@@ -76,6 +76,10 @@ export interface AuthoritativeReconciliationInput {
   calc_ratcheted_demand_kva?: Decimal;
   calc_reactive_energy_kvarh?: Decimal;
   calc_power_factor?: Decimal;
+
+  // Idempotency & Calculation Engine Versioning (Requirement 27 & 31)
+  run_id?: string;
+  calculation_engine_version?: string;
 }
 
 export class DeterministicReconciliationEngine {
@@ -89,7 +93,7 @@ export class DeterministicReconciliationEngine {
     input: AuthoritativeReconciliationInput,
     tolerance: ToleranceConfig = DEFAULT_TOLERANCE_CONFIG,
   ): AuthoritativeReconciliationPayload {
-    const runId = `RECON-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    const runId = input.run_id || `RECON-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
     const createdAt = new Date().toISOString();
 
     const tenantId = input.tenant_id || "";
@@ -406,7 +410,8 @@ export class DeterministicReconciliationEngine {
       telemetry_batch_id: telemetryBatchId,
       tariff_version_id: tariffVerId,
       calendar_version_id: calendarVersionId,
-      engine_version: this.ENGINE_VERSION,
+      engine_version: input.calculation_engine_version || this.ENGINE_VERSION,
+      calculation_engine_version: input.calculation_engine_version || "reconciliation_engine_v2",
       configuration_version: this.CONFIG_VERSION,
       created_at: createdAt,
       completed_at: completedAt,

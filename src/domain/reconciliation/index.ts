@@ -30,3 +30,5 @@ export * from "./reconciliationStatus";
 export * from "./reconciliationAuditModel";
 export * from "./calculationVersioningEngine";
 export * from "./automaticProcessingPipeline";
+export * from "./matchingEngine";
+export * from "./idempotencyEngine";

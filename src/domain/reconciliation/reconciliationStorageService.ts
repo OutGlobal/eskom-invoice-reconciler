@@ -27,6 +27,10 @@ export class ReconciliationStorageService {
     this.authoritativeRecords.clear();
   }
 
+  public static getRun(runId: string): any | null {
+    return this.inMemoryRuns.get(runId) || null;
+  }
+
   /**
    * Save an authoritative or enterprise reconciliation run to Supabase with in-memory fallback & tenant isolation
    */
@@ -191,6 +195,12 @@ export class ReconciliationStorageService {
           }));
 
           if (determinantRows.length > 0) {
+            // Idempotency guarantee (Req 31): clear existing determinant rows for run_id before inserting
+            await supabase
+              .from("reconciliation_determinant_comparisons")
+              .delete()
+              .eq("run_id", runId);
+
             await supabase
               .from("reconciliation_determinant_comparisons")
               .insert(determinantRows as any);
