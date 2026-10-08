@@ -118,6 +118,10 @@ export class InvoiceStorageService {
     DuplicateProtectionService.clearState();
   }
 
+  public static clearMemoryRecords(): void {
+    this.clearMemoryStore();
+  }
+
   /**
    * Calculate SHA-256 fingerprint for document content
    */

@@ -4,6 +4,7 @@
 
 export interface DashboardFilterState {
   organisationId?: string;
+  customerId?: string;
   siteId?: string;
   accountNumber?: string;
   meterId?: string;
@@ -33,6 +34,15 @@ export interface PortfolioSummary {
   criticalDiscrepanciesCount: number;
   unresolvedDisputesCount: number;
   hasData: boolean;
+
+  // Requirement 34: Authoritative Real Metrics
+  reconciliationsCompleted: number;
+  reconciliationsRequiringReview: number;
+  totalBilled: number;
+  totalExpected: number;
+  totalVariance: number;
+  potentialFinancialDiscrepancies: number;
+  dataCoveragePct: number | null;
 }
 
 export interface MonthlyConsumptionRecord {
@@ -122,9 +132,17 @@ export interface ActiveProcessingJobItem {
   startedAt?: string;
 }
 
+export interface AvailableCustomerItem {
+  id: string;
+  name: string;
+  accountNumber: string;
+  organisationId?: string;
+}
+
 export interface AvailableSiteItem {
   id: string;
   name: string;
+  customerId?: string;
   customerName?: string;
 }
 
@@ -143,6 +161,7 @@ export interface AggregatedDashboardData {
   lastUpdated: string;
   isLiveDatabase: boolean;
   hasData: boolean;
+  availableCustomers?: AvailableCustomerItem[];
   availableSites?: AvailableSiteItem[];
   availableAccounts?: AvailableAccountItem[];
   activeProcessingJobs?: ActiveProcessingJobItem[];
