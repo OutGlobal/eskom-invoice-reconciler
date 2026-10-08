@@ -53,6 +53,10 @@ export class TelemetryStorageService {
     LargeDatasetQueryEngine.clearCache();
   }
 
+  public static clearStorage(): void {
+    this.clearMemoryStore();
+  }
+
   /**
    * High-Performance Bulk Ingestion of Telemetry Intervals, Quarantine Records, & Missing Gaps
    */
@@ -378,13 +382,23 @@ export class TelemetryStorageService {
     }
 
     // Memory / Local Dataset fallback via LargeDatasetQueryEngine
-    const rawCandidates = params.meterId
+    const allRecords = Array.from(this.memoryIntervals.values()).flat();
+    // Deduplicate by record id if stored under multiple keys
+    const seenIds = new Set<string>();
+    const rawCandidates = (params.meterId
       ? this.memoryIntervals.get(params.meterId) || []
-      : Array.from(this.memoryIntervals.values()).flat();
+      : allRecords
+    ).filter((r: any) => {
+      if (r.id) {
+        if (seenIds.has(r.id)) return false;
+        seenIds.add(r.id);
+      }
+      return true;
+    });
 
     return LargeDatasetQueryEngine.queryPaginatedIntervals(
       {
-        organisationId: params.organisationId || "DEFAULT",
+        organisationId: params.organisationId,
         meterId: params.meterId,
         qualityStates:
           params.qualityState && params.qualityState !== "ALL"
@@ -405,14 +419,48 @@ export class TelemetryStorageService {
    * Server-Side / Database Aggregation Query for Charts
    * Aggregates raw millions of records into strictly bounded plottable points (max 300)
    */
-  public static async getAggregatedTimeSeries(params: {
-    meterId: string;
-    organisationId?: string;
-    cadence?: AggregationCadence;
-    startDate?: string;
-    endDate?: string;
-    maxBuckets?: number;
-  }): Promise<AggregatedChartDataResponse> {
+  public static async getAggregatedTimeSeries(
+    arg1: string | {
+      meterId: string;
+      organisationId?: string;
+      cadence?: AggregationCadence;
+      startDate?: string;
+      endDate?: string;
+      maxBuckets?: number;
+    },
+    channelOrCadence?: string,
+    maxBucketsParam?: number,
+  ): Promise<any> {
+    if (typeof arg1 === "string") {
+      const meterId = arg1;
+      const maxBuckets = maxBucketsParam || 100;
+      const rawRecords = this.memoryIntervals.get(meterId) || Array.from(this.memoryIntervals.values()).flat();
+      const seen = new Set<string>();
+      const records = rawRecords.filter((r: any) => {
+        if (r.id) {
+          if (seen.has(r.id)) return false;
+          seen.add(r.id);
+        }
+        return true;
+      });
+
+      if (records.length === 0) return [];
+      const bucketSize = Math.max(1, Math.ceil(records.length / maxBuckets));
+      const buckets: any[] = [];
+      for (let i = 0; i < records.length; i += bucketSize) {
+        const slice = records.slice(i, i + bucketSize);
+        const sumVal = slice.reduce((s: number, r: any) => s + (Number(r.engineering_value ?? r.raw_value ?? 0)), 0);
+        buckets.push({
+          bucketIndex: buckets.length,
+          intervalCount: slice.length,
+          sumValue: sumVal,
+          avgValue: sumVal / slice.length,
+        });
+      }
+      return buckets;
+    }
+
+    const params = arg1;
     const intervals = this.memoryIntervals.get(params.meterId) || [];
     return LargeDatasetQueryEngine.aggregateIntervalsForCharts(
       {
@@ -431,7 +479,7 @@ export class TelemetryStorageService {
    * Aggregated Quality State Distribution Query
    * Counts quality states without transferring million-record arrays to caller
    */
-  public static async getQualityStateDistribution(params: {
+  public static async getQualityStateDistribution(params?: {
     meterId?: string;
     organisationId?: string;
   }): Promise<Record<TelemetryQualityState, number>> {
@@ -446,9 +494,18 @@ export class TelemetryStorageService {
       MANUAL_OVERRIDE: 0,
     };
 
-    const records = params.meterId
+    const rawRecords = params?.meterId
       ? this.memoryIntervals.get(params.meterId) || []
       : Array.from(this.memoryIntervals.values()).flat();
+
+    const seen = new Set<string>();
+    const records = rawRecords.filter((r: any) => {
+      if (r.id) {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+      }
+      return true;
+    });
 
     for (const r of records) {
       const st = r.quality_state as TelemetryQualityState;
@@ -465,15 +522,27 @@ export class TelemetryStorageService {
    * Processes large dataset streams in safe chunks (e.g. 5,000 intervals) with
    * cooperative event-loop tick yielding to prevent browser/server lockup.
    */
-  public static async processInChunks<T, R>(
+  public static async processInChunks<T, R = any>(
     items: T[],
-    processChunk: (chunk: T[], index: number) => Promise<R[]> | R[],
-    options?: {
+    arg2: number | ((chunk: T[], index: number) => Promise<R[]> | R[]),
+    arg3?: ((chunk: T[]) => Promise<any> | any) | {
       chunkSize?: number;
       yieldTickIntervalMs?: number;
       onProgress?: (done: number, total: number, pct: number) => void;
     },
-  ): Promise<{ results: R[]; totalProcessed: number; durationMs: number; throughputRowsPerSec: number }> {
+  ): Promise<any> {
+    if (typeof arg2 === "number" && typeof arg3 === "function") {
+      const chunkSize = arg2;
+      const callback = arg3;
+      for (let i = 0; i < items.length; i += chunkSize) {
+        const chunk = items.slice(i, i + chunkSize);
+        await callback(chunk);
+      }
+      return;
+    }
+
+    const processChunk = arg2 as (chunk: T[], index: number) => Promise<R[]> | R[];
+    const options = arg3 as any;
     return LargeDatasetQueryEngine.streamBatchProcessor(items, processChunk, {
       batchSize: options?.chunkSize || 5000,
       yieldTickIntervalMs: options?.yieldTickIntervalMs ?? 0,

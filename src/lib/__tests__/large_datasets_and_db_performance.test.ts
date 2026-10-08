@@ -53,7 +53,7 @@ export async function runLargeDatasetsAndPerformanceTests(): Promise<void> {
     pageSize: 50,
   });
 
-  assert(page1.data.length === 50, "Page 1 returns exactly 50 bounded items (does NOT load 2,500 into memory)");
+  assert(page1.items.length === 50, "Page 1 returns exactly 50 bounded items (does NOT load 2,500 into memory)");
   assert(page1.totalCount === 2500, "Exact total count is reported accurately as 2,500");
   assert(page1.totalPages === 50, "Total pages calculated accurately as 50");
   assert(page1.page === 1, "Page pointer is 1");
@@ -64,8 +64,8 @@ export async function runLargeDatasetsAndPerformanceTests(): Promise<void> {
     page: 2,
     pageSize: 50,
   });
-  assert(page2.data.length === 50, "Page 2 returns next slice of 50 items");
-  assert(page2.data[0].id === "int-50", "Page 2 starts with offset record int-50");
+  assert(page2.items.length === 50, "Page 2 returns next slice of 50 items");
+  assert(page2.items[0].id === "int-50", "Page 2 starts with offset record int-50");
 
   const estimatedQuery = await TelemetryStorageService.queryPaginated({
     qualityState: "ESTIMATED",
@@ -73,7 +73,7 @@ export async function runLargeDatasetsAndPerformanceTests(): Promise<void> {
   });
   assert(estimatedQuery.totalCount === 250, "Server-side quality state filter matches exactly 250 records");
   assert(
-    estimatedQuery.data.every((r) => r.quality_state === "ESTIMATED"),
+    estimatedQuery.items.every((r) => r.quality_state === "ESTIMATED"),
     "All filtered items have ESTIMATED quality state without client-side array filter"
   );
 
@@ -208,10 +208,10 @@ export async function runLargeDatasetsAndPerformanceTests(): Promise<void> {
 }
 
 // Auto-run when executed directly
-if (!process.env.RUN_ALL_TESTS) {
+if (process.argv[1] && process.argv[1].includes("large_datasets")) {
   runLargeDatasetsAndPerformanceTests()
     .then(() => {
-      // Done
+      process.exit(0);
     })
     .catch((err) => {
       console.error("Test execution failed:", err);

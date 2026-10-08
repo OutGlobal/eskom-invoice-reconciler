@@ -57,6 +57,10 @@ import {
   ReconciliationIdempotencyEngine,
   type DeterministicIdentitySource,
 } from "./idempotencyEngine";
+import {
+  ReconciliationFailureHandler,
+  type ReconciliationFailureRecord,
+} from "./reconciliationFailureHandler";
 
 export type AutomatedPipelineStatus =
   | "PENDING"
@@ -329,86 +333,138 @@ export class AutomaticProcessingPipeline {
     // ------------------------------------------------------------------------
     // STAGE 4: PROCESS (Deterministic Derived Values & Variance Calculation)
     // ------------------------------------------------------------------------
-    const totals = computeTotals(intervalsToProcess, invoice.nmd || 0);
-
+    let reconciliationPayload: AuthoritativeReconciliationPayload;
+    let totals: any;
     let totalReactiveKvarh = new Decimal(0);
-    for (const r of intervalsToProcess) {
-      if ((r as any).kVAR !== undefined) {
-        totalReactiveKvarh = totalReactiveKvarh.plus(new Decimal((r as any).kVAR || 0).mul(0.5));
-      } else if ((r as any).kvarh !== undefined) {
-        totalReactiveKvarh = totalReactiveKvarh.plus(new Decimal((r as any).kvarh || 0));
-      }
-    }
-
-    const pfRecord = PowerFactorEngine.calculatePowerFactor({
-      kWh: totals.totalKWh,
-      kVArh: totalReactiveKvarh,
-    });
-    const derivedVectorPf = pfRecord.calculated_pf;
-
-    const reconInput: AuthoritativeReconciliationInput = {
-      run_id: deterministicRunId,
-      calculation_engine_version: calculationEngineVersion,
-      tenant_id: organisationId,
-      invoice_id: invoiceId,
-      invoice_number: invoiceId,
-      account_number: invoice.accountNumber || "UNKNOWN",
-      billing_start: bStart,
-      billing_end: bEnd,
-      tariff_version: tariffVersion,
-
-      // Billed Data from Validated Invoice
-      billed_peak_kwh: new Decimal(invoice.peakKWh || 0),
-      billed_standard_kwh: new Decimal(invoice.standardKWh || 0),
-      billed_off_peak_kwh: new Decimal(invoice.offPeakKWh || 0),
-      billed_total_kwh: new Decimal(invoice.totalKWh || 0),
-      billed_maximum_demand_kva: new Decimal(invoice.maxDemandKVA || 0),
-      billed_ratcheted_demand_kva: new Decimal(invoice.maxDemandKVA || 0),
-      billed_reactive_energy_kvarh: new Decimal(invoice.reactive || 0),
-      billed_energy_charges_zar: new Decimal(
-        (invoice.peakEnergyCharge || 0) +
-          (invoice.standardEnergyCharge || 0) +
-          (invoice.offPeakEnergyCharge || 0),
-      ),
-      billed_demand_charges_zar: new Decimal(invoice.networkDemandCharge || 0),
-      billed_network_charges_zar: new Decimal(
-        (invoice.transmissionNetworkCharge || 0) + (invoice.networkCapacityCharge || 0),
-      ),
-      billed_service_charges_zar: new Decimal(invoice.serviceCharge || 0),
-      billed_ancillary_charges_zar: new Decimal(invoice.ancillary || 0),
-      billed_vat_zar: new Decimal(invoice.vat || 0),
-      billed_total_invoice_zar: new Decimal(invoice.totalInclVat || invoice.invoiceTotal || 0),
-
-      // Derived Calculated Telemetry Determinants (Zero Manual Entry)
-      calc_peak_kwh: new Decimal(totals.peakKWh),
-      calc_standard_kwh: new Decimal(totals.standardKWh),
-      calc_off_peak_kwh: new Decimal(totals.offPeakKWh),
-      calc_total_kwh: new Decimal(totals.totalKWh),
-      calc_maximum_demand_kva: new Decimal(totals.maxDemandKVA),
-      calc_reactive_energy_kvarh: totalReactiveKvarh,
-      calc_power_factor: derivedVectorPf,
-    };
-
-    const reconciliationPayload = DeterministicReconciliationEngine.reconcile(reconInput, tolerance);
-
-    // Identify exceptions & derive lifecycle status
+    let derivedVectorPf = new Decimal(1);
+    let calculatedTotalZar = "0.00";
     const exceptions: ReconciliationException[] = [];
-    const energyDiff = new Decimal(totals.totalKWh).minus(invoice.totalKWh || 0);
-    if (!energyDiff.isZero()) {
-      exceptions.push(
-        ReconciliationExceptionFactory.energyVariance({
-          component_code: "TOTAL_ACTIVE_ENERGY",
-          billed_kwh: invoice.totalKWh || 0,
-          expected_kwh: totals.totalKWh,
-          absolute_variance: energyDiff.abs().toNumber(),
-          percentage_variance: invoice.totalKWh
-            ? energyDiff.abs().div(invoice.totalKWh).mul(100).toNumber()
-            : null,
-        }),
-      );
-    }
 
-    const calculatedTotalZar = reconciliationPayload.calculated_total_zar.toFixed(2);
+    try {
+      totals = computeTotals(intervalsToProcess, invoice.nmd || 0);
+
+      for (const r of intervalsToProcess) {
+        if ((r as any).kVAR !== undefined) {
+          totalReactiveKvarh = totalReactiveKvarh.plus(new Decimal((r as any).kVAR || 0).mul(0.5));
+        } else if ((r as any).kvarh !== undefined) {
+          totalReactiveKvarh = totalReactiveKvarh.plus(new Decimal((r as any).kvarh || 0));
+        }
+      }
+
+      const pfRecord = PowerFactorEngine.calculatePowerFactor({
+        kWh: totals.totalKWh,
+        kVArh: totalReactiveKvarh,
+      });
+      derivedVectorPf = pfRecord.calculated_pf;
+
+      const reconInput: AuthoritativeReconciliationInput = {
+        run_id: deterministicRunId,
+        calculation_engine_version: calculationEngineVersion,
+        tenant_id: organisationId,
+        invoice_id: invoiceId,
+        invoice_number: invoiceId,
+        account_number: invoice.accountNumber || "UNKNOWN",
+        billing_start: bStart,
+        billing_end: bEnd,
+        tariff_version: tariffVersion,
+
+        // Billed Data from Validated Invoice
+        billed_peak_kwh: new Decimal(invoice.peakKWh || 0),
+        billed_standard_kwh: new Decimal(invoice.standardKWh || 0),
+        billed_off_peak_kwh: new Decimal(invoice.offPeakKWh || 0),
+        billed_total_kwh: new Decimal(invoice.totalKWh || 0),
+        billed_maximum_demand_kva: new Decimal(invoice.maxDemandKVA || 0),
+        billed_ratcheted_demand_kva: new Decimal(invoice.maxDemandKVA || 0),
+        billed_reactive_energy_kvarh: new Decimal(invoice.reactive || 0),
+        billed_energy_charges_zar: new Decimal(
+          (invoice.peakEnergyCharge || 0) +
+            (invoice.standardEnergyCharge || 0) +
+            (invoice.offPeakEnergyCharge || 0),
+        ),
+        billed_demand_charges_zar: new Decimal(invoice.networkDemandCharge || 0),
+        billed_network_charges_zar: new Decimal(
+          (invoice.transmissionNetworkCharge || 0) + (invoice.networkCapacityCharge || 0),
+        ),
+        billed_service_charges_zar: new Decimal(invoice.serviceCharge || 0),
+        billed_ancillary_charges_zar: new Decimal(invoice.ancillary || 0),
+        billed_vat_zar: new Decimal(invoice.vat || 0),
+        billed_total_invoice_zar: new Decimal(invoice.totalInclVat || invoice.invoiceTotal || 0),
+
+        // Derived Calculated Telemetry Determinants (Zero Manual Entry)
+        calc_peak_kwh: new Decimal(totals.peakKWh),
+        calc_standard_kwh: new Decimal(totals.standardKWh),
+        calc_off_peak_kwh: new Decimal(totals.offPeakKWh),
+        calc_total_kwh: new Decimal(totals.totalKWh),
+        calc_maximum_demand_kva: new Decimal(totals.maxDemandKVA),
+        calc_reactive_energy_kvarh: totalReactiveKvarh,
+        calc_power_factor: derivedVectorPf,
+      };
+
+      reconciliationPayload = DeterministicReconciliationEngine.reconcile(reconInput, tolerance);
+
+      const energyDiff = new Decimal(totals.totalKWh).minus(invoice.totalKWh || 0);
+      if (!energyDiff.isZero()) {
+        exceptions.push(
+          ReconciliationExceptionFactory.energyVariance({
+            component_code: "TOTAL_ACTIVE_ENERGY",
+            billed_kwh: invoice.totalKWh || 0,
+            expected_kwh: totals.totalKWh,
+            absolute_variance: energyDiff.abs().toNumber(),
+            percentage_variance: invoice.totalKWh
+              ? energyDiff.abs().div(invoice.totalKWh).mul(100).toNumber()
+              : null,
+          }),
+        );
+      }
+
+      calculatedTotalZar = reconciliationPayload.calculated_total_zar.toFixed(2);
+    } catch (calcError: any) {
+      // REQUIREMENT 39: If reconciliation fails, FAILED must be stored.
+      // Capture: error code, stage, message, run ID, timestamp.
+      // Do not silently return zero. A calculation failure must NEVER appear as Variance = R0.
+      const failureRecord = ReconciliationFailureHandler.createFailureRecord({
+        runId: deterministicRunId,
+        organisationId,
+        stage: "CHARGE_CALCULATION",
+        errorCode: "ERR_CALCULATION_ENGINE_CRASH",
+        message: calcError?.message || "Reconciliation calculation failed.",
+        invoiceId,
+        meterId,
+        billingPeriodStart: bStart,
+        billingPeriodEnd: bEnd,
+        billedTotalZar: invoice.totalInclVat || invoice.invoiceTotal || 0,
+        error: calcError,
+      });
+
+      await ReconciliationStorageService.saveFailedRun(failureRecord);
+
+      return {
+        jobId,
+        reconciliationId: deterministicRunId,
+        status: "FAILED",
+        message: `Reconciliation FAILED at stage 'CHARGE_CALCULATION': ${calcError?.message || "Calculation failure"}. Error code: ERR_CALCULATION_ENGINE_CRASH.`,
+        invoiceId,
+        meterId,
+        billingPeriod: { start: bStart, end: bEnd },
+        telemetryIntervalsProcessed: totalIntervals,
+        calculatedValues: {
+          peakKwh: "CALCULATION_FAILED",
+          standardKwh: "CALCULATION_FAILED",
+          offPeakKwh: "CALCULATION_FAILED",
+          totalKwh: "CALCULATION_FAILED",
+          maximumDemandKva: "CALCULATION_FAILED",
+          reactiveEnergyKvarh: "CALCULATION_FAILED",
+          vectorPowerFactor: "CALCULATION_FAILED",
+          calculatedTotalZar: "CALCULATION_FAILED",
+        },
+        reconciliationPayload: failureRecord as any,
+        auditModel: null,
+        exceptions: [],
+        dashboardNotified: false,
+        persisted: true,
+        matchingResult,
+      };
+    }
 
     // ------------------------------------------------------------------------
     // STAGE 5: SAVE RESULTS (REQUIREMENT 31)
@@ -534,15 +590,17 @@ export class AutomaticProcessingPipeline {
 
   private static buildAwaitingResult(params: {
     jobId: string;
+    runId?: string;
     status: AutomatedPipelineStatus;
     message: string;
     invoiceId: string;
     meterId: string;
     billingPeriod?: { start: string; end: string };
   }): AutomatedProcessingJobResult {
+    const isFailed = params.status === "FAILED";
     return {
       jobId: params.jobId,
-      reconciliationId: "UNASSIGNED",
+      reconciliationId: params.runId || "UNASSIGNED",
       status: params.status,
       message: params.message,
       invoiceId: params.invoiceId,
@@ -550,14 +608,14 @@ export class AutomaticProcessingPipeline {
       billingPeriod: params.billingPeriod || { start: "", end: "" },
       telemetryIntervalsProcessed: 0,
       calculatedValues: {
-        peakKwh: "0.00",
-        standardKwh: "0.00",
-        offPeakKwh: "0.00",
-        totalKwh: "0.00",
-        maximumDemandKva: "0.00",
-        reactiveEnergyKvarh: "0.00",
-        vectorPowerFactor: "1.0000",
-        calculatedTotalZar: "0.00",
+        peakKwh: isFailed ? "CALCULATION_FAILED" : "0.00",
+        standardKwh: isFailed ? "CALCULATION_FAILED" : "0.00",
+        offPeakKwh: isFailed ? "CALCULATION_FAILED" : "0.00",
+        totalKwh: isFailed ? "CALCULATION_FAILED" : "0.00",
+        maximumDemandKva: isFailed ? "CALCULATION_FAILED" : "0.00",
+        reactiveEnergyKvarh: isFailed ? "CALCULATION_FAILED" : "0.00",
+        vectorPowerFactor: isFailed ? "CALCULATION_FAILED" : "1.0000",
+        calculatedTotalZar: isFailed ? "CALCULATION_FAILED" : "0.00",
       },
       reconciliationPayload: null,
       auditModel: null,

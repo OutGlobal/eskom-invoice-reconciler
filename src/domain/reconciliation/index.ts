@@ -32,3 +32,4 @@ export * from "./calculationVersioningEngine";
 export * from "./automaticProcessingPipeline";
 export * from "./matchingEngine";
 export * from "./idempotencyEngine";
+export * from "./reconciliationFailureHandler";

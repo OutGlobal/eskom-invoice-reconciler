@@ -52,6 +52,10 @@ export class LargeDatasetQueryEngine {
     this.datasetCache.clear();
   }
 
+  public static clearCache(): void {
+    this.clearDatasetCache();
+  }
+
   /**
    * Server-Side Pagination & Filtering
    * Protects browser heap by slicing large datasets into bounded pages (default 50, max 1000).
