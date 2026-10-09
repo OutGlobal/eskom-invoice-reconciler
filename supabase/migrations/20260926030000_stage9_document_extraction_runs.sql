@@ -77,34 +77,28 @@ DROP POLICY IF EXISTS "tenant_isolation_select_document_extraction_runs" ON publ
 CREATE POLICY "tenant_isolation_select_document_extraction_runs"
     ON public.document_extraction_runs
     FOR SELECT
+    TO authenticated
     USING (
-        organisation_id = COALESCE(
-            current_setting('app.current_organisation_id', true),
-            '00000000-0000-0000-0000-000000000001'
-        )
-        OR organisation_id = '00000000-0000-0000-0000-000000000001'
+        organisation_id = (auth.jwt() ->> 'organisation_id')
     );
 
 DROP POLICY IF EXISTS "tenant_isolation_insert_document_extraction_runs" ON public.document_extraction_runs;
 CREATE POLICY "tenant_isolation_insert_document_extraction_runs"
     ON public.document_extraction_runs
     FOR INSERT
+    TO authenticated
     WITH CHECK (
-        organisation_id = COALESCE(
-            current_setting('app.current_organisation_id', true),
-            '00000000-0000-0000-0000-000000000001'
-        )
-        OR organisation_id = '00000000-0000-0000-0000-000000000001'
+        organisation_id = (auth.jwt() ->> 'organisation_id')
     );
 
 DROP POLICY IF EXISTS "tenant_isolation_update_document_extraction_runs" ON public.document_extraction_runs;
 CREATE POLICY "tenant_isolation_update_document_extraction_runs"
     ON public.document_extraction_runs
     FOR UPDATE
+    TO authenticated
     USING (
-        organisation_id = COALESCE(
-            current_setting('app.current_organisation_id', true),
-            '00000000-0000-0000-0000-000000000001'
-        )
-        OR organisation_id = '00000000-0000-0000-0000-000000000001'
+        organisation_id = (auth.jwt() ->> 'organisation_id')
+    )
+    WITH CHECK (
+        organisation_id = (auth.jwt() ->> 'organisation_id')
     );
