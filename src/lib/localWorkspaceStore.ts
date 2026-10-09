@@ -143,7 +143,6 @@ export class LocalWorkspaceStore {
       };
     });
   }
-  }
 
   static async saveUpload(record: UploadRecord): Promise<void> {
     if (!available()) {
