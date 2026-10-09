@@ -295,7 +295,7 @@ export const DataLineageModal: React.FC<DataLineageModalProps> = ({
                 <div className="text-xs text-muted-foreground">
                   Status Explanation:{" "}
                   <span className="text-foreground">
-                    {determinant?.explanation?.root_cause_description ||
+                    {(determinant?.explanation as any)?.root_cause_description ||
                       (isDiscrepancy
                         ? "Discrepancy exceeds permissible tolerance threshold and requires formal billing review."
                         : "Deterministic calculations confirm invoiced value matches meter data within gazetted tolerance.")}
@@ -536,7 +536,7 @@ export const DataLineageModal: React.FC<DataLineageModalProps> = ({
                             {row.ts instanceof Date ? row.ts.toISOString() : String(row.ts)}
                           </td>
                           <td className="p-2.5 font-mono">{NUM(row.kW || 0)}</td>
-                          <td className="p-2.5 font-mono">{NUM(row.kWh || (row.kW || 0) * 0.5)}</td>
+                          <td className="p-2.5 font-mono">{NUM((row as any).kWh || (row.kW || 0) * 0.5)}</td>
                           <td className="p-2.5 font-mono">{NUM(row.kVA || 0)}</td>
                           <td className="p-2.5">
                             <span className="px-1.5 py-0.5 text-[10px] rounded uppercase font-semibold bg-muted">

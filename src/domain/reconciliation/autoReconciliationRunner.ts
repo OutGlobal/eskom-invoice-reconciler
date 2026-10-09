@@ -97,9 +97,12 @@ export function runAutomaticReconciliation(
 
     if (!tariffVersion) {
       tariffVersion = TariffInterface.getApplicableTariffSync(
-        invoice.accountNumber || invoice.id,
+        invoice.accountNumber || (invoice as any).id || invoice.invoiceNumber || "",
         invoice.meterNumber || "",
-        { start: invoice.billingStart, end: invoice.billingEnd },
+        {
+          start: (invoice as any).billingStart || invoice.billingPeriodStart || "",
+          end: (invoice as any).billingEnd || invoice.billingPeriodEnd || "",
+        },
       );
     }
   }

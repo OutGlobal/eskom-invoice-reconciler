@@ -552,22 +552,26 @@ export class TariffInterface {
   }
 
   private static resolveRateFromRule(rule: TariffComponentRule, season: string): Decimal {
-    if (season === "high" && rule.high_season_rate !== undefined) {
-      return new Decimal(rule.high_season_rate);
+    if (rule.rate_value !== undefined) {
+      return new Decimal(rule.rate_value);
     }
-    if (season === "low" && rule.low_season_rate !== undefined) {
-      return new Decimal(rule.low_season_rate);
+    const r = rule as any;
+    if (season === "high" && r.high_season_rate !== undefined) {
+      return new Decimal(r.high_season_rate);
     }
-    if (rule.flat_rate !== undefined) {
-      return new Decimal(rule.flat_rate);
+    if (season === "low" && r.low_season_rate !== undefined) {
+      return new Decimal(r.low_season_rate);
     }
-    if (rule.rate_zar !== undefined) {
-      return new Decimal(rule.rate_zar);
+    if (r.flat_rate !== undefined) {
+      return new Decimal(r.flat_rate);
     }
-    if (rule.rate_c_kwh !== undefined) {
-      return new Decimal(rule.rate_c_kwh);
+    if (r.rate_zar !== undefined) {
+      return new Decimal(r.rate_zar);
     }
-    return new Decimal(rule.high_season_rate ?? rule.low_season_rate ?? 0);
+    if (r.rate_c_kwh !== undefined) {
+      return new Decimal(r.rate_c_kwh);
+    }
+    return new Decimal(r.high_season_rate ?? r.low_season_rate ?? 0);
   }
 }
 

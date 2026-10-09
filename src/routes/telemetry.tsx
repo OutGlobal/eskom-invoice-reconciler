@@ -203,11 +203,15 @@ function TelemetryPage() {
   const qualitySummary = useMemo(() => {
     const total = totalRecordsCount;
     const actual = qualityDistribution.ACTUAL || 0;
+    const missingGaps = qualityDistribution.MISSING || 0;
+    const quarantined = (qualityDistribution.INVALID || 0) + (qualityDistribution.DUPLICATE || 0);
     const healthScorePct = total > 0 ? Number(((actual / total) * 100).toFixed(1)) : 100.0;
     return {
       totalRecords: total,
       healthScorePct,
       countsByState: qualityDistribution,
+      missingGapsCount: missingGaps,
+      quarantinedCount: quarantined,
     };
   }, [totalRecordsCount, qualityDistribution]);
 

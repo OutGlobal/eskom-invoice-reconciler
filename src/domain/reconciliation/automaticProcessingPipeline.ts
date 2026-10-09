@@ -25,9 +25,8 @@
  */
 
 import Decimal from "decimal.js-light";
-import { DeterministicReconciliationEngine } from "./reconciliationEngine";
+import { DeterministicReconciliationEngine, type AuthoritativeReconciliationInput } from "./reconciliationEngine";
 import type {
-  AuthoritativeReconciliationInput,
   AuthoritativeReconciliationPayload,
   ToleranceConfig,
 } from "./types";
@@ -158,7 +157,7 @@ export class AutomaticProcessingPipeline {
         invoiceId,
         invoiceNumber: invoiceId,
         accountNumber: invoice.accountNumber || "",
-        siteId: invoice.siteName || invoice.premiseId,
+        siteId: (invoice as any).siteName || invoice.premiseId || invoice.accountNumber || "UNKNOWN",
         meterNumber: meterId,
         billingPeriodStart: bStart,
         billingPeriodEnd: bEnd,
@@ -233,7 +232,7 @@ export class AutomaticProcessingPipeline {
     const totalIntervals = intervalsToProcess.length;
 
     let tariffVersion = await TariffInterface.getApplicableTariff(
-      invoice.accountNumber || invoice.id,
+      invoice.accountNumber || (invoice as any).id || invoiceId,
       invoice.meterNumber || "",
       { start: bStart, end: bEnd },
     );
@@ -246,18 +245,14 @@ export class AutomaticProcessingPipeline {
     }
 
     if (!tariffVersion) {
-      return {
-        success: false,
+      return this.buildAwaitingResult({
+        jobId,
         status: "FAILED",
-        error: "MISSING_TARIFF",
         message: "Upload an applicable tariff document before reconciliation.",
-        executionSummary: {
-          invoiceId: invoice.id,
-          meterId: (invoice as any).meterId || "UNKNOWN",
-          intervalsProcessed: totalIntervals,
-          durationMs: 0,
-        },
-      };
+        invoiceId,
+        meterId,
+        billingPeriod: { start: bStart, end: bEnd },
+      });
     }
 
     const tariffVerId = `${tariffVersion.header.tariff_code}_${tariffVersion.header.version}`;
@@ -275,7 +270,7 @@ export class AutomaticProcessingPipeline {
       amrSourceChecksum: amrChecksum,
       tariffVersionId: tariffVerId,
       calculationEngineVersion,
-      toleranceProfileName: tolerance.profile_name || "DEFAULT_PROFILE",
+      toleranceProfileName: (tolerance as any).profile_name || "DEFAULT_PROFILE",
     };
 
     const deterministicRunId = await ReconciliationIdempotencyEngine.generateDeterministicRunId(identitySource);
@@ -315,7 +310,7 @@ export class AutomaticProcessingPipeline {
 
     try {
       void AuditLedgerService.logEvent(
-        "RECONCILIATION_JOB_CREATED",
+        "RECONCILIATION_STARTED",
         "reconciliation_job",
         jobId,
         {
@@ -411,6 +406,7 @@ export class AutomaticProcessingPipeline {
           ReconciliationExceptionFactory.energyVariance({
             component_code: "TOTAL_ACTIVE_ENERGY",
             billed_kwh: invoice.totalKWh || 0,
+            amr_kwh: totals.totalKWh,
             expected_kwh: totals.totalKWh,
             absolute_variance: energyDiff.abs().toNumber(),
             percentage_variance: invoice.totalKWh
@@ -522,7 +518,7 @@ export class AutomaticProcessingPipeline {
         calculation_engine_version: calculationEngineVersion,
       },
       tolerance: {
-        profile_name: tolerance.profile_name || "DEFAULT_PROFILE",
+        profile_name: (tolerance as any).profile_name || "DEFAULT_PROFILE",
         thresholds: {
           energy_quantity: { percentage: "0.50", max_kwh: "100.00" },
           demand: { percentage: "1.00", max_kva: "10.00" },

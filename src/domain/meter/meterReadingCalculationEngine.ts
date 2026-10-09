@@ -118,7 +118,7 @@ export class MeterReadingCalculationEngine {
     const currSerial = curr.meterSerial || prevSerial;
 
     let isRollover = false;
-    let isReplacement = curr.isReplacement === true || (prev.meterSerial && curr.meterSerial && prev.meterSerial !== curr.meterSerial);
+    let isReplacement = Boolean(curr.isReplacement === true || (prev.meterSerial && curr.meterSerial && prev.meterSerial !== curr.meterSerial));
     let isReset = curr.isReset === true;
     let isCorrected = curr.isCorrected === true || prev.isCorrected === true;
     let isEstimated = curr.isEstimated === true || curr.quality === "ESTIMATED" || prev.isEstimated === true;

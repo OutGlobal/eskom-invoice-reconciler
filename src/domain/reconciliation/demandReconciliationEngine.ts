@@ -419,8 +419,12 @@ export class DemandReconciliationEngine {
       percentage_variance_status: variance.percentage_status,
       variance_direction: direction,
       configured_tolerance: {
-        absolute_tolerance: recordedTolerance.absolute_threshold ?? absTol,
-        percentage_tolerance: recordedTolerance.percentage_threshold ?? pctTol,
+        absolute_tolerance: recordedTolerance.absolute_threshold
+          ? new Decimal(recordedTolerance.absolute_threshold)
+          : new Decimal(0),
+        percentage_tolerance: recordedTolerance.percentage_threshold
+          ? new Decimal(recordedTolerance.percentage_threshold)
+          : new Decimal(0),
         tolerance_rule_source: recordedTolerance.source,
       },
       is_within_tolerance: isWithinTolerance,

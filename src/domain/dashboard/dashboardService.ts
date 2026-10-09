@@ -17,6 +17,7 @@ import type {
   ReconciliationHealthMetrics,
   AvailableSiteItem,
   AvailableAccountItem,
+  AvailableCustomerItem,
   ActiveProcessingJobItem,
 } from "./types";
 import {

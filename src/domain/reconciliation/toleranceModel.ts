@@ -86,6 +86,8 @@ export interface ToleranceModelConfig {
   };
 }
 
+export type ToleranceProfile = ToleranceModelConfig;
+
 /**
  * Immutable audit snapshot of the exact tolerance rule and parameters
  * applied to a specific reconciliation comparison.

@@ -17,6 +17,8 @@ export type TouPeriodCategory = "peak" | "standard" | "off_peak";
 
 export interface NormalizedTimestamp {
   timestampUtc: string; // Canonical ISO 8601 UTC (e.g. "2026-09-01T04:00:00.000Z")
+  isoUtc?: string;
+  isoLocal?: string;
   epochMs: number;
   timezone: string; // e.g. "Africa/Johannesburg"
   localDate: string; // "YYYY-MM-DD" in local timezone
@@ -219,8 +221,11 @@ export class TimezoneNormalizationEngine {
     const offsetMins = absOffset % 60;
     const utcOffsetString = `${sign}${String(offsetHours).padStart(2, "0")}:${String(offsetMins).padStart(2, "0")}`;
 
+    const timestampUtc = dateObj.toISOString();
     return {
-      timestampUtc: dateObj.toISOString(),
+      timestampUtc,
+      isoUtc: timestampUtc,
+      isoLocal: localDateTimeString,
       epochMs,
       timezone: targetTimezone,
       localDate,

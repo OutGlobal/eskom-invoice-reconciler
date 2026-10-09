@@ -350,8 +350,8 @@ export class ReconciliationLifecycleManager {
     const offRate = new Decimal(tariffData?.offPeakRateZar ?? (season === "HIGH_SEASON" ? "1.0820" : "0.7368"));
     const demandRate = new Decimal(tariffData?.demandRateZar ?? "115.00");
     const networkRate = new Decimal(tariffData?.networkRateZar ?? "95.00");
-    const serviceRatePerDay = new Decimal(tariffData?.serviceRatePerDay ?? "83.33");
-    const adminRatePerDay = new Decimal(tariffData?.adminRatePerDay ?? "41.67");
+    const serviceRatePerDay = new Decimal(tariffData?.serviceRateZarPerDay ?? "83.33");
+    const adminRatePerDay = new Decimal(tariffData?.adminRateZarPerDay ?? "41.67");
     const subsidyRatePerKwh = new Decimal(tariffData?.subsidyRateZar ?? "0.0412");
 
     logStage("LOAD_APPLICABLE_TARIFF", "COMPLETED", `Loaded tariff rules: ${tariffCode} (${season}) with gazetted rate structures.`);
@@ -685,7 +685,7 @@ export class ReconciliationLifecycleManager {
           percentage_tolerance: tolerances.percentage_tolerance,
           unit: c.unit_of_measure,
         },
-        status: c.classification === "PASS" ? "MATCH" : "FLAGGED",
+        status: c.classification === "PASS" ? "MATCH" : "MATERIAL_DISCREPANCY",
         reason_code: c.classification === "PASS" ? "MATCH" : "MATERIAL_DISCREPANCY",
         notes: c.explanation.formula_used,
       })),

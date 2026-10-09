@@ -3,7 +3,9 @@
  */
 
 export * from "./types";
+export type { DiscrepancyClassification } from "./types";
 export * from "./reconciliationEngine";
+export type { ChargeComparisonInput, ChargeComparisonRow } from "./expectedVsBilledModel";
 export * from "./reconciliationLifecycleManager";
 export * from "./reconciliationInputContract";
 export * from "./billingPeriodCoverageEngine";

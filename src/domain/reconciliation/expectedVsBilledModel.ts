@@ -239,6 +239,7 @@ export class ExpectedVsBilledModel {
     if (!billedAmount) {
       tolerance = {
         outcome: "NO_TOLERANCE_CONFIGURED",
+        status: "INSUFFICIENT_DATA",
         within_absolute: null,
         within_percentage: null,
         absolute_tolerance: null,

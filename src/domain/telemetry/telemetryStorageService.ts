@@ -398,7 +398,7 @@ export class TelemetryStorageService {
 
     return LargeDatasetQueryEngine.queryPaginatedIntervals(
       {
-        organisationId: params.organisationId,
+        organisationId: params.organisationId || "",
         meterId: params.meterId,
         qualityStates:
           params.qualityState && params.qualityState !== "ALL"

@@ -310,11 +310,11 @@ export class DeterministicReconciliationEngine {
       "kVARh",
       tolerance.kvarh_tolerance,
       "kVARh Telemetry Sum",
-      tariffDef.components?.find((c) =>
-        c.component_code.toUpperCase().includes("REACTIVE"),
-      )?.flat_rate
-        ? `${tariffDef.components.find((c) => c.component_code.toUpperCase().includes("REACTIVE"))?.flat_rate} R/kVARh`
-        : "Tariff gazetted R/kVARh",
+      (() => {
+        const rc = tariffDef.components?.find((c) => c.component_code.toUpperCase().includes("REACTIVE")) as any;
+        const rate = rc?.rate_value ?? rc?.flat_rate ?? rc?.rate_zar;
+        return rate ? `${rate} R/kVARh` : "Tariff gazetted R/kVARh";
+      })(),
     );
     addDeterminant(
       "ENERGY_CHARGES_ZAR",
@@ -1237,10 +1237,10 @@ export class ReconciliationEngine {
     const quantityComparisons = reconcileDemandReactive(
       input.demand_reactive ?? {
         intervals: [],
-        demands: [{ kind: "maximum", billed: invoice.maximum_demand?.value }],
+        demands: [{ kind: "maximum", billed: invoice.maximum_demand?.value ?? undefined }],
         reactive: {
-          billedKvarh: invoice.reactive_energy_kvarh?.value,
-          billedPowerFactor: invoice.power_factor?.value,
+          billedKvarh: invoice.reactive_energy_kvarh?.value ?? undefined,
+          billedPowerFactor: invoice.power_factor?.value ?? undefined,
           amrKvarh: input.reactive_energy_kvarh,
           amrKwh: input.total_kwh,
           comparable: false,

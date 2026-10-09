@@ -378,8 +378,8 @@ export class TouMappingEngine {
 
     if (!seasonConfig) {
       return {
-        timestamp_utc: norm.isoUtc,
-        timestamp_local: norm.isoLocal,
+        timestamp_utc: norm.timestampUtc,
+        timestamp_local: norm.localDateTimeString,
         timezone: tz,
         period: defaultPeriod,
         season: "unspecified",
@@ -403,8 +403,8 @@ export class TouMappingEngine {
         targetDayType = "weekday";
       } else if (holidayTreatment === "off_peak") {
         return {
-          timestamp_utc: norm.isoUtc,
-          timestamp_local: norm.isoLocal,
+          timestamp_utc: norm.timestampUtc,
+          timestamp_local: norm.localDateTimeString,
           timezone: tz,
           period: "OFF-PEAK",
           season: seasonName,
@@ -427,8 +427,8 @@ export class TouMappingEngine {
 
     if (!daySchedule || !daySchedule.windows || daySchedule.windows.length === 0) {
       return {
-        timestamp_utc: norm.isoUtc,
-        timestamp_local: norm.isoLocal,
+        timestamp_utc: norm.timestampUtc,
+        timestamp_local: norm.localDateTimeString,
         timezone: tz,
         period: defaultPeriod,
         season: seasonName,
@@ -450,8 +450,8 @@ export class TouMappingEngine {
       if (currentMinuteOfDay >= winStartMinute && currentMinuteOfDay < winEndMinute) {
         const normalizedPeriod = this.normalizePeriod(win.period);
         return {
-          timestamp_utc: norm.isoUtc,
-          timestamp_local: norm.isoLocal,
+          timestamp_utc: norm.timestampUtc,
+          timestamp_local: norm.localDateTimeString,
           timezone: tz,
           period: normalizedPeriod,
           season: seasonName,
@@ -473,8 +473,8 @@ export class TouMappingEngine {
 
     // Fallback if no specific window caught the minute
     return {
-      timestamp_utc: norm.isoUtc,
-      timestamp_local: norm.isoLocal,
+      timestamp_utc: norm.timestampUtc,
+      timestamp_local: norm.localDateTimeString,
       timezone: tz,
       period: defaultPeriod,
       season: seasonName,

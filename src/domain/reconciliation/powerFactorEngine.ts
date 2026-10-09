@@ -136,7 +136,7 @@ export class PowerFactorEngine {
       return "unity";
     }
 
-    if (sourcePf !== null) {
+    if (sourcePf) {
       // In some telemetry formats, negative PF indicates leading or generation
       if (sourcePf.lessThan(0)) return "leading";
       if (sourcePf.equals(1)) return "unity";
