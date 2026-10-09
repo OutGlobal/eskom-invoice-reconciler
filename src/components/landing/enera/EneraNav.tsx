@@ -1,3 +1,4 @@
+import { EneraBrandMark } from "./EneraBrandPrimitives";
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -152,12 +153,7 @@ export function EneraNav() {
             className="flex items-center gap-2 focus-ring-enera rounded py-1 shrink-0 group"
             aria-label="ENERA AI Technologies Homepage"
           >
-            <img
-              src="/images/enera-ai-logo.png"
-              alt="ENERA AI"
-              className="h-8 sm:h-9 w-auto object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.4)] transition-transform duration-300 group-hover:scale-105"
-              draggable={false}
-            />
+            <EneraBrandMark size="md" showDescriptor={false} />
           </Link>
 
           {/* Center: Simplified 6-Item Information Architecture */}

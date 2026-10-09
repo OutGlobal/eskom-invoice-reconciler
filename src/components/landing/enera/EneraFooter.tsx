@@ -1,3 +1,4 @@
+import { EneraBrandMark } from "./EneraBrandPrimitives";
 import React from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, LogIn } from "lucide-react";
@@ -20,12 +21,7 @@ export function EneraFooter() {
               className="inline-flex items-center gap-2 focus-ring-enera rounded group py-1"
               aria-label="ENERA AI Technologies homepage"
             >
-              <img
-                src="/images/enera-ai-logo.png"
-                alt="ENERA AI"
-                className="h-8 w-auto object-contain drop-shadow-[0_0_8px_rgba(6,182,212,0.35)] transition-transform duration-300 group-hover:scale-105"
-                draggable={false}
-              />
+              <EneraBrandMark size="md" showDescriptor={false} />
             </Link>
             <span className="text-slate-600 hidden sm:inline">·</span>
             <span className="text-xs font-mono text-slate-400 hidden sm:inline">

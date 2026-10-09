@@ -1,3 +1,4 @@
+import { EneraBrandMark } from "@/components/landing/enera/EneraBrandPrimitives";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -7,9 +8,11 @@ import {
   useRouterState,
   HeadContent,
   Scripts,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Toaster } from "react-hot-toast";
+import { Analytics } from "@vercel/analytics/react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -43,7 +46,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
@@ -116,11 +119,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         property: "og:image",
-        content: "https://enera-ai.com/images/enera-ai-logo.png",
+        content: "https://enera-ai.com/images/enera-ai-social.png",
       },
       {
         name: "twitter:image",
-        content: "https://enera-ai.com/images/enera-ai-logo.png",
+        content: "https://enera-ai.com/images/enera-ai-social.png",
       },
     ],
     links: [
@@ -145,6 +148,7 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <Analytics />
         <Scripts />
       </body>
     </html>
@@ -185,7 +189,7 @@ function RootComponent() {
                       className="text-xs font-mono font-bold text-cyan-500 hover:text-cyan-400 transition-colors flex items-center gap-1 shrink-0"
                       title="Return to ENERA Public Landing Page"
                     >
-                      <span>ENERA</span>
+                      <EneraBrandMark size="sm" showDescriptor={false} />
                       <span className="text-muted-foreground/40 font-normal">/</span>
                     </Link>
                     <span className="truncate">Eskom Meter Data Reconciliation</span>
