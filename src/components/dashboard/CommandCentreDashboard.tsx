@@ -35,6 +35,7 @@ import type {
   CriticalAlertItem,
   DashboardFilterState,
 } from "@/domain/dashboard/types";
+import { MultiSiteHierarchySelector } from "@/components/dashboard/MultiSiteHierarchySelector";
 
 export function CommandCentreDashboard() {
   const navigate = useNavigate();
@@ -281,15 +282,15 @@ export function CommandCentreDashboard() {
         </div>
       )}
 
-      {/* 2. Global Filter Bar */}
-      <div className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-3">
+      {/* 2. Global Filter Bar & Multi-Site Hierarchy Selector */}
+      <div className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-4">
         <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           <span className="flex items-center gap-1.5">
-            <Filter className="h-3.5 w-3.5 text-primary" /> Multi-Tenant Portfolio Filters
+            <Filter className="h-3.5 w-3.5 text-primary" /> Multi-Site Enterprise Hierarchy & Scoping
           </span>
-          {Object.keys(filters).some((k) => filters[k as keyof DashboardFilterState] !== "all") && (
+          {Object.keys(filters).some((k) => filters[k as keyof DashboardFilterState] !== "all" && filters[k as keyof DashboardFilterState] !== undefined) && (
             <button
-              onClick={() => setFilters({ severity: "all", status: "all" })}
+              onClick={() => setFilters({ severity: "all", status: "all", source: "database" })}
               className="text-xs text-primary hover:underline lowercase font-normal"
             >
               Reset filters
@@ -297,95 +298,17 @@ export function CommandCentreDashboard() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-          {/* Client / Org */}
-          <div>
-            <label className="text-[10px] text-muted-foreground block mb-1">CLIENT / ORG</label>
-            <select
-              value={filters.organisationId || "all"}
-              onChange={(e) =>
-                setFilters((f) => ({
-                  ...f,
-                  organisationId: e.target.value === "all" ? undefined : e.target.value,
-                }))
-              }
-              className="w-full text-xs rounded border border-border bg-background px-2 py-1"
-            >
-              <option value="all">All Clients</option>
-              {customer?.name ? <option value={customer.name}>{customer.name}</option> : null}
-            </select>
-          </div>
+        {/* Multi-Site Cascading Hierarchy Selector (Organisation -> Customer -> Site -> Meter) */}
+        <MultiSiteHierarchySelector
+          filters={filters}
+          onFilterChange={(newFilters) => setFilters(newFilters)}
+          availableCustomers={data.availableCustomers}
+          availableSites={data.availableSites}
+          availableAccounts={data.availableAccounts}
+        />
 
-          {/* Site */}
-          <div>
-            <label className="text-[10px] text-muted-foreground block mb-1">SITE</label>
-            <select
-              value={filters.siteId || "all"}
-              onChange={(e) =>
-                setFilters((f) => ({
-                  ...f,
-                  siteId: e.target.value === "all" ? undefined : e.target.value,
-                }))
-              }
-              className="w-full text-xs rounded border border-border bg-background px-2 py-1"
-            >
-              <option value="all">All Sites</option>
-              {data.availableSites && data.availableSites.length > 0 ? (
-                data.availableSites.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))
-              ) : customer?.name ? (
-                <option value={customer.name}>{customer.name} Facility</option>
-              ) : null}
-            </select>
-          </div>
-
-          {/* Account */}
-          <div>
-            <label className="text-[10px] text-muted-foreground block mb-1">ACCOUNT NO.</label>
-            <select
-              value={filters.accountNumber || "all"}
-              onChange={(e) =>
-                setFilters((f) => ({
-                  ...f,
-                  accountNumber: e.target.value === "all" ? undefined : e.target.value,
-                }))
-              }
-              className="w-full text-xs rounded border border-border bg-background px-2 py-1"
-            >
-              <option value="all">All Accounts</option>
-              {data.availableAccounts && data.availableAccounts.length > 0 ? (
-                data.availableAccounts.map((a) => (
-                  <option key={a.accountNumber} value={a.accountNumber}>
-                    {a.accountNumber} {a.name ? `— ${a.name}` : ""}
-                  </option>
-                ))
-              ) : customer?.accountNumber ? (
-                <option value={customer.accountNumber}>{customer.accountNumber}</option>
-              ) : null}
-            </select>
-          </div>
-
-          {/* Meter / POD */}
-          <div>
-            <label className="text-[10px] text-muted-foreground block mb-1">METER / POD</label>
-            <select
-              value={filters.meterId || "all"}
-              onChange={(e) =>
-                setFilters((f) => ({
-                  ...f,
-                  meterId: e.target.value === "all" ? undefined : e.target.value,
-                }))
-              }
-              className="w-full text-xs rounded border border-border bg-background px-2 py-1"
-            >
-              <option value="all">All Meters</option>
-              {customer?.meter ? <option value={customer.meter}>{customer.meter}</option> : null}
-            </select>
-          </div>
-
+        {/* Status & Severity Filter Row */}
+        <div className="pt-2 border-t border-border/60 grid grid-cols-2 sm:grid-cols-4 gap-3">
           {/* Severity */}
           <div>
             <label className="text-[10px] text-muted-foreground block mb-1">ALERT SEVERITY</label>
@@ -443,18 +366,18 @@ export function CommandCentreDashboard() {
           </div>
         </div>
       ) : !portfolioSummary.hasData ? (
-        /* Rich Onboarding Empty State (3 Steps + Quick Actions) */
+        /* Honest Persisted Reconciliation Empty State */
         <div className="rounded-xl border border-primary/20 bg-card p-6 md:p-10 space-y-8 shadow-sm">
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
               <Database className="h-6 w-6 text-primary" />
             </div>
             <h3 className="text-xl font-bold tracking-tight text-foreground">
-              Welcome to Utility Reconciliation Command Centre
+              No Persisted Reconciliation Data
             </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Follow these three simple steps to audit your Eskom accounts, reconcile 30-minute
-              interval readings against gazetted NERSA tariffs, and recover billing overcharges.
+              No reconciliation runs or validated invoices were found in persistent storage.
+              To display authoritative metrics, process an invoice and interval meter telemetry.
             </p>
           </div>
 
@@ -516,117 +439,129 @@ export function CommandCentreDashboard() {
         </div>
       ) : (
         <>
-          {/* 3. Portfolio Summary (16 Core KPIs) */}
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold tracking-tight uppercase text-muted-foreground">
-              1. Portfolio Summary & Financial Exposure
-            </h2>
+          {/* 3. Portfolio Summary (Requirement 34 Real Metrics) */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold tracking-tight uppercase text-muted-foreground">
+                1. Authoritative Reconciliation Metrics (Persisted)
+              </h2>
+              <span className="text-[11px] text-muted-foreground font-mono">
+                {portfolioSummary.totalSites} Sites • {portfolioSummary.totalAccounts} Accounts
+              </span>
+            </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {/* Total Clients */}
+            {/* Top 8 Authoritative Real Metrics Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {/* Invoices Processed */}
               <div className="rounded-md border border-border bg-card p-4">
                 <div className="text-[10px] uppercase text-muted-foreground font-semibold flex items-center gap-1">
-                  <Building2 className="h-3 w-3" /> Total Clients
+                  <FileText className="h-3 w-3 text-primary" /> Invoices Processed
                 </div>
-                <div className="mt-1 text-xl font-bold">{portfolioSummary.totalClients}</div>
+                <div className="mt-1 text-xl font-bold">{portfolioSummary.invoicesProcessed}</div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Active enterprise orgs
+                  of {portfolioSummary.totalInvoices} total stored
                 </div>
               </div>
 
-              {/* Total Sites */}
-              <div className="rounded-md border border-border bg-card p-4">
-                <div className="text-[10px] uppercase text-muted-foreground font-semibold">
-                  Total Sites
+              {/* Reconciliations Completed */}
+              <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-4">
+                <div className="text-[10px] uppercase text-emerald-600 font-semibold flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-500" /> Reconciliations Completed
                 </div>
-                <div className="mt-1 text-xl font-bold">{portfolioSummary.totalSites}</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">Delivery premises</div>
+                <div className="mt-1 text-xl font-bold text-emerald-600">
+                  {portfolioSummary.reconciliationsCompleted}
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">Authoritative audits</div>
               </div>
 
-              {/* Total Accounts */}
-              <div className="rounded-md border border-border bg-card p-4">
-                <div className="text-[10px] uppercase text-muted-foreground font-semibold">
-                  Total Accounts
+              {/* Reconciliations Requiring Review */}
+              <button
+                onClick={() => navigate({ to: "/reconciliation" })}
+                className="rounded-md border border-amber-500/30 bg-amber-500/5 p-4 text-left hover:border-amber-500 transition group cursor-pointer"
+              >
+                <div className="text-[10px] uppercase text-amber-600 font-semibold flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3 text-amber-500" /> Requiring Review
+                  </span>
+                  <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition" />
                 </div>
-                <div className="mt-1 text-xl font-bold">{portfolioSummary.totalAccounts}</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Eskom billing accounts
+                <div className="mt-1 text-xl font-bold text-amber-600">
+                  {portfolioSummary.reconciliationsRequiringReview}
                 </div>
-              </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">Actionable exceptions</div>
+              </button>
 
-              {/* Total Invoices */}
+              {/* Data Coverage */}
               <div className="rounded-md border border-border bg-card p-4">
                 <div className="text-[10px] uppercase text-muted-foreground font-semibold flex items-center gap-1">
-                  <FileText className="h-3 w-3" /> Total Invoices
+                  <Zap className="h-3 w-3 text-blue-500" /> Data Coverage
                 </div>
-                <div className="mt-1 text-xl font-bold">{portfolioSummary.totalInvoices}</div>
+                <div className="mt-1 text-xl font-bold text-foreground">
+                  {portfolioSummary.dataCoveragePct !== null ? `${portfolioSummary.dataCoveragePct}%` : "—"}
+                </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
-                  {portfolioSummary.invoicesProcessed} processed
+                  {portfolioSummary.dataCoveragePct !== null ? "Interval completeness" : "No telemetry"}
                 </div>
               </div>
 
-              {/* Billed Amount */}
+              {/* Total Billed */}
               <div className="rounded-md border border-border bg-card p-4">
                 <div className="text-[10px] uppercase text-muted-foreground font-semibold">
-                  Total Billed Amount
+                  Total Billed
                 </div>
                 <div className="mt-1 text-lg font-bold text-foreground">
-                  {ZAR(portfolioSummary.totalBilledAmountZar)}
+                  {ZAR(portfolioSummary.totalBilled)}
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Extracted invoice total
-                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">Extracted statements</div>
               </div>
 
-              {/* Calculated Amount */}
+              {/* Total Expected */}
               <div className="rounded-md border border-border bg-card p-4">
                 <div className="text-[10px] uppercase text-muted-foreground font-semibold">
-                  Total Calculated Amount
+                  Total Expected
                 </div>
                 <div className="mt-1 text-lg font-bold text-emerald-500">
-                  {ZAR(portfolioSummary.totalCalculatedAmountZar)}
+                  {ZAR(portfolioSummary.totalExpected)}
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Deterministic NERSA rate
-                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">Gazetted tariff rate</div>
               </div>
 
               {/* Total Variance */}
               <div className="rounded-md border border-border bg-card p-4">
                 <div className="text-[10px] uppercase text-muted-foreground font-semibold">
-                  Net Variance (Billed - Calc)
+                  Total Variance
                 </div>
                 <div
                   className={`mt-1 text-lg font-bold ${
-                    portfolioSummary.totalVarianceZar > 0
+                    portfolioSummary.totalVariance > 0
                       ? "text-red-500"
-                      : portfolioSummary.totalVarianceZar < 0
+                      : portfolioSummary.totalVariance < 0
                         ? "text-amber-500"
                         : "text-emerald-500"
                   }`}
                 >
-                  {portfolioSummary.totalVarianceZar > 0 ? "+" : ""}
-                  {ZAR(portfolioSummary.totalVarianceZar)}
+                  {portfolioSummary.totalVariance > 0 ? "+" : ""}
+                  {ZAR(portfolioSummary.totalVariance)}
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
-                  {portfolioSummary.totalVarianceZar > 0 ? "Billed > Gazetted Rate" : "Balanced"}
+                  {portfolioSummary.totalVariance > 0 ? "Billed > Expected" : "Balanced"}
                 </div>
               </div>
 
-              {/* Potential Recovery (CLICKABLE DRILL-DOWN) */}
+              {/* Potential Financial Discrepancies */}
               <button
                 onClick={() => navigate({ to: "/trends" })}
                 className="rounded-md border border-red-500/30 bg-red-500/10 p-4 text-left hover:border-red-500 hover:bg-red-500/15 transition group cursor-pointer"
               >
                 <div className="text-[10px] uppercase text-red-600 font-bold flex items-center justify-between">
-                  <span>Potential Recovery</span>
+                  <span>Financial Discrepancies</span>
                   <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition" />
                 </div>
                 <div className="mt-1 text-lg font-bold text-red-500">
-                  {ZAR(portfolioSummary.potentialRecoveryZar)}
+                  {ZAR(portfolioSummary.potentialFinancialDiscrepancies)}
                 </div>
                 <div className="text-[11px] text-red-600/80 mt-0.5 font-medium">
-                  Click to open Overcharge Recovery Register →
+                  Dispute & Recovery Register →
                 </div>
               </button>
             </div>

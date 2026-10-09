@@ -207,17 +207,24 @@ export function resolveUsefulDocumentState(
   validationInput?: string | null,
   errorInput?: string | null,
   hasReviewFlag?: boolean,
+  errorStatusInput?: string | null,
 ): UsefulDocumentState {
   const status = (statusInput || "").toUpperCase();
   const validation = (validationInput || "").toUpperCase();
+  const errorStatus = (errorStatusInput || "").toUpperCase();
   const err = (errorInput || "").trim();
 
-  // 1. Failed
+  // 1. Explicit Unrecoverable Failure
   if (
     status === "FAILED" ||
     validation === "INVALID" ||
-    validation === "FAILED" ||
-    (err !== "" && status !== "REVIEW_REQUIRED")
+    errorStatus === "FATAL" ||
+    (err !== "" &&
+      status !== "REVIEW_REQUIRED" &&
+      status !== "PARTIALLY_PROCESSED" &&
+      status !== "PROCESSED" &&
+      status !== "COMPLETED" &&
+      status !== "VALIDATED")
   ) {
     return "FAILED";
   }
@@ -239,7 +246,7 @@ export function resolveUsefulDocumentState(
     return "PROCESSING";
   }
 
-  // 3. Review Required
+  // 3. Review Required (Partially processed, unbundled warnings, or verification needed)
   if (
     status === "REVIEW_REQUIRED" ||
     validation === "REVIEW_REQUIRED" ||
@@ -302,7 +309,8 @@ export function buildDocumentTreeViewModel(doc: any): DocumentTreeViewModel {
     processingStatus,
     validationStatus,
     doc.errorMessage,
-    Boolean(doc.reviewReason || processingStatus === "REVIEW_REQUIRED"),
+    Boolean(doc.reviewReason || processingStatus === "REVIEW_REQUIRED" || processingStatus === "PARTIALLY_PROCESSED"),
+    doc.errorStatus,
   );
 
   const usefulStateConfig = USEFUL_DOCUMENT_STATES[usefulState];
@@ -364,15 +372,28 @@ export function buildDocumentTreeViewModel(doc: any): DocumentTreeViewModel {
 
   // Resolve Truthful Stages without fake percentages
   const activeStageKey = (
-    doc.activeStage || (usefulState === "PROCESSING" ? "TEXT_EXTRACTION" : "OCR_AI_HANDOFF")
+    doc.currentStage ||
+    doc.activeStage ||
+    (usefulState === "PROCESSING" ? "TEXT_EXTRACTION" : "OCR_AI_HANDOFF")
   ).toUpperCase();
+
   const truthfulStages: TruthfulPipelineStage[] = BASE_TRUTHFUL_STAGES.map((base, idx) => {
     let executionStatus: TruthfulStageExecutionStatus = "PENDING";
 
     if (usefulState === "FAILED") {
-      // Find where failure occurred or mark all after failure as pending
-      executionStatus = idx <= 3 ? "COMPLETED" : idx === 4 ? "FAILED" : "PENDING";
+      const failedIdx = BASE_TRUTHFUL_STAGES.findIndex(
+        (s) => s.stageKey.toUpperCase() === activeStageKey || s.id.toUpperCase().includes(activeStageKey),
+      );
+      const targetFailedIdx = failedIdx >= 0 ? failedIdx : 4;
+      if (idx < targetFailedIdx) {
+        executionStatus = "COMPLETED";
+      } else if (idx === targetFailedIdx) {
+        executionStatus = "FAILED";
+      } else {
+        executionStatus = "PENDING";
+      }
     } else if (usefulState === "REVIEW_REQUIRED") {
+      // In review required, extraction and analysis completed, validation flags human verification
       executionStatus = idx < BASE_TRUTHFUL_STAGES.length - 1 ? "COMPLETED" : "REVIEW_REQUIRED";
     } else if (usefulState === "SUCCESSFUL") {
       executionStatus = "COMPLETED";

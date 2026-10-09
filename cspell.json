@@ -240,7 +240,20 @@
     "plpgsql",
     "telem",
     "REQS",
-    "webp"
+    "webp",
+    "Vitest",
+    "vitest",
+    "OFFPEAK",
+    "offpeak",
+    "JOBURG",
+    "Joburg"
   ],
-  "ignorePaths": ["node_modules/**", "dist/**", ".tanstack/**", "package-lock.json", "bun.lock"]
+  "ignorePaths": [
+    ".git/**",
+    "node_modules/**",
+    "dist/**",
+    ".tanstack/**",
+    "package-lock.json",
+    "bun.lock"
+  ]
 }

@@ -1,3 +1,4 @@
+import { scopedDatabaseName } from "./workspaceIdentity";
 import type { Measurement } from "./parseMeter";
 import type { InvoiceData } from "./store";
 import type { UploadRecord } from "@/domain/upload/types";
@@ -12,7 +13,7 @@ export interface SavedCustomerAccount {
   updatedAt: string;
 }
 
-interface SavedDataset {
+export interface SavedDataset {
   key: "active";
   invoice: InvoiceData | null;
   rows: Measurement[];
@@ -41,7 +42,7 @@ function available() {
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const request = indexedDB.open(scopedDatabaseName(DB_NAME), DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(UPLOADS)) db.createObjectStore(UPLOADS, { keyPath: "id" });
@@ -72,9 +73,19 @@ async function request<T>(
   return new Promise<T>((resolve, reject) => {
     const transaction = db.transaction(storeName, mode);
     const result = operation(transaction.objectStore(storeName));
-    result.onsuccess = () => resolve(result.result);
+    let value: T;
+    result.onsuccess = () => {
+      value = result.result;
+    };
     result.onerror = () => reject(result.error);
-    transaction.oncomplete = () => db.close();
+    transaction.oncomplete = () => {
+      db.close();
+      resolve(value);
+    };
+    transaction.onabort = () => {
+      db.close();
+      reject(transaction.error || new Error("Cache transaction aborted"));
+    };
   });
 }
 
@@ -82,6 +93,55 @@ export class LocalWorkspaceStore {
   /** Clear in-memory fallback stores (useful for test isolation) */
   static clearMemoryStore(): void {
     memoryFallback.clear();
+  }
+
+  static async exportSnapshot() {
+    if (!available()) throw new Error("Browser storage unavailable");
+    return {
+      uploads: await request<UploadRecord[]>(UPLOADS, "readonly", (store) => store.getAll()),
+      customers: await request<SavedCustomerAccount[]>(CUSTOMERS, "readonly", (store) =>
+        store.getAll(),
+      ),
+      dataset:
+        (await request<SavedDataset | undefined>(DATASETS, "readonly", (store) =>
+          store.get("active"),
+        )) || null,
+      tariffs: await request<Array<{ key: string; payload: unknown }>>(
+        TARIFFS,
+        "readonly",
+        (store) => store.getAll(),
+      ),
+    };
+  }
+
+  static async importSnapshot(
+    snapshot: Awaited<ReturnType<typeof LocalWorkspaceStore.exportSnapshot>>,
+  ): Promise<void> {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction([UPLOADS, CUSTOMERS, DATASETS, TARIFFS], "readwrite");
+      for (const name of [UPLOADS, CUSTOMERS, DATASETS, TARIFFS]) tx.objectStore(name).clear();
+      snapshot.uploads.forEach((record) => tx.objectStore(UPLOADS).put(record));
+      snapshot.customers.forEach((record) => tx.objectStore(CUSTOMERS).put(record));
+      snapshot.tariffs.forEach((record) => tx.objectStore(TARIFFS).put(record));
+      if (snapshot.dataset)
+        tx.objectStore(DATASETS).put({
+          ...snapshot.dataset,
+          rows: snapshot.dataset.rows.map((row) => ({ ...row, ts: new Date(row.ts) })),
+        });
+      tx.oncomplete = () => {
+        db.close();
+        resolve();
+      };
+      tx.onabort = () => {
+        db.close();
+        reject(tx.error || new Error("Restore failed"));
+      };
+      tx.onerror = () => {
+        db.close();
+        reject(tx.error);
+      };
+    });
   }
 
   static async saveUpload(record: UploadRecord): Promise<void> {

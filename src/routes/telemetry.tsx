@@ -69,10 +69,26 @@ function TelemetryPage() {
   const storeRows = useApp((s) => s.rows);
   const customer = useApp((s) => s.customer);
 
-  // Telemetry Domain State
-  const [intervals, setIntervals] = useState<TelemetryIntervalRecord[]>([]);
+  // Telemetry Domain State - Bounded Page Slices Only (Req 36)
+  // Never load entire datasets into React state; maintain only 50-item page window
+  const [paginatedIntervals, setPaginatedIntervals] = useState<TelemetryIntervalRecord[]>([]);
+  const [totalRecordsCount, setTotalRecordsCount] = useState<number>(0);
+  const [totalPagesCount, setTotalPagesCount] = useState<number>(1);
+  const [queryExecutionTimeMs, setQueryExecutionTimeMs] = useState<number>(0);
   const [quarantine, setQuarantine] = useState<QuarantineRecord[]>([]);
   const [gaps, setGaps] = useState<MissingGapRecord[]>([]);
+  const [qualityDistribution, setQualityDistribution] = useState<
+    Record<TelemetryQualityState, number>
+  >({
+    ACTUAL: 0,
+    ESTIMATED: 0,
+    INTERPOLATED: 0,
+    MISSING: 0,
+    INVALID: 0,
+    DUPLICATE: 0,
+    CORRECTED: 0,
+    MANUAL_OVERRIDE: 0,
+  });
 
   // Estimation Modal State
   const [selectedGap, setSelectedGap] = useState<MissingGapRecord | null>(null);
@@ -86,6 +102,7 @@ function TelemetryPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
 
+  // Process ingested store rows in chunks if present
   useEffect(() => {
     if (storeRows && storeRows.length > 0) {
       setIsProcessing(true);
@@ -102,7 +119,7 @@ function TelemetryPage() {
         }));
         const { validIntervals, quarantineRecords, missingGaps } =
           TelemetryQualityEngine.processTelemetryStream(rawInputs, [], 30);
-        setIntervals(validIntervals);
+        TelemetryStorageService.recordIntervalsMemory(customer.meter || "default", validIntervals);
         setQuarantine(quarantineRecords);
         setGaps(missingGaps);
       } catch (err) {
@@ -110,18 +127,49 @@ function TelemetryPage() {
       } finally {
         setIsProcessing(false);
       }
-    } else {
-      TelemetryStorageService.fetchIntervals(100).then((dbIntervals) => {
-        if (dbIntervals && dbIntervals.length > 0) {
-          setIntervals(dbIntervals);
-        } else {
-          setIntervals([]);
-          setQuarantine([]);
-          setGaps([]);
-        }
-      });
     }
-  }, [storeRows.length]);
+  }, [storeRows.length, customer.meter]);
+
+  // Server-Side Paginated Query & Aggregated Quality State (Req 36)
+  useEffect(() => {
+    let isCancelled = false;
+    const fetchPageData = async () => {
+      setIsProcessing(true);
+      try {
+        const result = await TelemetryStorageService.queryPaginated({
+          meterId: customer.meter || undefined,
+          searchQuery: searchQuery.trim() || undefined,
+          qualityState: selectedQualityState !== "ALL" ? selectedQualityState : undefined,
+          page: currentPage,
+          pageSize,
+        });
+
+        if (!isCancelled) {
+          setPaginatedIntervals(result.items);
+          setTotalRecordsCount(result.totalCount);
+          setTotalPagesCount(result.totalPages);
+          setQueryExecutionTimeMs(result.executionDurationMs);
+        }
+
+        const dist = await TelemetryStorageService.getQualityStateDistribution({
+          meterId: customer.meter || undefined,
+        });
+
+        if (!isCancelled) {
+          setQualityDistribution(dist);
+        }
+      } catch (err) {
+        console.warn("Telemetry paginated query error:", err);
+      } finally {
+        if (!isCancelled) setIsProcessing(false);
+      }
+    };
+
+    fetchPageData();
+    return () => {
+      isCancelled = true;
+    };
+  }, [customer.meter, currentPage, selectedQualityState, searchQuery]);
 
   const handleConfirmEstimation = async () => {
     if (!selectedGap) return;
@@ -130,15 +178,15 @@ function TelemetryPage() {
       const { estimationRecord, estimatedInterval } = EstimationFrameworkEngine.estimateGap({
         gap: selectedGap,
         method: estimationMethod,
-        surroundingIntervals: intervals,
+        surroundingIntervals: paginatedIntervals,
         reason: estimationReason || `Estimation via ${estimationMethod}`,
         userName: "Telemetry Auditor",
       });
 
       await TelemetryStorageService.saveEstimation(estimationRecord, estimatedInterval);
 
-      // Update state locally
-      setIntervals((prev) => [estimatedInterval, ...prev]);
+      // Refresh current page
+      setPaginatedIntervals((prev) => [estimatedInterval, ...prev.slice(0, pageSize - 1)]);
       setGaps((prev) =>
         prev.map((g) => (g.id === selectedGap.id ? { ...g, status: "ESTIMATED" } : g)),
       );
@@ -152,30 +200,20 @@ function TelemetryPage() {
     }
   };
 
-  // Filtered intervals list
-  const filteredIntervals = useMemo(() => {
-    return intervals.filter((item) => {
-      if (selectedQualityState !== "ALL" && item.quality_state !== selectedQualityState)
-        return false;
-      if (
-        searchQuery &&
-        !item.timestamp_utc.includes(searchQuery) &&
-        !item.local_timestamp.includes(searchQuery)
-      ) {
-        return false;
-      }
-      return true;
-    });
-  }, [intervals, selectedQualityState, searchQuery]);
-
-  const paginatedIntervals = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredIntervals.slice(start, start + pageSize);
-  }, [filteredIntervals, currentPage]);
-
   const qualitySummary = useMemo(() => {
-    return TelemetryStorageService.computeSummary(intervals, quarantine, gaps);
-  }, [intervals, quarantine, gaps]);
+    const total = totalRecordsCount;
+    const actual = qualityDistribution.ACTUAL || 0;
+    const missingGaps = qualityDistribution.MISSING || 0;
+    const quarantined = (qualityDistribution.INVALID || 0) + (qualityDistribution.DUPLICATE || 0);
+    const healthScorePct = total > 0 ? Number(((actual / total) * 100).toFixed(1)) : 100.0;
+    return {
+      totalRecords: total,
+      healthScorePct,
+      countsByState: qualityDistribution,
+      missingGapsCount: missingGaps,
+      quarantinedCount: quarantined,
+    };
+  }, [totalRecordsCount, qualityDistribution]);
 
   const getStateStyle = (state: TelemetryQualityState) => {
     const styles: Record<TelemetryQualityState, string> = {
@@ -273,7 +311,7 @@ function TelemetryPage() {
       </div>
 
       {workspaceTab === "stream" &&
-        (!isProcessing && intervals.length === 0 ? (
+        (!isProcessing && totalRecordsCount === 0 ? (
           <EmptyState
             icon={Activity}
             title="No meter data is available."
@@ -393,7 +431,7 @@ function TelemetryPage() {
                       : "border-transparent text-gray-500 hover:text-gray-700"
                   }`}
                 >
-                  Telemetry Stream ({filteredIntervals.length})
+                  Telemetry Stream ({totalRecordsCount.toLocaleString()})
                 </button>
 
                 <button
@@ -434,9 +472,16 @@ function TelemetryPage() {
                       />
                     </div>
 
-                    <span className="text-xs text-gray-500">
-                      Page {currentPage} of {Math.ceil(filteredIntervals.length / pageSize) || 1}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {queryExecutionTimeMs !== null && (
+                        <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                          {queryExecutionTimeMs}ms
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-500">
+                        Page {currentPage} of {totalPagesCount}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="overflow-x-auto">
@@ -512,11 +557,11 @@ function TelemetryPage() {
                     </button>
 
                     <span className="text-xs text-gray-500">
-                      Showing {paginatedIntervals.length} of {filteredIntervals.length} records
+                      Showing {paginatedIntervals.length} of {totalRecordsCount.toLocaleString()} records
                     </span>
 
                     <button
-                      disabled={currentPage * pageSize >= filteredIntervals.length}
+                      disabled={currentPage >= totalPagesCount}
                       onClick={() => setCurrentPage((p) => p + 1)}
                       className="px-3 py-1 text-xs font-semibold rounded border border-gray-300 dark:border-gray-700 disabled:opacity-50"
                     >

@@ -37,3 +37,36 @@ export interface ChunkedBatchConfig {
   parallelism: number;
   useBulkInsert: boolean;
 }
+
+export type DatabaseAccessPattern =
+  | "BILLING_PERIOD"
+  | "TIMESTAMP"
+  | "ACCOUNT"
+  | "METER"
+  | "ORGANISATION_FILTER"
+  | "RECONCILIATION";
+
+export interface QueryPerformanceMeasurement {
+  queryName: string;
+  accessPattern: DatabaseAccessPattern;
+  executionDurationMs: number;
+  rowCount: number;
+  throughputRowsPerSec: number;
+  slaThresholdMs: number;
+  slaPassed: boolean;
+  indexTarget?: string;
+  notes?: string;
+}
+
+export interface DatabasePerformanceAuditReport {
+  timestamp: string;
+  totalQueriesMeasured: number;
+  slaPassedCount: number;
+  slaFailedCount: number;
+  overallCompliancePct: number;
+  averageLatencyMs: number;
+  p95LatencyMs: number;
+  maxLatencyMs: number;
+  measurements: QueryPerformanceMeasurement[];
+  recommendations: string[];
+}

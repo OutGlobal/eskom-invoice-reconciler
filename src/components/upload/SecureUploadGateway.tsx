@@ -1,4 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { supabase } from "@/lib/supabase";
+import { identityFromVerifiedUser } from "@/domain/security/verifiedIdentity";
+
+async function currentWorkspaceIdentity() {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) throw new Error("Please sign in again");
+  return identityFromVerifiedUser(data.user);
+}
 import { format } from "date-fns";
 import {
   Upload,
@@ -48,6 +56,7 @@ import type {
   AutomatedPipelineResult,
 } from "@/domain/pipeline/types";
 import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
+import { computeTotals } from "@/lib/reconciliation";
 import { LocalFileVault } from "@/lib/localFileVault";
 import { LocalWorkspaceStore } from "@/lib/localWorkspaceStore";
 import {
@@ -89,6 +98,21 @@ const SOURCE_TABS: { label: string; value: string; icon: any }[] = [
 ];
 
 export function SecureUploadGateway() {
+  const workspaceRows = useApp((state) => state.rows);
+  const partialTotals = useMemo(
+    () =>
+      computeTotals(
+        workspaceRows
+          .map((row) => ({ ...row, ts: new Date(row.ts) }))
+          .filter(
+            (row) =>
+              Number.isFinite(row.ts.getTime()) &&
+              Number.isFinite(row.kW) &&
+              Number.isFinite(row.kVA),
+          ),
+      ),
+    [workspaceRows],
+  );
   const [dragActive, setDragActive] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [currentState, setCurrentState] = useState<IngestionLifecycleState | null>(null);
@@ -175,10 +199,9 @@ export function SecureUploadGateway() {
 
   useEffect(() => {
     loadHistory();
-    import("@/domain/tariff/tariffStorageService").then(({ TariffStorageService }) =>
-      TariffStorageService.hydrateFromLocal(),
-    );
-    LocalWorkspaceStore.loadDataset().then((dataset) => {
+    import("@/domain/tariff/tariffStorageService").then(async ({ TariffStorageService }) => {
+      await TariffStorageService.hydrateFromLocal();
+      const dataset = await LocalWorkspaceStore.loadDataset();
       if (!dataset) {
         // Stage 16: If no direct dataset, rehydrate from persisted document intelligence
         void PersistentDocumentIntelligenceService.rehydrateOnSessionStart().catch(console.warn);
@@ -196,6 +219,7 @@ export function SecureUploadGateway() {
         });
       }
       if (dataset.rows.length > 0) store.setRows(dataset.rows);
+      runReconciliationAfterUpload();
     });
   }, []);
 
@@ -224,7 +248,7 @@ export function SecureUploadGateway() {
     const file =
       candidateResult.fileHeader.fileExtension === "pdf" ? activeInvoiceFile : activeMeterFile;
     const candidate: DuplicateEvaluationCandidate = {
-      organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
+      organisationId: (await currentWorkspaceIdentity()).organisationId,
       sourceType: candidateResult.fileHeader.fileExtension === "pdf" ? "INVOICE" : "TELEMETRY",
       sourceFile: {
         name: file?.name || candidateResult.fileHeader.filename,
@@ -266,6 +290,114 @@ export function SecureUploadGateway() {
   // Stage 23: Retry Processing State & Handler
   const [retryingUploadId, setRetryingUploadId] = useState<string | null>(null);
 
+  const applyIngestionResult = async (
+    res: IngestionGatewayResult,
+    file: { name: string; size: number },
+  ) => {
+    const store = useApp.getState();
+
+    // 1. If invoice fields were extracted, reflect in app store
+    if (res.extractedInvoice && res.fileHeader.fileExtension === "pdf") {
+      if (file instanceof File) {
+        // Stage 16: Guarantee persistent document intelligence database integration
+        void PersistentDocumentIntelligenceService.ingestAndProcessDocument({
+          file,
+          organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
+          userId: "user-system-admin",
+        }).catch((err) =>
+          console.warn("Stage 16 document intelligence persistence notice:", err),
+        );
+      }
+      const ext: any = res.extractedInvoice;
+      const mappedInvoice: InvoiceData = {
+        source: file.name,
+        invoiceNumber: ext.invoiceNumber || "",
+        customerName: ext.customerName || ext.pod || ext.premiseId || "",
+        accountNumber: ext.accountNumber || "",
+        meterNumber: ext.meterNumber || ext.meterSerial || "",
+        tariffName: ext.tariff || "",
+        voltage: ext.voltage || "",
+        nmd: ext.notifiedMaximumDemand || 0,
+        billingPeriod: ext.billingPeriod || "",
+        billingPeriodStart: ext.billingStart,
+        billingPeriodEnd: ext.billingEnd,
+        peakKWh: ext.peakKwh || 0,
+        standardKWh: ext.standardKwh || 0,
+        offPeakKWh: ext.offPeakKwh || 0,
+        totalKWh: ext.totalKwh || 0,
+        maxDemandKVA: ext.billedMaximumDemand || ext.kva || 0,
+        transmissionNetworkCharge: ext.transmissionNetworkCharge || 0,
+        networkCapacityCharge: ext.networkCapacityCharge || 0,
+        generationCapacityCharge: 0,
+        networkDemandCharge: ext.networkDemandCharge || ext.demandCharges || 0,
+        ancillary: ext.ancillaryCharges || 0,
+        legacy: 0,
+        affordability: ext.affordability || 0,
+        electrification: ext.electrification || 0,
+        reactive: 0,
+        peakEnergyCharge: ext.peakEnergyCharge || 0,
+        standardEnergyCharge: ext.standardEnergyCharge || 0,
+        offPeakEnergyCharge: ext.offPeakEnergyCharge || 0,
+        vat: ext.vat || 0,
+        invoiceTotal: ext.totalInvoice ? ext.totalInvoice - (ext.vat || 0) : 0,
+        totalInclVat: ext.totalInvoice || 0,
+      };
+
+      store.setInvoice(mappedInvoice);
+      store.setCustomer({
+        name: mappedInvoice.customerName,
+        accountNumber: mappedInvoice.accountNumber,
+        meter: mappedInvoice.meterNumber,
+        address: mappedInvoice.address || "",
+        nmd: mappedInvoice.nmd || 0,
+      });
+      store.addUpload({
+        name: file.name,
+        size: file.size,
+        type: "invoice",
+        uploadedAt: new Date(),
+      });
+      await LocalWorkspaceStore.saveDataset(mappedInvoice, store.rows);
+    }
+
+    // 2. If interval telemetry was extracted, reflect in app store rows
+    if (res.intervals && res.intervals.length > 0) {
+      const measurements: Measurement[] = res.intervals.map((r: any) => ({
+        ts: new Date(r.ts || r.timestamp_utc),
+        kW: r.kW ?? r.active_power_kw ?? 0,
+        kVAr:
+          r.kVAr ??
+          (r.reactive_energy_kvarh
+            ? r.reactive_energy_kvarh * (60 / (r.interval_minutes || 30))
+            : 0),
+        kVA: r.kVA ?? r.apparent_power_kva ?? 0,
+        pf: r.pf ?? r.power_factor ?? 0.96,
+        tou: (r.tou || r.tou_period || "peak") as any,
+        estimated: r.quality_status === "estimated",
+      }));
+      store.setRows(measurements);
+      store.addUpload({
+        name: file.name,
+        size: file.size,
+        type: "meter",
+        uploadedAt: new Date(),
+      });
+      await LocalWorkspaceStore.saveDataset(store.invoice, measurements);
+    }
+
+    // Notify realtime refresh manager for automatic dashboard/charts update
+    RealtimeRefreshManager.notifyProcessingComplete({
+      entityType: file.name.toLowerCase().endsWith(".pdf") ? "invoice" : "meter_telemetry",
+      timestamp: new Date().toISOString(),
+    });
+
+    // Reconcile immediately with everything now loaded
+    runReconciliationAfterUpload();
+
+    // Refresh database history
+    await loadHistory();
+  };
+
   const handleRetryProcessing = async (uploadId: string) => {
     setRetryingUploadId(uploadId);
     setProcessing(true);
@@ -286,6 +418,12 @@ export function SecureUploadGateway() {
       );
       setIngestionResult(res);
       await loadHistory();
+      if (res.extractedInvoice || res.intervals?.length) {
+        await applyIngestionResult(res, {
+          name: res.fileHeader.filename,
+          size: res.fileHeader.fileSizeBytes,
+        });
+      }
       if (res.success) {
         RealtimeRefreshManager.notifyProcessingComplete({
           entityType: res.fileHeader?.fileExtension === "pdf" ? "invoice" : "meter_telemetry",
@@ -324,15 +462,15 @@ export function SecureUploadGateway() {
     setAutomatedResult(null);
     setAutomatedStage("UPLOAD_SUCCESSFUL");
     setAutomatedProgressPct(10);
-    setAutomatedMessage("Upload successful: Processing job submitted to backend engine");
+    setAutomatedMessage("Upload successful: Local processing started; keep this tab open");
 
     try {
-      // Stage 16: Asynchronous Server-Side Processing Job Execution
+      // Stage 16: Asynchronous Local processing (not a durable background worker)
       const job = await ProcessingJobEngine.submitJob({
         invoiceFile,
         meterFile,
-        organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
-        userId: "user-system-admin",
+        organisationId: (await currentWorkspaceIdentity()).organisationId,
+        userId: (await currentWorkspaceIdentity()).userId,
         metadata: overrides,
       });
 
@@ -444,12 +582,15 @@ export function SecureUploadGateway() {
               offPeakEnergyCharge: ext.offPeakEnergyCharge || 0,
               vat: ext.vat || 0,
               invoiceTotal: ext.totalInvoice ? ext.totalInvoice - (ext.vat || 0) : 0,
+              totalInclVat: ext.totalInvoice || 0,
               reconciledTotal:
                 (current.resultPayload?.reconciliation as any)?.reconciled_total_zar != null
                   ? Number((current.resultPayload?.reconciliation as any).reconciled_total_zar)
                   : (current.resultPayload?.reconciliation as any)?.expected_total_zar != null
                     ? Number((current.resultPayload?.reconciliation as any).expected_total_zar)
-                    : undefined,
+                    : current.resultPayload?.reconciliation?.billed_total_zar
+                      ? Number(current.resultPayload.reconciliation.billed_total_zar)
+                      : undefined,
             };
             useApp.getState().setInvoice(mappedInvoice);
             useApp.getState().setCustomer({
@@ -530,8 +671,8 @@ export function SecureUploadGateway() {
           {
             invoiceFile,
             meterFile,
-            tenantId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
-            userId: "user-system-admin",
+            tenantId: (await currentWorkspaceIdentity()).organisationId,
+            userId: (await currentWorkspaceIdentity()).userId,
             ...overrides,
           },
           (stage, pct, msg, ambiguity) => {
@@ -601,7 +742,12 @@ export function SecureUploadGateway() {
 
     // If both files dropped together, trigger the automated pipeline!
     if (invoiceFile && meterFile) {
-      await runAutomatedPipeline(invoiceFile, meterFile);
+      for (const file of fileList) await handleFiles([file]);
+      return;
+    }
+
+    if (fileList.length > 1) {
+      for (const file of fileList) await handleFiles([file]);
       return;
     }
 
@@ -614,8 +760,8 @@ export function SecureUploadGateway() {
       const res = await SecureIngestionGateway.processUpload(
         file,
         file.name,
-        "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
-        "user-system-admin",
+        (await currentWorkspaceIdentity()).organisationId,
+        (await currentWorkspaceIdentity()).userId,
         (state, pct, msg) => {
           setCurrentState(state);
           setProgressPct(pct);
@@ -632,108 +778,8 @@ export function SecureUploadGateway() {
         mimeType: file.type,
       });
 
-      if (res.success) {
-        const store = useApp.getState();
-
-        // 1. If invoice fields were extracted, reflect in app store
-        if (res.extractedInvoice && res.fileHeader.fileExtension === "pdf") {
-          // Stage 16: Guarantee persistent document intelligence database integration
-          void PersistentDocumentIntelligenceService.ingestAndProcessDocument({
-            file,
-            organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
-            userId: "user-system-admin",
-          }).catch((err) =>
-            console.warn("Stage 16 document intelligence persistence notice:", err),
-          );
-
-          const ext: any = res.extractedInvoice;
-          const mappedInvoice: InvoiceData = {
-            source: file.name,
-            invoiceNumber: ext.invoiceNumber || "",
-            customerName: ext.customerName || ext.pod || ext.premiseId || "",
-            accountNumber: ext.accountNumber || "",
-            meterNumber: ext.meterNumber || ext.meterSerial || "",
-            tariffName: ext.tariff || "",
-            voltage: ext.voltage || "",
-            nmd: ext.notifiedMaximumDemand || 0,
-            billingPeriod: ext.billingPeriod || "",
-            billingPeriodStart: ext.billingStart,
-            billingPeriodEnd: ext.billingEnd,
-            peakKWh: ext.peakKwh || 0,
-            standardKWh: ext.standardKwh || 0,
-            offPeakKWh: ext.offPeakKwh || 0,
-            totalKWh: ext.totalKwh || 0,
-            maxDemandKVA: ext.billedMaximumDemand || ext.kva || 0,
-            transmissionNetworkCharge: ext.transmissionNetworkCharge || 0,
-            networkCapacityCharge: ext.networkCapacityCharge || 0,
-            generationCapacityCharge: 0,
-            networkDemandCharge: ext.networkDemandCharge || ext.demandCharges || 0,
-            ancillary: ext.ancillaryCharges || 0,
-            legacy: 0,
-            affordability: ext.affordability || 0,
-            electrification: ext.electrification || 0,
-            reactive: 0,
-            peakEnergyCharge: ext.peakEnergyCharge || 0,
-            standardEnergyCharge: ext.standardEnergyCharge || 0,
-            offPeakEnergyCharge: ext.offPeakEnergyCharge || 0,
-            vat: ext.vat || 0,
-            invoiceTotal: ext.totalInvoice ? ext.totalInvoice - (ext.vat || 0) : 0,
-            totalInclVat: ext.totalInvoice || 0,
-          };
-
-          store.setInvoice(mappedInvoice);
-          store.setCustomer({
-            name: mappedInvoice.customerName,
-            accountNumber: mappedInvoice.accountNumber,
-            meter: mappedInvoice.meterNumber,
-            address: mappedInvoice.address || "",
-            nmd: mappedInvoice.nmd || 0,
-          });
-          store.addUpload({
-            name: file.name,
-            size: file.size,
-            type: "invoice",
-            uploadedAt: new Date(),
-          });
-          await LocalWorkspaceStore.saveDataset(mappedInvoice, store.rows);
-        }
-
-        // 2. If interval telemetry was extracted, reflect in app store rows
-        if (res.intervals && res.intervals.length > 0) {
-          const measurements: Measurement[] = res.intervals.map((r: any) => ({
-            ts: r.ts || new Date(r.timestamp_utc),
-            kW: r.kW ?? r.active_power_kw ?? 0,
-            kVAr:
-              r.kVAr ??
-              (r.reactive_energy_kvarh
-                ? r.reactive_energy_kvarh * (60 / (r.interval_minutes || 30))
-                : 0),
-            kVA: r.kVA ?? r.apparent_power_kva ?? 0,
-            pf: r.pf ?? r.power_factor ?? 0.96,
-            tou: (r.tou || r.tou_period || "peak") as any,
-            estimated: r.quality_status === "estimated",
-          }));
-          store.setRows(measurements);
-          store.addUpload({
-            name: file.name,
-            size: file.size,
-            type: "meter",
-            uploadedAt: new Date(),
-          });
-          await LocalWorkspaceStore.saveDataset(store.invoice, measurements);
-        }
-
-        // Notify realtime refresh manager for automatic dashboard/charts update
-        RealtimeRefreshManager.notifyProcessingComplete({
-          entityType: file.name.toLowerCase().endsWith(".pdf") ? "invoice" : "meter_telemetry",
-          timestamp: new Date().toISOString(),
-        });
-
-        // Reconcile immediately with everything now loaded
-        runReconciliationAfterUpload();
-
-        // Refresh database history
-        await loadHistory();
+      if (res.success || res.extractedInvoice || res.intervals?.length) {
+        await applyIngestionResult(res, file);
       }
     } catch (err: any) {
       console.error("Ingestion pipeline execution failure:", err);
@@ -833,6 +879,24 @@ export function SecureUploadGateway() {
         </button>
       </div>
 
+      {workspaceRows.length > 0 && (
+        <section className="rounded-xl border border-amber-500/30 p-4">
+          <h2 className="font-semibold">Available meter calculations (partial results)</h2>
+          <p className="text-sm">
+            {workspaceRows.length} intervals loaded · {partialTotals.totalKWh.toFixed(2)} kWh ·
+            Maximum demand {partialTotals.maxDemandKVA.toFixed(2)} kVA
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Uses the workspace’s 30-minute interval convention. Partial coverage is not a complete
+            invoice verification; missing invoice or applicable tariff will keep financial
+            reconciliation pending.
+          </p>
+          <a href="/reconciliation" className="underline text-sm">
+            Open reconciliation workspace
+          </a>
+        </section>
+      )}
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="rounded-xl border border-border/40 bg-card/60 p-4 backdrop-blur-sm">
@@ -841,7 +905,7 @@ export function SecureUploadGateway() {
             <Database className="w-4 h-4 text-primary" />
           </div>
           <div className="text-2xl font-bold text-foreground mt-2">{uploadRecords.length}</div>
-          <div className="text-xs text-muted-foreground mt-1">Persistent registry records</div>
+          <div className="text-xs text-muted-foreground mt-1">Workspace registry records</div>
         </div>
 
         <div className="rounded-xl border border-border/40 bg-card/60 p-4 backdrop-blur-sm">
@@ -1189,6 +1253,31 @@ export function SecureUploadGateway() {
                 <div className="text-xs opacity-80 mt-1">
                   {autoRecon.payload.determinant_comparisons.length} determinants compared — open
                   Reconciliation for the full breakdown.
+                  <a href="/reconciliation" className="block underline mt-2">
+                    View calculated results
+                  </a>
+                  <table className="mt-3 w-full text-left">
+                    <thead>
+                      <tr>
+                        <th>Determinant</th>
+                        <th>Billed</th>
+                        <th>Calculated</th>
+                        <th>Variance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {autoRecon.payload.determinant_comparisons.map((item) => (
+                        <tr key={item.determinant_code}>
+                          <td>
+                            {item.determinant_name} ({item.unit_of_measure})
+                          </td>
+                          <td>{item.billed_value.toString()}</td>
+                          <td>{item.calculated_value.toString()}</td>
+                          <td>{item.variance_value.toString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -1652,6 +1741,10 @@ export function SecureUploadGateway() {
         ) : (
           /* Upload Records Table */
           <div className="rounded-xl border border-border/40 overflow-hidden">
+            <p role="status" className="rounded-md border border-amber-500/30 p-3 text-xs text-muted-foreground m-4">
+              Processing runs in this tab. Keep it open until completion. Browser-cached files are not a backup;
+              remote persistence must be verified before using another device.
+            </p>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-muted/40 text-muted-foreground uppercase font-semibold text-[10px] tracking-wider border-b border-border/40">
@@ -1681,6 +1774,11 @@ export function SecureUploadGateway() {
                         <td className="py-3 px-4">
                           <div className="font-medium text-foreground truncate max-w-[220px]">
                             {rec.filename}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {rec.metadata?.persistence === "remote"
+                              ? "Registry save confirmed remotely"
+                              : "Local registry only — not backed up"}
                           </div>
                           <div className="text-[10px] text-muted-foreground font-mono truncate max-w-[220px]">
                             {rec.id}

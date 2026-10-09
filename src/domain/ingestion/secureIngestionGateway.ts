@@ -1071,11 +1071,16 @@ export class SecureIngestionGateway {
           : null;
 
     // Update persistent upload record
+    const extractedPageCount = (extractRes as any).pageCount || (resolvedFileType === "PDF_INVOICE" ? 1 : null);
     uploadRecord = await UploadStorageService.updateUploadStatus(
       documentId,
       {
         processingStatus: finalProcessingStatus,
         processingCompletion: new Date().toISOString(),
+        pageCount: extractedPageCount,
+        documentClassification: (extractRes as any).documentType || "PDF_INVOICE",
+        extractionStatus: "COMPLETED",
+        ocrStatus: (extractRes as any).ocrRequired ? "COMPLETED" : "NOT_REQUIRED",
         rowCount,
         recordCount,
         validationStatus: finalValidationStatus,
@@ -1084,7 +1089,7 @@ export class SecureIngestionGateway {
         metadata: {
           confidenceScore: extractRes.confidenceScore,
           parserAdapter: adapter.constructor.name,
-          documentType: extractRes.documentType,
+          documentType: extractRes.documentType || "PDF_INVOICE",
           accountNumber: linkedCustomer?.accountNumber || "",
           customerName: linkedCustomer?.customerName || "",
           meterNumber: extractedMeterNumber,

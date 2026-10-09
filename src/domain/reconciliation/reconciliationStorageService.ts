@@ -5,9 +5,13 @@
  */
 
 import Decimal from "decimal.js-light";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import type { UserSecurityContext } from "../security/types";
-import { TenantIsolationViolationError } from "../security/tenantContextService";
+import { TenantIsolationViolationError, TenantContextService } from "../security/tenantContextService";
+import {
+  ReconciliationFailureHandler,
+  type ReconciliationFailureRecord,
+} from "./reconciliationFailureHandler";
 import {
   type AuthoritativeReconciliationPayload,
   type AuthoritativeReconciliationRecord,
@@ -25,6 +29,68 @@ export class ReconciliationStorageService {
   public static clearMemoryStore(): void {
     this.inMemoryRuns.clear();
     this.authoritativeRecords.clear();
+  }
+
+  public static getRun(runId: string, context?: UserSecurityContext): any | null {
+    const run = this.inMemoryRuns.get(runId);
+    if (!run) return null;
+    if (context) {
+      TenantContextService.verifyReconciliationAccess(context, run);
+    }
+    return run;
+  }
+
+  /**
+   * Save a failed reconciliation execution (Requirement 39)
+   * Captures error code, stage, message, run ID, and timestamp.
+   * Guarantees variance_total_zar and calculated_total_zar are null (never silently R0).
+   */
+  public static async saveFailedRun(
+    failure: ReconciliationFailureRecord,
+    context?: UserSecurityContext,
+  ): Promise<{ success: boolean; message: string }> {
+    ReconciliationFailureHandler.assertFailureInvariants(failure);
+
+    if (context && context.role !== "SUPER_ADMIN") {
+      TenantContextService.verifyOrganisationAccess(context, failure.organisation_id);
+    }
+
+    // Cache in memory
+    this.inMemoryRuns.set(failure.run_id, failure);
+    this.inMemoryRuns.set(failure.reconciliation_id, failure);
+
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from("reconciliation_runs").upsert(
+          {
+            run_id: failure.run_id,
+            organisation_id: failure.organisation_id,
+            tenant_id: failure.organisation_id,
+            invoice_id: failure.invoice_id || "UNKNOWN",
+            status: "FAILED",
+            classification: "CALCULATION_FAILURE",
+            engine_version: "2.0.0",
+            error_code: failure.error_code,
+            failure_stage: failure.stage,
+            failure_message: failure.message,
+            created_at: failure.timestamp,
+            completed_at: failure.timestamp,
+            billed_total_zar: failure.billed_total_zar ?? null,
+            calculated_total_zar: null,
+            variance_total_zar: null,
+            variance_percentage: null,
+          } as any,
+          { onConflict: "run_id" },
+        );
+      } catch (err) {
+        console.warn("[ReconciliationStorageService] Failed run DB persistence warning:", err);
+      }
+    }
+
+    return {
+      success: true,
+      message: `Failed run '${failure.run_id}' stored with error '${failure.error_code}' at stage '${failure.stage}'.`,
+    };
   }
 
   /**
@@ -149,56 +215,64 @@ export class ReconciliationStorageService {
         });
       }
 
-      try {
-        const { error: runErr } = await supabase
-          .from("reconciliation_runs")
-          .upsert(runRecord as any, {
-            onConflict: "run_id",
-          });
+      if (isSupabaseConfigured) {
+        try {
+          const { error: runErr } = await supabase
+            .from("reconciliation_runs")
+            .upsert(runRecord as any, {
+              onConflict: "run_id",
+            });
 
-        if (runErr) {
+          if (runErr) {
+            console.warn(
+              "[ReconciliationStorageService] Supabase unavailable, cached in-memory:",
+              runErr.message,
+            );
+          }
+
+          const rawComparisons = payload.determinant_comparisons || payload.comparisons || [];
+          const determinantRows = rawComparisons.map((c: any) => ({
+            run_id: runId,
+            determinant_code: c.determinant_code || c.component_code,
+            determinant_name: c.determinant_name || c.component_name,
+            billed_value:
+              c.billed_value instanceof Decimal
+                ? c.billed_value.toNumber()
+                : Number(c.billed_value || 0),
+            calculated_value:
+              c.calculated_value instanceof Decimal
+                ? c.calculated_value.toNumber()
+                : Number(c.calculated_value || 0),
+            variance_value:
+              (c.variance_value || c.absolute_variance) instanceof Decimal
+                ? (c.variance_value || c.absolute_variance).toNumber()
+                : Number(c.variance_value || c.absolute_variance || 0),
+            variance_percentage:
+              (c.variance_percentage || c.percentage_variance) instanceof Decimal
+                ? (c.variance_percentage || c.percentage_variance).toNumber()
+                : Number(c.variance_percentage || c.percentage_variance || 0),
+            unit_of_measure: c.unit_of_measure || c.unit,
+            classification: c.classification || c.status,
+            calculation_explanation: c.explanation || c.root_cause_description || "",
+          }));
+
+          if (determinantRows.length > 0) {
+            // Idempotency guarantee (Req 31): clear existing determinant rows for run_id before inserting
+            await supabase
+              .from("reconciliation_determinant_comparisons")
+              .delete()
+              .eq("run_id", runId);
+
+            await supabase
+              .from("reconciliation_determinant_comparisons")
+              .insert(determinantRows as any);
+          }
+        } catch (dbErr) {
           console.warn(
-            "[ReconciliationStorageService] Supabase unavailable, cached in-memory:",
-            runErr.message,
+            "[ReconciliationStorageService] Supabase write failed, retained in-memory:",
+            dbErr,
           );
         }
-
-        const rawComparisons = payload.determinant_comparisons || payload.comparisons || [];
-        const determinantRows = rawComparisons.map((c: any) => ({
-          run_id: runId,
-          determinant_code: c.determinant_code || c.component_code,
-          determinant_name: c.determinant_name || c.component_name,
-          billed_value:
-            c.billed_value instanceof Decimal
-              ? c.billed_value.toNumber()
-              : Number(c.billed_value || 0),
-          calculated_value:
-            c.calculated_value instanceof Decimal
-              ? c.calculated_value.toNumber()
-              : Number(c.calculated_value || 0),
-          variance_value:
-            (c.variance_value || c.absolute_variance) instanceof Decimal
-              ? (c.variance_value || c.absolute_variance).toNumber()
-              : Number(c.variance_value || c.absolute_variance || 0),
-          variance_percentage:
-            (c.variance_percentage || c.percentage_variance) instanceof Decimal
-              ? (c.variance_percentage || c.percentage_variance).toNumber()
-              : Number(c.variance_percentage || c.percentage_variance || 0),
-          unit_of_measure: c.unit_of_measure || c.unit,
-          classification: c.classification || c.status,
-          calculation_explanation: c.explanation || c.root_cause_description || "",
-        }));
-
-        if (determinantRows.length > 0) {
-          await supabase
-            .from("reconciliation_determinant_comparisons")
-            .insert(determinantRows as any);
-        }
-      } catch (dbErr) {
-        console.warn(
-          "[ReconciliationStorageService] Supabase write failed, retained in-memory:",
-          dbErr,
-        );
       }
 
       // Stage 20: Broadcast reconciliation completion for automatic dashboard & chart refresh
@@ -263,6 +337,17 @@ export class ReconciliationStorageService {
   public static async getAllRuns(
     context?: UserSecurityContext,
   ): Promise<AuthoritativeReconciliationPayload[]> {
+    if (!isSupabaseConfigured) {
+      let inMemory = Array.from(this.inMemoryRuns.values());
+      if (context && context.role !== "SUPER_ADMIN") {
+        inMemory = inMemory.filter(
+          (r: any) =>
+            r.organisation_id === context.organisationId ||
+            r.tenant_id === context.organisationId,
+        );
+      }
+      return inMemory;
+    }
     try {
       let query = supabase
         .from("reconciliation_runs")
@@ -414,18 +499,31 @@ export class ReconciliationStorageService {
   /**
    * Retrieve an authoritative reconciliation record by reconciliation ID or invoice number
    */
-  public static getAuthoritativeRecord(id: string): AuthoritativeReconciliationRecord | null {
-    return this.authoritativeRecords.get(id) || null;
+  public static getAuthoritativeRecord(
+    id: string,
+    context?: UserSecurityContext,
+  ): AuthoritativeReconciliationRecord | null {
+    const record = this.authoritativeRecords.get(id);
+    if (!record) return null;
+    if (context) {
+      TenantContextService.verifyReconciliationAccess(context, record as any);
+    }
+    return record;
   }
 
   /**
    * Retrieve all authoritative reconciliation records for a site
    */
-  public static getRecordsBySite(site: string): AuthoritativeReconciliationRecord[] {
+  public static getRecordsBySite(
+    site: string,
+    context?: UserSecurityContext,
+  ): AuthoritativeReconciliationRecord[] {
     const unique = new Map<string, AuthoritativeReconciliationRecord>();
     for (const rec of this.authoritativeRecords.values()) {
       if (rec.site === site || rec.source_data.site_id === site) {
-        unique.set(rec.reconciliation_id, rec);
+        if (!context || context.role === "SUPER_ADMIN" || (rec as any).organisation_id === context.organisationId) {
+          unique.set(rec.reconciliation_id, rec);
+        }
       }
     }
     return Array.from(unique.values());

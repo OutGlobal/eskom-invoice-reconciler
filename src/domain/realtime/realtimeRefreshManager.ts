@@ -207,6 +207,9 @@ export class RealtimeRefreshManager {
     this.debounceTimer = setTimeout(() => {
       this.invalidateDashboardQueries(orgId);
     }, delayMs);
+    if (typeof this.debounceTimer?.unref === "function") {
+      this.debounceTimer.unref();
+    }
   }
 
   /**

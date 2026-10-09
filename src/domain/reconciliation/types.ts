@@ -1,3 +1,4 @@
+import type { QuantityComparison } from "./demandReactiveReconciliation";
 /**
  * Authoritative Deterministic Reconciliation Engine Domain Types
  * Enforces zero floating-point drift, 14-determinant comparison, idempotency checksums,
@@ -64,6 +65,7 @@ export interface AuthoritativeReconciliationPayload {
   tariff_version_id: string;
   calendar_version_id: string;
   engine_version: string;
+  calculation_engine_version?: string;
   configuration_version: string;
   created_at: string;
   completed_at: string;
@@ -124,6 +126,7 @@ export interface LineItemComparisonResult {
 }
 
 export interface ReconciliationRunPayload {
+  quantity_comparisons?: QuantityComparison[];
   run_id: string; // Unique UUID for every execution
   invoice_record_id: string;
   invoice_number: string;

@@ -16,7 +16,7 @@
  * Enforces Level 3 Zero-Exposure sanitization and multi-tenant isolation.
  */
 
-import { supabase } from "../../lib/supabase";
+import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 import { HashChainEngine } from "./hashChainEngine";
 import { AuditSanitizer } from "./auditSanitizer";
 import { RealtimeRefreshManager } from "../realtime/realtimeRefreshManager";
@@ -145,31 +145,33 @@ export class AuditTrailService {
     this.inMemoryTrail.unshift(rawRecord);
 
     // Persist to Supabase audit_events
-    try {
-      await supabase.from("audit_events").insert({
-        id: rawRecord.id,
-        action: rawRecord.action,
-        entity_type: rawRecord.record.entityType,
-        entity_id: rawRecord.record.recordId,
-        correlation_id: rawRecord.organisationId,
-        payload: {
-          category: rawRecord.category,
-          description: rawRecord.description,
-          actor: rawRecord.actor,
-          timestamp: rawRecord.timestamp,
-          record: rawRecord.record,
-          previousState: rawRecord.previousState,
-          newState: rawRecord.newState,
-          diff: rawRecord.diff,
-          metadata: rawRecord.metadata,
-          hash: rawRecord.hash,
-        },
-      });
-    } catch (err: any) {
-      console.warn(
-        "[AuditTrailService] DB persistence fallback to in-memory:",
-        err?.message || err,
-      );
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from("audit_events").insert({
+          id: rawRecord.id,
+          action: rawRecord.action,
+          entity_type: rawRecord.record.entityType,
+          entity_id: rawRecord.record.recordId,
+          correlation_id: rawRecord.organisationId,
+          payload: {
+            category: rawRecord.category,
+            description: rawRecord.description,
+            actor: rawRecord.actor,
+            timestamp: rawRecord.timestamp,
+            record: rawRecord.record,
+            previousState: rawRecord.previousState,
+            newState: rawRecord.newState,
+            diff: rawRecord.diff,
+            metadata: rawRecord.metadata,
+            hash: rawRecord.hash,
+          },
+        });
+      } catch (err: any) {
+        console.warn(
+          "[AuditTrailService] DB persistence fallback to in-memory:",
+          err?.message || err,
+        );
+      }
     }
 
     // Trigger auto-refresh for UI subscribers
@@ -199,11 +201,12 @@ export class AuditTrailService {
     let records: AuditTrailRecord[] = [];
 
     // Attempt to load from DB
-    try {
-      let query = supabase
-        .from("audit_events")
-        .select("*")
-        .order("created_at", { ascending: false });
+    if (isSupabaseConfigured) {
+      try {
+        let query = supabase
+          .from("audit_events")
+          .select("*")
+          .order("created_at", { ascending: false });
 
       if (filter.organisationId) {
         query = query.eq("correlation_id", filter.organisationId);
@@ -249,6 +252,9 @@ export class AuditTrailService {
     } catch {
       records = [...this.inMemoryTrail];
     }
+  } else {
+    records = [...this.inMemoryTrail];
+  }
 
     // Apply In-Memory Filters
     if (filter.organisationId) {

@@ -650,16 +650,8 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
   const embeddedText = embeddedLines.map((l) => l.text).join("\n");
 
   // EMBEDDED TEXT FIRST POLICY:
-  // Only trust the embedded layer when it actually carries billing content
-  // (monetary amounts or consumption determinants). A thin text layer on a
-  // scanned bill would otherwise short-circuit the image pipeline and yield
-  // zero-value extractions.
-  const hasMonetaryAmounts = (embeddedText.match(/\d[\d,\s]*\.\d{2}/g) || []).length >= 3;
-  const hasBillingKeywords = /(TOTAL|CHARGE|CONSUMPTION|ACCOUNT|INVOICE|TARIFF|kWh|kVA|VAT)/i.test(
-    embeddedText,
-  );
-
-  if (embeddedLines.length >= 8 && hasBillingKeywords && hasMonetaryAmounts) {
+  // If the PDF has embedded digital text, prefer it directly.
+  if (embeddedLines.length >= 3) {
     return {
       documentType: "embedded-text",
       lines: embeddedLines,
@@ -668,9 +660,17 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
     };
   }
 
-  // Otherwise render the pages and read them with image recognition, keeping any
-  // embedded lines as an additional signal.
-  const ocr = await ocrScannedPdf(doc);
+  // If minimal or no embedded text, attempt OCR on scanned pages with graceful fallback
+  let ocr: { lines: TextLine[]; rawText: string; confidence: number } = {
+    lines: [],
+    rawText: "",
+    confidence: 0,
+  };
+  try {
+    ocr = await ocrScannedPdf(doc);
+  } catch (ocrErr) {
+    console.warn("OCR raster fallback unavailable, continuing with embedded lines:", ocrErr);
+  }
 
   const mergedLines = [...embeddedLines, ...ocr.lines];
   if (mergedLines.length === 0 && embeddedLines.length > 0) {
@@ -683,8 +683,8 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
   }
   return {
     documentType: ocr.lines.length ? "scanned-pdf" : "embedded-text",
-    lines: mergedLines,
-    rawText: `${embeddedText}\n${ocr.rawText}`.trim(),
+    lines: mergedLines.length > 0 ? mergedLines : embeddedLines,
+    rawText: ocr.rawText ? `${embeddedText}\n${ocr.rawText}`.trim() : embeddedText,
     confidence: ocr.confidence || (embeddedLines.length ? 95 : 0),
   };
 }
@@ -1017,24 +1017,59 @@ function findLine(lines: TextLine[], rx: RegExp) {
 }
 
 function extractCustomer(lines: TextLine[]) {
+  // 1. Check for explicit Customer / Client / Billed To label
+  for (const l of lines) {
+    const labeled = l.text.match(/(?:customer|client|consumer|billed\s*to|account\s*name)\s*[:=]\s*([A-Za-z0-9 &.,'()-]{3,60})/i);
+    if (labeled && !/eskom|vat|tax\s*invoice/i.test(labeled[1])) {
+      return {
+        name: labeled[1].replace(/\s+/g, " ").trim(),
+        address: "",
+        raw: labeled[1].trim(),
+        confidence: l.confidence || 95,
+      };
+    }
+  }
+
+  // 2. Check for company suffix keywords
   const idx = lines.findIndex(
     (l) =>
-      /\b(PTY|LTD|MINE|MUNICIPALITY|CC|TRUST|PROPRIETARY|IMPALA)\b/i.test(l.text) &&
-      !/eskom|vat|tax/i.test(l.text),
+      /\b(PTY|LTD|MINE|MUNICIPALITY|CC|TRUST|PROPRIETARY|IMPALA|MILLENNIUM|HOLDINGS|ENTERPRISE|SERVICES|SMELTER)\b/i.test(l.text) &&
+      !/eskom|vat|tax|bank|remit/i.test(l.text),
   );
-  if (idx < 0) return { name: "", address: "", raw: "", confidence: 0 };
-  const name = lines[idx].text.replace(/\s+/g, " ").trim();
-  const address = lines
-    .slice(idx + 1, idx + 5)
-    .map((l) => l.text)
-    .filter((l) => !/account|consumption|tariff|invoice|billing|premise/i.test(l))
-    .join(", ");
-  return {
-    name,
-    address,
-    raw: [name, address].filter(Boolean).join(" · "),
-    confidence: lines[idx].confidence,
-  };
+  if (idx >= 0) {
+    const name = lines[idx].text.replace(/\s+/g, " ").trim();
+    const address = lines
+      .slice(idx + 1, idx + 5)
+      .map((l) => l.text)
+      .filter((l) => !/account|consumption|tariff|invoice|billing|premise|date|vat/i.test(l))
+      .join(", ");
+    return {
+      name,
+      address,
+      raw: [name, address].filter(Boolean).join(" · "),
+      confidence: lines[idx].confidence,
+    };
+  }
+
+  // 3. Fallback: inspect top 8 non-Eskom lines
+  for (let i = 0; i < Math.min(8, lines.length); i++) {
+    const t = lines[i].text.trim();
+    if (
+      t.length >= 4 &&
+      t.length <= 50 &&
+      !/eskom|tax\s*invoice|vat|page|statement|account\s*(?:no|number)|date|total/i.test(t) &&
+      !/^[0-9\s:/-]+$/.test(t)
+    ) {
+      return {
+        name: t,
+        address: "",
+        raw: t,
+        confidence: 85,
+      };
+    }
+  }
+
+  return { name: "", address: "", raw: "", confidence: 0 };
 }
 
 function inferTariff(norm: string) {
