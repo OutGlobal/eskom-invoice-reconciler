@@ -7,15 +7,18 @@
  * reconciliation result exists without any manual action.
  */
 import Decimal from "decimal.js-light";
-import { DeterministicReconciliationEngine } from "./reconciliationEngine";
-import { DEFAULT_TOLERANCE_CONFIG } from "./types";
+import { computeTotals } from "@/lib/reconciliation";
+import {
+  DeterministicReconciliationEngine,
+  DEFAULT_TOLERANCE_CONFIG,
+} from "./reconciliationEngine";
 import type { AuthoritativeReconciliationPayload, ToleranceConfig } from "./types";
 import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
 import type { InvoiceData } from "@/lib/store";
 import type { Measurement } from "@/lib/parseMeter";
 import { TariffInterface } from "@/domain/tariff/tariffInterface";
-import { computeTotals } from "@/lib/reconciliation";
 import { PowerFactorEngine } from "./powerFactorEngine";
+import { ALL_PRODUCTION_TARIFF_FIXTURES } from "@/domain/tariff/tariffFixtures";
 
 export type AutoReconciliationStatus =
   "COMPLETED" | "AWAITING_INVOICE" | "AWAITING_METER_DATA" | "AWAITING_TARIFF" | "FAILED";
@@ -31,7 +34,7 @@ export function runAutomaticReconciliation(
   rows: Measurement[] | null | undefined,
   tolerance: ToleranceConfig = DEFAULT_TOLERANCE_CONFIG,
 ): AutoReconciliationOutcome {
-  if (!invoice || !(invoice.invoiceNumber || invoice.invoiceNo)) {
+  if (!invoice || !(invoice.invoiceNumber || invoice.invoiceNo || invoice.accountNumber)) {
     return {
       status: "AWAITING_INVOICE",
       message: "Reconciliation is waiting for an invoice to be uploaded.",
@@ -47,10 +50,9 @@ export function runAutomaticReconciliation(
     };
   }
 
-  let tariffVersion =
-    (invoice.tariffName
-      ? TariffStorageService.getVersionForDate(invoice.tariffName, invoice.billingPeriodStart || "")
-      : null) || TariffStorageService.getAnyVersionForDate(invoice.billingPeriodStart || "");
+  let tariffVersion = invoice.tariffName
+    ? TariffStorageService.getVersionForDate(invoice.tariffName, invoice.billingPeriodStart || "")
+    : null;
 
   // If no custom uploaded tariff is active, resolve against gazetted NERSA production fixtures
   if (!tariffVersion) {
@@ -112,16 +114,29 @@ export function runAutomaticReconciliation(
   }
 
   try {
+    const validRows = rows
+      .map((r) => ({ ...r, ts: new Date(r.ts) }))
+      .filter(
+        (r) => Number.isFinite(r.ts.getTime()) && Number.isFinite(r.kW) && Number.isFinite(r.kVA),
+      );
+    if (!validRows.length) {
+      return {
+        status: "AWAITING_METER_DATA",
+        message: "No valid interval measurements are available. Review the uploaded meter data.",
+        payload: null,
+      };
+    }
+
     // -------------------------------------------------------------
     // AUTOMATIC PROCESSING (Zero Manual Entry): Aggregate AMR rows
     // -------------------------------------------------------------
     const bStart = invoice.billingPeriodStart ? new Date(invoice.billingPeriodStart).getTime() : 0;
     const bEnd = invoice.billingPeriodEnd ? new Date(invoice.billingPeriodEnd).getTime() + 86400000 : Infinity;
-    const inPeriodRows = rows.filter((r) => {
+    const inPeriodRows = validRows.filter((r) => {
       const t = r.ts.getTime();
       return t >= bStart && t <= bEnd;
     });
-    const activeRows = inPeriodRows.length > 0 ? inPeriodRows : rows;
+    const activeRows = inPeriodRows.length > 0 ? inPeriodRows : validRows;
 
     const totals = computeTotals(activeRows, invoice.nmd || 0);
 
@@ -140,8 +155,8 @@ export function runAutomaticReconciliation(
     });
 
     const input = {
-      invoice_id: invoice.invoiceNumber || invoice.invoiceNo || "",
-      invoice_number: invoice.invoiceNumber || invoice.invoiceNo || "",
+      invoice_id: invoice.invoiceNumber || invoice.invoiceNo || invoice.accountNumber || "",
+      invoice_number: invoice.invoiceNumber || invoice.invoiceNo || invoice.accountNumber || "",
       account_number: invoice.accountNumber || "",
       billing_start: invoice.billingPeriodStart || "",
       billing_end: invoice.billingPeriodEnd || "",
@@ -182,7 +197,8 @@ export function runAutomaticReconciliation(
     const payload = DeterministicReconciliationEngine.reconcile(input, tolerance);
     return {
       status: "COMPLETED",
-      message: "Reconciliation completed automatically for the uploaded documents.",
+      message:
+        "Reconciliation calculated from available 30-minute meter intervals. Partial coverage is not a complete billing-period verification.",
       payload,
     };
   } catch (err: any) {

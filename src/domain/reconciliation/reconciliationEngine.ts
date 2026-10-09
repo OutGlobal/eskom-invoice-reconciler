@@ -1356,3 +1356,14 @@ export class ReconciliationEngine {
     };
   }
 }
+
+// Charge-level boundary: supplied tariff rates only, never embedded rate defaults.
+export { compareInvoiceCharge } from "./chargeComparison";
+export type {
+  ApplicableRateProvider,
+  ApplicableRate,
+  ApplicableRateRequest,
+  ChargeComparisonInput,
+  ChargeComparisonRow,
+  EvidenceReference,
+} from "./chargeComparison";

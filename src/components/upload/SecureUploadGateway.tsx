@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { identityFromVerifiedUser } from "@/domain/security/verifiedIdentity";
 
@@ -56,6 +56,7 @@ import type {
   AutomatedPipelineResult,
 } from "@/domain/pipeline/types";
 import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
+import { computeTotals } from "@/lib/reconciliation";
 import { LocalFileVault } from "@/lib/localFileVault";
 import { LocalWorkspaceStore } from "@/lib/localWorkspaceStore";
 import {
@@ -97,6 +98,21 @@ const SOURCE_TABS: { label: string; value: string; icon: any }[] = [
 ];
 
 export function SecureUploadGateway() {
+  const workspaceRows = useApp((state) => state.rows);
+  const partialTotals = useMemo(
+    () =>
+      computeTotals(
+        workspaceRows
+          .map((row) => ({ ...row, ts: new Date(row.ts) }))
+          .filter(
+            (row) =>
+              Number.isFinite(row.ts.getTime()) &&
+              Number.isFinite(row.kW) &&
+              Number.isFinite(row.kVA),
+          ),
+      ),
+    [workspaceRows],
+  );
   const [dragActive, setDragActive] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [currentState, setCurrentState] = useState<IngestionLifecycleState | null>(null);
@@ -183,10 +199,9 @@ export function SecureUploadGateway() {
 
   useEffect(() => {
     loadHistory();
-    import("@/domain/tariff/tariffStorageService").then(({ TariffStorageService }) =>
-      TariffStorageService.hydrateFromLocal(),
-    );
-    LocalWorkspaceStore.loadDataset().then((dataset) => {
+    import("@/domain/tariff/tariffStorageService").then(async ({ TariffStorageService }) => {
+      await TariffStorageService.hydrateFromLocal();
+      const dataset = await LocalWorkspaceStore.loadDataset();
       if (!dataset) {
         // Stage 16: If no direct dataset, rehydrate from persisted document intelligence
         void PersistentDocumentIntelligenceService.rehydrateOnSessionStart().catch(console.warn);
@@ -204,6 +219,7 @@ export function SecureUploadGateway() {
         });
       }
       if (dataset.rows.length > 0) store.setRows(dataset.rows);
+      runReconciliationAfterUpload();
     });
   }, []);
 
@@ -274,6 +290,114 @@ export function SecureUploadGateway() {
   // Stage 23: Retry Processing State & Handler
   const [retryingUploadId, setRetryingUploadId] = useState<string | null>(null);
 
+  const applyIngestionResult = async (
+    res: IngestionGatewayResult,
+    file: { name: string; size: number },
+  ) => {
+    const store = useApp.getState();
+
+    // 1. If invoice fields were extracted, reflect in app store
+    if (res.extractedInvoice && res.fileHeader.fileExtension === "pdf") {
+      if (file instanceof File) {
+        // Stage 16: Guarantee persistent document intelligence database integration
+        void PersistentDocumentIntelligenceService.ingestAndProcessDocument({
+          file,
+          organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
+          userId: "user-system-admin",
+        }).catch((err) =>
+          console.warn("Stage 16 document intelligence persistence notice:", err),
+        );
+      }
+      const ext: any = res.extractedInvoice;
+      const mappedInvoice: InvoiceData = {
+        source: file.name,
+        invoiceNumber: ext.invoiceNumber || "",
+        customerName: ext.customerName || ext.pod || ext.premiseId || "",
+        accountNumber: ext.accountNumber || "",
+        meterNumber: ext.meterNumber || ext.meterSerial || "",
+        tariffName: ext.tariff || "",
+        voltage: ext.voltage || "",
+        nmd: ext.notifiedMaximumDemand || 0,
+        billingPeriod: ext.billingPeriod || "",
+        billingPeriodStart: ext.billingStart,
+        billingPeriodEnd: ext.billingEnd,
+        peakKWh: ext.peakKwh || 0,
+        standardKWh: ext.standardKwh || 0,
+        offPeakKWh: ext.offPeakKwh || 0,
+        totalKWh: ext.totalKwh || 0,
+        maxDemandKVA: ext.billedMaximumDemand || ext.kva || 0,
+        transmissionNetworkCharge: ext.transmissionNetworkCharge || 0,
+        networkCapacityCharge: ext.networkCapacityCharge || 0,
+        generationCapacityCharge: 0,
+        networkDemandCharge: ext.networkDemandCharge || ext.demandCharges || 0,
+        ancillary: ext.ancillaryCharges || 0,
+        legacy: 0,
+        affordability: ext.affordability || 0,
+        electrification: ext.electrification || 0,
+        reactive: 0,
+        peakEnergyCharge: ext.peakEnergyCharge || 0,
+        standardEnergyCharge: ext.standardEnergyCharge || 0,
+        offPeakEnergyCharge: ext.offPeakEnergyCharge || 0,
+        vat: ext.vat || 0,
+        invoiceTotal: ext.totalInvoice ? ext.totalInvoice - (ext.vat || 0) : 0,
+        totalInclVat: ext.totalInvoice || 0,
+      };
+
+      store.setInvoice(mappedInvoice);
+      store.setCustomer({
+        name: mappedInvoice.customerName,
+        accountNumber: mappedInvoice.accountNumber,
+        meter: mappedInvoice.meterNumber,
+        address: mappedInvoice.address || "",
+        nmd: mappedInvoice.nmd || 0,
+      });
+      store.addUpload({
+        name: file.name,
+        size: file.size,
+        type: "invoice",
+        uploadedAt: new Date(),
+      });
+      await LocalWorkspaceStore.saveDataset(mappedInvoice, store.rows);
+    }
+
+    // 2. If interval telemetry was extracted, reflect in app store rows
+    if (res.intervals && res.intervals.length > 0) {
+      const measurements: Measurement[] = res.intervals.map((r: any) => ({
+        ts: new Date(r.ts || r.timestamp_utc),
+        kW: r.kW ?? r.active_power_kw ?? 0,
+        kVAr:
+          r.kVAr ??
+          (r.reactive_energy_kvarh
+            ? r.reactive_energy_kvarh * (60 / (r.interval_minutes || 30))
+            : 0),
+        kVA: r.kVA ?? r.apparent_power_kva ?? 0,
+        pf: r.pf ?? r.power_factor ?? 0.96,
+        tou: (r.tou || r.tou_period || "peak") as any,
+        estimated: r.quality_status === "estimated",
+      }));
+      store.setRows(measurements);
+      store.addUpload({
+        name: file.name,
+        size: file.size,
+        type: "meter",
+        uploadedAt: new Date(),
+      });
+      await LocalWorkspaceStore.saveDataset(store.invoice, measurements);
+    }
+
+    // Notify realtime refresh manager for automatic dashboard/charts update
+    RealtimeRefreshManager.notifyProcessingComplete({
+      entityType: file.name.toLowerCase().endsWith(".pdf") ? "invoice" : "meter_telemetry",
+      timestamp: new Date().toISOString(),
+    });
+
+    // Reconcile immediately with everything now loaded
+    runReconciliationAfterUpload();
+
+    // Refresh database history
+    await loadHistory();
+  };
+
   const handleRetryProcessing = async (uploadId: string) => {
     setRetryingUploadId(uploadId);
     setProcessing(true);
@@ -294,6 +418,12 @@ export function SecureUploadGateway() {
       );
       setIngestionResult(res);
       await loadHistory();
+      if (res.extractedInvoice || res.intervals?.length) {
+        await applyIngestionResult(res, {
+          name: res.fileHeader.filename,
+          size: res.fileHeader.fileSizeBytes,
+        });
+      }
       if (res.success) {
         RealtimeRefreshManager.notifyProcessingComplete({
           entityType: res.fileHeader?.fileExtension === "pdf" ? "invoice" : "meter_telemetry",
@@ -612,7 +742,12 @@ export function SecureUploadGateway() {
 
     // If both files dropped together, trigger the automated pipeline!
     if (invoiceFile && meterFile) {
-      await runAutomatedPipeline(invoiceFile, meterFile);
+      for (const file of fileList) await handleFiles([file]);
+      return;
+    }
+
+    if (fileList.length > 1) {
+      for (const file of fileList) await handleFiles([file]);
       return;
     }
 
@@ -643,108 +778,8 @@ export function SecureUploadGateway() {
         mimeType: file.type,
       });
 
-      if (res.success) {
-        const store = useApp.getState();
-
-        // 1. If invoice fields were extracted, reflect in app store
-        if (res.extractedInvoice && res.fileHeader.fileExtension === "pdf") {
-          // Stage 16: Guarantee persistent document intelligence database integration
-          void PersistentDocumentIntelligenceService.ingestAndProcessDocument({
-            file,
-            organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
-            userId: "user-system-admin",
-          }).catch((err) =>
-            console.warn("Stage 16 document intelligence persistence notice:", err),
-          );
-
-          const ext: any = res.extractedInvoice;
-          const mappedInvoice: InvoiceData = {
-            source: file.name,
-            invoiceNumber: ext.invoiceNumber || "",
-            customerName: ext.customerName || ext.pod || ext.premiseId || "",
-            accountNumber: ext.accountNumber || "",
-            meterNumber: ext.meterNumber || ext.meterSerial || "",
-            tariffName: ext.tariff || "",
-            voltage: ext.voltage || "",
-            nmd: ext.notifiedMaximumDemand || 0,
-            billingPeriod: ext.billingPeriod || "",
-            billingPeriodStart: ext.billingStart,
-            billingPeriodEnd: ext.billingEnd,
-            peakKWh: ext.peakKwh || 0,
-            standardKWh: ext.standardKwh || 0,
-            offPeakKWh: ext.offPeakKwh || 0,
-            totalKWh: ext.totalKwh || 0,
-            maxDemandKVA: ext.billedMaximumDemand || ext.kva || 0,
-            transmissionNetworkCharge: ext.transmissionNetworkCharge || 0,
-            networkCapacityCharge: ext.networkCapacityCharge || 0,
-            generationCapacityCharge: 0,
-            networkDemandCharge: ext.networkDemandCharge || ext.demandCharges || 0,
-            ancillary: ext.ancillaryCharges || 0,
-            legacy: 0,
-            affordability: ext.affordability || 0,
-            electrification: ext.electrification || 0,
-            reactive: 0,
-            peakEnergyCharge: ext.peakEnergyCharge || 0,
-            standardEnergyCharge: ext.standardEnergyCharge || 0,
-            offPeakEnergyCharge: ext.offPeakEnergyCharge || 0,
-            vat: ext.vat || 0,
-            invoiceTotal: ext.totalInvoice ? ext.totalInvoice - (ext.vat || 0) : 0,
-            totalInclVat: ext.totalInvoice || 0,
-          };
-
-          store.setInvoice(mappedInvoice);
-          store.setCustomer({
-            name: mappedInvoice.customerName,
-            accountNumber: mappedInvoice.accountNumber,
-            meter: mappedInvoice.meterNumber,
-            address: mappedInvoice.address || "",
-            nmd: mappedInvoice.nmd || 0,
-          });
-          store.addUpload({
-            name: file.name,
-            size: file.size,
-            type: "invoice",
-            uploadedAt: new Date(),
-          });
-          await LocalWorkspaceStore.saveDataset(mappedInvoice, store.rows);
-        }
-
-        // 2. If interval telemetry was extracted, reflect in app store rows
-        if (res.intervals && res.intervals.length > 0) {
-          const measurements: Measurement[] = res.intervals.map((r: any) => ({
-            ts: r.ts || new Date(r.timestamp_utc),
-            kW: r.kW ?? r.active_power_kw ?? 0,
-            kVAr:
-              r.kVAr ??
-              (r.reactive_energy_kvarh
-                ? r.reactive_energy_kvarh * (60 / (r.interval_minutes || 30))
-                : 0),
-            kVA: r.kVA ?? r.apparent_power_kva ?? 0,
-            pf: r.pf ?? r.power_factor ?? 0.96,
-            tou: (r.tou || r.tou_period || "peak") as any,
-            estimated: r.quality_status === "estimated",
-          }));
-          store.setRows(measurements);
-          store.addUpload({
-            name: file.name,
-            size: file.size,
-            type: "meter",
-            uploadedAt: new Date(),
-          });
-          await LocalWorkspaceStore.saveDataset(store.invoice, measurements);
-        }
-
-        // Notify realtime refresh manager for automatic dashboard/charts update
-        RealtimeRefreshManager.notifyProcessingComplete({
-          entityType: file.name.toLowerCase().endsWith(".pdf") ? "invoice" : "meter_telemetry",
-          timestamp: new Date().toISOString(),
-        });
-
-        // Reconcile immediately with everything now loaded
-        runReconciliationAfterUpload();
-
-        // Refresh database history
-        await loadHistory();
+      if (res.success || res.extractedInvoice || res.intervals?.length) {
+        await applyIngestionResult(res, file);
       }
     } catch (err: any) {
       console.error("Ingestion pipeline execution failure:", err);
@@ -843,6 +878,24 @@ export function SecureUploadGateway() {
           Sync Registry
         </button>
       </div>
+
+      {workspaceRows.length > 0 && (
+        <section className="rounded-xl border border-amber-500/30 p-4">
+          <h2 className="font-semibold">Available meter calculations (partial results)</h2>
+          <p className="text-sm">
+            {workspaceRows.length} intervals loaded · {partialTotals.totalKWh.toFixed(2)} kWh ·
+            Maximum demand {partialTotals.maxDemandKVA.toFixed(2)} kVA
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Uses the workspace’s 30-minute interval convention. Partial coverage is not a complete
+            invoice verification; missing invoice or applicable tariff will keep financial
+            reconciliation pending.
+          </p>
+          <a href="/reconciliation" className="underline text-sm">
+            Open reconciliation workspace
+          </a>
+        </section>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1200,6 +1253,31 @@ export function SecureUploadGateway() {
                 <div className="text-xs opacity-80 mt-1">
                   {autoRecon.payload.determinant_comparisons.length} determinants compared — open
                   Reconciliation for the full breakdown.
+                  <a href="/reconciliation" className="block underline mt-2">
+                    View calculated results
+                  </a>
+                  <table className="mt-3 w-full text-left">
+                    <thead>
+                      <tr>
+                        <th>Determinant</th>
+                        <th>Billed</th>
+                        <th>Calculated</th>
+                        <th>Variance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {autoRecon.payload.determinant_comparisons.map((item) => (
+                        <tr key={item.determinant_code}>
+                          <td>
+                            {item.determinant_name} ({item.unit_of_measure})
+                          </td>
+                          <td>{item.billed_value.toString()}</td>
+                          <td>{item.calculated_value.toString()}</td>
+                          <td>{item.variance_value.toString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
