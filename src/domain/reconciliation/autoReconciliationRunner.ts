@@ -13,11 +13,7 @@ import type { AuthoritativeReconciliationPayload, ToleranceConfig } from "./type
 import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
 import type { InvoiceData } from "@/lib/store";
 import type { Measurement } from "@/lib/parseMeter";
-
-import {
-  ALL_PRODUCTION_TARIFF_FIXTURES,
-  ESKOM_MEGAFLEX_2025_2026,
-} from "@/domain/tariff/tariffFixtures";
+import { TariffInterface } from "@/domain/tariff/tariffInterface";
 import { computeTotals } from "@/lib/reconciliation";
 import { PowerFactorEngine } from "./powerFactorEngine";
 
@@ -98,13 +94,11 @@ export function runAutomaticReconciliation(
     }
 
     if (!tariffVersion) {
-      tariffVersion =
-        ALL_PRODUCTION_TARIFF_FIXTURES.find((v) => {
-          if (v.header.tariff_family !== "megaflex") return false;
-          const eff = v.header.effective_date;
-          const exp = v.header.expiry_date || "2099-12-31";
-          return targetIso >= eff && targetIso <= exp;
-        }) || ESKOM_MEGAFLEX_2025_2026;
+      tariffVersion = await TariffInterface.getApplicableTariff(
+        invoice.accountNumber || invoice.id,
+        invoice.meterNumber || "",
+        { start: invoice.billingStart, end: invoice.billingEnd },
+      );
     }
   }
 

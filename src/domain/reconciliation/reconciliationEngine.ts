@@ -39,6 +39,11 @@ import { TelemetryStorageService } from "../telemetry/telemetryStorageService";
 import { ReconciliationStorageService } from "./reconciliationStorageService";
 import { TouScheduleEngine } from "../tariff/touScheduleEngine";
 import { TariffVersionSelector } from "../tariff/tariffVersionSelector";
+import {
+  TariffInterface,
+  getApplicableTariff,
+  calculateCharge,
+} from "../tariff/tariffInterface";
 
 export interface AuthoritativeReconciliationInput {
   tenant_id?: string;
@@ -85,6 +90,12 @@ export interface AuthoritativeReconciliationInput {
 export class DeterministicReconciliationEngine {
   public static readonly ENGINE_VERSION = "2.0.0";
   public static readonly CONFIG_VERSION = "1.0.0";
+
+  /** Clean interface method to retrieve applicable tariff */
+  public static getApplicableTariff = TariffInterface.getApplicableTariff.bind(TariffInterface);
+
+  /** Clean interface method to calculate individual charge */
+  public static calculateCharge = TariffInterface.calculateCharge.bind(TariffInterface);
 
   /**
    * Run 14-Determinant Authoritative Billing Reconciliation
@@ -298,7 +309,11 @@ export class DeterministicReconciliationEngine {
       "kVARh",
       tolerance.kvarh_tolerance,
       "kVARh Telemetry Sum",
-      "0.1450 R/kVARh",
+      tariffDef.components?.find((c) =>
+        c.component_code.toUpperCase().includes("REACTIVE"),
+      )?.flat_rate
+        ? `${tariffDef.components.find((c) => c.component_code.toUpperCase().includes("REACTIVE"))?.flat_rate} R/kVARh`
+        : "Tariff gazetted R/kVARh",
     );
     addDeterminant(
       "ENERGY_CHARGES_ZAR",

@@ -33,10 +33,7 @@ import type {
 } from "./types";
 import { DEFAULT_TOLERANCE_CONFIG } from "./types";
 import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
-import {
-  ALL_PRODUCTION_TARIFF_FIXTURES,
-  ESKOM_MEGAFLEX_2025_2026,
-} from "@/domain/tariff/tariffFixtures";
+import { TariffInterface } from "@/domain/tariff/tariffInterface";
 import { PowerFactorEngine } from "./powerFactorEngine";
 import { ReconciliationStorageService } from "./reconciliationStorageService";
 import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
@@ -235,26 +232,32 @@ export class AutomaticProcessingPipeline {
     const intervalsToProcess = matchedIntervals.length > 0 ? matchedIntervals : activeIntervals;
     const totalIntervals = intervalsToProcess.length;
 
-    // Resolve Applicable Tariff
-    let tariffVersion =
-      (invoice.tariffName
-        ? TariffStorageService.getVersionForDate(invoice.tariffName, bStart)
-        : null) || TariffStorageService.getAnyVersionForDate(bStart);
+    let tariffVersion = await TariffInterface.getApplicableTariff(
+      invoice.accountNumber || invoice.id,
+      invoice.meterNumber || "",
+      { start: bStart, end: bEnd },
+    );
 
     if (!tariffVersion) {
-      const query = (invoice.tariffName || "megaflex").toLowerCase().trim();
       tariffVersion =
-        ALL_PRODUCTION_TARIFF_FIXTURES.find((v) => {
-          const code = v.header.tariff_code.toLowerCase();
-          const name = v.header.tariff_name.toLowerCase();
-          const family = v.header.tariff_family.toLowerCase();
-          return (
-            code.includes(query) ||
-            name.includes(query) ||
-            family.includes(query) ||
-            query.includes(family)
-          );
-        }) || ESKOM_MEGAFLEX_2025_2026;
+        (invoice.tariffName
+          ? TariffStorageService.getVersionForDate(invoice.tariffName, bStart)
+          : null) || TariffStorageService.getAnyVersionForDate(bStart);
+    }
+
+    if (!tariffVersion) {
+      return {
+        success: false,
+        status: "FAILED",
+        error: "MISSING_TARIFF",
+        message: "Upload an applicable tariff document before reconciliation.",
+        executionSummary: {
+          invoiceId: invoice.id,
+          meterId: (invoice as any).meterId || "UNKNOWN",
+          intervalsProcessed: totalIntervals,
+          durationMs: 0,
+        },
+      };
     }
 
     const tariffVerId = `${tariffVersion.header.tariff_code}_${tariffVersion.header.version}`;

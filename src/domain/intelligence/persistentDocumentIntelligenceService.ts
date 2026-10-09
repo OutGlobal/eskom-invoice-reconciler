@@ -872,8 +872,10 @@ export class PersistentDocumentIntelligenceService {
           : periodMatch[2] || ""
         : "",
       totalAmountDue: totalAmountDue !== undefined ? totalAmountDue : 0,
-      vatAmount,
-      activeEnergyKwh,
+      activeEnergyKwh:
+        peakKwh !== undefined && standardKwh !== undefined && offPeakKwh !== undefined
+          ? peakKwh + standardKwh + offPeakKwh
+          : activeEnergyKwh,
       maximumDemandKva,
       tariffCode,
       meterNumber,
