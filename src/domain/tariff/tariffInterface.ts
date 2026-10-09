@@ -206,6 +206,43 @@ export class TariffInterface {
   }
 
   /**
+   * Synchronous variant of getApplicableTariff for non-async callers.
+   */
+  public static getApplicableTariffSync(
+    site: string | { siteId?: string; id?: string; tariffCode?: string; [key: string]: any },
+    meter: string | { meterId?: string; id?: string; tariffCode?: string; [key: string]: any },
+    billingPeriod: BillingPeriodInput | string,
+  ): TariffVersionDefinition | null {
+    if (this.registeredProvider) {
+      const res = this.registeredProvider.getApplicableTariff(site, meter, billingPeriod);
+      if (res && typeof (res as any).then !== "function") {
+        return res as TariffVersionDefinition;
+      }
+    }
+
+    const { startDate } = this.normalizeBillingPeriod(billingPeriod);
+    const siteTariffCode =
+      typeof site === "object" && site !== null
+        ? site.tariffCode || site.tariff_code || site.tariffName || site.tariff_name
+        : undefined;
+    const meterTariffCode =
+      typeof meter === "object" && meter !== null
+        ? meter.tariffCode || meter.tariff_code || meter.tariffName || meter.tariff_name
+        : undefined;
+    const preferredCode = siteTariffCode || meterTariffCode;
+
+    if (preferredCode) {
+      const byCode = TariffStorageService.getVersionForDate(preferredCode, startDate);
+      if (byCode) return byCode;
+    }
+
+    const anyVersion = TariffStorageService.getAnyVersionForDate(startDate);
+    if (anyVersion) return anyVersion;
+
+    return null;
+  }
+
+  /**
    * Clean Interface Method 2:
    * calculateCharge(tariff, quantity, timePeriod, chargeType)
    *

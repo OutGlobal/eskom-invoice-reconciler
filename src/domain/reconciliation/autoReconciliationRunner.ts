@@ -94,7 +94,7 @@ export function runAutomaticReconciliation(
     }
 
     if (!tariffVersion) {
-      tariffVersion = await TariffInterface.getApplicableTariff(
+      tariffVersion = TariffInterface.getApplicableTariffSync(
         invoice.accountNumber || invoice.id,
         invoice.meterNumber || "",
         { start: invoice.billingStart, end: invoice.billingEnd },
