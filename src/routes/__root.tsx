@@ -200,7 +200,7 @@ function RootComponent() {
                       className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 border border-primary/30 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition shadow-2xs"
                     >
                       <Sparkles className="h-3.5 w-3.5 animate-pulse text-primary" />
-                      <span>AI Copilot</span>
+                      <span>Rules-based Assistant</span>
                     </button>
                     <div className="text-xs text-muted-foreground hidden lg:block">
                       2025/2026 Tariff Book · 30-min analytics

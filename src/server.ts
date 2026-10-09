@@ -44,7 +44,7 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
-export default {
+const handler = {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     const url = new URL(request.url);
 
@@ -59,7 +59,7 @@ export default {
           uptime_seconds:
             typeof process !== "undefined" && process.uptime ? Math.floor(process.uptime()) : 0,
           deterministic_engine: "Decimal.js-light",
-          security_status: "RLS_ENFORCED_TENANT_ISOLATION",
+          probe: "liveness",
         }),
         {
           status: 200,
@@ -71,6 +71,32 @@ export default {
           },
         },
       );
+    }
+
+    // Readiness is authenticated and checks an actual RLS-protected dependency.
+    if (url.pathname === "/api/ready" && request.method === "GET") {
+      let available = false;
+      try {
+        const { supabase } = await import("./lib/supabase");
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
+        try {
+          const { error } = await supabase
+            .from("uploads")
+            .select("id")
+            .limit(1)
+            .abortSignal(controller.signal);
+          available = !error;
+        } finally {
+          clearTimeout(timeout);
+        }
+      } catch {
+        available = false;
+      }
+      return new Response(JSON.stringify({ status: available ? "READY" : "UNAVAILABLE" }), {
+        status: available ? 200 : 503,
+        headers: { "content-type": "application/json", "cache-control": "no-store" },
+      });
     }
 
     // Stage 1 Production Data Lifecycle Specification & Status Endpoint
@@ -998,5 +1024,19 @@ export default {
         },
       });
     }
+  },
+};
+
+export default {
+  async fetch(request: Request, env: unknown, ctx: unknown) {
+    const path = new URL(request.url).pathname;
+    if (path.startsWith("/api/") && path !== "/api/health") {
+      const { authenticateRequest } = await import("./domain/security/authenticateRequest");
+      const authenticated = await authenticateRequest(request);
+      if (authenticated instanceof Response) return authenticated;
+      const { withRequestDatabase } = await import("./domain/security/requestDatabase");
+      return withRequestDatabase(authenticated, () => handler.fetch(authenticated, env, ctx));
+    }
+    return handler.fetch(request, env, ctx);
   },
 };

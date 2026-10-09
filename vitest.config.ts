@@ -7,6 +7,8 @@ export default defineConfig({
     environment: "node",
     include: [
       "src/lib/__tests__/demand_reactive_reconciliation.test.ts",
+      "src/lib/__tests__/workspace_backup.test.ts",
+      "src/lib/__tests__/production_hardening.test.ts",
       "src/lib/__tests__/dashboard_command_centre.test.ts",
       "src/lib/__tests__/secure_ingestion_gateway.test.ts",
       "src/lib/__tests__/adversarial_principal_audit.test.ts",

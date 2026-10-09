@@ -4,6 +4,8 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { LogIn, ShieldCheck, Loader2, Mail, AlertTriangle, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
+import { identityFromVerifiedUser } from "@/domain/security/verifiedIdentity";
+import { setWorkspaceScope, clearWorkspaceScope } from "@/lib/workspaceIdentity";
 
 /**
  * Client-side session gate. The database enforces the real security boundary
@@ -16,10 +18,16 @@ export function useSupabaseSession() {
 
   useEffect(() => {
     let active = true;
+    let currentUserId: string | undefined;
+    let currentOrganisation: unknown;
+    let currentRole: unknown;
     supabase.auth
       .getSession()
       .then((res) => {
         if (!active) return;
+        currentUserId = res?.data?.session?.user.id;
+        currentOrganisation = res?.data?.session?.user.app_metadata.organisation_id;
+        currentRole = res?.data?.session?.user.app_metadata.role;
         setSession(res?.data?.session || null);
         setReady(true);
       })
@@ -29,6 +37,21 @@ export function useSupabaseSession() {
       });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+      if (
+        _event === "SIGNED_OUT" ||
+        (currentUserId &&
+          next &&
+          (next.user.id !== currentUserId ||
+            next.user.app_metadata.organisation_id !== currentOrganisation ||
+            next.user.app_metadata.role !== currentRole))
+      ) {
+        clearWorkspaceScope();
+        window.location.replace("/login");
+        return;
+      }
+      currentUserId = next?.user.id;
+      currentOrganisation = next?.user.app_metadata.organisation_id;
+      currentRole = next?.user.app_metadata.role;
       setSession(next);
       setReady(true);
     });
@@ -43,19 +66,18 @@ export function useSupabaseSession() {
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, ready } = useSupabaseSession();
-  const [bypassAuth, setBypassAuth] = useState(() => {
-    if (typeof window !== "undefined") {
-      return window.sessionStorage.getItem("enera_demo_access") === "true";
+  let provisioned = false;
+  if (session) {
+    try {
+      const identity = identityFromVerifiedUser(session.user);
+      setWorkspaceScope(identity.userId, identity.organisationId);
+      provisioned = true;
+    } catch {
+      clearWorkspaceScope();
     }
-    return false;
-  });
-
-  const handleBypass = () => {
-    if (typeof window !== "undefined") {
-      window.sessionStorage.setItem("enera_demo_access", "true");
-    }
-    setBypassAuth(true);
-  };
+  } else {
+    clearWorkspaceScope();
+  }
 
   if (!ready) {
     return (
@@ -87,9 +109,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!session && !bypassAuth) {
-    return <SignInScreen onBypass={handleBypass} />;
-  }
+  if (!session) return <SignInScreen />;
+  if (!provisioned)
+    return (
+      <div className="p-6">
+        Your organisation access has not been provisioned. Contact your administrator.{" "}
+        <SignOutButton />
+      </div>
+    );
   return <>{children}</>;
 }
 
@@ -111,7 +138,7 @@ function friendlyAuthError(err: any): string {
   return msg;
 }
 
-export function SignInScreen({ onBypass }: { onBypass?: () => void }) {
+export function SignInScreen() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -309,18 +336,6 @@ export function SignInScreen({ onBypass }: { onBypass?: () => void }) {
           </button>
         )}
 
-        {onBypass && (
-          <div className="pt-2 border-t border-border">
-            <button
-              type="button"
-              onClick={onBypass}
-              className="w-full rounded-md border border-primary/40 bg-primary/10 py-2 text-xs font-medium text-primary hover:bg-primary/20 transition text-center block"
-            >
-              ⚡ Continue to Workspace (Guest Access)
-            </button>
-          </div>
-        )}
-
         <button
           onClick={() => {
             setMode(mode === "signin" ? "signup" : "signin");
@@ -345,8 +360,14 @@ export function SignOutButton() {
         if (typeof window !== "undefined") {
           window.sessionStorage.removeItem("enera_demo_access");
         }
-        await supabase.auth.signOut();
-        setBusy(false);
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          toast.error("Sign out failed. Please try again.");
+          setBusy(false);
+          return;
+        }
+        clearWorkspaceScope();
+        window.location.replace("/login");
       }}
       className="text-xs rounded-md border border-border px-2.5 py-1 text-muted-foreground hover:text-foreground transition"
     >

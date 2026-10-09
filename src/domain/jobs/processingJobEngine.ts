@@ -94,7 +94,7 @@ export class ProcessingJobEngine {
       currentStage: "QUEUED",
       progressPercentage: 0,
       recordsProcessed: 0,
-      stageMessage: "Job queued for server-side execution",
+      stageMessage: "Local job queued; keep this tab open",
       sourceInvoiceFile: input.invoiceFile
         ? {
             name: invoiceName,
