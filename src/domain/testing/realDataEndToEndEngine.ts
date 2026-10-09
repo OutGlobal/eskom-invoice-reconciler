@@ -107,7 +107,7 @@ export interface RealDataEndToEndSummary {
 export class RealDataEndToEndEngine {
   public static readonly TEST_ORG_ID = "org-eskom-enterprise-real-01";
   public static readonly TEST_USER_ID = "user-auditor-real-41";
-  public static readonly TEST_SITE_ID = "site-gauteng-facility-01";
+  public static readonly TEST_SITE_ID = "site-regional-facility-01";
   public static readonly METER_NUMBER = "MTR-98765432";
   public static readonly ACCOUNT_NUMBER = "1234567890";
   public static readonly INVOICE_NUMBER = "INV-2024-001";
