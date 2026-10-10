@@ -178,29 +178,43 @@ const handler = {
         }
 
         let resolvedTariffVersion = body.tariff_version;
-        if (!resolvedTariffVersion || typeof resolvedTariffVersion !== "object" || !resolvedTariffVersion.header) {
+        if (
+          !resolvedTariffVersion ||
+          typeof resolvedTariffVersion !== "object" ||
+          !resolvedTariffVersion.header
+        ) {
           const { TariffStorageService } = await import("./domain/tariff/tariffStorageService");
           const { ALL_PRODUCTION_TARIFF_FIXTURES } = await import("./domain/tariff/tariffFixtures");
-          const query = (typeof body.tariff_version === "string" ? body.tariff_version : "").toLowerCase().trim();
+          const query = (typeof body.tariff_version === "string" ? body.tariff_version : "")
+            .toLowerCase()
+            .trim();
           const targetIso = body.billing_start || "2026-03-01";
           if (query) {
             resolvedTariffVersion = TariffStorageService.getVersionForDate(query, targetIso);
             if (!resolvedTariffVersion) {
-              resolvedTariffVersion = ALL_PRODUCTION_TARIFF_FIXTURES.find((v) => {
-                const code = v.header.tariff_code.toLowerCase();
-                const name = v.header.tariff_name.toLowerCase();
-                const family = v.header.tariff_family.toLowerCase();
-                return code.includes(query) || name.includes(query) || family.includes(query) || query.includes(family);
-              }) || null;
+              resolvedTariffVersion =
+                ALL_PRODUCTION_TARIFF_FIXTURES.find((v) => {
+                  const code = v.header.tariff_code.toLowerCase();
+                  const name = v.header.tariff_name.toLowerCase();
+                  const family = v.header.tariff_family.toLowerCase();
+                  return (
+                    code.includes(query) ||
+                    name.includes(query) ||
+                    family.includes(query) ||
+                    query.includes(family)
+                  );
+                }) || null;
             }
           }
           if (!resolvedTariffVersion) {
-            resolvedTariffVersion = TariffStorageService.getAnyVersionForDate(targetIso) ||
+            resolvedTariffVersion =
+              TariffStorageService.getAnyVersionForDate(targetIso) ||
               ALL_PRODUCTION_TARIFF_FIXTURES.find((v) => {
                 const eff = v.header.effective_date;
                 const exp = v.header.expiry_date || "2099-12-31";
                 return targetIso >= eff && targetIso <= exp;
-              }) || ALL_PRODUCTION_TARIFF_FIXTURES.find((v) => v.header.tariff_family === "megaflex");
+              }) ||
+              ALL_PRODUCTION_TARIFF_FIXTURES.find((v) => v.header.tariff_family === "megaflex");
           }
         }
 
