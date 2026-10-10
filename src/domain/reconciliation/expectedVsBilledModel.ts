@@ -41,10 +41,7 @@ import type {
   ExpectedChargeItem,
 } from "./invoiceChargeReconciliationEngine";
 import type { VarianceStatus } from "./varianceStatus";
-import {
-  CentralToleranceRegistry,
-  type RecordedTolerance,
-} from "./toleranceModel";
+import { CentralToleranceRegistry, type RecordedTolerance } from "./toleranceModel";
 
 export type { VarianceStatus, RecordedTolerance };
 
@@ -214,7 +211,8 @@ export class ExpectedVsBilledModel {
     const expectedRate = this.opt(input.expected_rate, "expected_rate");
     const billedAmount = this.opt(input.billed_amount, "billed_amount");
     const expectedAmount = VarianceEngine.toDecimal(input.expected_amount, "expected_amount");
-    const divisor = this.opt(input.rate_to_currency_divisor, "rate_to_currency_divisor") ?? new Decimal(1);
+    const divisor =
+      this.opt(input.rate_to_currency_divisor, "rate_to_currency_divisor") ?? new Decimal(1);
 
     // Billed rate: stated, implied (explicitly flagged), or unavailable
     let billedRate: Decimal | null = statedBilledRate;
@@ -264,10 +262,14 @@ export class ExpectedVsBilledModel {
     }
 
     if (quantityVariance && quantityVariance.direction !== "MATCH") {
-      notes.push(`Quantity differs: billed ${billedQty!.toString()} vs expected ${expectedQty!.toString()} ${input.quantity_unit}.`);
+      notes.push(
+        `Quantity differs: billed ${billedQty!.toString()} vs expected ${expectedQty!.toString()} ${input.quantity_unit}.`,
+      );
     }
     if (rateVariance && rateVariance.direction !== "MATCH") {
-      notes.push(`Rate differs: billed ${billedRate!.toString()} vs expected ${expectedRate!.toString()} ${input.rate_unit}.`);
+      notes.push(
+        `Rate differs: billed ${billedRate!.toString()} vs expected ${expectedRate!.toString()} ${input.rate_unit}.`,
+      );
     }
 
     let varianceStatus: VarianceStatus;
@@ -330,7 +332,8 @@ export class ExpectedVsBilledModel {
         billed: { ...input.billed_evidence },
         expected: { ...input.expected_evidence },
         variance_methodology: amountVariance?.methodology ?? "Not computed: billed amount missing.",
-        percentage_status: amountVariance?.percentage_status ?? "UNDEFINED_ZERO_BASELINE_NO_VARIANCE",
+        percentage_status:
+          amountVariance?.percentage_status ?? "UNDEFINED_ZERO_BASELINE_NO_VARIANCE",
         tolerance,
         recorded_tolerance: recordedTolerance,
         notes,

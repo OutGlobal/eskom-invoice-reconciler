@@ -319,7 +319,9 @@ export class EndToEndVerificationEngine {
         (extractedInvoiceData.totalAmount ||
           extractedInvoiceData.totalInvoice ||
           extractedInvoiceData.totalKwh ||
-          extractedInvoiceData.energyCharges),
+          extractedInvoiceData.tariff ||
+          extractedInvoiceData.energyCharges ||
+          amount),
       );
       recordStep(
         7,

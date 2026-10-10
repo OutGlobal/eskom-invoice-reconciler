@@ -89,7 +89,10 @@ export class TimezoneNormalizationEngine {
   /**
    * Compute exact UTC offset in minutes for a specific Date in a target timezone.
    */
-  public static getTimezoneOffsetMinutes(date: Date, timezone: string = this.DEFAULT_TIMEZONE): number {
+  public static getTimezoneOffsetMinutes(
+    date: Date,
+    timezone: string = this.DEFAULT_TIMEZONE,
+  ): number {
     const tzLower = timezone.toLowerCase();
     if (tzLower === "africa/johannesburg" || tzLower === "sast" || tzLower === "etc/gmt-2") {
       return this.SAST_OFFSET_MINUTES; // +120
@@ -141,7 +144,10 @@ export class TimezoneNormalizationEngine {
   /**
    * Check if Daylight Saving Time is active for a given Date and timezone.
    */
-  public static isDaylightSavingActive(date: Date, timezone: string = this.DEFAULT_TIMEZONE): boolean {
+  public static isDaylightSavingActive(
+    date: Date,
+    timezone: string = this.DEFAULT_TIMEZONE,
+  ): boolean {
     if (!this.observesDaylightSaving(timezone)) {
       return false;
     }
@@ -287,7 +293,8 @@ export class TimezoneNormalizationEngine {
     const norm = this.normalizeTimestamp(timestamp, this.DEFAULT_TIMEZONE);
 
     // Resolve season (High: June, July, August / Low: Sept-May)
-    const season = seasonOverride ?? (norm.localMonth >= 6 && norm.localMonth <= 8 ? "high" : "low");
+    const season =
+      seasonOverride ?? (norm.localMonth >= 6 && norm.localMonth <= 8 ? "high" : "low");
 
     // Resolve day type
     let dayType: "weekday" | "saturday" | "sunday" | "public_holiday" = "weekday";
@@ -307,7 +314,10 @@ export class TimezoneNormalizationEngine {
       explanation = "Sundays are 100% Off-Peak in standard Eskom TOU schedules.";
     } else if (dayType === "saturday") {
       // Standard: 07:00-12:00 and 18:00-20:00 SAST
-      if ((norm.localHour >= 7 && norm.localHour < 12) || (norm.localHour >= 18 && norm.localHour < 20)) {
+      if (
+        (norm.localHour >= 7 && norm.localHour < 12) ||
+        (norm.localHour >= 18 && norm.localHour < 20)
+      ) {
         touPeriod = "standard";
         explanation = `Saturday hour ${norm.localHour}:00 is in the Standard window (07:00-12:00, 18:00-20:00 SAST).`;
       } else {
@@ -321,7 +331,10 @@ export class TimezoneNormalizationEngine {
         // Peak: 06:00-09:00, 17:00-19:00
         // Standard: 09:00-17:00, 19:00-22:00
         // Off-Peak: 22:00-06:00
-        if ((norm.localHour >= 6 && norm.localHour < 9) || (norm.localHour >= 17 && norm.localHour < 19)) {
+        if (
+          (norm.localHour >= 6 && norm.localHour < 9) ||
+          (norm.localHour >= 17 && norm.localHour < 19)
+        ) {
           touPeriod = "peak";
           explanation = `High Season Weekday Peak (06:00-09:00 or 17:00-19:00 SAST, hour ${norm.localHour}:00).`;
         } else if (
@@ -339,7 +352,10 @@ export class TimezoneNormalizationEngine {
         // Peak: 07:00-10:00, 18:00-20:00
         // Standard: 06:00-07:00, 10:00-18:00, 20:00-22:00
         // Off-Peak: 22:00-06:00
-        if ((norm.localHour >= 7 && norm.localHour < 10) || (norm.localHour >= 18 && norm.localHour < 20)) {
+        if (
+          (norm.localHour >= 7 && norm.localHour < 10) ||
+          (norm.localHour >= 18 && norm.localHour < 20)
+        ) {
           touPeriod = "peak";
           explanation = `Low Season Weekday Peak (07:00-10:00 or 18:00-20:00 SAST, hour ${norm.localHour}:00).`;
         } else if (

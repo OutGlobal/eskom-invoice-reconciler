@@ -22,7 +22,10 @@
  */
 
 import { HashChainEngine } from "../audit/hashChainEngine";
-import { CALCULATION_ENGINE_V2, type CalculationEngineVersion } from "./calculationVersioningEngine";
+import {
+  CALCULATION_ENGINE_V2,
+  type CalculationEngineVersion,
+} from "./calculationVersioningEngine";
 
 export interface DeterministicIdentitySource {
   tenantId: string;
@@ -76,18 +79,22 @@ export class ReconciliationIdempotencyEngine {
   /**
    * Compute deterministic checksum of raw interval telemetry to bind identity to source AMR
    */
-  public static async computeTelemetryChecksum(intervals: Array<{ ts: Date | string; kW?: number; kWh?: number; kVA?: number }>): Promise<string> {
+  public static async computeTelemetryChecksum(
+    intervals: Array<{ ts: Date | string; kW?: number; kWh?: number; kVA?: number }>,
+  ): Promise<string> {
     if (!intervals || intervals.length === 0) {
       return "AMR_EMPTY_CHECKSUM_00000000";
     }
 
     // Sample/hash interval timestamps and active readings
-    const summary = intervals.map((row) => {
-      const tsStr = row.ts instanceof Date ? row.ts.toISOString() : String(row.ts);
-      const kw = row.kW ?? row.kWh ?? 0;
-      const kva = row.kVA ?? 0;
-      return `${tsStr}|${kw}|${kva}`;
-    }).join(";");
+    const summary = intervals
+      .map((row) => {
+        const tsStr = row.ts instanceof Date ? row.ts.toISOString() : String(row.ts);
+        const kw = row.kW ?? row.kWh ?? 0;
+        const kva = row.kVA ?? 0;
+        return `${tsStr}|${kw}|${kva}`;
+      })
+      .join(";");
 
     const hash = await HashChainEngine.calculateSHA256(summary);
     return `SHA256:AMR-${hash.slice(0, 24).toUpperCase()}`;

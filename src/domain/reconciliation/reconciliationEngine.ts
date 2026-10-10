@@ -40,11 +40,7 @@ import { TelemetryStorageService } from "../telemetry/telemetryStorageService";
 import { ReconciliationStorageService } from "./reconciliationStorageService";
 import { TouScheduleEngine } from "../tariff/touScheduleEngine";
 import { TariffVersionSelector } from "../tariff/tariffVersionSelector";
-import {
-  TariffInterface,
-  getApplicableTariff,
-  calculateCharge,
-} from "../tariff/tariffInterface";
+import { TariffInterface, getApplicableTariff, calculateCharge } from "../tariff/tariffInterface";
 
 export interface AuthoritativeReconciliationInput {
   tenant_id?: string;
@@ -105,7 +101,9 @@ export class DeterministicReconciliationEngine {
     input: AuthoritativeReconciliationInput,
     tolerance: ToleranceConfig = DEFAULT_TOLERANCE_CONFIG,
   ): AuthoritativeReconciliationPayload {
-    const runId = input.run_id || `RECON-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    const runId =
+      input.run_id ||
+      `RECON-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
     const createdAt = new Date().toISOString();
 
     const tenantId = input.tenant_id || "";
@@ -311,7 +309,9 @@ export class DeterministicReconciliationEngine {
       tolerance.kvarh_tolerance,
       "kVARh Telemetry Sum",
       (() => {
-        const rc = tariffDef.components?.find((c) => c.component_code.toUpperCase().includes("REACTIVE")) as any;
+        const rc = tariffDef.components?.find((c) =>
+          c.component_code.toUpperCase().includes("REACTIVE"),
+        ) as any;
         const rate = rc?.rate_value ?? rc?.flat_rate ?? rc?.rate_zar;
         return rate ? `${rate} R/kVARh` : "Tariff gazetted R/kVARh";
       })(),

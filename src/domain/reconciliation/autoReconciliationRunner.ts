@@ -134,7 +134,9 @@ export function runAutomaticReconciliation(
     // AUTOMATIC PROCESSING (Zero Manual Entry): Aggregate AMR rows
     // -------------------------------------------------------------
     const bStart = invoice.billingPeriodStart ? new Date(invoice.billingPeriodStart).getTime() : 0;
-    const bEnd = invoice.billingPeriodEnd ? new Date(invoice.billingPeriodEnd).getTime() + 86400000 : Infinity;
+    const bEnd = invoice.billingPeriodEnd
+      ? new Date(invoice.billingPeriodEnd).getTime() + 86400000
+      : Infinity;
     const inPeriodRows = validRows.filter((r) => {
       const t = r.ts.getTime();
       return t >= bStart && t <= bEnd;

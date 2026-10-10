@@ -33,10 +33,7 @@ import type {
 } from "../tariff/types";
 import { VarianceEngine } from "./varianceEngine";
 import type { VarianceStatus } from "./varianceStatus";
-import {
-  CentralToleranceRegistry,
-  type RecordedTolerance,
-} from "./toleranceModel";
+import { CentralToleranceRegistry, type RecordedTolerance } from "./toleranceModel";
 
 /**
  * Interface 1: Tariff Engine Output Contract
@@ -48,7 +45,8 @@ export interface ApplicableRateItem {
   component_name: string;
   component_type?: string; // e.g. "ACTIVE_ENERGY", "NETWORK_DEMAND", "REACTIVE_ENERGY", "SERVICE_CHARGE"
   rate_value: Decimal; // Gazetted rate value provided by Tariff Engine
-  unit_of_measure: "c/kWh" | "R/kVA/month" | "R/kW/month" | "R/kVARh" | "R/day" | "R/month" | "%" | string;
+  unit_of_measure:
+    "c/kWh" | "R/kVA/month" | "R/kW/month" | "R/kVARh" | "R/day" | "R/month" | "%" | string;
   season?: SeasonType | "all";
   tou_period?: TouPeriodType | "all";
   rule_id: string; // Tariff engine authoritative rule identifier
@@ -172,7 +170,7 @@ export class InvoiceChargeReconciliationEngine {
     options: {
       season?: SeasonType;
       filterComponents?: string[];
-    } = {}
+    } = {},
   ): ApplicableRateSchedule {
     const targetSeason = options.season ?? tariffDef.header.season;
 
@@ -209,7 +207,8 @@ export class InvoiceChargeReconciliationEngine {
       season: targetSeason,
       utility: tariffDef.header.utility,
       rates: applicableRates,
-      vat_rate: tariffDef.header.vat_treatment === "zero_rated" ? new Decimal(0) : this.DEFAULT_VAT_RATE,
+      vat_rate:
+        tariffDef.header.vat_treatment === "zero_rated" ? new Decimal(0) : this.DEFAULT_VAT_RATE,
       source_document: tariffDef.header.source_document,
       created_at: new Date().toISOString(),
     };
@@ -221,7 +220,7 @@ export class InvoiceChargeReconciliationEngine {
    */
   public static findApplicableRate(
     rates: ApplicableRateItem[],
-    componentCode: string
+    componentCode: string,
   ): ApplicableRateItem | undefined {
     if (!componentCode || !rates || rates.length === 0) return undefined;
     const normalized = componentCode.trim().toUpperCase();
@@ -237,15 +236,27 @@ export class InvoiceChargeReconciliationEngine {
       const rTou = r.tou_period?.toUpperCase();
 
       // Peak active energy
-      if (normalized === "ACTIVE_ENERGY_PEAK" || normalized === "PEAK_ENERGY" || normalized === "ENERGY_PEAK") {
+      if (
+        normalized === "ACTIVE_ENERGY_PEAK" ||
+        normalized === "PEAK_ENERGY" ||
+        normalized === "ENERGY_PEAK"
+      ) {
         if (rType === "ACTIVE_ENERGY" && rTou === "PEAK") return true;
-        if (rCode.includes("PEAK") && !rCode.includes("OFF") && (rType === "ACTIVE_ENERGY" || rCode.includes("ENERGY"))) {
+        if (
+          rCode.includes("PEAK") &&
+          !rCode.includes("OFF") &&
+          (rType === "ACTIVE_ENERGY" || rCode.includes("ENERGY"))
+        ) {
           return true;
         }
       }
 
       // Standard active energy
-      if (normalized === "ACTIVE_ENERGY_STANDARD" || normalized === "STANDARD_ENERGY" || normalized === "ENERGY_STANDARD") {
+      if (
+        normalized === "ACTIVE_ENERGY_STANDARD" ||
+        normalized === "STANDARD_ENERGY" ||
+        normalized === "ENERGY_STANDARD"
+      ) {
         if (rType === "ACTIVE_ENERGY" && rTou === "STANDARD") return true;
         if (rCode.includes("STANDARD") && (rType === "ACTIVE_ENERGY" || rCode.includes("ENERGY"))) {
           return true;
@@ -253,26 +264,47 @@ export class InvoiceChargeReconciliationEngine {
       }
 
       // Off-peak active energy
-      if (normalized === "ACTIVE_ENERGY_OFF_PEAK" || normalized === "OFF_PEAK_ENERGY" || normalized === "ENERGY_OFF_PEAK") {
+      if (
+        normalized === "ACTIVE_ENERGY_OFF_PEAK" ||
+        normalized === "OFF_PEAK_ENERGY" ||
+        normalized === "ENERGY_OFF_PEAK"
+      ) {
         if (rType === "ACTIVE_ENERGY" && (rTou === "OFF_PEAK" || rTou === "OFFPEAK")) return true;
-        if ((rCode.includes("OFF_PEAK") || rCode.includes("OFFPEAK")) && (rType === "ACTIVE_ENERGY" || rCode.includes("ENERGY"))) {
+        if (
+          (rCode.includes("OFF_PEAK") || rCode.includes("OFFPEAK")) &&
+          (rType === "ACTIVE_ENERGY" || rCode.includes("ENERGY"))
+        ) {
           return true;
         }
       }
 
       // Network Demand
-      if (normalized === "NETWORK_DEMAND" || normalized === "DEMAND_NETWORK" || normalized === "NETWORK_DEMAND_CHARGE") {
-        if (rType === "NETWORK_DEMAND" || (rCode.includes("NETWORK") && rCode.includes("DEMAND"))) return true;
+      if (
+        normalized === "NETWORK_DEMAND" ||
+        normalized === "DEMAND_NETWORK" ||
+        normalized === "NETWORK_DEMAND_CHARGE"
+      ) {
+        if (rType === "NETWORK_DEMAND" || (rCode.includes("NETWORK") && rCode.includes("DEMAND")))
+          return true;
       }
 
       // Reactive Energy
-      if (normalized === "REACTIVE_ENERGY" || normalized === "REACTIVE_ENERGY_CHARGE" || normalized === "REACTIVE_PENALTY") {
+      if (
+        normalized === "REACTIVE_ENERGY" ||
+        normalized === "REACTIVE_ENERGY_CHARGE" ||
+        normalized === "REACTIVE_PENALTY"
+      ) {
         if (rType === "REACTIVE_ENERGY" || rCode.includes("REACTIVE")) return true;
       }
 
       // Service Charge
-      if (normalized === "SERVICE_CHARGE" || normalized === "SERVICE" || normalized === "ADMIN_CHARGE") {
-        if (rType === "SERVICE_CHARGE" || rCode.includes("SERVICE") || rCode.includes("ADMIN")) return true;
+      if (
+        normalized === "SERVICE_CHARGE" ||
+        normalized === "SERVICE" ||
+        normalized === "ADMIN_CHARGE"
+      ) {
+        if (rType === "SERVICE_CHARGE" || rCode.includes("SERVICE") || rCode.includes("ADMIN"))
+          return true;
       }
 
       // Normalized underscore-stripped fallback
@@ -293,7 +325,7 @@ export class InvoiceChargeReconciliationEngine {
    */
   public static calculateExpectedCharge(
     quantity: Decimal,
-    rateItem: ApplicableRateItem
+    rateItem: ApplicableRateItem,
   ): { expected_charge_zar: Decimal; formula_expression: string } {
     const rate = rateItem.rate_value;
     let expectedChargeZar: Decimal;
@@ -303,7 +335,10 @@ export class InvoiceChargeReconciliationEngine {
 
     if (unit === "c/kwh" || unit === "c/kvarh") {
       // Rates in cents per kWh or cents per kVArh: divide by 100 to yield ZAR
-      expectedChargeZar = quantity.times(rate).dividedBy(100).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+      expectedChargeZar = quantity
+        .times(rate)
+        .dividedBy(100)
+        .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
       formula = `(${quantity.toString()} × ${rate.toString()} ${rateItem.unit_of_measure}) / 100 = R ${expectedChargeZar.toString()}`;
     } else {
       // Rates directly in R/kVA/month, R/kW/month, R/day, R/month
@@ -321,16 +356,18 @@ export class InvoiceChargeReconciliationEngine {
    * Reconcile invoice line item charges against expected charges derived from the Tariff Engine.
    */
   public static reconcileCharges(
-    input: InvoiceChargeReconciliationInput
+    input: InvoiceChargeReconciliationInput,
   ): InvoiceChargeReconciliationSummary {
     const rateSchedule = input.applicable_rates;
-    const absTol = input.tolerance?.absolute_tolerance_zar !== undefined
-      ? new Decimal(String(input.tolerance.absolute_tolerance_zar))
-      : this.DEFAULT_ABSOLUTE_TOLERANCE_ZAR;
+    const absTol =
+      input.tolerance?.absolute_tolerance_zar !== undefined
+        ? new Decimal(String(input.tolerance.absolute_tolerance_zar))
+        : this.DEFAULT_ABSOLUTE_TOLERANCE_ZAR;
 
-    const pctTol = input.tolerance?.percentage_tolerance !== undefined
-      ? new Decimal(String(input.tolerance.percentage_tolerance))
-      : this.DEFAULT_PERCENTAGE_TOLERANCE;
+    const pctTol =
+      input.tolerance?.percentage_tolerance !== undefined
+        ? new Decimal(String(input.tolerance.percentage_tolerance))
+        : this.DEFAULT_PERCENTAGE_TOLERANCE;
 
     const items: ExpectedChargeItem[] = [];
     let expectedSubtotal = new Decimal(0);
@@ -345,7 +382,7 @@ export class InvoiceChargeReconciliationEngine {
         throw new Error(
           `InvoiceChargeReconciliationEngine: No applicable rate supplied by the Tariff Engine for ` +
             `component '${det.component_code}' under tariff '${rateSchedule.tariff_code}' (version ${rateSchedule.tariff_version}). ` +
-            `Tariff rates must come from the Tariff Engine and cannot be hardcoded.`
+            `Tariff rates must come from the Tariff Engine and cannot be hardcoded.`,
         );
       }
 
@@ -371,7 +408,7 @@ export class InvoiceChargeReconciliationEngine {
             customAbsolute: input.tolerance?.absolute_tolerance_zar,
             customPercentage: input.tolerance?.percentage_tolerance,
             customUnit: "ZAR",
-          }
+          },
         );
         chargeVar = dimEval.variance.absolute_variance;
         pctVar = dimEval.variance.variance_percentage; // null when expected = 0 (Req 21)
@@ -422,31 +459,36 @@ export class InvoiceChargeReconciliationEngine {
     const expectedVat = expectedSubtotal.times(vatRate).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
     const expectedTotal = expectedSubtotal.plus(expectedVat);
 
-    const billedSubtotal = input.billed_subtotal_zar !== undefined && input.billed_subtotal_zar !== null
-      ? this.parseDecimal(input.billed_subtotal_zar)
-      : undefined;
+    const billedSubtotal =
+      input.billed_subtotal_zar !== undefined && input.billed_subtotal_zar !== null
+        ? this.parseDecimal(input.billed_subtotal_zar)
+        : undefined;
 
-    const billedVat = input.billed_vat_zar !== undefined && input.billed_vat_zar !== null
-      ? this.parseDecimal(input.billed_vat_zar)
-      : undefined;
+    const billedVat =
+      input.billed_vat_zar !== undefined && input.billed_vat_zar !== null
+        ? this.parseDecimal(input.billed_vat_zar)
+        : undefined;
 
-    const billedTotal = input.billed_total_zar !== undefined && input.billed_total_zar !== null
-      ? this.parseDecimal(input.billed_total_zar)
-      : undefined;
+    const billedTotal =
+      input.billed_total_zar !== undefined && input.billed_total_zar !== null
+        ? this.parseDecimal(input.billed_total_zar)
+        : undefined;
 
     const subtotalVar = billedSubtotal ? billedSubtotal.minus(expectedSubtotal) : undefined;
     const totalVar = billedTotal ? billedTotal.minus(expectedTotal) : undefined;
 
     const hasMaterialDiscrepancy = items.some(
-      (it) => it.discrepancy_classification === "MATERIAL_DISCREPANCY"
+      (it) => it.discrepancy_classification === "MATERIAL_DISCREPANCY",
     );
 
     const allWithinTol = items.every(
-      (it) => it.is_within_tolerance === undefined || it.is_within_tolerance === true
+      (it) => it.is_within_tolerance === undefined || it.is_within_tolerance === true,
     );
 
     // Derive overall authoritative variance status (Requirement 22)
-    const itemStatuses = items.map((it) => it.variance_status).filter((s): s is VarianceStatus => Boolean(s));
+    const itemStatuses = items
+      .map((it) => it.variance_status)
+      .filter((s): s is VarianceStatus => Boolean(s));
     let overallStatus: VarianceStatus = "MATCH";
     if (itemStatuses.includes("OUTSIDE_TOLERANCE")) {
       overallStatus = "OUTSIDE_TOLERANCE";
