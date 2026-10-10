@@ -16,3 +16,5 @@ export * from "./rateLineageExplainer";
 export * from "./tariffApprovalService";
 export * from "./tariffAssignmentEngine";
 export * from "./canonicalTariffEngine";
+export * from "./tariffProvenanceModel";
+export * from "./tariffImportPipeline";

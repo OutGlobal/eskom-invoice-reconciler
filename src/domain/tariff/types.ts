@@ -214,6 +214,7 @@ export interface TariffComponentRule {
   rate_value: Decimal; // Gazetted rate value
   rule_id: string;
   formula_template: string; // e.g. "quantity * rate / 100"
+  provenance?: any; // TariffRateProvenance (Requirement 7)
 }
 
 export interface TariffVersionDefinition {
