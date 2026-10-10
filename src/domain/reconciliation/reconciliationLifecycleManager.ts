@@ -281,10 +281,19 @@ export class ReconciliationLifecycleManager {
       });
     }
 
-    const { validatedInvoicePackage, amrData, tariffData, tolerances = DEFAULT_TOLERANCE_CONFIG } = params;
+    const {
+      validatedInvoicePackage,
+      amrData,
+      tariffData,
+      tolerances = DEFAULT_TOLERANCE_CONFIG,
+    } = params;
 
     // STAGE 01: DOCUMENT VALIDATED
-    logStage("DOCUMENT_VALIDATED", "COMPLETED", "Authoritative validated document payload ingested from AI Validation Gate.");
+    logStage(
+      "DOCUMENT_VALIDATED",
+      "COMPLETED",
+      "Authoritative validated document payload ingested from AI Validation Gate.",
+    );
 
     // Extract raw fields safely from handoff package
     const docMeta = validatedInvoicePackage.documentMetadata || {};
@@ -301,10 +310,18 @@ export class ReconciliationLifecycleManager {
     const siteId = amrData?.siteId || "SITE-MILLENNIUM-01";
 
     // STAGE 02: IDENTIFY ACCOUNT
-    logStage("IDENTIFY_ACCOUNT", "COMPLETED", `Resolved account identification: ${accountNum} for client ${customer}.`);
+    logStage(
+      "IDENTIFY_ACCOUNT",
+      "COMPLETED",
+      `Resolved account identification: ${accountNum} for client ${customer}.`,
+    );
 
     // STAGE 03: IDENTIFY SITE
-    logStage("IDENTIFY_SITE", "COMPLETED", `Resolved site association: ${siteId} for account ${accountNum}.`);
+    logStage(
+      "IDENTIFY_SITE",
+      "COMPLETED",
+      `Resolved site association: ${siteId} for account ${accountNum}.`,
+    );
 
     // STAGE 04: IDENTIFY METER
     logStage("IDENTIFY_METER", "COMPLETED", `Resolved active metering point serial: ${meterNum}.`);
@@ -325,10 +342,18 @@ export class ReconciliationLifecycleManager {
     const rawPeakKwh = new Decimal(amrData?.measuredPeakKwh ?? (approved.peakKwh || 120500));
     const rawStdKwh = new Decimal(amrData?.measuredStandardKwh ?? (approved.standardKwh || 245000));
     const rawOffKwh = new Decimal(amrData?.measuredOffPeakKwh ?? (approved.offPeakKwh || 380000));
-    const rawDemandKva = new Decimal(amrData?.measuredDemandKva ?? (approved.maximumDemandKva || 4850));
-    const rawReactiveKvarh = new Decimal(amrData?.measuredReactiveKvarh ?? (approved.reactiveEnergyKvarh || 85200));
+    const rawDemandKva = new Decimal(
+      amrData?.measuredDemandKva ?? (approved.maximumDemandKva || 4850),
+    );
+    const rawReactiveKvarh = new Decimal(
+      amrData?.measuredReactiveKvarh ?? (approved.reactiveEnergyKvarh || 85200),
+    );
 
-    logStage("LOAD_AMR_DATA", "COMPLETED", `Loaded AMR 30-min interval dataset for meter ${meterNum} (Multiplier: ${multiplier.toString()}).`);
+    logStage(
+      "LOAD_AMR_DATA",
+      "COMPLETED",
+      `Loaded AMR 30-min interval dataset for meter ${meterNum} (Multiplier: ${multiplier.toString()}).`,
+    );
 
     // STAGE 07: VALIDATE DATA COVERAGE
     const expectedIntervals = calendarEvaluation.billingDays * 48;
@@ -345,16 +370,26 @@ export class ReconciliationLifecycleManager {
     // STAGE 08: LOAD APPLICABLE TARIFF
     const tariffCode = tariffData?.tariffCode || "MEGAFLEX_33KV";
     const season = tariffData?.season || calendarEvaluation.season || "LOW_SEASON";
-    const peakRate = new Decimal(tariffData?.peakRateZar ?? (season === "HIGH_SEASON" ? "5.4512" : "2.9062"));
-    const stdRate = new Decimal(tariffData?.standardRateZar ?? (season === "HIGH_SEASON" ? "2.0510" : "1.7146"));
-    const offRate = new Decimal(tariffData?.offPeakRateZar ?? (season === "HIGH_SEASON" ? "1.0820" : "0.7368"));
+    const peakRate = new Decimal(
+      tariffData?.peakRateZar ?? (season === "HIGH_SEASON" ? "5.4512" : "2.9062"),
+    );
+    const stdRate = new Decimal(
+      tariffData?.standardRateZar ?? (season === "HIGH_SEASON" ? "2.0510" : "1.7146"),
+    );
+    const offRate = new Decimal(
+      tariffData?.offPeakRateZar ?? (season === "HIGH_SEASON" ? "1.0820" : "0.7368"),
+    );
     const demandRate = new Decimal(tariffData?.demandRateZar ?? "115.00");
     const networkRate = new Decimal(tariffData?.networkRateZar ?? "95.00");
     const serviceRatePerDay = new Decimal(tariffData?.serviceRateZarPerDay ?? "83.33");
     const adminRatePerDay = new Decimal(tariffData?.adminRateZarPerDay ?? "41.67");
     const subsidyRatePerKwh = new Decimal(tariffData?.subsidyRateZar ?? "0.0412");
 
-    logStage("LOAD_APPLICABLE_TARIFF", "COMPLETED", `Loaded tariff rules: ${tariffCode} (${season}) with gazetted rate structures.`);
+    logStage(
+      "LOAD_APPLICABLE_TARIFF",
+      "COMPLETED",
+      `Loaded tariff rules: ${tariffCode} (${season}) with gazetted rate structures.`,
+    );
 
     // STAGE 09: NORMALISE UNITS
     const measuredPeakKwh = rawPeakKwh.mul(multiplier);
@@ -364,18 +399,32 @@ export class ReconciliationLifecycleManager {
     const measuredDemandKva = rawDemandKva.mul(multiplier);
     const measuredReactiveKvarh = rawReactiveKvarh.mul(multiplier);
 
-    logStage("NORMALISE_UNITS", "COMPLETED", `Scaled meter measurements with CT/VT multiplier ${multiplier.toString()} to standard kWh/kVA units.`);
+    logStage(
+      "NORMALISE_UNITS",
+      "COMPLETED",
+      `Scaled meter measurements with CT/VT multiplier ${multiplier.toString()} to standard kWh/kVA units.`,
+    );
 
     // STAGE 10: CALCULATE EXPECTED VALUES (SOURCE 5)
     const calcPeakCharge = measuredPeakKwh.mul(peakRate).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
     const calcStdCharge = measuredStdKwh.mul(stdRate).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
     const calcOffCharge = measuredOffKwh.mul(offRate).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
     const calcTotalEnergyCharge = calcPeakCharge.add(calcStdCharge).add(calcOffCharge);
-    const calcDemandCharge = measuredDemandKva.mul(demandRate).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-    const calcNetworkCharge = measuredDemandKva.mul(networkRate).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-    const calcServiceCharge = serviceRatePerDay.mul(calendarEvaluation.billingDays).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-    const calcAdminCharge = adminRatePerDay.mul(calendarEvaluation.billingDays).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-    const calcSubsidies = measuredTotalKwh.mul(subsidyRatePerKwh).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    const calcDemandCharge = measuredDemandKva
+      .mul(demandRate)
+      .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    const calcNetworkCharge = measuredDemandKva
+      .mul(networkRate)
+      .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    const calcServiceCharge = serviceRatePerDay
+      .mul(calendarEvaluation.billingDays)
+      .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    const calcAdminCharge = adminRatePerDay
+      .mul(calendarEvaluation.billingDays)
+      .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    const calcSubsidies = measuredTotalKwh
+      .mul(subsidyRatePerKwh)
+      .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
 
     const calcSubtotal = calcTotalEnergyCharge
       .add(calcDemandCharge)
@@ -386,7 +435,11 @@ export class ReconciliationLifecycleManager {
     const calcVat = calcSubtotal.mul(new Decimal("0.15")).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
     const calcTotalAmount = calcSubtotal.add(calcVat);
 
-    logStage("CALCULATE_EXPECTED_VALUES", "COMPLETED", `Derived expected financial total: R ${calcTotalAmount.toFixed(2)} based on AMR profile.`);
+    logStage(
+      "CALCULATE_EXPECTED_VALUES",
+      "COMPLETED",
+      `Derived expected financial total: R ${calcTotalAmount.toFixed(2)} based on AMR profile.`,
+    );
 
     // STAGE 11: COMPARE AGAINST INVOICE
     const billedTotalKwh = new Decimal(approved.totalKwh || 745500);
@@ -397,22 +450,38 @@ export class ReconciliationLifecycleManager {
     const billedReactiveKvarh = new Decimal(approved.reactiveEnergyKvarh || 85200);
     const billedSubtotal = new Decimal(approved.subtotal || 1294750);
     const billedVat = new Decimal(approved.vatAmount || 194212.5);
-    const billedTotalAmount = new Decimal(approved.invoiceTotal || approved.totalAmountDue || 1488962.5);
+    const billedTotalAmount = new Decimal(
+      approved.invoiceTotal || approved.totalAmountDue || 1488962.5,
+    );
 
-    logStage("COMPARE_AGAINST_INVOICE", "COMPLETED", `Executed component-by-component comparison across 14 billing determinants.`);
+    logStage(
+      "COMPARE_AGAINST_INVOICE",
+      "COMPLETED",
+      `Executed component-by-component comparison across 14 billing determinants.`,
+    );
 
     // STAGE 12: CALCULATE VARIANCES
     const energyVariance = billedTotalKwh.sub(measuredTotalKwh);
-    const energyVariancePct = measuredTotalKwh.isZero() ? new Decimal(0) : energyVariance.div(measuredTotalKwh).mul(100);
+    const energyVariancePct = measuredTotalKwh.isZero()
+      ? new Decimal(0)
+      : energyVariance.div(measuredTotalKwh).mul(100);
 
     const demandVariance = billedDemandKva.sub(measuredDemandKva);
-    const demandVariancePct = measuredDemandKva.isZero() ? new Decimal(0) : demandVariance.div(measuredDemandKva).mul(100);
+    const demandVariancePct = measuredDemandKva.isZero()
+      ? new Decimal(0)
+      : demandVariance.div(measuredDemandKva).mul(100);
 
     const financialVariance = billedTotalAmount.sub(calcTotalAmount);
-    const financialVariancePct = calcTotalAmount.isZero() ? new Decimal(0) : financialVariance.div(calcTotalAmount).mul(100);
+    const financialVariancePct = calcTotalAmount.isZero()
+      ? new Decimal(0)
+      : financialVariance.div(calcTotalAmount).mul(100);
     const vatVariance = billedVat.sub(calcVat);
 
-    logStage("CALCULATE_VARIANCES", "COMPLETED", `Computed mathematical variances: Energy ${energyVariance.toFixed(1)} kWh (${energyVariancePct.toFixed(2)}%), Financial R ${financialVariance.toFixed(2)} (${financialVariancePct.toFixed(2)}%).`);
+    logStage(
+      "CALCULATE_VARIANCES",
+      "COMPLETED",
+      `Computed mathematical variances: Energy ${energyVariance.toFixed(1)} kWh (${energyVariancePct.toFixed(2)}%), Financial R ${financialVariance.toFixed(2)} (${financialVariancePct.toFixed(2)}%).`,
+    );
 
     // STAGE 13: IDENTIFY EXCEPTIONS
     const exceptions: Array<{
@@ -457,12 +526,13 @@ export class ReconciliationLifecycleManager {
       });
     }
 
-    const classification: ReconciliationClassification =
-      exceptions.some((e) => e.severity === "CRITICAL")
-        ? "CRITICAL"
-        : exceptions.length > 0
-          ? "WARNING"
-          : "PASS";
+    const classification: ReconciliationClassification = exceptions.some(
+      (e) => e.severity === "CRITICAL",
+    )
+      ? "CRITICAL"
+      : exceptions.length > 0
+        ? "WARNING"
+        : "PASS";
 
     logStage(
       "IDENTIFY_EXCEPTIONS",
@@ -608,7 +678,9 @@ export class ReconciliationLifecycleManager {
         variance_value: financialVariance,
         variance_percentage: financialVariancePct,
         unit_of_measure: "ZAR",
-        classification: financialVariance.abs().lte(tolerances.absolute_zar_tolerance) ? "PASS" : "CRITICAL",
+        classification: financialVariance.abs().lte(tolerances.absolute_zar_tolerance)
+          ? "PASS"
+          : "CRITICAL",
         explanation: {
           input_value: `R ${calcSubtotal.toFixed(2)} ex VAT`,
           formula_used: "Subtotal + VAT (15%)",
@@ -666,7 +738,11 @@ export class ReconciliationLifecycleManager {
       completed_at: new Date().toISOString(),
     });
 
-    logStage("STORE_RECONCILIATION_RESULT", "COMPLETED", `Persisted reconciliation execution record ${runId} with checksum.`);
+    logStage(
+      "STORE_RECONCILIATION_RESULT",
+      "COMPLETED",
+      `Persisted reconciliation execution record ${runId} with checksum.`,
+    );
 
     // STAGE 15: PRESENT EVIDENCE
     const rootCauses = RootCauseInferenceEngine.inferRootCauses(
@@ -691,7 +767,11 @@ export class ReconciliationLifecycleManager {
       })),
     );
 
-    logStage("PRESENT_EVIDENCE", "COMPLETED", "Structured full 5-source evidence hierarchy package for presentation.");
+    logStage(
+      "PRESENT_EVIDENCE",
+      "COMPLETED",
+      "Structured full 5-source evidence hierarchy package for presentation.",
+    );
 
     return {
       runId,

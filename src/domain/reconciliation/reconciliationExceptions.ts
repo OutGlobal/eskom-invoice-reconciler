@@ -51,12 +51,7 @@ export type ReconciliationExceptionCode =
 export type ExceptionSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
 
 export type ExceptionStatus =
-  | "OPEN"
-  | "ACKNOWLEDGED"
-  | "INVESTIGATING"
-  | "RESOLVED"
-  | "SUPPRESSED"
-  | "ESCALATED";
+  "OPEN" | "ACKNOWLEDGED" | "INVESTIGATING" | "RESOLVED" | "SUPPRESSED" | "ESCALATED";
 
 export type ExceptionSource =
   | "AMR_DATA_INGESTION"
@@ -359,9 +354,10 @@ export class ReconciliationExceptionFactory {
     gaps?: any[];
     [key: string]: any;
   }): ReconciliationException {
-    const pct = typeof evidence.coverage_percentage === "string"
-      ? evidence.coverage_percentage
-      : evidence.coverage_percentage.toString();
+    const pct =
+      typeof evidence.coverage_percentage === "string"
+        ? evidence.coverage_percentage
+        : evidence.coverage_percentage.toString();
     return this.create({
       code: "INCOMPLETE_AMR_DATA",
       severity: "HIGH",

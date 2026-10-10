@@ -87,7 +87,11 @@ export class ReconciliationInputContract {
     const p = input as Record<string, any>;
 
     // 1. Validate reconciliation_id
-    if (!p.reconciliation_id || typeof p.reconciliation_id !== "string" || p.reconciliation_id.trim() === "") {
+    if (
+      !p.reconciliation_id ||
+      typeof p.reconciliation_id !== "string" ||
+      p.reconciliation_id.trim() === ""
+    ) {
       violations.push({
         field: "reconciliation_id",
         code: "MISSING_RECONCILIATION_ID",
@@ -96,7 +100,11 @@ export class ReconciliationInputContract {
     }
 
     // 2. Validate organisation_id
-    if (!p.organisation_id || typeof p.organisation_id !== "string" || p.organisation_id.trim() === "") {
+    if (
+      !p.organisation_id ||
+      typeof p.organisation_id !== "string" ||
+      p.organisation_id.trim() === ""
+    ) {
       violations.push({
         field: "organisation_id",
         code: "MISSING_ORGANISATION_ID",
@@ -146,7 +154,8 @@ export class ReconciliationInputContract {
       violations.push({
         field: "billing_period",
         code: "INVALID_BILLING_PERIOD",
-        message: "billing_period must contain valid startDate (YYYY-MM-DD) and endDate (YYYY-MM-DD).",
+        message:
+          "billing_period must contain valid startDate (YYYY-MM-DD) and endDate (YYYY-MM-DD).",
       });
     } else if (bp.startDate > bp.endDate) {
       violations.push({
@@ -164,7 +173,11 @@ export class ReconciliationInputContract {
         message: "tariff_id is required to reference the applicable rate structure.",
       });
     }
-    if (!p.tariff_version || typeof p.tariff_version !== "string" || p.tariff_version.trim() === "") {
+    if (
+      !p.tariff_version ||
+      typeof p.tariff_version !== "string" ||
+      p.tariff_version.trim() === ""
+    ) {
       violations.push({
         field: "tariff_version",
         code: "MISSING_TARIFF_VERSION",

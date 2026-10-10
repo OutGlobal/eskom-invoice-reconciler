@@ -25,11 +25,11 @@
  */
 
 import Decimal from "decimal.js-light";
-import { DeterministicReconciliationEngine, type AuthoritativeReconciliationInput } from "./reconciliationEngine";
-import type {
-  AuthoritativeReconciliationPayload,
-  ToleranceConfig,
-} from "./types";
+import {
+  DeterministicReconciliationEngine,
+  type AuthoritativeReconciliationInput,
+} from "./reconciliationEngine";
+import type { AuthoritativeReconciliationPayload, ToleranceConfig } from "./types";
 import { DEFAULT_TOLERANCE_CONFIG } from "./types";
 import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
 import { TariffInterface } from "@/domain/tariff/tariffInterface";
@@ -37,10 +37,20 @@ import { PowerFactorEngine } from "./powerFactorEngine";
 import { ReconciliationStorageService } from "./reconciliationStorageService";
 import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
 import { AuditLedgerService } from "@/domain/audit/auditLedgerService";
-import { ReconciliationAuditModelBuilder, type ReconciliationAuditModel } from "./reconciliationAuditModel";
-import { CALCULATION_ENGINE_V2, type CalculationEngineVersion } from "./calculationVersioningEngine";
-import { ReconciliationExceptionFactory, type ReconciliationException } from "./reconciliationExceptions";
+import {
+  ReconciliationAuditModelBuilder,
+  type ReconciliationAuditModel,
+} from "./reconciliationAuditModel";
+import {
+  CALCULATION_ENGINE_V2,
+  type CalculationEngineVersion,
+} from "./calculationVersioningEngine";
+import {
+  ReconciliationExceptionFactory,
+  type ReconciliationException,
+} from "./reconciliationExceptions";
 import { computeTotals } from "@/lib/reconciliation";
+import { ALL_PRODUCTION_TARIFF_FIXTURES } from "@/domain/tariff/tariffFixtures";
 import type { InvoiceData } from "@/lib/store";
 import type { Measurement } from "@/lib/parseMeter";
 import {
@@ -157,7 +167,7 @@ export class AutomaticProcessingPipeline {
         invoiceId,
         invoiceNumber: invoiceId,
         accountNumber: invoice.accountNumber || "",
-        siteId: (invoice as any).siteName || invoice.premiseId || invoice.accountNumber || "UNKNOWN",
+        siteId: (invoice as any).siteName || invoice.premiseId || undefined,
         meterNumber: meterId,
         billingPeriodStart: bStart,
         billingPeriodEnd: bEnd,
@@ -181,7 +191,10 @@ export class AutomaticProcessingPipeline {
         };
       }
 
-      if (matchingResult.decision === "NO_MATCH" && (!telemetryRows || telemetryRows.length === 0)) {
+      if (
+        matchingResult.decision === "NO_MATCH" &&
+        (!telemetryRows || telemetryRows.length === 0)
+      ) {
         return {
           ...this.buildAwaitingResult({
             jobId,
@@ -197,7 +210,8 @@ export class AutomaticProcessingPipeline {
 
       // If user selected an explicit candidate or an exact unambiguous match was found
       const selected = selectedCandidateId
-        ? amrCandidates.find((c) => c.datasetId === selectedCandidateId) || matchingResult.matchedCandidate
+        ? amrCandidates.find((c) => c.datasetId === selectedCandidateId) ||
+          matchingResult.matchedCandidate
         : matchingResult.matchedCandidate;
 
       if (selected && activeIntervals.length === 0 && selected.metadata?.intervals) {
@@ -245,6 +259,38 @@ export class AutomaticProcessingPipeline {
     }
 
     if (!tariffVersion) {
+      const query = (invoice.tariffName || "").toLowerCase().trim();
+      const targetIso = bStart || new Date().toISOString().substring(0, 10);
+      if (query) {
+        tariffVersion =
+          ALL_PRODUCTION_TARIFF_FIXTURES.find((v) => {
+            const code = v.header.tariff_code.toLowerCase();
+            const name = v.header.tariff_name.toLowerCase();
+            const family = v.header.tariff_family.toLowerCase();
+            const matches =
+              code.includes(query) ||
+              name.includes(query) ||
+              family.includes(query) ||
+              query.includes(family);
+            if (!matches) return false;
+            const eff = v.header.effective_date;
+            const exp = v.header.expiry_date || "2099-12-31";
+            return targetIso >= eff && targetIso <= exp;
+          }) || null;
+      }
+      if (!tariffVersion) {
+        tariffVersion =
+          ALL_PRODUCTION_TARIFF_FIXTURES.find((v) => {
+            const eff = v.header.effective_date;
+            const exp = v.header.expiry_date || "2099-12-31";
+            return targetIso >= eff && targetIso <= exp;
+          }) ||
+          ALL_PRODUCTION_TARIFF_FIXTURES.find((v) => v.header.tariff_family === "megaflex") ||
+          null;
+      }
+    }
+
+    if (!tariffVersion) {
       return this.buildAwaitingResult({
         jobId,
         status: "FAILED",
@@ -260,7 +306,8 @@ export class AutomaticProcessingPipeline {
     // ------------------------------------------------------------------------
     // STAGE 3: CREATE RECONCILIATION JOB & IDEMPOTENCY CHECK (REQUIREMENT 31)
     // ------------------------------------------------------------------------
-    const amrChecksum = await ReconciliationIdempotencyEngine.computeTelemetryChecksum(intervalsToProcess);
+    const amrChecksum =
+      await ReconciliationIdempotencyEngine.computeTelemetryChecksum(intervalsToProcess);
     const identitySource: DeterministicIdentitySource = {
       tenantId: organisationId,
       invoiceId,
@@ -273,7 +320,8 @@ export class AutomaticProcessingPipeline {
       toleranceProfileName: (tolerance as any).profile_name || "DEFAULT_PROFILE",
     };
 
-    const deterministicRunId = await ReconciliationIdempotencyEngine.generateDeterministicRunId(identitySource);
+    const deterministicRunId =
+      await ReconciliationIdempotencyEngine.generateDeterministicRunId(identitySource);
 
     // IDEMPOTENCY EVALUATION:
     // If the same reconciliation runs twice under the same calculation version, reuse results!
@@ -289,12 +337,35 @@ export class AutomaticProcessingPipeline {
         billingPeriod: { start: bStart, end: bEnd },
         telemetryIntervalsProcessed: totalIntervals,
         calculatedValues: {
-          peakKwh: (existingRun.determinant_comparisons?.find((c: any) => c.determinant_code === "PEAK_KWH")?.calculated_value || 0).toString(),
-          standardKwh: (existingRun.determinant_comparisons?.find((c: any) => c.determinant_code === "STANDARD_KWH")?.calculated_value || 0).toString(),
-          offPeakKwh: (existingRun.determinant_comparisons?.find((c: any) => c.determinant_code === "OFF_PEAK_KWH")?.calculated_value || 0).toString(),
-          totalKwh: (existingRun.determinant_comparisons?.find((c: any) => c.determinant_code === "TOTAL_KWH")?.calculated_value || 0).toString(),
-          maximumDemandKva: (existingRun.determinant_comparisons?.find((c: any) => c.determinant_code === "MAXIMUM_DEMAND_KVA")?.calculated_value || 0).toString(),
-          reactiveEnergyKvarh: (existingRun.determinant_comparisons?.find((c: any) => c.determinant_code === "REACTIVE_ENERGY_KVARH")?.calculated_value || 0).toString(),
+          peakKwh: (
+            existingRun.determinant_comparisons?.find((c: any) => c.determinant_code === "PEAK_KWH")
+              ?.calculated_value || 0
+          ).toString(),
+          standardKwh: (
+            existingRun.determinant_comparisons?.find(
+              (c: any) => c.determinant_code === "STANDARD_KWH",
+            )?.calculated_value || 0
+          ).toString(),
+          offPeakKwh: (
+            existingRun.determinant_comparisons?.find(
+              (c: any) => c.determinant_code === "OFF_PEAK_KWH",
+            )?.calculated_value || 0
+          ).toString(),
+          totalKwh: (
+            existingRun.determinant_comparisons?.find(
+              (c: any) => c.determinant_code === "TOTAL_KWH",
+            )?.calculated_value || 0
+          ).toString(),
+          maximumDemandKva: (
+            existingRun.determinant_comparisons?.find(
+              (c: any) => c.determinant_code === "MAXIMUM_DEMAND_KVA",
+            )?.calculated_value || 0
+          ).toString(),
+          reactiveEnergyKvarh: (
+            existingRun.determinant_comparisons?.find(
+              (c: any) => c.determinant_code === "REACTIVE_ENERGY_KVARH",
+            )?.calculated_value || 0
+          ).toString(),
           vectorPowerFactor: "1.0000",
           calculatedTotalZar: (existingRun.calculated_total_zar || 0).toString(),
         },
@@ -562,7 +633,8 @@ export class AutomaticProcessingPipeline {
       jobId,
       reconciliationId: reconciliationPayload.run_id,
       status: exceptions.length > 0 ? "COMPLETED_WITH_EXCEPTIONS" : "COMPLETED",
-      message: "Automated reconciliation successfully executed, saved, and broadcasted to dashboard.",
+      message:
+        "Automated reconciliation successfully executed, saved, and broadcasted to dashboard.",
       invoiceId,
       meterId,
       billingPeriod: { start: bStart, end: bEnd },

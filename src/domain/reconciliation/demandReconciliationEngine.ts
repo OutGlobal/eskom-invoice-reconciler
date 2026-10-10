@@ -21,35 +21,19 @@
  */
 
 import Decimal from "decimal.js-light";
-import {
-  TouMappingEngine,
-  TariffPeriodDefinition,
-  TouPeriod,
-} from "./touMappingEngine";
+import { TouMappingEngine, TariffPeriodDefinition, TouPeriod } from "./touMappingEngine";
 import { VarianceEngine, type VariancePercentageStatus } from "./varianceEngine";
 import type { VarianceStatus } from "./varianceStatus";
-import {
-  CentralToleranceRegistry,
-  type RecordedTolerance,
-} from "./toleranceModel";
+import { CentralToleranceRegistry, type RecordedTolerance } from "./toleranceModel";
 
 export type DemandMeasurementUnit = "kVA" | "kW";
 
 export type DemandWindowScope =
-  | "ALL_HOURS"
-  | "PEAK_AND_STANDARD_ONLY"
-  | "PEAK_ONLY"
-  | "OFF_PEAK_ONLY";
+  "ALL_HOURS" | "PEAK_AND_STANDARD_ONLY" | "PEAK_ONLY" | "OFF_PEAK_ONLY";
 
-export type DemandRatchetType =
-  | "NONE"
-  | "PERCENTAGE_OF_NMD"
-  | "MINIMUM_DEMAND_FLOOR";
+export type DemandRatchetType = "NONE" | "PERCENTAGE_OF_NMD" | "MINIMUM_DEMAND_FLOOR";
 
-export type DiscrepancyClassification =
-  | "EXACT_MATCH"
-  | "WITHIN_TOLERANCE"
-  | "MATERIAL_DISCREPANCY";
+export type DiscrepancyClassification = "EXACT_MATCH" | "WITHIN_TOLERANCE" | "MATERIAL_DISCREPANCY";
 
 /**
  * Requirement 17: Demand Methodology Rule Contract
@@ -244,10 +228,7 @@ export class DemandReconciliationEngine {
 
     // 1. If intervals and tariff_period_definition are provided, compute demand from raw intervals
     if (input.intervals && input.intervals.length > 0 && input.tariff_period_definition) {
-      const mapped = TouMappingEngine.mapIntervals(
-        input.intervals,
-        input.tariff_period_definition
-      );
+      const mapped = TouMappingEngine.mapIntervals(input.intervals, input.tariff_period_definition);
 
       for (const m of mapped) {
         const kw = m.kW;
@@ -284,9 +265,10 @@ export class DemandReconciliationEngine {
     const stdDemand = unit === "kVA" ? stdKva : stdKw;
     const offDemand = unit === "kVA" ? offKva : offKw;
 
-    const peakAndStdMax = (peakDemand.isZero() && stdDemand.isZero() && !rawUnitMax.isZero())
-      ? rawUnitMax
-      : this.maxDecimal(peakDemand, stdDemand);
+    const peakAndStdMax =
+      peakDemand.isZero() && stdDemand.isZero() && !rawUnitMax.isZero()
+        ? rawUnitMax
+        : this.maxDecimal(peakDemand, stdDemand);
 
     const allHoursMax = this.maxDecimal(peakDemand, stdDemand, offDemand, rawUnitMax);
 
@@ -370,7 +352,7 @@ export class DemandReconciliationEngine {
         customAbsolute: input.tolerance?.absolute_tolerance,
         customPercentage: input.tolerance?.percentage_tolerance,
         customUnit: unit,
-      }
+      },
     );
 
     const variance = dimEval.variance;

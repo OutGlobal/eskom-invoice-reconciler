@@ -20,8 +20,7 @@ export const CALCULATION_ENGINE_V1 = "reconciliation_engine_v1" as const;
 export const CALCULATION_ENGINE_V2 = "reconciliation_engine_v2" as const;
 
 export type StandardCalculationEngineVersion =
-  | typeof CALCULATION_ENGINE_V1
-  | typeof CALCULATION_ENGINE_V2;
+  typeof CALCULATION_ENGINE_V1 | typeof CALCULATION_ENGINE_V2;
 
 export type CalculationEngineVersion = StandardCalculationEngineVersion | string;
 
@@ -67,7 +66,8 @@ export const CALCULATION_ENGINE_VERSIONS: Record<
       tou_aggregation:
         "Standard interval sum by Eskom TOU calendar slot (Peak, Standard, Off-Peak).",
       demand_derivation: "Simple maximum kVA across billing interval window.",
-      power_factor_formula: "Scalar power factor = kWh / sqrt(kWh^2 + kVArh^2) across total period.",
+      power_factor_formula:
+        "Scalar power factor = kWh / sqrt(kWh^2 + kVArh^2) across total period.",
       reactive_energy_policy:
         "Comparison against 30% active energy threshold without separate tariff engine rates.",
       tolerance_evaluation:
@@ -269,8 +269,13 @@ export class CalculationVersioningEngine {
     recalculationReason: string;
     performedByUserId: string;
   }): SupersedingRecalculationResult {
-    const { historicalRecord, newVersion, newCalculatedTotalZar, recalculationReason, performedByUserId } =
-      params;
+    const {
+      historicalRecord,
+      newVersion,
+      newCalculatedTotalZar,
+      recalculationReason,
+      performedByUserId,
+    } = params;
 
     if (historicalRecord.calculation_engine_version === newVersion) {
       throw new Error(

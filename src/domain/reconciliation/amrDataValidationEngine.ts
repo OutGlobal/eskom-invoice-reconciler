@@ -281,12 +281,16 @@ export class AmrDataValidationEngine {
       }
 
       // 6. Value Parsing & Cumulative vs Interval Delta computation
-      let rawKwhVal = new Decimal(raw.kwh !== undefined && raw.kwh !== null ? String(raw.kwh) : "0");
-      let rawKvaVal = new Decimal(raw.kva !== undefined && raw.kva !== null ? String(raw.kva) : "0");
-      let rawKvarhVal = new Decimal(
+      const rawKwhVal = new Decimal(
+        raw.kwh !== undefined && raw.kwh !== null ? String(raw.kwh) : "0",
+      );
+      const rawKvaVal = new Decimal(
+        raw.kva !== undefined && raw.kva !== null ? String(raw.kva) : "0",
+      );
+      const rawKvarhVal = new Decimal(
         raw.kvarh !== undefined && raw.kvarh !== null ? String(raw.kvarh) : "0",
       );
-      let rawKwVal = new Decimal(raw.kw !== undefined && raw.kw !== null ? String(raw.kw) : "0");
+      const rawKwVal = new Decimal(raw.kw !== undefined && raw.kw !== null ? String(raw.kw) : "0");
 
       let intervalKwh = rawKwhVal;
       let isRolloverAdjusted = false;
@@ -410,7 +414,7 @@ export class AmrDataValidationEngine {
       if (rawKvaVal.gt(0)) {
         const impliedKw = rawKwVal.gt(0) ? rawKwVal : intervalKwh.mul(2);
         const pf = impliedKw.div(rawKvaVal);
-        let rawPf = pf;
+        const rawPf = pf;
         if (rawPf.gt(new Decimal("1.0"))) {
           powerFactor = new Decimal("1.0");
         } else if (rawPf.lt(new Decimal("0.0"))) {

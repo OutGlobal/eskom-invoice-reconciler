@@ -22,15 +22,10 @@ import {
 } from "./powerFactorEngine";
 import { VarianceEngine, type VariancePercentageStatus } from "./varianceEngine";
 import type { VarianceStatus } from "./varianceStatus";
-import {
-  CentralToleranceRegistry,
-  type RecordedTolerance,
-} from "./toleranceModel";
+import { CentralToleranceRegistry, type RecordedTolerance } from "./toleranceModel";
 
 export type ReactivePenaltyStatus =
-  | "SKIPPED_NO_TARIFF_RULE"
-  | "CALCULATED_FROM_TARIFF_RULE"
-  | "NOT_APPLICABLE_PF_COMPLIANT";
+  "SKIPPED_NO_TARIFF_RULE" | "CALCULATED_FROM_TARIFF_RULE" | "NOT_APPLICABLE_PF_COMPLIANT";
 
 export interface ReactiveEnergyReconciliationInput {
   // Invoice values
@@ -151,22 +146,25 @@ export class ReactiveEnergyReconciliationEngine {
    *   - Do not calculate reactive penalties in this branch unless the applicable tariff rule is supplied by the Tariff Engine.
    */
   public static reconcileReactiveEnergy(
-    input: ReactiveEnergyReconciliationInput
+    input: ReactiveEnergyReconciliationInput,
   ): ReactiveEnergyReconciliationResult {
     const flaggedReasons: string[] = [];
 
     // Thresholds
-    const kvarhAbsThreshold = input.significance_thresholds?.kvarh_absolute_threshold !== undefined
-      ? new Decimal(String(input.significance_thresholds.kvarh_absolute_threshold))
-      : this.DEFAULT_KVARH_ABS_THRESHOLD;
+    const kvarhAbsThreshold =
+      input.significance_thresholds?.kvarh_absolute_threshold !== undefined
+        ? new Decimal(String(input.significance_thresholds.kvarh_absolute_threshold))
+        : this.DEFAULT_KVARH_ABS_THRESHOLD;
 
-    const kvarhPctThreshold = input.significance_thresholds?.kvarh_percentage_threshold !== undefined
-      ? new Decimal(String(input.significance_thresholds.kvarh_percentage_threshold))
-      : this.DEFAULT_KVARH_PCT_THRESHOLD;
+    const kvarhPctThreshold =
+      input.significance_thresholds?.kvarh_percentage_threshold !== undefined
+        ? new Decimal(String(input.significance_thresholds.kvarh_percentage_threshold))
+        : this.DEFAULT_KVARH_PCT_THRESHOLD;
 
-    const pfDiffThreshold = input.significance_thresholds?.pf_difference_threshold !== undefined
-      ? new Decimal(String(input.significance_thresholds.pf_difference_threshold))
-      : this.DEFAULT_PF_DIFF_THRESHOLD;
+    const pfDiffThreshold =
+      input.significance_thresholds?.pf_difference_threshold !== undefined
+        ? new Decimal(String(input.significance_thresholds.pf_difference_threshold))
+        : this.DEFAULT_PF_DIFF_THRESHOLD;
 
     // -------------------------------------------------------------------------
     // 1. RESOLVE AMR REACTIVE & POWER FACTOR VALUES
@@ -221,7 +219,7 @@ export class ReactiveEnergyReconciliationEngine {
           customAbsolute: input.significance_thresholds?.kvarh_absolute_threshold,
           customPercentage: input.significance_thresholds?.kvarh_percentage_threshold,
           customUnit: "kVArh",
-        }
+        },
       );
 
       const variance = dimEval.variance;
@@ -239,7 +237,7 @@ export class ReactiveEnergyReconciliationEngine {
           `Significant reactive energy variance: Invoice (${invKvarh.toString()} kVArh) vs ` +
             `AMR (${amrKvarh.toString()} kVArh), difference of ${absVar.toString()} kVArh ` +
             `(${pctVar !== null ? pctVar.toDecimalPlaces(2).toString() + "%" : "percentage undefined: AMR kVArh is 0"}). ` +
-            `Status: ${dimEval.status}.`
+            `Status: ${dimEval.status}.`,
         );
       }
 
@@ -273,7 +271,7 @@ export class ReactiveEnergyReconciliationEngine {
     // 3. COMPARE INVOICE POWER FACTOR VS AMR-DERIVED POWER FACTOR
     // -------------------------------------------------------------------------
     const invPf = this.parseDecimal(input.invoice_power_factor);
-    let invDirection: PowerFactorDirection = input.invoice_pf_direction ?? "unknown";
+    const invDirection: PowerFactorDirection = input.invoice_pf_direction ?? "unknown";
 
     let pfComp: PowerFactorComparison;
     if (invPf !== null && amrPf !== null) {
@@ -291,22 +289,17 @@ export class ReactiveEnergyReconciliationEngine {
         directionMismatch = true;
         flaggedReasons.push(
           `Power factor direction mismatch: Invoice states ${invDirection.toUpperCase()}, ` +
-            `but AMR telemetry registers ${amrDirection.toUpperCase()}.`
+            `but AMR telemetry registers ${amrDirection.toUpperCase()}.`,
         );
       }
 
-      const dimEval = CentralToleranceRegistry.evaluateDimension(
-        "reactive_energy",
-        invPf,
-        amrPf,
-        {
-          customAbsolute: pfDiffThreshold,
-          customUnit: "PF",
-          unresolvedReason: directionMismatch
-            ? `Power factor direction mismatch: Invoice states ${invDirection.toUpperCase()}, but AMR telemetry registers ${amrDirection.toUpperCase()}.`
-            : undefined,
-        }
-      );
+      const dimEval = CentralToleranceRegistry.evaluateDimension("reactive_energy", invPf, amrPf, {
+        customAbsolute: pfDiffThreshold,
+        customUnit: "PF",
+        unresolvedReason: directionMismatch
+          ? `Power factor direction mismatch: Invoice states ${invDirection.toUpperCase()}, but AMR telemetry registers ${amrDirection.toUpperCase()}.`
+          : undefined,
+      });
 
       const isSignificantPf = !dimEval.is_within_tolerance && !pfDiff.isZero();
 
@@ -314,7 +307,7 @@ export class ReactiveEnergyReconciliationEngine {
         flaggedReasons.push(
           `Significant power factor difference: Invoice PF (${invPf.toString()}) vs ` +
             `AMR-derived PF (${amrPf.toString()}), variance of ${pfDiff.toString()} exceeds threshold of ${pfDiffThreshold.toString()}. ` +
-            `Status: ${dimEval.status}.`
+            `Status: ${dimEval.status}.`,
         );
       }
 
@@ -392,11 +385,14 @@ export class ReactiveEnergyReconciliationEngine {
       } else {
         // Calculate excess kVArh per standard tariff formula
         // Standard NERSA allowance factor: tan(acos(0.95)) = 0.328684 (approx 33% of active kWh)
-        let allowanceFactor = rule.allowance_tan_phi !== undefined
-          ? new Decimal(String(rule.allowance_tan_phi))
-          : new Decimal("0.328684");
+        const allowanceFactor =
+          rule.allowance_tan_phi !== undefined
+            ? new Decimal(String(rule.allowance_tan_phi))
+            : new Decimal("0.328684");
 
-        const allowedKvarh = activeKwh.times(allowanceFactor).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+        const allowedKvarh = activeKwh
+          .times(allowanceFactor)
+          .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
         const rawExcess = reactiveKvarh.minus(allowedKvarh);
         const excessKvarh = rawExcess.greaterThan(0) ? rawExcess : new Decimal(0);
         const penaltyZar = excessKvarh.times(penaltyRate).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);

@@ -159,11 +159,7 @@ export interface AppliedAssumption {
 // ============================================================================
 
 export type ApprovalStatus =
-  | "PENDING_APPROVAL"
-  | "APPROVED"
-  | "REJECTED"
-  | "AUTO_APPROVED"
-  | "SUPERSEDED";
+  "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "AUTO_APPROVED" | "SUPERSEDED";
 
 export interface ApprovalAuditReference {
   approval_id?: string;
@@ -265,9 +261,7 @@ export class ReconciliationAuditModelBuilder {
   /**
    * Validates completeness: ensures none of the 10 core audit pillars are missing or unpopulated
    */
-  public static validateAuditCompleteness(
-    model: Partial<ReconciliationAuditModel>,
-  ): {
+  public static validateAuditCompleteness(model: Partial<ReconciliationAuditModel>): {
     isValid: boolean;
     missingPillars: string[];
     validationErrors: string[];
@@ -284,7 +278,11 @@ export class ReconciliationAuditModelBuilder {
     if (!model.amr_file || !model.amr_file.amr_file_name) {
       missingPillars.push("amr_file (What AMR file was used?)");
     }
-    if (!model.billing_period || !model.billing_period.start_date || !model.billing_period.end_date) {
+    if (
+      !model.billing_period ||
+      !model.billing_period.start_date ||
+      !model.billing_period.end_date
+    ) {
       missingPillars.push("billing_period (What billing period was used?)");
     }
     if (!model.tariff_version || !model.tariff_version.tariff_code) {

@@ -124,7 +124,7 @@ export class PowerFactorEngine {
     kvar: Decimal | null,
     kvarh: Decimal | null,
     quadrant?: 1 | 2 | 3 | 4,
-    sourcePf?: Decimal | null
+    sourcePf?: Decimal | null,
   ): PowerFactorDirection {
     if (quadrant === 1 || quadrant === 2) return "lagging";
     if (quadrant === 3 || quadrant === 4) return "leading";
@@ -187,7 +187,7 @@ export class PowerFactorEngine {
           if (sourcePf === null) {
             throw new Error(
               "PowerFactorEngine: Source data specifies DIRECT_TELEMETRY_REGISTER measurement basis, " +
-                "but no source_power_factor register was provided. Formula cannot be assumed."
+                "but no source_power_factor register was provided. Formula cannot be assumed.",
             );
           }
           const absPf = sourcePf.abs();
@@ -210,7 +210,7 @@ export class PowerFactorEngine {
           if (kwh === null || kvah === null) {
             throw new Error(
               "PowerFactorEngine: Documented measurement basis INTEGRATED_ENERGY requires both kWh and kVAh registers. " +
-                "Cannot assume an alternate formula."
+                "Cannot assume an alternate formula.",
             );
           }
           return this.computeFromEnergyRatio(kwh, kvah, inputValues, direction, threshold);
@@ -220,7 +220,7 @@ export class PowerFactorEngine {
           if (kw === null || kva === null) {
             throw new Error(
               "PowerFactorEngine: Documented measurement basis DEMAND_POWER requires both kW and kVA registers. " +
-                "Cannot assume an alternate formula."
+                "Cannot assume an alternate formula.",
             );
           }
           return this.computeFromPowerRatio(kw, kva, inputValues, direction, threshold);
@@ -233,7 +233,7 @@ export class PowerFactorEngine {
               kvarh,
               inputValues,
               direction,
-              threshold
+              threshold,
             );
           }
           if (kw !== null && kvar !== null) {
@@ -241,7 +241,7 @@ export class PowerFactorEngine {
           }
           throw new Error(
             "PowerFactorEngine: Documented measurement basis ACTIVE_REACTIVE_VECTOR requires (kWh and kVArh) or (kW and kVAr). " +
-              "Cannot assume an alternate formula."
+              "Cannot assume an alternate formula.",
           );
         }
 
@@ -301,7 +301,7 @@ export class PowerFactorEngine {
     throw new Error(
       "PowerFactorEngine: Insufficient telemetry registers to compute power factor. " +
         "Expected (kWh and kVAh), (kW and kVA), (kWh and kVArh), or direct source_power_factor register. " +
-        "Refusing to assume an arbitrary relationship."
+        "Refusing to assume an arbitrary relationship.",
     );
   }
 
@@ -313,7 +313,7 @@ export class PowerFactorEngine {
     kvah: Decimal,
     inputValues: PowerFactorAuditRecord["input_values"],
     direction: PowerFactorDirection,
-    threshold: Decimal
+    threshold: Decimal,
   ): PowerFactorAuditRecord {
     // Check zero-demand edge case: feeder offline or zero consumption
     if (kvah.isZero()) {
@@ -362,7 +362,7 @@ export class PowerFactorEngine {
     kva: Decimal,
     inputValues: PowerFactorAuditRecord["input_values"],
     direction: PowerFactorDirection,
-    threshold: Decimal
+    threshold: Decimal,
   ): PowerFactorAuditRecord {
     if (kva.isZero()) {
       if (kw.isZero()) {
@@ -409,7 +409,7 @@ export class PowerFactorEngine {
     kvarh: Decimal,
     inputValues: PowerFactorAuditRecord["input_values"],
     direction: PowerFactorDirection,
-    threshold: Decimal
+    threshold: Decimal,
   ): PowerFactorAuditRecord {
     const kwhSq = kwh.pow(2);
     const kvarhSq = kvarh.pow(2);
@@ -446,7 +446,7 @@ export class PowerFactorEngine {
     kvar: Decimal,
     inputValues: PowerFactorAuditRecord["input_values"],
     direction: PowerFactorDirection,
-    threshold: Decimal
+    threshold: Decimal,
   ): PowerFactorAuditRecord {
     const kwSq = kw.pow(2);
     const kvarSq = kvar.pow(2);
@@ -480,7 +480,7 @@ export class PowerFactorEngine {
    */
   private static createZeroDemandAuditRecord(
     inputValues: PowerFactorAuditRecord["input_values"],
-    threshold: Decimal
+    threshold: Decimal,
   ): PowerFactorAuditRecord {
     return {
       calculated_pf: this.UNITY_PF,
@@ -516,10 +516,12 @@ export class PowerFactorEngine {
     options: {
       preferred_basis?: PowerFactorMeasurementBasis;
       penalty_threshold?: number | Decimal | string;
-    } = {}
+    } = {},
   ): BillingPeriodPowerFactorSummary {
     if (!records || records.length === 0) {
-      throw new Error("PowerFactorEngine: Cannot calculate billing period power factor for empty dataset.");
+      throw new Error(
+        "PowerFactorEngine: Cannot calculate billing period power factor for empty dataset.",
+      );
     }
 
     let totalKwh = new Decimal(0);

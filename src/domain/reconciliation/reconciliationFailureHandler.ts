@@ -118,7 +118,7 @@ export class ReconciliationFailureHandler {
    */
   public static formatVarianceDisplay(
     status: string,
-    varianceZar: number | null | undefined
+    varianceZar: number | null | undefined,
   ): { text: string; isError: boolean; isValidNumber: boolean } {
     if (status === "FAILED") {
       return {
@@ -152,7 +152,9 @@ export class ReconciliationFailureHandler {
     }
 
     if (!failure.error_code) {
-      throw new Error("Requirement 39 Invariant Violated: Failure record must capture 'error_code'");
+      throw new Error(
+        "Requirement 39 Invariant Violated: Failure record must capture 'error_code'",
+      );
     }
 
     if (!failure.stage) {
@@ -173,13 +175,13 @@ export class ReconciliationFailureHandler {
 
     if (failure.variance_total_zar !== null) {
       throw new Error(
-        "Requirement 39 Invariant Violated: A calculation failure must NEVER set variance_total_zar = 0 or a number. It must be null."
+        "Requirement 39 Invariant Violated: A calculation failure must NEVER set variance_total_zar = 0 or a number. It must be null.",
       );
     }
 
     if (failure.calculated_total_zar !== null) {
       throw new Error(
-        "Requirement 39 Invariant Violated: A calculation failure must NEVER set calculated_total_zar = 0. It must be null."
+        "Requirement 39 Invariant Violated: A calculation failure must NEVER set calculated_total_zar = 0. It must be null.",
       );
     }
   }
