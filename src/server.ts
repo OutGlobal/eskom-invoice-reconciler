@@ -57,7 +57,10 @@ const handler = {
           version: "2.5.0",
           timestamp: new Date().toISOString(),
           uptime_seconds:
-            typeof process !== "undefined" && process.uptime ? Math.floor(process.uptime()) : 0,
+            typeof (globalThis as any).process !== "undefined" &&
+            typeof (globalThis as any).process?.uptime === "function"
+              ? Math.floor((globalThis as any).process.uptime())
+              : 0,
           deterministic_engine: "Decimal.js-light",
           probe: "liveness",
         }),
