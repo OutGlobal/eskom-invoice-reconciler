@@ -178,6 +178,35 @@ export interface SeasonTouSchedule {
   schedules: DayTypeTouConfig[];
 }
 
+export interface TariffSeasonDefinition {
+  season_name: string; // e.g. "high", "low", "summer", "winter"
+  months?: number[]; // e.g. [6, 7, 8] for June, July, August
+  date_ranges?: Array<{
+    start_date: string; // MM-DD or YYYY-MM-DD
+    end_date: string; // MM-DD or YYYY-MM-DD
+  }>;
+  rule_id: string; // e.g. "RULE_SEASON_CPT_WINTER"
+  source_evidence: string; // e.g. "City of Cape Town Electricity Schedule 2025/26"
+  description?: string;
+}
+
+export type TierCalculationMethod = "PROGRESSIVE_BLOCK" | "ENTIRE_CONSUMPTION_BAND";
+
+export interface TariffTierBand {
+  tier_number: number;
+  tier_name?: string;
+  min_kwh: Decimal;
+  max_kwh?: Decimal; // undefined for upper open-ended tier
+  rate_value: Decimal;
+  unit_of_measure?: string;
+  rule_id?: string;
+}
+
+export interface TariffTierConfig {
+  calculation_method: TierCalculationMethod;
+  tiers: TariffTierBand[];
+}
+
 export interface TariffComponentRule {
   component_code: string;
   component_name: string;
@@ -208,18 +237,20 @@ export interface TariffComponentRule {
     | "R/kW"
     | "fixed_zar"
     | string;
-  season?: SeasonType | "all";
+  season?: SeasonType | "all" | string;
   tou_period?: TouPeriodType | "all";
   voltage_level?: VoltageCategory | "all";
   rate_value: Decimal; // Gazetted rate value
   rule_id: string;
   formula_template: string; // e.g. "quantity * rate / 100"
   provenance?: any; // TariffRateProvenance (Requirement 7)
+  tier_config?: TariffTierConfig; // Requirement 12
 }
 
 export interface TariffVersionDefinition {
   header: TariffScheduleHeader;
   tou_schedule: SeasonTouSchedule[];
+  season_definitions?: TariffSeasonDefinition[]; // Requirement 11
   components: TariffComponentRule[];
   public_holidays: Array<{
     date: string;

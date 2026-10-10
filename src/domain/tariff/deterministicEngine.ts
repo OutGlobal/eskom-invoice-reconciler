@@ -33,8 +33,40 @@ export class DeterministicEngine {
     input: DeterministicCalculationInput,
     tariffVersion: TariffVersionDefinition,
   ): TariffCalculationResult {
+    // 0. Validate quantities and units before calculating charges (Requirement 12)
+    if (!input.billing_start || !input.billing_end) {
+      throw new Error("Billing start and end dates are required.");
+    }
     const startDate = new Date(input.billing_start);
     const endDate = new Date(input.billing_end);
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      throw new Error("Invalid billing date format provided.");
+    }
+    if (endDate < startDate) {
+      throw new Error("Billing end date cannot be before billing start date.");
+    }
+
+    const validateQty = (val: Decimal, name: string) => {
+      if (val === undefined || val === null || Number.isNaN(val.toNumber())) {
+        throw new Error(`Invalid quantity: ${name} must be a valid numeric Decimal value.`);
+      }
+      if (val.isNegative()) {
+        throw new Error(`Invalid quantity: ${name} cannot be negative (${val.toString()}).`);
+      }
+    };
+
+    validateQty(input.active_energy_kwh, "active_energy_kwh");
+    validateQty(input.peak_kwh, "peak_kwh");
+    validateQty(input.standard_kwh, "standard_kwh");
+    validateQty(input.off_peak_kwh, "off_peak_kwh");
+    validateQty(input.maximum_demand_kva, "maximum_demand_kva");
+    validateQty(input.notified_maximum_demand_kva, "notified_maximum_demand_kva");
+
+    for (const comp of tariffVersion.components || []) {
+      if (!comp.unit_of_measure || comp.unit_of_measure.trim() === "") {
+        throw new Error(`Tariff component '${comp.component_code}' is missing a unit of measure.`);
+      }
+    }
 
     // Calculate days in billing period (inclusive) and season distribution
     const diffMs = Math.abs(endDate.getTime() - startDate.getTime());
@@ -44,7 +76,8 @@ export class DeterministicEngine {
     let lowDays = 0;
     const cur = new Date(startDate.getTime());
     while (cur <= endDate) {
-      if (TouScheduleEngine.getSeason(cur) === "high") {
+      const classif = TouScheduleEngine.classifySeason(cur, tariffVersion);
+      if (classif.season === "high") {
         highDays++;
       } else {
         lowDays++;
@@ -73,7 +106,7 @@ export class DeterministicEngine {
       ruleApplied: string,
       formulaUsed: string,
       ruleId: string = `RULE_${code}`,
-      seasonType: SeasonType | "all" = season,
+      seasonType: SeasonType | "all" | string = season,
       touPeriod?: "peak" | "standard" | "off_peak" | "all",
     ) => {
       let amount: Decimal;
@@ -93,7 +126,7 @@ export class DeterministicEngine {
         rule_id: ruleId,
         component_code: code,
         component_name: name,
-        season: seasonType,
+        season: seasonType as any,
         tou_period: touPeriod,
         rate_applied: `${rate.toString()} ${unit}`,
         input_value: `${quantity.toString()} ${unit.includes("kWh") ? "kWh" : unit.includes("kVA") ? "kVA" : "units"}`,
@@ -119,7 +152,7 @@ export class DeterministicEngine {
       auditTrace.push(auditStep);
     };
 
-    // 1. Energy Charges (Peak, Standard, Off-Peak, or Flat Energy)
+    // 1. Energy Charges (Peak, Standard, Off-Peak, Flat Energy, or Tiered/Block Rates)
     // Handle both single-season and cross-seasonal day-weighted energy buckets
     const activeComponents = (tariffVersion.components || []).filter((c) =>
       [
@@ -146,7 +179,9 @@ export class DeterministicEngine {
         compPeriod = "off_peak";
       } else {
         // Flat active energy charge
-        baseQty = input.active_energy_kwh;
+        baseQty = input.active_energy_kwh.gt(0)
+          ? input.active_energy_kwh
+          : input.peak_kwh.add(input.standard_kwh).add(input.off_peak_kwh);
         compPeriod = "all";
       }
 
@@ -176,6 +211,64 @@ export class DeterministicEngine {
       }
 
       if (shouldApply && appliedQty.gt(0)) {
+        // Tiered / Block calculation if tier_config is defined (Requirement 12)
+        if (comp.tier_config && comp.tier_config.tiers.length > 0) {
+          const method = comp.tier_config.calculation_method;
+          const sortedTiers = [...comp.tier_config.tiers].sort((a, b) => a.tier_number - b.tier_number);
+
+          if (method === "PROGRESSIVE_BLOCK") {
+            for (const tier of sortedTiers) {
+              const minKwh = tier.min_kwh;
+              if (appliedQty.gt(minKwh)) {
+                const diffFromMin = appliedQty.sub(minKwh);
+                const bandCapacity = tier.max_kwh !== undefined ? tier.max_kwh.sub(minKwh) : null;
+                const sliceKwh =
+                  bandCapacity === null || diffFromMin.lt(bandCapacity)
+                    ? diffFromMin
+                    : bandCapacity;
+
+                if (sliceKwh.gt(0)) {
+                  addItem(
+                    `${comp.component_code}_T${tier.tier_number}`,
+                    `${comp.component_name} (Block ${tier.tier_number}: ${tier.min_kwh}-${tier.max_kwh ? tier.max_kwh.toString() : "above"} kWh)`,
+                    tier.unit_of_measure || comp.unit_of_measure,
+                    tier.rate_value,
+                    sliceKwh,
+                    `Progressive block ${tier.tier_number} energy rate applied to slice between ${tier.min_kwh} and ${tier.max_kwh ? tier.max_kwh.toString() : "above"} kWh`,
+                    `amount = (slice_kwh * rate) / 100`,
+                    tier.rule_id || `${comp.rule_id}_T${tier.tier_number}`,
+                    comp.season || season,
+                    compPeriod as any,
+                  );
+                }
+              }
+            }
+          } else if (method === "ENTIRE_CONSUMPTION_BAND") {
+            const matchingTier = sortedTiers.find((t) => {
+              const meetsMin = appliedQty.gte(t.min_kwh);
+              const meetsMax = t.max_kwh === undefined || appliedQty.lte(t.max_kwh);
+              return meetsMin && meetsMax;
+            });
+
+            if (matchingTier) {
+              addItem(
+                `${comp.component_code}_BAND_${matchingTier.tier_number}`,
+                `${comp.component_name} (Band ${matchingTier.tier_number}: Entire consumption)`,
+                matchingTier.unit_of_measure || comp.unit_of_measure,
+                matchingTier.rate_value,
+                appliedQty,
+                `Entire consumption band ${matchingTier.tier_number} rate applied to entire consumption (${appliedQty.toString()} kWh in ${matchingTier.min_kwh}-${matchingTier.max_kwh ? matchingTier.max_kwh.toString() : "above"} band)`,
+                `amount = (entire_qty_kwh * band_rate) / 100`,
+                matchingTier.rule_id || `${comp.rule_id}_B${matchingTier.tier_number}`,
+                comp.season || season,
+                compPeriod as any,
+              );
+            }
+          }
+          continue;
+        }
+
+        // Standard linear / TOU energy charge
         const seasonLabel = comp.season ? `${comp.season.toUpperCase()} season` : "All season";
         const periodLabel = compPeriod && compPeriod !== "all" ? `${compPeriod.toUpperCase()} ` : "";
         const splitNote =
@@ -191,7 +284,7 @@ export class DeterministicEngine {
           `Gazetted ${seasonLabel} ${periodLabel}energy rate${splitNote}`,
           `amount = (qty_kwh * rate_cents) / 100`,
           comp.rule_id || `RULE_${comp.component_code}`,
-          (comp.season as SeasonType) || season,
+          comp.season || season,
           compPeriod as any,
         );
       }

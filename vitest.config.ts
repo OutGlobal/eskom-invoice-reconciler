@@ -6,6 +6,7 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: [
+      "src/lib/__tests__/seasonal_and_energy_calculations.test.ts",
       "src/lib/__tests__/tariff_validation_and_tou.test.ts",
       "src/lib/__tests__/tariff_import_and_provenance.test.ts",
       "src/lib/__tests__/canonical_tariff_model.test.ts",
