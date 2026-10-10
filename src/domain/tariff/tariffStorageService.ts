@@ -208,15 +208,37 @@ export class TariffStorageService {
       return code.includes(query) || family.includes(query) || query.includes(family);
     });
 
+    const matching: TariffVersionDefinition[] = [];
     for (const v of candidates) {
       const eff = v.header.effective_date;
       const exp = v.header.expiry_date || "2099-12-31";
       if (targetIso >= eff && targetIso <= exp) {
-        return v;
+        matching.push(v);
       }
     }
 
-    return null;
+    if (matching.length === 0) return null;
+
+    // Detect and prevent silent conflicting/overlapping approved tariff versions
+    const byCode = new Map<string, TariffVersionDefinition[]>();
+    for (const m of matching) {
+      const groupKey = `${m.header.tariff_code.toUpperCase()}_${m.header.customer_class}_${m.header.voltage_level}`;
+      if (!byCode.has(groupKey)) byCode.set(groupKey, []);
+      byCode.get(groupKey)!.push(m);
+    }
+
+    for (const [key, group] of byCode.entries()) {
+      const distinctVersions = Array.from(new Set(group.map((g) => g.header.version)));
+      if (distinctVersions.length > 1) {
+        throw new Error(
+          `ConflictingTariffVersionError: Multiple approved tariff versions [${distinctVersions.join(
+            ", ",
+          )}] overlap on date ${targetIso} for ${key}. Silent ambiguous selection is forbidden.`,
+        );
+      }
+    }
+
+    return matching[0];
   }
 
   /**

@@ -4,7 +4,12 @@
  * Guarantees that historical invoices reproducibly resolve to their historical gazetted tariff rates.
  */
 
-import type { TariffVersionDefinition, TariffResolutionOptions } from "./types";
+import type {
+  TariffVersionDefinition,
+  TariffResolutionOptions,
+  CrossBoundarySplitEvaluation,
+} from "./types";
+import { ConflictingTariffVersionError } from "./types";
 import { TariffStorageService } from "./tariffStorageService";
 
 export interface BillingSubPeriod {
@@ -60,6 +65,7 @@ export class TariffVersionSelector {
 
   /**
    * Select applicable tariff version for a specific date
+   * Enforces that conflicting or overlapping approved versions are NOT selected silently.
    */
   public static selectVersionForDate(
     tariffCodeOrFamily: string,
@@ -69,7 +75,7 @@ export class TariffVersionSelector {
     const targetIso = targetDate.toISOString().substring(0, 10);
 
     // 1. Check local registered versions first
-    const localMatch = this.localRegisteredVersions.find((v) => {
+    const localMatches = this.localRegisteredVersions.filter((v) => {
       const isCodeMatch =
         v.header.tariff_code.toLowerCase().includes(tariffCodeOrFamily.toLowerCase()) ||
         v.header.tariff_family.toLowerCase().includes(tariffCodeOrFamily.toLowerCase()) ||
@@ -82,7 +88,19 @@ export class TariffVersionSelector {
       return targetIso >= effFrom && targetIso <= effTo;
     });
 
-    if (localMatch) return localMatch;
+    if (localMatches.length > 1) {
+      const distinct = Array.from(new Set(localMatches.map((m) => m.header.version)));
+      if (distinct.length > 1) {
+        throw new ConflictingTariffVersionError(
+          tariffCodeOrFamily,
+          targetIso,
+          distinct,
+          "Multiple approved tariff versions overlap on this date. Silent selection is prohibited.",
+        );
+      }
+    }
+
+    if (localMatches.length === 1) return localMatches[0];
 
     // 2. Query controlled persistent store in TariffStorageService
     const storedMatch = TariffStorageService.getVersionForDate(tariffCodeOrFamily, dateStr);
@@ -136,4 +154,42 @@ export class TariffVersionSelector {
 
     return subPeriods;
   }
+
+  /**
+   * Evaluates whether a billing period crosses a tariff change boundary.
+   * If crossed, determines whether calculation can be split or requires review.
+   */
+  public static evaluateCrossBoundaryBillingPeriod(
+    tariffCodeOrFamily: string,
+    billingStartStr: string,
+    billingEndStr: string,
+    intervalDataAvailable: boolean = true,
+  ): CrossBoundarySplitEvaluation {
+    const subPeriods = this.splitBillingPeriod(tariffCodeOrFamily, billingStartStr, billingEndStr);
+    const distinctVersions = Array.from(
+      new Set(subPeriods.map((sp) => sp.tariff_version.header.version)),
+    );
+
+    const crosses = distinctVersions.length > 1;
+    const reviewRequired = crosses && !intervalDataAvailable;
+
+    return {
+      crosses_tariff_boundary: crosses,
+      requires_period_split: crosses,
+      review_required: reviewRequired,
+      review_reason: reviewRequired
+        ? `Billing period crosses tariff change boundary between versions [${distinctVersions.join(
+            ", ",
+          )}] and interval readings are unavailable to calculate each portion separately.`
+        : undefined,
+      versions_involved: distinctVersions,
+      sub_periods: subPeriods.map((sp) => ({
+        start_date: sp.sub_period_start,
+        end_date: sp.sub_period_end,
+        days: sp.days_count,
+        tariff_version: sp.tariff_version.header.version,
+      })),
+    };
+  }
 }
+

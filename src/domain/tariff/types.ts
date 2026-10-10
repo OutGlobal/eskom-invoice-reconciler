@@ -11,11 +11,116 @@ export type TouPeriodType = "peak" | "standard" | "off_peak";
 export type DayType = "weekday" | "saturday" | "sunday" | "public_holiday";
 export type VoltageCategory = "high" | "medium" | "low" | "transmission";
 export type CustomerClass =
-  "urban_transmission" | "urban_distribution" | "rural" | "municipal_bulk" | "commercial";
+  | "urban_transmission"
+  | "urban_distribution"
+  | "rural"
+  | "municipal_bulk"
+  | "commercial"
+  | "industrial"
+  | "residential";
 export type TariffStatus = "active" | "superseded" | "draft" | "archived";
 export type TariffApprovalStatus = "draft" | "pending_approval" | "approved" | "rejected";
 export type TariffFamilyType =
-  "megaflex" | "miniflex" | "nightsave" | "businessrate" | "municipal" | "custom";
+  | "megaflex"
+  | "miniflex"
+  | "nightsave"
+  | "businessrate"
+  | "municipal"
+  | "custom";
+
+export type TariffSupplyType =
+  | "single_phase"
+  | "three_phase"
+  | "transmission"
+  | "dual_feeder"
+  | "dedicated"
+  | "standard";
+
+export type TariffMeteringType =
+  | "amr_interval"
+  | "tou_smart"
+  | "conventional_demand"
+  | "prepaid"
+  | "credit"
+  | "bulk_metered";
+
+export type CanonicalComponentType =
+  | "ACTIVE_ENERGY"
+  | "ENERGY_PEAK"
+  | "ENERGY_STANDARD"
+  | "ENERGY_OFF_PEAK"
+  | "FIXED_DAILY_CHARGE"
+  | "FIXED_MONTHLY_CHARGE"
+  | "SERVICE_CHARGE"
+  | "ADMINISTRATION_CHARGE"
+  | "DEMAND_CHARGE"
+  | "NETWORK_CHARGE"
+  | "NETWORK_CAPACITY"
+  | "NETWORK_DEMAND"
+  | "TRANSMISSION_NETWORK"
+  | "CAPACITY_CHARGE"
+  | "GENERATION_CAPACITY"
+  | "ANCILLARY_SERVICE"
+  | "REACTIVE_ENERGY"
+  | "POWER_FACTOR_PENALTY"
+  | "NMD_RATCHET_PENALTY"
+  | "MINIMUM_CHARGE"
+  | "DISCOUNT_OR_CREDIT"
+  | "TAX_OR_LEVY"
+  | "OTHER_ADJUSTMENT"
+  | "ELECTRIFICATION_SUBSIDY"
+  | "AFFORDABILITY_SUBSIDY";
+
+export interface ContractedDemandBand {
+  min_demand_kva?: Decimal;
+  max_demand_kva?: Decimal;
+}
+
+export interface CanonicalTariffIdentity {
+  utility: string;
+  tariff_id: string;
+  tariff_name: string;
+  tariff_code: string;
+  tariff_category: string;
+  tariff_description?: string;
+  municipality_or_territory: string;
+  customer_class: CustomerClass;
+  voltage_level: VoltageCategory;
+  supply_type: TariffSupplyType;
+  metering_type: TariffMeteringType;
+  currency: "ZAR";
+  status: TariffStatus;
+}
+
+export interface CanonicalTariffApplicability {
+  applicable_customer_classes: CustomerClass[];
+  region_or_municipality: string[];
+  voltage_levels: VoltageCategory[];
+  supply_configuration?: string[];
+  contracted_demand_bands?: ContractedDemandBand;
+  meter_types?: TariffMeteringType[];
+  applicable_dates: {
+    effective_from: string;
+    effective_to?: string;
+  };
+  eligibility_conditions?: string[];
+}
+
+export interface CanonicalTariffVersioning {
+  tariff_version_id: string;
+  version_number: string;
+  effective_from_date: string; // YYYY-MM-DD
+  effective_to_date?: string; // YYYY-MM-DD
+  source_document_id?: string;
+  source_document_version?: string;
+  import_timestamp: string;
+  approval_status: TariffApprovalStatus;
+  approved_by?: string;
+  approval_timestamp?: string;
+  calculation_rule_version: string;
+  is_locked: boolean;
+  lock_reason?: string;
+}
 
 export interface TariffScheduleHeader {
   tariff_code: string;
@@ -40,6 +145,21 @@ export interface TariffScheduleHeader {
   source_hash: string; // SHA-256 fingerprint of source gazette
   is_locked?: boolean; // When true, rates cannot be mutated in place
   lock_reason?: string; // Audit notation for why the version is locked
+
+  // Canonical extensions
+  tariff_id?: string;
+  tariff_category?: string;
+  tariff_description?: string;
+  municipality_or_territory?: string;
+  supply_type?: TariffSupplyType;
+  metering_type?: TariffMeteringType;
+  currency?: "ZAR";
+  applicability?: CanonicalTariffApplicability;
+  versioning_info?: CanonicalTariffVersioning;
+  calculation_rule_version?: string;
+  source_document_id?: string;
+  source_document_version?: string;
+  import_timestamp?: string;
 }
 
 export interface TouClockWindow {
@@ -62,6 +182,7 @@ export interface TariffComponentRule {
   component_code: string;
   component_name: string;
   component_type:
+    | CanonicalComponentType
     | "ACTIVE_ENERGY"
     | "NETWORK_CAPACITY"
     | "NETWORK_DEMAND"
@@ -73,8 +194,20 @@ export interface TariffComponentRule {
     | "ADMINISTRATION_CHARGE"
     | "ELECTRIFICATION_SUBSIDY"
     | "AFFORDABILITY_SUBSIDY"
-    | "NMD_RATCHET_PENALTY";
-  unit_of_measure: "c/kWh" | "R/kVA/month" | "R/kW/month" | "R/kVARh" | "R/day" | "R/month" | "%";
+    | "NMD_RATCHET_PENALTY"
+    | string;
+  unit_of_measure:
+    | "c/kWh"
+    | "R/kVA/month"
+    | "R/kW/month"
+    | "R/kVARh"
+    | "R/day"
+    | "R/month"
+    | "%"
+    | "R/kVA"
+    | "R/kW"
+    | "fixed_zar"
+    | string;
   season?: SeasonType | "all";
   tou_period?: TouPeriodType | "all";
   voltage_level?: VoltageCategory | "all";
@@ -218,6 +351,86 @@ export class UnapprovedTariffReconciliationError extends Error {
 }
 
 /**
+ * Thrown when two or more distinct approved tariff versions overlap on an effective date range for the same tariff code.
+ * Enforces the core invariant: Prevent conflicting or overlapping approved tariff versions from being selected silently.
+ */
+export class ConflictingTariffVersionError extends Error {
+  constructor(
+    public readonly tariffCode: string,
+    public readonly date: string,
+    public readonly conflictingVersions: string[],
+    public readonly reason: string = "Multiple conflicting or overlapping approved tariff versions were found covering this date. Ambiguous selection is prohibited.",
+  ) {
+    super(
+      `ConflictingTariffVersionError: [${tariffCode}] on date ${date} matches multiple approved versions: [${conflictingVersions.join(
+        ", ",
+      )}]. ${reason}`,
+    );
+    this.name = "ConflictingTariffVersionError";
+  }
+}
+
+/**
+ * Thrown when a billing period spans across a tariff adjustment boundary and cannot be computed without sub-period readings.
+ */
+export class CrossBoundaryBillingPeriodReviewRequiredError extends Error {
+  constructor(
+    public readonly tariffCode: string,
+    public readonly billingStart: string,
+    public readonly billingEnd: string,
+    public readonly splitReason: string,
+  ) {
+    super(
+      `CrossBoundaryBillingPeriodReviewRequiredError: [${tariffCode}] billing period ${billingStart} to ${billingEnd} crosses a tariff revision boundary. ${splitReason}`,
+    );
+    this.name = "CrossBoundaryBillingPeriodReviewRequiredError";
+  }
+}
+
+/**
+ * Thrown when an account, site, or connection does not satisfy the eligibility conditions for a tariff.
+ */
+export class TariffNotApplicableError extends Error {
+  constructor(
+    public readonly tariffCode: string,
+    public readonly missingConditions: string[],
+  ) {
+    super(
+      `TariffNotApplicableError: [${tariffCode}] is not applicable. Unmet eligibility conditions: ${missingConditions.join(
+        "; ",
+      )}`,
+    );
+    this.name = "TariffNotApplicableError";
+  }
+}
+
+/**
+ * Cross-boundary billing period evaluation result
+ */
+export interface CrossBoundarySplitEvaluation {
+  crosses_tariff_boundary: boolean;
+  requires_period_split: boolean;
+  review_required: boolean;
+  review_reason?: string;
+  versions_involved: string[];
+  sub_periods: Array<{
+    start_date: string;
+    end_date: string;
+    days: number;
+    tariff_version: string;
+  }>;
+}
+
+/**
+ * Unified Canonical Tariff Model representing identity, applicability, versioning, and rules
+ */
+export interface CanonicalTariffModel extends TariffVersionDefinition {
+  identity?: CanonicalTariffIdentity;
+  applicability?: CanonicalTariffApplicability;
+  versioning?: CanonicalTariffVersioning;
+}
+
+/**
  * Options for resolving the authoritative tariff version for an invoice
  */
 export interface TariffResolutionOptions {
@@ -244,3 +457,4 @@ export interface TariffFunctionalityClassification {
   supported_validity_periods: string[];
   findings_summary: string[];
 }
+

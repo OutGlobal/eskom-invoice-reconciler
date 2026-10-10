@@ -119,17 +119,36 @@ export class DeterministicEngine {
       auditTrace.push(auditStep);
     };
 
-    // 1. Energy Charges (Peak, Standard, Off-Peak)
+    // 1. Energy Charges (Peak, Standard, Off-Peak, or Flat Energy)
     // Handle both single-season and cross-seasonal day-weighted energy buckets
-    const activeComponents = (tariffVersion.components || []).filter(
-      (c) => c.component_type === "ACTIVE_ENERGY",
+    const activeComponents = (tariffVersion.components || []).filter((c) =>
+      [
+        "ACTIVE_ENERGY",
+        "ENERGY_ACTIVE",
+        "ENERGY_PEAK",
+        "ENERGY_STANDARD",
+        "ENERGY_OFF_PEAK",
+      ].includes(c.component_type),
     );
 
     for (const comp of activeComponents) {
       let baseQty = new Decimal(0);
-      if (comp.tou_period === "peak") baseQty = input.peak_kwh;
-      else if (comp.tou_period === "standard") baseQty = input.standard_kwh;
-      else if (comp.tou_period === "off_peak") baseQty = input.off_peak_kwh;
+      let compPeriod = comp.tou_period;
+
+      if (comp.component_type === "ENERGY_PEAK" || compPeriod === "peak") {
+        baseQty = input.peak_kwh;
+        compPeriod = "peak";
+      } else if (comp.component_type === "ENERGY_STANDARD" || compPeriod === "standard") {
+        baseQty = input.standard_kwh;
+        compPeriod = "standard";
+      } else if (comp.component_type === "ENERGY_OFF_PEAK" || compPeriod === "off_peak") {
+        baseQty = input.off_peak_kwh;
+        compPeriod = "off_peak";
+      } else {
+        // Flat active energy charge
+        baseQty = input.active_energy_kwh;
+        compPeriod = "all";
+      }
 
       if (!baseQty.gt(0)) continue;
 
@@ -158,6 +177,7 @@ export class DeterministicEngine {
 
       if (shouldApply && appliedQty.gt(0)) {
         const seasonLabel = comp.season ? `${comp.season.toUpperCase()} season` : "All season";
+        const periodLabel = compPeriod && compPeriod !== "all" ? `${compPeriod.toUpperCase()} ` : "";
         const splitNote =
           highDays > 0 && lowDays > 0
             ? ` (${comp.season === "high" ? highDays : lowDays} of ${totalDays} billing days)`
@@ -168,22 +188,25 @@ export class DeterministicEngine {
           comp.unit_of_measure,
           comp.rate_value,
           appliedQty,
-          `Gazetted ${seasonLabel} ${comp.tou_period?.toUpperCase()} energy rate${splitNote}`,
+          `Gazetted ${seasonLabel} ${periodLabel}energy rate${splitNote}`,
           `amount = (qty_kwh * rate_cents) / 100`,
           comp.rule_id || `RULE_${comp.component_code}`,
           (comp.season as SeasonType) || season,
-          comp.tou_period,
+          compPeriod as any,
         );
       }
     }
 
-    // 2. Demand & Capacity Charges (R/kVA/month)
+    // 2. Demand & Capacity Charges (R/kVA/month or R/kW/month)
     const demandComponents = (tariffVersion.components || []).filter((c) =>
       [
         "NETWORK_DEMAND",
         "NETWORK_CAPACITY",
         "GENERATION_CAPACITY",
         "TRANSMISSION_NETWORK",
+        "DEMAND_CHARGE",
+        "NETWORK_CHARGE",
+        "CAPACITY_CHARGE",
       ].includes(c.component_type),
     );
 
@@ -194,19 +217,23 @@ export class DeterministicEngine {
       if (
         comp.component_type === "NETWORK_CAPACITY" ||
         comp.component_type === "GENERATION_CAPACITY" ||
-        comp.component_type === "TRANSMISSION_NETWORK"
+        comp.component_type === "TRANSMISSION_NETWORK" ||
+        comp.component_type === "CAPACITY_CHARGE"
       ) {
-        // Requirement 2.a: Notified Maximum Demand (kVA) is multiplied by Transmission (TX) Network Capacity Charge, Network Capacity Charge & Generator Capacity Charge
+        // Notified Maximum Demand (kVA)
         qty = input.notified_maximum_demand_kva.gt(0)
           ? input.notified_maximum_demand_kva
           : input.maximum_demand_kva;
         basisText = `Contracted Notified Maximum Demand (${qty.toString()} kVA)`;
-      } else if (comp.component_type === "NETWORK_DEMAND") {
-        // Requirement 2.d: Multiply the recorded Simultaneous Maximum Demand (as per 1.e) with the Network Demand Charge
+      } else if (
+        comp.component_type === "NETWORK_DEMAND" ||
+        comp.component_type === "DEMAND_CHARGE"
+      ) {
+        // Recorded Maximum Demand or Utilised Demand
         qty = input.utilised_capacity_kva.gt(0)
           ? input.utilised_capacity_kva
           : input.maximum_demand_kva;
-        basisText = `Recorded Simultaneous Maximum Demand (${qty.toString()} kVA)`;
+        basisText = `Recorded Maximum Demand (${qty.toString()} kVA)`;
       }
 
       if (qty.gt(0)) {
@@ -216,7 +243,7 @@ export class DeterministicEngine {
           comp.unit_of_measure,
           comp.rate_value,
           qty,
-          `Gazetted NERSA ${comp.component_name} applied to ${basisText}`,
+          `Gazetted ${comp.component_name} applied to ${basisText}`,
           `amount = demand_kva * rate_zar`,
           comp.rule_id || `RULE_${comp.component_code}`,
           "all",
@@ -224,33 +251,58 @@ export class DeterministicEngine {
       }
     }
 
-    // 3. Fixed Daily Charges (Service & Administration R/day)
-    const fixedComponents = tariffVersion.components.filter((c) =>
-      ["SERVICE_CHARGE", "ADMINISTRATION_CHARGE"].includes(c.component_type),
+    // 3. Fixed Daily & Monthly Charges (Service, Administration, Fixed Capacity)
+    const fixedComponents = (tariffVersion.components || []).filter((c) =>
+      [
+        "SERVICE_CHARGE",
+        "ADMINISTRATION_CHARGE",
+        "FIXED_DAILY_CHARGE",
+        "FIXED_MONTHLY_CHARGE",
+      ].includes(c.component_type),
     );
 
     for (const comp of fixedComponents) {
-      const days = new Decimal(billingDays);
-      addItem(
-        comp.component_code,
-        comp.component_name,
-        comp.unit_of_measure,
-        comp.rate_value,
-        days,
-        `Fixed daily ${comp.component_name} multiplied by ${billingDays} billing days`,
-        `amount = billing_days * rate_per_day`,
-        comp.rule_id || `RULE_${comp.component_code}`,
-        "all",
-      );
+      if (
+        comp.component_type === "FIXED_MONTHLY_CHARGE" ||
+        comp.unit_of_measure === "R/month"
+      ) {
+        // Monthly fixed charge
+        addItem(
+          comp.component_code,
+          comp.component_name,
+          comp.unit_of_measure,
+          comp.rate_value,
+          new Decimal(1),
+          `Fixed monthly ${comp.component_name}`,
+          `amount = 1 * rate_per_month`,
+          comp.rule_id || `RULE_${comp.component_code}`,
+          "all",
+        );
+      } else {
+        // Daily fixed charge (R/day)
+        const days = new Decimal(billingDays);
+        addItem(
+          comp.component_code,
+          comp.component_name,
+          comp.unit_of_measure,
+          comp.rate_value,
+          days,
+          `Fixed daily ${comp.component_name} multiplied by ${billingDays} billing days`,
+          `amount = billing_days * rate_per_day`,
+          comp.rule_id || `RULE_${comp.component_code}`,
+          "all",
+        );
+      }
     }
 
-    // 4. Subsidies & Ancillary (c/kWh on Total Energy: Ancillary, Legacy, Affordability, Electrification) (2.c)
-    const subsidyComponents = tariffVersion.components.filter((c) =>
+    // 4. Subsidies, Levies & Ancillary (c/kWh on Total Energy)
+    const subsidyComponents = (tariffVersion.components || []).filter((c) =>
       [
         "ANCILLARY_SERVICE",
         "ELECTRIFICATION_SUBSIDY",
         "AFFORDABILITY_SUBSIDY",
         "LEGACY_CHARGE",
+        "TAX_OR_LEVY",
       ].includes(c.component_type),
     );
 
@@ -262,7 +314,7 @@ export class DeterministicEngine {
           comp.unit_of_measure,
           comp.rate_value,
           input.active_energy_kwh,
-          `Statutory NERSA ${comp.component_name} on total active energy (ALL Peak + Standard + Off-Peak) — independently calculated, NOT copied from Eskom`,
+          `Statutory ${comp.component_name} on total active energy`,
           `amount = (total_kwh * rate_cents) / 100`,
           comp.rule_id || `RULE_${comp.component_code}`,
           "all",
@@ -295,14 +347,56 @@ export class DeterministicEngine {
       }
     }
 
+    // 6. Discounts or Credits (where applicable)
+    const discountComponents = (tariffVersion.components || []).filter(
+      (c) => c.component_type === "DISCOUNT_OR_CREDIT",
+    );
+    for (const comp of discountComponents) {
+      // Negative adjustment amount
+      const creditRate = comp.rate_value.isPositive() ? comp.rate_value.neg() : comp.rate_value;
+      addItem(
+        comp.component_code,
+        comp.component_name,
+        comp.unit_of_measure,
+        creditRate,
+        new Decimal(1),
+        `Approved discount/credit applied: ${comp.component_name}`,
+        `amount = credit_amount`,
+        comp.rule_id || `RULE_${comp.component_code}`,
+        "all",
+      );
+    }
+
     // Calculate Subtotal Ex-VAT
     let subtotalExVat = new Decimal(0);
     for (const item of items) {
       subtotalExVat = subtotalExVat.add(item.amount_zar);
     }
 
-    // Calculate VAT (15%)
-    const vatAmount = subtotalExVat.mul(this.VAT_RATE).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    // 7. Minimum Charge Adjustment (if applicable and subtotal < minimum threshold)
+    const minChargeComp = (tariffVersion.components || []).find(
+      (c) => c.component_type === "MINIMUM_CHARGE",
+    );
+    if (minChargeComp && subtotalExVat.lt(minChargeComp.rate_value)) {
+      const adjustment = minChargeComp.rate_value.sub(subtotalExVat);
+      addItem(
+        minChargeComp.component_code,
+        minChargeComp.component_name,
+        "fixed_zar",
+        adjustment,
+        new Decimal(1),
+        `Minimum charge adjustment to meet gazetted floor of R ${minChargeComp.rate_value.toFixed(2)}`,
+        `amount = minimum_floor - calculated_subtotal`,
+        minChargeComp.rule_id || `RULE_${minChargeComp.component_code}`,
+        "all",
+      );
+      subtotalExVat = minChargeComp.rate_value;
+    }
+
+    // Calculate VAT (respecting vat_treatment)
+    const vatRate =
+      tariffVersion.header.vat_treatment === "zero_rated" ? new Decimal(0) : this.VAT_RATE;
+    const vatAmount = subtotalExVat.mul(vatRate).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
     const totalIncVat = subtotalExVat.add(vatAmount);
 
     return {

@@ -15,3 +15,4 @@ export * from "./tariffVersionSelector";
 export * from "./rateLineageExplainer";
 export * from "./tariffApprovalService";
 export * from "./tariffAssignmentEngine";
+export * from "./canonicalTariffEngine";
