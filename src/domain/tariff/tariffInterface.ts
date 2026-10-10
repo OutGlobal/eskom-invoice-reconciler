@@ -13,11 +13,12 @@
  */
 
 import Decimal from "decimal.js-light";
-import type {
-  TariffVersionDefinition,
-  TariffComponentRule,
-  SeasonType,
-  TouPeriodType,
+import {
+  type TariffVersionDefinition,
+  type TariffComponentRule,
+  type SeasonType,
+  type TouPeriodType,
+  UnapprovedTariffReconciliationError,
 } from "./types";
 import { TariffStorageService } from "./tariffStorageService";
 
@@ -195,12 +196,36 @@ export class TariffInterface {
     // 1. Query persistent tariff storage by preferred code & date
     if (preferredCode) {
       const byCode = TariffStorageService.getVersionForDate(preferredCode, startDate);
-      if (byCode) return byCode;
+      if (byCode) {
+        if (
+          byCode.header.approval_status === "pending_approval" ||
+          byCode.header.approval_status === "rejected"
+        ) {
+          throw new UnapprovedTariffReconciliationError(
+            byCode.header.tariff_code,
+            byCode.header.version,
+            byCode.header.approval_status,
+          );
+        }
+        return byCode;
+      }
     }
 
     // 2. Query persistent tariff storage for any valid version for this date
     const anyVersion = TariffStorageService.getAnyVersionForDate(startDate);
-    if (anyVersion) return anyVersion;
+    if (anyVersion) {
+      if (
+        anyVersion.header.approval_status === "pending_approval" ||
+        anyVersion.header.approval_status === "rejected"
+      ) {
+        throw new UnapprovedTariffReconciliationError(
+          anyVersion.header.tariff_code,
+          anyVersion.header.version,
+          anyVersion.header.approval_status,
+        );
+      }
+      return anyVersion;
+    }
 
     return null;
   }
@@ -233,11 +258,35 @@ export class TariffInterface {
 
     if (preferredCode) {
       const byCode = TariffStorageService.getVersionForDate(preferredCode, startDate);
-      if (byCode) return byCode;
+      if (byCode) {
+        if (
+          byCode.header.approval_status === "pending_approval" ||
+          byCode.header.approval_status === "rejected"
+        ) {
+          throw new UnapprovedTariffReconciliationError(
+            byCode.header.tariff_code,
+            byCode.header.version,
+            byCode.header.approval_status,
+          );
+        }
+        return byCode;
+      }
     }
 
     const anyVersion = TariffStorageService.getAnyVersionForDate(startDate);
-    if (anyVersion) return anyVersion;
+    if (anyVersion) {
+      if (
+        anyVersion.header.approval_status === "pending_approval" ||
+        anyVersion.header.approval_status === "rejected"
+      ) {
+        throw new UnapprovedTariffReconciliationError(
+          anyVersion.header.tariff_code,
+          anyVersion.header.version,
+          anyVersion.header.approval_status,
+        );
+      }
+      return anyVersion;
+    }
 
     return null;
   }

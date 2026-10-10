@@ -6,6 +6,7 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: [
+      "src/lib/__tests__/production_tariff_engine.test.ts",
       "src/lib/__tests__/demand_reactive_reconciliation.test.ts",
       "src/lib/__tests__/workspace_backup.test.ts",
       "src/lib/__tests__/production_hardening.test.ts",

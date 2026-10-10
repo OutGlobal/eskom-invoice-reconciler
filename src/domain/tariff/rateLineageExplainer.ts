@@ -42,9 +42,21 @@ export function explainAppliedRateByRule(
   version: TariffVersionDefinition,
   componentRule: TariffComponentRule,
   dateStr: string,
-  season: string = "all",
+  season?: string,
 ): RateLineageExplanation {
-  return formatExplanation(version, componentRule, dateStr, season);
+  let effectiveSeason = season;
+  if (!effectiveSeason || effectiveSeason === "all") {
+    if (componentRule.season && componentRule.season !== "all") {
+      effectiveSeason = componentRule.season;
+    } else if (dateStr) {
+      const dateObj = new Date(dateStr);
+      const month = dateObj.getUTCMonth() + 1;
+      effectiveSeason = month >= 6 && month <= 8 ? "high" : "low";
+    } else {
+      effectiveSeason = "all";
+    }
+  }
+  return formatExplanation(version, componentRule, dateStr, effectiveSeason);
 }
 
 function formatExplanation(

@@ -15,6 +15,7 @@ import {
   type TariffFunctionalityClassification,
   TariffImmutabilityViolationError,
 } from "./types";
+import { ALL_PRODUCTION_TARIFF_FIXTURES } from "./tariffFixtures";
 
 export interface TariffFamilyRecord {
   id: string;
@@ -42,9 +43,13 @@ export class TariffStorageService {
     return `${tariffCode.toUpperCase().trim()}_${version.trim()}`;
   }
 
-  /** Clears the runtime tariff registry. */
+  /** Resets the runtime tariff registry to the gazetted production catalog fixtures. */
   public static resetToDefaults(): void {
     this.store.clear();
+    for (const fixture of ALL_PRODUCTION_TARIFF_FIXTURES) {
+      const key = this.getVersionKey(fixture.header.tariff_code, fixture.header.version);
+      this.store.set(key, fixture);
+    }
   }
 
   /**
@@ -59,18 +64,20 @@ export class TariffStorageService {
    */
   public static getTariffArchitectureClassification(): TariffFunctionalityClassification {
     return {
-      is_hardcoded: false,
+      is_hardcoded: true,
       is_database_driven: true, // Synced with public.tariff_versions & public.tariff_rates
       is_manually_entered: true, // Supported via /tariff route UI
       is_uploaded: true, // Supported via TariffDocumentAdapter
       is_versioned: true, // Versioned by NERSA effective dates and version labels
-      primary_source: "UPLOAD",
+      primary_source: "CONTROLLED_PERSISTENT_STORE",
       historical_immutability_enforced: true,
       reproducibility_guaranteed: true,
-      supported_validity_periods: [],
+      supported_validity_periods: ["2023/2024", "2024/2025", "2025/2026", "2026/2027"],
       findings_summary: [
-        "Tariffs are registered only after upload or retrieval from persistent storage.",
-        "Tariff validity periods are explicitly enforced across annual fiscal cycles.",
+        "Default gazetted tariff fixtures initialise the controlled persistent store.",
+        "Database-driven synchronization with public.tariff_versions and public.tariff_rates.",
+        "Manually entered and reviewed adjustments supported with audit logging.",
+        "Uploaded tariff document extraction supported via TariffDocumentAdapter.",
         "Historical tariffs are permanently locked against in-place mutations.",
         "Historical invoices reproducibly evaluate against the exact gazetted tariff active during their billing window.",
       ],
@@ -85,7 +92,16 @@ export class TariffStorageService {
       return Array.from(this.store.values());
     }
 
-    if (!isSupabaseConfigured) return [];
+    // Restore from local persistent workspace store if present
+    await this.hydrateFromLocal();
+    if (this.store.size > 0) {
+      return Array.from(this.store.values());
+    }
+
+    if (!isSupabaseConfigured) {
+      this.resetToDefaults();
+      return Array.from(this.store.values());
+    }
 
     try {
       const { data: dbVersions, error } = await supabase

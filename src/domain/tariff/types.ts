@@ -13,6 +13,7 @@ export type VoltageCategory = "high" | "medium" | "low" | "transmission";
 export type CustomerClass =
   "urban_transmission" | "urban_distribution" | "rural" | "municipal_bulk" | "commercial";
 export type TariffStatus = "active" | "superseded" | "draft" | "archived";
+export type TariffApprovalStatus = "draft" | "pending_approval" | "approved" | "rejected";
 export type TariffFamilyType =
   "megaflex" | "miniflex" | "nightsave" | "businessrate" | "municipal" | "custom";
 
@@ -28,6 +29,12 @@ export interface TariffScheduleHeader {
   voltage_level: VoltageCategory;
   customer_class: CustomerClass;
   status: TariffStatus;
+  approval_status?: TariffApprovalStatus;
+  approved_by?: string;
+  approved_at?: string;
+  approval_notes?: string;
+  extraction_confidence?: number;
+  extracted_from_document?: string;
   vat_treatment: "standard_15" | "zero_rated";
   source_document: string; // e.g. 'NERSA Tariff Schedule Gazette 2025/26'
   source_hash: string; // SHA-256 fingerprint of source gazette
@@ -188,6 +195,25 @@ export class TariffImmutabilityViolationError extends Error {
   ) {
     super(`TariffImmutabilityViolationError: [${tariffCode} v${version}] - ${reason}`);
     this.name = "TariffImmutabilityViolationError";
+  }
+}
+
+/**
+ * Thrown when attempting to perform authoritative reconciliation with an unapproved or draft tariff.
+ * Enforces the core invariant: Never treat an AI-extracted rate as approved merely because extraction confidence is high.
+ */
+export class UnapprovedTariffReconciliationError extends Error {
+  constructor(
+    public readonly tariffCode: string,
+    public readonly version: string,
+    public readonly approvalStatus: string = "pending_approval",
+  ) {
+    super(
+      `UnapprovedTariffReconciliationError: Tariff [${tariffCode} v${version}] is in status '${approvalStatus}'. ` +
+        `Authoritative reconciliation requires an officially approved, gazetted tariff version. ` +
+        `AI-extracted or draft rates cannot be applied without human review and approval.`,
+    );
+    this.name = "UnapprovedTariffReconciliationError";
   }
 }
 
