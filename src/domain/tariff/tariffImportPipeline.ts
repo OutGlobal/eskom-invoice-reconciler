@@ -413,7 +413,7 @@ export class TariffImportPipeline {
     // Detect tariff code & version
     let code = "IMPORTED_TARIFF";
     let name = "Imported Tariff Schedule";
-    let family: TariffFamilyType = utility.toLowerCase().includes("eskom") ? "megaflex" : "municipal";
+    let family: TariffFamilyType = utility.toLowerCase().includes("eskom") ? "custom" : "municipal";
     let version = "2025.1";
     let effDate = "2025-07-01";
     let expDate = "2026-06-30";
