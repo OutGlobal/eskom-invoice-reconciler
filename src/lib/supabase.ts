@@ -117,6 +117,7 @@ export async function fetchSupabaseRecoveries(): Promise<SupabaseRecovery[]> {
   }
 }
 
+
 /** Utility to save or sync an invoice to Supabase */
 export async function syncInvoiceToSupabase(inv: any): Promise<any> {
   if (!isSupabaseConfigured) return null;

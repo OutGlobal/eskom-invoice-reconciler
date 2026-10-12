@@ -80,7 +80,9 @@ export class InvoiceStorageService {
     this.recordInvoiceMemory(record.id || record.invoiceNumber, record);
     try {
       await supabase.from("invoice_records").insert(record as any);
-    } catch {}
+    } catch {
+      // Offline / in-memory storage fallback
+    }
   }
 
   public static async getInvoiceRecordById(id: string): Promise<any> {
@@ -114,6 +116,10 @@ export class InvoiceStorageService {
     this.memoryStore.clear();
     this.lineItemStore.clear();
     DuplicateProtectionService.clearState();
+  }
+
+  public static clearMemoryRecords(): void {
+    this.clearMemoryStore();
   }
 
   /**

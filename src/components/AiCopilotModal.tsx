@@ -89,7 +89,8 @@ export function AiCopilotModal({ isOpen, onClose }: AiCopilotModalProps) {
       responseText = `I have generated your formal Eskom Commercial Dispute Letter! Switch to the 'Dispute Letter' tab to view, copy, or download your ready-to-submit PDF/text memo.`;
       setActiveTab("dispute");
     } else if (q.includes("wheeling") || q.includes("solar") || q.includes("ppa")) {
-      responseText = "Upload the applicable wheeling agreement and tariff schedule before assessing credits or subsidy treatment.";
+      responseText =
+        "Upload the applicable wheeling agreement and tariff schedule before assessing credits or subsidy treatment.";
     }
 
     const aiMsg = {

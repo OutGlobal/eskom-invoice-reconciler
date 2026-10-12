@@ -8,10 +8,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Database, Upload } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import type {
-  CompleteEvidenceChain,
-  AuthorizationContext,
-} from "@/domain/evidence/types";
+import type { CompleteEvidenceChain, AuthorizationContext } from "@/domain/evidence/types";
 import { EvidenceStorageService } from "@/domain/evidence/evidenceStorageService";
 
 export const AuditViewer: React.FC = () => {
@@ -57,9 +54,13 @@ export const AuditViewer: React.FC = () => {
         </div>
         <h2 className="text-sm font-semibold">No evidence ledger is available yet.</h2>
         <p className="mt-1 max-w-md text-xs text-muted-foreground">
-          Upload an invoice, meter readings, and the applicable tariff to create a traceable reconciliation ledger.
+          Upload an invoice, meter readings, and the applicable tariff to create a traceable
+          reconciliation ledger.
         </p>
-        <Link to="/upload" className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground">
+        <Link
+          to="/upload"
+          className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+        >
           <Upload className="h-3.5 w-3.5" /> Upload source records
         </Link>
       </div>
@@ -74,9 +75,7 @@ export const AuditViewer: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">
-              Evidence Ledger
-            </h1>
+            <h1 className="text-xl font-semibold tracking-tight">Evidence Ledger</h1>
             <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full">
               VERIFIED RECORD TRAIL
             </span>
@@ -86,7 +85,6 @@ export const AuditViewer: React.FC = () => {
             calculations, and reconciliation results.
           </p>
         </div>
-
       </div>
 
       {/* 12-Node Navigable Stepper Graph */}
@@ -166,7 +164,9 @@ export const AuditViewer: React.FC = () => {
             activeNode.node_type !== "TELEMETRY_INTERVAL" &&
             activeNode.node_type !== "TARIFF_RULE" &&
             activeNode.node_type !== "MULTIPLIER" && (
-              <BusinessNodeDisplay data={activeNode.node_data as unknown as Record<string, unknown>} />
+              <BusinessNodeDisplay
+                data={activeNode.node_data as unknown as Record<string, unknown>}
+              />
             )}
         </div>
       </div>
@@ -409,16 +409,18 @@ function BusinessNodeDisplay({ data }: { data: Record<string, unknown> }) {
         <div className="col-span-full rounded border border-border bg-muted/30 p-4 text-xs text-muted-foreground">
           This verified ledger step has no additional business fields to display.
         </div>
-      ) : visibleEntries.map(([key, value]) => (
-        <div key={key} className="rounded border border-border bg-background p-3">
-          <div className="text-[10px] uppercase text-muted-foreground">
-            {FIELD_LABELS[key] || key.replaceAll("_", " ")}
+      ) : (
+        visibleEntries.map(([key, value]) => (
+          <div key={key} className="rounded border border-border bg-background p-3">
+            <div className="text-[10px] uppercase text-muted-foreground">
+              {FIELD_LABELS[key] || key.replaceAll("_", " ")}
+            </div>
+            <div className="mt-1 break-words text-sm font-medium text-foreground">
+              {formatBusinessValue(key, value)}
+            </div>
           </div>
-          <div className="mt-1 break-words text-sm font-medium text-foreground">
-            {formatBusinessValue(key, value)}
-          </div>
-        </div>
-      ))}
+        ))
+      )}
     </div>
   );
 }

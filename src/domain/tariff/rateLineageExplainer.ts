@@ -19,10 +19,7 @@ export function explainAppliedRate(options: RateLineageOptions): RateLineageExpl
   const { tariffCodeOrFamily, dateStr, componentCode } = options;
 
   // 1. Select effective tariff version for target date
-  const version = TariffVersionSelector.selectVersionForDate(
-    tariffCodeOrFamily,
-    dateStr,
-  );
+  const version = TariffVersionSelector.selectVersionForDate(tariffCodeOrFamily, dateStr);
   if (!version) throw new Error("No uploaded tariff covers this date.");
 
   // 2. Determine season for date
@@ -45,9 +42,21 @@ export function explainAppliedRateByRule(
   version: TariffVersionDefinition,
   componentRule: TariffComponentRule,
   dateStr: string,
-  season: string = "all",
+  season?: string,
 ): RateLineageExplanation {
-  return formatExplanation(version, componentRule, dateStr, season);
+  let effectiveSeason = season;
+  if (!effectiveSeason || effectiveSeason === "all") {
+    if (componentRule.season && componentRule.season !== "all") {
+      effectiveSeason = componentRule.season;
+    } else if (dateStr) {
+      const dateObj = new Date(dateStr);
+      const month = dateObj.getUTCMonth() + 1;
+      effectiveSeason = month >= 6 && month <= 8 ? "high" : "low";
+    } else {
+      effectiveSeason = "all";
+    }
+  }
+  return formatExplanation(version, componentRule, dateStr, effectiveSeason);
 }
 
 function formatExplanation(

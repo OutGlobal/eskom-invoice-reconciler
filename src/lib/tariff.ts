@@ -1,5 +1,5 @@
-export type TouPeriod = "peak" | "standard" | "offPeak";
-export type Season = "high" | "low";
+import type { TouPeriod, Season } from "../domain/types/canonical";
+export type { TouPeriod, Season };
 
 /** Helper to convert any Date object to South Africa Standard Time (UTC+2) components */
 export function getSastComponents(d: Date): {
@@ -90,8 +90,8 @@ export const TARIFF = {
   zone: "<300km",
   powerFactor: 0.96,
   networkCapacity: 16.48,
-  networkDemand: 45.20,
-  generationCapacity: 12.10,
+  networkDemand: 45.2,
+  generationCapacity: 12.1,
   transmissionNetwork: 14.88,
   legacy: 4.88,
   ancillary: 0.65,
@@ -102,4 +102,3 @@ export const TARIFF = {
     low: { peak: 245.12, standard: 154.33, offPeak: 111.15 },
   },
 };
-

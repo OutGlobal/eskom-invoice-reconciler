@@ -213,7 +213,9 @@ export function buildDetailedPdfReport(input: DetailedReportInput): jsPDF {
   autoTable(doc, {
     ...tableTheme,
     startY: section("3. Charge-level reconciliation"),
-    head: [["Charge item", "Calculated (R)", "Invoiced (R)", "Variance (R)", "Variance %", "Status"]],
+    head: [
+      ["Charge item", "Calculated (R)", "Invoiced (R)", "Variance (R)", "Variance %", "Status"],
+    ],
     body: rows.map((r) => [
       r.charge,
       num(r.calculated),
@@ -234,7 +236,9 @@ export function buildDetailedPdfReport(input: DetailedReportInput): jsPDF {
     autoTable(doc, {
       ...tableTheme,
       startY: section("4. Extracted invoice line items"),
-      head: [["Invoice line label", "Normalised charge", "Qty", "Unit", "Rate", "Amount (R)", "Flag"]],
+      head: [
+        ["Invoice line label", "Normalised charge", "Qty", "Unit", "Rate", "Amount (R)", "Flag"],
+      ],
       body: lineItems.map((li) => [
         li.label,
         li.normalizedName || "Unmapped",
@@ -376,7 +380,15 @@ export function buildDetailedWorkbook(input: DetailedReportInput): XLSX.WorkBook
   addSheet(
     "Reconciliation",
     [
-      ["Charge item", "Calculated (R)", "Invoiced (R)", "Variance (R)", "Variance (%)", "Status", "Notes / cause"],
+      [
+        "Charge item",
+        "Calculated (R)",
+        "Invoiced (R)",
+        "Variance (R)",
+        "Variance (%)",
+        "Status",
+        "Notes / cause",
+      ],
       ...rows.map((r) => [
         r.charge,
         r.calculated,
@@ -395,7 +407,16 @@ export function buildDetailedWorkbook(input: DetailedReportInput): XLSX.WorkBook
   addSheet(
     "Invoice Line Items",
     [
-      ["Line label", "Normalised charge", "Quantity", "Unit", "Rate", "Amount (R)", "OCR confidence", "Review flag"],
+      [
+        "Line label",
+        "Normalised charge",
+        "Quantity",
+        "Unit",
+        "Rate",
+        "Amount (R)",
+        "OCR confidence",
+        "Review flag",
+      ],
       ...lineItems.map((li) => [
         li.label,
         li.normalizedName || "Unmapped",

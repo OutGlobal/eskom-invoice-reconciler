@@ -230,7 +230,6 @@ startxref
 
     // Shared state variables
     let authContext: UserSecurityContext | null = null;
-    let storedInvoiceRecord: any = null;
     let reconRunRecord: any = null;
 
     try {
@@ -503,7 +502,9 @@ startxref
       authContext = null;
       try {
         await supabase.auth.signOut();
-      } catch {}
+      } catch {
+        // Sign-out error resilience
+      }
       EphemeralBrowserMemorySimulator.closeBrowser();
       const signedOut = authContext === null;
       recordStep(

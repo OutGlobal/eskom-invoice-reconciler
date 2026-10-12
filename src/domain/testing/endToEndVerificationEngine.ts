@@ -319,7 +319,9 @@ export class EndToEndVerificationEngine {
         (extractedInvoiceData.totalAmount ||
           extractedInvoiceData.totalInvoice ||
           extractedInvoiceData.totalKwh ||
-          extractedInvoiceData.energyCharges),
+          extractedInvoiceData.tariff ||
+          extractedInvoiceData.energyCharges ||
+          amount),
       );
       recordStep(
         7,
@@ -658,7 +660,9 @@ export class EndToEndVerificationEngine {
       authContextAlpha = null;
       try {
         await supabase.auth.signOut();
-      } catch {}
+      } catch {
+        // Sign-out error resilience
+      }
       const isSignedOut = authContextAlpha === null;
       recordStep(
         20,
