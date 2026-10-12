@@ -18,7 +18,7 @@ export function EneraFooter() {
           <div className="flex items-center gap-3">
             <Link
               to="/"
-              className="inline-flex items-center gap-2.5 focus-ring-enera rounded"
+              className="inline-flex items-center gap-2 focus-ring-enera rounded group py-1"
               aria-label="ENERA AI Technologies homepage"
             >
               <EneraBrandMark size="md" showDescriptor={false} />

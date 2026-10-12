@@ -112,15 +112,18 @@ export class AutomaticProcessingPipeline {
       // =========================================================================
       notify("EXTRACTING", 55, "Extracting invoice determinants and meter interval readings");
 
-      const fallback = this.buildFallbackInvoice(input.invoiceFile.name);
-      const rawExtracted: any = invoiceResult.extractedInvoice || {};
+      if (!invoiceResult.extractedInvoice) {
+        throw new Error(
+          `Extraction failed for invoice "${input.invoiceFile.name}": No invoice determinants could be parsed.`,
+        );
+      }
+      const rawExtracted: any = invoiceResult.extractedInvoice;
       const extractedInvoice = {
-        ...fallback,
         ...rawExtracted,
-        meterNumber: rawExtracted.meterNumber || rawExtracted.meterSerial || fallback.meterNumber,
-        billingStart: rawExtracted.billingStart || fallback.billingStart,
-        billingEnd: rawExtracted.billingEnd || fallback.billingEnd,
-        tariff: rawExtracted.tariff || fallback.tariff,
+        meterNumber: rawExtracted.meterNumber || rawExtracted.meterSerial || "",
+        billingStart: rawExtracted.billingStart || rawExtracted.billingPeriodStart || "",
+        billingEnd: rawExtracted.billingEnd || rawExtracted.billingPeriodEnd || "",
+        tariff: rawExtracted.tariff || rawExtracted.tariffName || "",
       };
       const rawIntervals = meterResult.intervals || [];
 
@@ -404,7 +407,6 @@ export class AutomaticProcessingPipeline {
     const blob = new Blob([content], { type: mime });
     return new File([blob], name, { type: mime });
   }
-
   /**
    * Fallback invoice extractor for demo / isolated test environments
    */

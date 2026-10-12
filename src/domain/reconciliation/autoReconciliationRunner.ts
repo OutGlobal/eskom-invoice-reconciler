@@ -16,7 +16,8 @@ import type { AuthoritativeReconciliationPayload, ToleranceConfig } from "./type
 import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
 import type { InvoiceData } from "@/lib/store";
 import type { Measurement } from "@/lib/parseMeter";
-
+import { TariffInterface } from "@/domain/tariff/tariffInterface";
+import { PowerFactorEngine } from "./powerFactorEngine";
 import { ALL_PRODUCTION_TARIFF_FIXTURES } from "@/domain/tariff/tariffFixtures";
 
 export type AutoReconciliationStatus =
@@ -77,6 +78,32 @@ export function runAutomaticReconciliation(
           const exp = v.header.expiry_date || "2099-12-31";
           return targetIso >= eff && targetIso <= exp;
         }) || null;
+
+      if (!tariffVersion) {
+        tariffVersion =
+          ALL_PRODUCTION_TARIFF_FIXTURES.find((v) => {
+            const code = v.header.tariff_code.toLowerCase();
+            const name = v.header.tariff_name.toLowerCase();
+            const family = v.header.tariff_family.toLowerCase();
+            return (
+              code.includes(query) ||
+              name.includes(query) ||
+              family.includes(query) ||
+              query.includes(family)
+            );
+          }) || null;
+      }
+    }
+
+    if (!tariffVersion) {
+      tariffVersion = TariffInterface.getApplicableTariffSync(
+        invoice.accountNumber || (invoice as any).id || invoice.invoiceNumber || "",
+        invoice.meterNumber || "",
+        {
+          start: (invoice as any).billingStart || invoice.billingPeriodStart || "",
+          end: (invoice as any).billingEnd || invoice.billingPeriodEnd || "",
+        },
+      );
     }
   }
 
@@ -95,26 +122,44 @@ export function runAutomaticReconciliation(
       .filter(
         (r) => Number.isFinite(r.ts.getTime()) && Number.isFinite(r.kW) && Number.isFinite(r.kVA),
       );
-    if (!validRows.length)
+    if (!validRows.length) {
       return {
         status: "AWAITING_METER_DATA",
         message: "No valid interval measurements are available. Review the uploaded meter data.",
         payload: null,
       };
-    const totals = computeTotals(validRows);
+    }
+
+    // -------------------------------------------------------------
+    // AUTOMATIC PROCESSING (Zero Manual Entry): Aggregate AMR rows
+    // -------------------------------------------------------------
+    const bStart = invoice.billingPeriodStart ? new Date(invoice.billingPeriodStart).getTime() : 0;
+    const bEnd = invoice.billingPeriodEnd
+      ? new Date(invoice.billingPeriodEnd).getTime() + 86400000
+      : Infinity;
+    const inPeriodRows = validRows.filter((r) => {
+      const t = r.ts.getTime();
+      return t >= bStart && t <= bEnd;
+    });
+    const activeRows = inPeriodRows.length > 0 ? inPeriodRows : validRows;
+
+    const totals = computeTotals(activeRows, invoice.nmd || 0);
+
+    let totalReactiveKvarh = new Decimal(0);
+    for (const r of activeRows) {
+      if ((r as any).kVAR !== undefined) {
+        totalReactiveKvarh = totalReactiveKvarh.plus(new Decimal((r as any).kVAR || 0).mul(0.5));
+      } else if ((r as any).kvarh !== undefined) {
+        totalReactiveKvarh = totalReactiveKvarh.plus(new Decimal((r as any).kvarh || 0));
+      }
+    }
+
+    const pfRecord = PowerFactorEngine.calculatePowerFactor({
+      kWh: totals.totalKWh,
+      kVArh: totalReactiveKvarh,
+    });
+
     const input = {
-      calc_peak_kwh: new Decimal(totals.peakKWh),
-      calc_standard_kwh: new Decimal(totals.standardKWh),
-      calc_off_peak_kwh: new Decimal(totals.offPeakKWh),
-      calc_total_kwh: new Decimal(totals.totalKWh),
-      calc_maximum_demand_kva: new Decimal(totals.maxDemandKVA),
-      calc_reactive_energy_kvarh: new Decimal(
-        validRows.reduce((sum, r) => sum + (Number.isFinite(r.kVAr) ? r.kVAr * 0.5 : 0), 0),
-      ),
-      calc_power_factor: new Decimal(
-        validRows.reduce((sum, r) => sum + (Number.isFinite(r.pf) ? r.pf : 0), 0) /
-          validRows.length,
-      ),
       invoice_id: invoice.invoiceNumber || invoice.invoiceNo || invoice.accountNumber || "",
       invoice_number: invoice.invoiceNumber || invoice.invoiceNo || invoice.accountNumber || "",
       account_number: invoice.accountNumber || "",
@@ -142,6 +187,16 @@ export function runAutomaticReconciliation(
       billed_ancillary_charges_zar: new Decimal(invoice.ancillary || 0),
       billed_vat_zar: new Decimal(invoice.vat || 0),
       billed_total_invoice_zar: new Decimal(invoice.totalInclVat || invoice.invoiceTotal || 0),
+
+      // Derived Calculated Telemetry Determinants
+      calc_peak_kwh: new Decimal(totals.peakKWh),
+      calc_standard_kwh: new Decimal(totals.standardKWh),
+      calc_off_peak_kwh: new Decimal(totals.offPeakKWh),
+      calc_total_kwh: new Decimal(totals.totalKWh),
+      calc_maximum_demand_kva: new Decimal(totals.maxDemandKVA),
+      calc_ratcheted_demand_kva: new Decimal(totals.maxDemandKVA),
+      calc_reactive_energy_kvarh: totalReactiveKvarh,
+      calc_power_factor: pfRecord.calculated_pf,
     };
 
     const payload = DeterministicReconciliationEngine.reconcile(input, tolerance);

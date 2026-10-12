@@ -84,7 +84,8 @@ export interface ConversionAuditTrail {
   formulas_applied: Record<string, string>;
 }
 
-export type TouPeriod = "peak" | "standard" | "offPeak";
+import type { TouPeriod } from "../types/canonical";
+export type { TouPeriod };
 
 /**
  * Authoritative Canonical Energy Record (Stage 10)

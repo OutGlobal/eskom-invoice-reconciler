@@ -1,3 +1,4 @@
+import type { QuantityComparison } from "./demandReactiveReconciliation";
 /**
  * Authoritative Deterministic Reconciliation Engine Domain Types
  * Enforces zero floating-point drift, 14-determinant comparison, idempotency checksums,
@@ -25,6 +26,14 @@ export interface ToleranceConfig {
   kva_tolerance: Decimal; // e.g. 5 kVA
   kvarh_tolerance: Decimal; // e.g. 50 kVARh
 }
+
+export const DEFAULT_TOLERANCE_CONFIG: ToleranceConfig = {
+  percentage_tolerance: new Decimal("0.50"), // 0.5%
+  absolute_zar_tolerance: new Decimal("50.00"), // R 50.00
+  kwh_tolerance: new Decimal("100.00"),
+  kva_tolerance: new Decimal("5.00"),
+  kvarh_tolerance: new Decimal("50.00"),
+};
 
 export interface CalculationExplanation {
   input_value: string;
@@ -56,6 +65,7 @@ export interface AuthoritativeReconciliationPayload {
   tariff_version_id: string;
   calendar_version_id: string;
   engine_version: string;
+  calculation_engine_version?: string;
   configuration_version: string;
   created_at: string;
   completed_at: string;
@@ -116,6 +126,7 @@ export interface LineItemComparisonResult {
 }
 
 export interface ReconciliationRunPayload {
+  quantity_comparisons?: QuantityComparison[];
   run_id: string; // Unique UUID for every execution
   invoice_record_id: string;
   invoice_number: string;

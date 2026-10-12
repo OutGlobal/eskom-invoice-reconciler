@@ -150,7 +150,7 @@ export function EneraNav() {
           {/* Left: ENERA Brand Logo */}
           <Link
             to="/"
-            className="flex items-center gap-2.5 focus-ring-enera rounded py-1 shrink-0"
+            className="flex items-center gap-2 focus-ring-enera rounded py-1 shrink-0 group"
             aria-label="ENERA AI Technologies Homepage"
           >
             <EneraBrandMark size="md" showDescriptor={false} />

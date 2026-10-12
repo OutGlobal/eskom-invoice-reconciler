@@ -53,33 +53,36 @@ function CustomersPage() {
   const [newNmd, setNewNmd] = useState<number>(50000);
 
   useEffect(() => {
-    Promise.all([supabase.from("customers").select("*"), LocalWorkspaceStore.listCustomers()])
-      .then(([{ data }, localCustomers]) => {
-          const remote: CustomerRecord[] = (data || []).map((c) => ({
-            id: c.id,
-            account_number: c.account_number,
-            customer_name: c.customer_name,
-            meter_number: c.meter_number,
-            address: c.address || "",
-            nmd: Number(c.nmd) || 0,
-            voltage: c.voltage || "",
-            tariff: c.tariff || "",
-          }));
-          const merged = new Map<string, CustomerRecord>();
-          localCustomers.forEach((c) => merged.set(c.accountNumber, {
+    Promise.all([supabase.from("customers").select("*"), LocalWorkspaceStore.listCustomers()]).then(
+      ([{ data }, localCustomers]) => {
+        const remote: CustomerRecord[] = (data || []).map((c) => ({
+          id: c.id,
+          account_number: c.account_number,
+          customer_name: c.customer_name,
+          meter_number: c.meter_number,
+          address: c.address || "",
+          nmd: Number(c.nmd) || 0,
+          voltage: c.voltage || "",
+          tariff: c.tariff || "",
+        }));
+        const merged = new Map<string, CustomerRecord>();
+        localCustomers.forEach((c) =>
+          merged.set(c.accountNumber, {
             account_number: c.accountNumber,
             customer_name: c.customerName,
             meter_number: c.meterNumber,
             address: c.address,
             nmd: c.nmd,
-          }));
-          remote.forEach((c) => merged.set(c.account_number, c));
-          const accounts = Array.from(merged.values());
-          setCustomerList(accounts);
-          if (!selectedAcc && accounts.length > 0) {
-            setSelectedAcc(accounts[0].account_number);
-          }
-      });
+          }),
+        );
+        remote.forEach((c) => merged.set(c.account_number, c));
+        const accounts = Array.from(merged.values());
+        setCustomerList(accounts);
+        if (!selectedAcc && accounts.length > 0) {
+          setSelectedAcc(accounts[0].account_number);
+        }
+      },
+    );
   }, []);
 
   const handleSelectCustomer = (c: CustomerRecord) => {

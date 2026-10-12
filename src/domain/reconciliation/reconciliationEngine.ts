@@ -1,3 +1,4 @@
+import { reconcileDemandReactive, type DemandReactiveInput } from "./demandReactiveReconciliation";
 /**
  * Authoritative Deterministic Reconciliation Engine
  * Strictly excludes AI and JavaScript floating-point arithmetic.
@@ -6,6 +7,7 @@
 
 import Decimal from "decimal.js-light";
 import type { TariffVersionDefinition } from "../tariff/types";
+import { DEFAULT_TOLERANCE_CONFIG } from "./types";
 import type {
   AuthoritativeReconciliationPayload,
   DeterminantComparisonItem,
@@ -27,6 +29,7 @@ import type {
   ReconcileStoredDataParams,
   StoredReconciliationDataset,
 } from "./types";
+export { DEFAULT_TOLERANCE_CONFIG };
 import { DeterministicTariffEngine, DeterministicEngine } from "../tariff/deterministicEngine";
 import { DeterminantEngine } from "../determinants/determinantEngine";
 import { ToleranceEngine } from "./toleranceEngine";
@@ -37,14 +40,7 @@ import { TelemetryStorageService } from "../telemetry/telemetryStorageService";
 import { ReconciliationStorageService } from "./reconciliationStorageService";
 import { TouScheduleEngine } from "../tariff/touScheduleEngine";
 import { TariffVersionSelector } from "../tariff/tariffVersionSelector";
-
-export const DEFAULT_TOLERANCE_CONFIG: ToleranceConfig = {
-  percentage_tolerance: new Decimal("0.50"), // 0.5%
-  absolute_zar_tolerance: new Decimal("50.00"), // R 50.00
-  kwh_tolerance: new Decimal("100.00"),
-  kva_tolerance: new Decimal("5.00"),
-  kvarh_tolerance: new Decimal("50.00"),
-};
+import { TariffInterface, getApplicableTariff, calculateCharge } from "../tariff/tariffInterface";
 
 export interface AuthoritativeReconciliationInput {
   tenant_id?: string;
@@ -82,11 +78,21 @@ export interface AuthoritativeReconciliationInput {
   calc_ratcheted_demand_kva?: Decimal;
   calc_reactive_energy_kvarh?: Decimal;
   calc_power_factor?: Decimal;
+
+  // Idempotency & Calculation Engine Versioning (Requirement 27 & 31)
+  run_id?: string;
+  calculation_engine_version?: string;
 }
 
 export class DeterministicReconciliationEngine {
   public static readonly ENGINE_VERSION = "2.0.0";
   public static readonly CONFIG_VERSION = "1.0.0";
+
+  /** Clean interface method to retrieve applicable tariff */
+  public static getApplicableTariff = TariffInterface.getApplicableTariff.bind(TariffInterface);
+
+  /** Clean interface method to calculate individual charge */
+  public static calculateCharge = TariffInterface.calculateCharge.bind(TariffInterface);
 
   /**
    * Run 14-Determinant Authoritative Billing Reconciliation
@@ -95,7 +101,9 @@ export class DeterministicReconciliationEngine {
     input: AuthoritativeReconciliationInput,
     tolerance: ToleranceConfig = DEFAULT_TOLERANCE_CONFIG,
   ): AuthoritativeReconciliationPayload {
-    const runId = `RECON-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    const runId =
+      input.run_id ||
+      `RECON-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
     const createdAt = new Date().toISOString();
 
     const tenantId = input.tenant_id || "";
@@ -300,7 +308,13 @@ export class DeterministicReconciliationEngine {
       "kVARh",
       tolerance.kvarh_tolerance,
       "kVARh Telemetry Sum",
-      "0.1450 R/kVARh",
+      (() => {
+        const rc = tariffDef.components?.find((c) =>
+          c.component_code.toUpperCase().includes("REACTIVE"),
+        ) as any;
+        const rate = rc?.rate_value ?? rc?.flat_rate ?? rc?.rate_zar;
+        return rate ? `${rate} R/kVARh` : "Tariff gazetted R/kVARh";
+      })(),
     );
     addDeterminant(
       "ENERGY_CHARGES_ZAR",
@@ -412,7 +426,8 @@ export class DeterministicReconciliationEngine {
       telemetry_batch_id: telemetryBatchId,
       tariff_version_id: tariffVerId,
       calendar_version_id: calendarVersionId,
-      engine_version: this.ENGINE_VERSION,
+      engine_version: input.calculation_engine_version || this.ENGINE_VERSION,
+      calculation_engine_version: input.calculation_engine_version || "reconciliation_engine_v2",
       configuration_version: this.CONFIG_VERSION,
       created_at: createdAt,
       completed_at: completedAt,
@@ -1035,6 +1050,7 @@ function simpleHash(str: string): string {
 }
 
 export interface ReconciliationEngineInput {
+  demand_reactive?: DemandReactiveInput;
   invoice: ExtractedInvoiceDocument;
   billing_start: string;
   billing_end: string;
@@ -1115,7 +1131,8 @@ export class ReconciliationEngine {
           standard_kwh: calcStd,
           off_peak_kwh: calcOff,
           reactive_energy_kvarh: calcReactive,
-          power_factor: new Decimal(invoice.power_factor?.value || 0.96),
+          // This branch compares reactive quantities; penalties belong to the Tariff Engine.
+          power_factor: new Decimal(0),
         },
         input.tariff_version,
       );
@@ -1215,22 +1232,28 @@ export class ReconciliationEngine {
       "kWh",
       "METER_DATA_GAP",
     );
-    addComparison(
-      "DEMAND_KVA",
-      "Maximum Demand (kVA)",
-      billedDemand,
-      calcDemand,
-      "kVA",
-      "DEMAND_VARIANCE",
+    // Demand quantities require an explicit tariff/configuration methodology.
+    // Missing evidence must never be replaced with the billed quantity.
+    const quantityComparisons = reconcileDemandReactive(
+      input.demand_reactive ?? {
+        intervals: [],
+        demands: [{ kind: "maximum", billed: invoice.maximum_demand?.value ?? undefined }],
+        reactive: {
+          billedKvarh: invoice.reactive_energy_kvarh?.value ?? undefined,
+          billedPowerFactor: invoice.power_factor?.value ?? undefined,
+          amrKvarh: input.reactive_energy_kvarh,
+          amrKwh: input.total_kwh,
+          comparable: false,
+          kvarhTolerance: {
+            absolute: config.tolerances?.REACTIVE_KVARH?.absolute_tolerance_zar ?? "50",
+            relative: config.tolerances?.REACTIVE_KVARH?.percentage_tolerance ?? "0.005",
+          },
+          powerFactorTolerance: { absolute: "0.01", relative: "0" },
+          powerFactorMethod: "energy_vector",
+        },
+      },
     );
-    addComparison(
-      "REACTIVE_KVARH",
-      "Reactive Energy (kVARh)",
-      billedReactive,
-      calcReactive,
-      "kVARh",
-      "REACTIVE_ENERGY_VARIANCE",
-    );
+
     addComparison(
       "NETWORK_CHARGES",
       "Network Charges",
@@ -1286,12 +1309,29 @@ export class ReconciliationEngine {
       runStatus = "COMPLETED";
     }
 
+    if (quantityComparisons.some((c) => c.status === "SIGNIFICANT_DIFFERENCE")) {
+      runStatus = "MATERIAL_DISCREPANCY";
+    } else if (
+      runStatus !== "MATERIAL_DISCREPANCY" &&
+      quantityComparisons.some((c) => c.status === "UNRESOLVED")
+    ) {
+      runStatus = "REVIEW_REQUIRED";
+    }
+
     const totalVarianceZar = billedTotalBill.sub(expectedTotalBill).abs();
     const variancePercent = billedTotalBill.gt(0)
       ? totalVarianceZar.div(billedTotalBill).mul(100).toDecimalPlaces(4, Decimal.ROUND_HALF_UP)
       : new Decimal(0);
 
-    const rootCauses = RootCauseInferenceEngine.inferRootCauses(discrepancies);
+    const rootCauses = [
+      ...RootCauseInferenceEngine.inferRootCauses(discrepancies),
+      ...quantityComparisons
+        .filter((c) => c.status !== "MATCH")
+        .map(
+          (c) =>
+            `${c.code}: ${c.reason ?? "Invoice and configured AMR determinant differ significantly"}`,
+        ),
+    ];
 
     return {
       run_id: runId,
@@ -1310,6 +1350,7 @@ export class ReconciliationEngine {
       comparisons,
       discrepancies,
       root_causes: rootCauses,
+      quantity_comparisons: quantityComparisons,
       calculation_trace: auditTrace,
       run_at: new Date().toISOString(),
     };
