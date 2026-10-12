@@ -60,6 +60,14 @@ export class TariffStorageService {
   }
 
   /**
+   * Directly register a version into memory store (for tests and dynamic providers)
+   */
+  public static registerVersion(version: TariffVersionDefinition): void {
+    const key = this.getVersionKey(version.header.tariff_code, version.header.version);
+    this.store.set(key, version);
+  }
+
+  /**
    * Formally inspects and returns the architectural classification of the tariff subsystem
    */
   public static getTariffArchitectureClassification(): TariffFunctionalityClassification {
