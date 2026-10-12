@@ -24,7 +24,10 @@ export { EnergyDataNormalizationEngine } from "@/domain/telemetry/energyDataNorm
 export { DashboardService } from "@/domain/dashboard/dashboardService";
 
 // Reporting & AI
-export { saveGeneratedReportMetadata, fetchGeneratedReports } from "@/domain/reports/reportStorageService";
+export {
+  saveGeneratedReportMetadata,
+  fetchGeneratedReports,
+} from "@/domain/reports/reportStorageService";
 export { AiInvestigationEngine } from "@/domain/investigation/aiInvestigationEngine";
 export { AuditLedgerService } from "@/domain/services/auditLedger";
 

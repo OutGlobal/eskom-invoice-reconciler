@@ -169,4 +169,5 @@ export interface IngestionGatewayResult {
   isIdempotentDuplicate: boolean;
   duplicateResult?: DuplicateCheckResult;
   uploadRecord?: import("../upload/types").UploadRecord;
+  pdfInspection?: import("../intelligence/types").PdfInspectionResult;
 }

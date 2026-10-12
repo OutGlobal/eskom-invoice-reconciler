@@ -111,14 +111,12 @@ export function computeCharges(
   const energyRate = (p: TouPeriod) =>
     seasonMix.high.totalKWh + seasonMix.low.totalKWh === 0
       ? 0
-      : (seasonMix.high[p] * tariff.energy.high[p] +
-          seasonMix.low[p] * tariff.energy.low[p]) /
+      : (seasonMix.high[p] * tariff.energy.high[p] + seasonMix.low[p] * tariff.energy.low[p]) /
         Math.max(1e-9, seasonMix.high[p] + seasonMix.low[p]) /
         100;
 
   const peakAmt =
-    (seasonMix.high.peak * tariff.energy.high.peak +
-      seasonMix.low.peak * tariff.energy.low.peak) /
+    (seasonMix.high.peak * tariff.energy.high.peak + seasonMix.low.peak * tariff.energy.low.peak) /
     100;
   const stdAmt =
     (seasonMix.high.standard * tariff.energy.high.standard +

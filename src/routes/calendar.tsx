@@ -251,48 +251,50 @@ export function CalendarPage() {
           <div className="border border-dashed border-border rounded-md p-8 text-center text-xs text-muted-foreground">
             No holiday calendar has been uploaded or configured.
           </div>
-        ) : <div className="border border-border rounded-md overflow-hidden">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-muted/50 text-muted-foreground">
-              <tr>
-                <th className="p-2.5 font-medium">Date (YYYY-MM-DD)</th>
-                <th className="p-2.5 font-medium">Holiday Name</th>
-                <th className="p-2.5 font-medium">Type</th>
-                <th className="p-2.5 font-medium">TOU Treatment</th>
-                <th className="p-2.5 font-medium text-center">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {holidays.map((h, idx) => (
-                <tr key={h.id || idx} className="hover:bg-muted/20">
-                  <td className="p-2.5 font-mono font-medium">{h.holiday_date}</td>
-                  <td className="p-2.5 font-medium">{h.holiday_name}</td>
-                  <td className="p-2.5">
-                    <span
-                      className={`px-2 py-0.5 text-[10px] font-mono rounded ${
-                        h.holiday_type === "special"
-                          ? "bg-purple-500/10 text-purple-500"
-                          : h.holiday_type === "observed"
-                            ? "bg-blue-500/10 text-blue-500"
-                            : "bg-emerald-500/10 text-emerald-500"
-                      }`}
-                    >
-                      {h.holiday_type.toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="p-2.5 text-muted-foreground capitalize">
-                    {h.tou_treatment.replace("_", " ")}
-                  </td>
-                  <td className="p-2.5 text-center">
-                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-                      <CheckCircle className="h-3 w-3" /> ACTIVE
-                    </span>
-                  </td>
+        ) : (
+          <div className="border border-border rounded-md overflow-hidden">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-muted/50 text-muted-foreground">
+                <tr>
+                  <th className="p-2.5 font-medium">Date (YYYY-MM-DD)</th>
+                  <th className="p-2.5 font-medium">Holiday Name</th>
+                  <th className="p-2.5 font-medium">Type</th>
+                  <th className="p-2.5 font-medium">TOU Treatment</th>
+                  <th className="p-2.5 font-medium text-center">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>}
+              </thead>
+              <tbody className="divide-y divide-border">
+                {holidays.map((h, idx) => (
+                  <tr key={h.id || idx} className="hover:bg-muted/20">
+                    <td className="p-2.5 font-mono font-medium">{h.holiday_date}</td>
+                    <td className="p-2.5 font-medium">{h.holiday_name}</td>
+                    <td className="p-2.5">
+                      <span
+                        className={`px-2 py-0.5 text-[10px] font-mono rounded ${
+                          h.holiday_type === "special"
+                            ? "bg-purple-500/10 text-purple-500"
+                            : h.holiday_type === "observed"
+                              ? "bg-blue-500/10 text-blue-500"
+                              : "bg-emerald-500/10 text-emerald-500"
+                        }`}
+                      >
+                        {h.holiday_type.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="p-2.5 text-muted-foreground capitalize">
+                      {h.tou_treatment.replace("_", " ")}
+                    </td>
+                    <td className="p-2.5 text-center">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle className="h-3 w-3" /> ACTIVE
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Panel>
 
       {/* Add Holiday Modal */}

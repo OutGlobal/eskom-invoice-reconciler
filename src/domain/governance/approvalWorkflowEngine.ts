@@ -138,7 +138,11 @@ export class ApprovalWorkflowEngine {
           action: targetState === "APPROVED" ? "WORKFLOW_STEP_APPROVED" : "USER_REVIEWED",
           description: `Reconciliation workflow transitioned from ${run.state} to ${targetState} by ${actor.userName} (${actor.userRole}). ${notes ? `Notes: ${notes}` : ""}`,
           actor: { userId: actor.userId, displayName: actor.userName, role: actor.userRole },
-          record: { entityType: "reconciliation_run", recordId: run.runId, recordLabel: `Run ${run.runId}` },
+          record: {
+            entityType: "reconciliation_run",
+            recordId: run.runId,
+            recordLabel: `Run ${run.runId}`,
+          },
           previousState: { state: run.state },
           newState: { state: targetState, notes },
         });

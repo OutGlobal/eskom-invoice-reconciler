@@ -50,15 +50,7 @@ function LoginPage() {
 
       {/* Main Login Screen */}
       <main className="flex-1 flex items-center justify-center p-4">
-        <SignInScreen
-          onBypass={() => {
-            if (typeof window !== "undefined") {
-              window.sessionStorage.setItem("enera_demo_access", "true");
-            }
-            const destination = getDestination();
-            navigate({ to: destination as any });
-          }}
-        />
+        <SignInScreen />
       </main>
 
       {/* Trust Footer */}

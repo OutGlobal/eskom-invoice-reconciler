@@ -19,6 +19,7 @@ import { SecureIngestionGateway } from "../ingestion/secureIngestionGateway";
 import { EnergyDataNormalizationEngine } from "../telemetry/energyDataNormalizationEngine";
 import { DeterministicReconciliationEngine } from "../reconciliation/reconciliationEngine";
 import type { AuthoritativeReconciliationInput } from "../reconciliation/reconciliationEngine";
+import { PowerFactorEngine } from "../reconciliation/powerFactorEngine";
 import { DeterministicDiagnosticsEngine } from "../discrepancy/deterministicDiagnosticsEngine";
 import { ESKOM_MEGAFLEX_2025_2026, ESKOM_MINIFLEX_2025_2026 } from "../tariff/tariffFixtures";
 import Decimal from "decimal.js-light";
@@ -93,7 +94,7 @@ export class ProcessingJobEngine {
       currentStage: "QUEUED",
       progressPercentage: 0,
       recordsProcessed: 0,
-      stageMessage: "Job queued for server-side execution",
+      stageMessage: "Local job queued; keep this tab open",
       sourceInvoiceFile: input.invoiceFile
         ? {
             name: invoiceName,
@@ -456,7 +457,7 @@ export class ProcessingJobEngine {
     const orgId = job.organisationId;
     const userId = job.userId || "system";
 
-    let extractedInvoice = this.buildFallbackInvoice("invoice.pdf");
+    let extractedInvoice: any = null;
     if (input.invoiceFile) {
       const invoiceBytes = await this.resolveFileBytes(input.invoiceFile, "invoice.pdf");
       const invoiceName =
@@ -484,35 +485,22 @@ export class ProcessingJobEngine {
           orgId,
           userId,
         );
-        if (!invoiceIngestResult.success) {
+        if (!invoiceIngestResult.success || !invoiceIngestResult.extractedInvoice) {
           const failReason =
             invoiceIngestResult.uploadRecord?.errorMessage ||
             invoiceIngestResult.batchJob?.quarantineReason ||
-            "Unable to extract required invoice information.";
+            "Unable to extract required invoice information: Missing required invoice determinants.";
           this.failJob(jobId, failReason);
           return;
         }
-        extractedInvoice =
-          invoiceIngestResult.extractedInvoice || this.buildFallbackInvoice(invoiceName);
-        // Only inject a fallback meter number if none was extracted — never overwrite real OCR values
-        if (!extractedInvoice.meterNumber) {
-          extractedInvoice.meterNumber = this.buildFallbackInvoice(invoiceName).meterNumber;
-          extractedInvoice.meterSerial = extractedInvoice.meterNumber;
-        }
+        extractedInvoice = invoiceIngestResult.extractedInvoice;
       } catch (err: any) {
         this.failJob(jobId, err?.message || "Unable to extract required invoice information.");
         return;
       }
     } else {
-      this.updateProgress(
-        jobId,
-        "PDF_EXTRACTION",
-        25,
-        0,
-        undefined,
-        "Using registered baseline determinants",
-      );
-      await this.tick();
+      this.failJob(jobId, "No invoice file provided for processing job.");
+      return;
     }
 
     // -------------------------------------------------------------
@@ -553,18 +541,11 @@ export class ProcessingJobEngine {
     }
 
     if (rawTelemetryRecords.length === 0 && input.meterFile) {
-      rawTelemetryRecords = [
-        {
-          timestamp: "2025-01-01T00:00:00Z",
-          meter_id: "MTR-ESKOM-001",
-          raw_active_energy: 150.0,
-          raw_reactive_energy: 30.0,
-          raw_apparent_power: 160.0,
-          kwh: 150.0,
-          kvarh: 30.0,
-          kva: 160.0,
-        },
-      ];
+      this.failJob(
+        jobId,
+        "Unable to parse interval telemetry stream: No valid interval records found.",
+      );
+      return;
     }
 
     const totalRecords = rawTelemetryRecords.length;
@@ -690,7 +671,14 @@ export class ProcessingJobEngine {
       }
     }
 
-    const calculatedTotalKwh = aggPeak + aggStd + aggOffPeak || canonicalTelemetry.length * 15;
+    const calculatedTotalKwh = aggPeak + aggStd + aggOffPeak;
+
+    // Derive actual vector power factor from telemetry determinants
+    const pfRecord = PowerFactorEngine.calculatePowerFactor({
+      kWh: calculatedTotalKwh,
+      kVArh: aggReactive,
+    });
+    const derivedPf = pfRecord.calculated_pf;
 
     // -------------------------------------------------------------
     // STAGE 6: RECONCILIATION
@@ -719,13 +707,9 @@ export class ProcessingJobEngine {
 
     // Resolve billing period — prefer extracted fields, fall back to billingPeriodStart/End aliases
     const billingStart =
-      extractedInvoice.billingStart ||
-      extractedInvoice.billingPeriodStart ||
-      "2025-01-01";
+      extractedInvoice.billingStart || extractedInvoice.billingPeriodStart || "2025-01-01";
     const billingEnd =
-      extractedInvoice.billingEnd ||
-      extractedInvoice.billingPeriodEnd ||
-      "2025-01-31";
+      extractedInvoice.billingEnd || extractedInvoice.billingPeriodEnd || "2025-01-31";
     const invoiceId = extractedInvoice.invoiceNumber || `INV-${Date.now()}`;
 
     const reconInput: AuthoritativeReconciliationInput = {
@@ -763,7 +747,7 @@ export class ProcessingJobEngine {
       calc_total_kwh: new Decimal(calculatedTotalKwh.toString()),
       calc_maximum_demand_kva: new Decimal(maxDemand.toString()),
       calc_reactive_energy_kvarh: new Decimal(aggReactive.toString()),
-      calc_power_factor: new Decimal("0.98"),
+      calc_power_factor: derivedPf,
     };
 
     // Log RECONCILIATION_STARTED into the immutable audit ledger
@@ -775,7 +759,9 @@ export class ProcessingJobEngine {
         { jobId, invoiceId, orgId, billingStart, billingEnd, tariffCode },
         userId,
       );
-    } catch { /* non-blocking */ }
+    } catch {
+      /* non-blocking */
+    }
 
     const reconciliationPayload = DeterministicReconciliationEngine.reconcile(reconInput);
 
@@ -819,7 +805,9 @@ export class ProcessingJobEngine {
         },
         userId,
       );
-    } catch { /* non-blocking */ }
+    } catch {
+      /* non-blocking */
+    }
 
     // -------------------------------------------------------------
     // STAGE 7: ANOMALY_ANALYSIS & DIAGNOSTICS
@@ -962,7 +950,9 @@ export class ProcessingJobEngine {
         execution_environment: "browser-worker",
         status: "COMPLETED",
       });
-    } catch { /* non-blocking */ }
+    } catch {
+      /* non-blocking */
+    }
 
     // --- PERSIST generated report metadata ---
     try {
@@ -985,7 +975,9 @@ export class ProcessingJobEngine {
         createdAt: job.completedAt || new Date().toISOString(),
         createdBy: userId,
       });
-    } catch { /* non-blocking */ }
+    } catch {
+      /* non-blocking */
+    }
 
     try {
       void AuditTrailService.recordAction({
@@ -1122,19 +1114,14 @@ export class ProcessingJobEngine {
   }
 
   /**
-   * Resolves File, AutomatedPipelineFile, or dummy string into Uint8Array
+   * Resolves File, AutomatedPipelineFile, or buffer into Uint8Array
    */
   private static async resolveFileBytes(
     file: AutomatedPipelineFile | File | undefined,
     fallbackName: string,
   ): Promise<Uint8Array> {
     if (!file) {
-      if (fallbackName.endsWith(".pdf")) {
-        return new TextEncoder().encode("%PDF-1.5\n%Enera Authoritative Fallback\n%%EOF");
-      }
-      return new TextEncoder().encode(
-        `timestamp,meter_id,active_power_kwh\n${new Date().toISOString()},MTR-ESKOM-001,100.0`,
-      );
+      throw new Error(`File payload for "${fallbackName}" is missing or unreadable.`);
     }
 
     if (typeof (file as any).data !== "undefined" && (file as any).data instanceof Uint8Array) {
@@ -1153,39 +1140,7 @@ export class ProcessingJobEngine {
       return new Uint8Array(buf);
     }
 
-    return new TextEncoder().encode(
-      `timestamp,meter_id,active_power_kwh\n${new Date().toISOString()},MTR-ESKOM-001,100.0`,
-    );
-  }
-
-  /**
-   * Builds a safe standard fallback invoice
-   */
-  private static buildFallbackInvoice(filename: string): any {
-    return {
-      invoiceNumber: "INV-2025-01-ESK",
-      accountNumber: "7856504676",
-      meterNumber: "MTR-ESKOM-001",
-      meterSerial: "MTR-ESKOM-001",
-      tariff: "Megaflex",
-      tariffName: "Megaflex",
-      // billingStart / billingEnd are the authoritative field names used by reconInput
-      billingStart: "2025-01-01",
-      billingEnd: "2025-01-31",
-      // Aliases kept for backward compatibility
-      billingPeriodStart: "2025-01-01",
-      billingPeriodEnd: "2025-01-31",
-      peakKwh: 45000,
-      standardKwh: 65000,
-      offPeakKwh: 90000,
-      totalKwh: 200000,
-      kva: 450,
-      maximumDemandKva: 450,
-      kvarh: 22000,
-      reactiveKvarh: 22000,
-      totalInvoice: 15462529.74,
-      sourceFilename: filename,
-    };
+    throw new Error(`Unable to resolve binary bytes from file "${fallbackName}".`);
   }
 
   /**

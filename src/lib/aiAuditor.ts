@@ -28,15 +28,16 @@ export function runAiInvoiceAudit(
   if (subIncomerPeak > nmd) {
     const exceedanceKVA = subIncomerPeak - nmd;
     insights.push({
-        id: "nmd-exceedance",
-        category: "discrepancy",
-        severity: "warning",
-        title: "Notified Maximum Demand Exceeded",
-        description: `Measured peak demand of ${subIncomerPeak.toLocaleString("en-ZA")} kVA exceeds Agreed NMD (${nmd.toLocaleString("en-ZA")} kVA) by ${exceedanceKVA.toFixed(2)} kVA.`,
-        impactAmountR: 0,
-        nersaCitation: "Verify against the uploaded tariff and supply agreement.",
-        recommendation: "Review the uploaded tariff and supply agreement before assessing financial exposure.",
-      });
+      id: "nmd-exceedance",
+      category: "discrepancy",
+      severity: "warning",
+      title: "Notified Maximum Demand Exceeded",
+      description: `Measured peak demand of ${subIncomerPeak.toLocaleString("en-ZA")} kVA exceeds Agreed NMD (${nmd.toLocaleString("en-ZA")} kVA) by ${exceedanceKVA.toFixed(2)} kVA.`,
+      impactAmountR: 0,
+      nersaCitation: "Verify against the uploaded tariff and supply agreement.",
+      recommendation:
+        "Review the uploaded tariff and supply agreement before assessing financial exposure.",
+    });
   }
 
   // 2. Check Transmission Network Capacity Rate Bracket
@@ -46,7 +47,8 @@ export function runAiInvoiceAudit(
       category: "compliance",
       severity: "info",
       title: "Transmission Network Capacity Contractual Alignment",
-      description: "A transmission network charge was extracted and is ready for comparison with the uploaded tariff.",
+      description:
+        "A transmission network charge was extracted and is ready for comparison with the uploaded tariff.",
       impactAmountR: invoice.transmissionNetworkCharge,
       nersaCitation: "Uploaded tariff source required.",
       recommendation: `Review ${invoice.customerName || "the customer"}'s specific connection agreement to confirm whether transmission capacity is subject to zero-rating under contractual distribution clauses.`,
