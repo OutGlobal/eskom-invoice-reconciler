@@ -292,6 +292,8 @@ export interface TariffTaxRule {
   rate: Decimal; // e.g. 0.15 (15%) or 0.14 (14%)
   effective_from: string; // YYYY-MM-DD
   effective_to?: string; // YYYY-MM-DD
+  rounding_method?: string; // e.g. "ROUND_HALF_UP_2_DECIMALS"
+  source_reference?: string; // e.g. "Value-Added Tax Act 89 of 1991, Section 7(1)(a)"
   description?: string;
 }
 
@@ -303,6 +305,8 @@ export const SOUTH_AFRICAN_VAT_RULES: TariffTaxRule[] = [
     rate: new Decimal("0.14"),
     effective_from: "1993-04-07",
     effective_to: "2018-03-31",
+    rounding_method: "ROUND_HALF_UP_2_DECIMALS",
+    source_reference: "Value-Added Tax Act 89 of 1991 (pre-2018 amendment rate)",
     description: "Standard South African VAT rate (14%) applicable before 1 April 2018",
   },
   {
@@ -311,6 +315,8 @@ export const SOUTH_AFRICAN_VAT_RULES: TariffTaxRule[] = [
     tax_name: "VAT 15%",
     rate: new Decimal("0.15"),
     effective_from: "2018-04-01",
+    rounding_method: "ROUND_HALF_UP_2_DECIMALS",
+    source_reference: "Value-Added Tax Act 89 of 1991 (Rates and Monetary Amounts Act 2018)",
     description: "Standard South African VAT rate (15%) gazetted effective 1 April 2018 onwards",
   },
 ];
@@ -319,12 +325,162 @@ export interface TaxCalculationBreakdown {
   tax_rule_id: string;
   tax_name: string;
   vat_rate: Decimal;
+  effective_period: {
+    from: string;
+    to?: string;
+  };
+  taxable_base: Decimal;
   subtotal_taxable_ex_vat: Decimal;
   subtotal_zero_rated_ex_vat: Decimal;
   subtotal_exempt_ex_vat: Decimal;
+  applicable_rate: Decimal;
+  rounding_method: string;
+  calculated_tax: Decimal;
   vat_amount: Decimal;
+  source_reference: string;
   effective_date: string;
   is_historical_rate: boolean;
+}
+
+// =============================================================================
+// Requirement 17: Unit Normalisation Types
+// =============================================================================
+export type TariffSupportedUnit =
+  | "kWh"
+  | "kW"
+  | "kVA"
+  | "kVAh"
+  | "kVArh"
+  | "kVAr"
+  | "R/kWh"
+  | "c/kWh"
+  | "R/kW"
+  | "R/kVA"
+  | "R/kVA/month"
+  | "R/kW/month"
+  | "R/day"
+  | "c/day"
+  | "R/month"
+  | "%";
+
+export type TariffUnitDimension =
+  | "ACTIVE_ENERGY"
+  | "ACTIVE_POWER"
+  | "APPARENT_POWER"
+  | "APPARENT_ENERGY"
+  | "REACTIVE_ENERGY"
+  | "REACTIVE_POWER"
+  | "CURRENCY_PER_ACTIVE_ENERGY"
+  | "CURRENCY_PER_DEMAND"
+  | "CURRENCY_PER_TIME_DAY"
+  | "CURRENCY_PER_TIME_MONTH"
+  | "PERCENTAGE";
+
+export interface TariffUnitConversionRecord {
+  audit_id: string;
+  original_value: Decimal;
+  original_unit: string;
+  normalised_value: Decimal;
+  normalised_unit: string;
+  conversion_rule: string;
+  calculation_version: string;
+  conversion_factor: Decimal;
+  timestamp_utc: string;
+}
+
+// =============================================================================
+// Requirement 18: Rounding and Precision Types
+// =============================================================================
+export type RoundingMethod =
+  | "ROUND_HALF_UP"
+  | "ROUND_HALF_EVEN"
+  | "ROUND_UP"
+  | "ROUND_DOWN"
+  | "ROUND_CEILING"
+  | "ROUND_FLOOR"
+  | "UNROUNDED";
+
+export interface RoundingPolicyConfig {
+  policy_id: string;
+  policy_name: string;
+  rate_precision: number;
+  rate_rounding_method: RoundingMethod;
+  quantity_precision: number;
+  quantity_rounding_method: RoundingMethod;
+  charge_line_precision: number;
+  charge_line_rounding_method: RoundingMethod;
+  tax_precision: number;
+  tax_rounding_method: RoundingMethod;
+  final_total_precision: number;
+  final_total_rounding_method: RoundingMethod;
+  intermediate_calculations_rule: "UNROUNDED_FULL_PRECISION" | "PRESERVE_DECIMAL";
+  is_approved: boolean;
+  source_authority?: string;
+}
+
+export interface CalculationRoundingAudit {
+  policy_id: string;
+  rate_precision: number;
+  rate_rounding: RoundingMethod;
+  charge_line_rounding: RoundingMethod;
+  tax_rounding: RoundingMethod;
+  final_total_rounding: RoundingMethod;
+  intermediate_rounding_applied: boolean;
+  line_item_sum_zar: Decimal;
+  unrounded_sum_zar: Decimal;
+  rounding_discrepancy_zar: Decimal;
+  is_official_policy: boolean;
+  assumption_warning?: string;
+}
+
+// =============================================================================
+// Requirement 19: Tariff Matching Engine Types
+// =============================================================================
+export interface TariffSupplyConfiguration {
+  utility?: string; // e.g. "Eskom", "City Power", "City of Cape Town"
+  municipality_or_territory?: string;
+  customer_class?: string; // e.g. "urban_transmission", "commercial", "industrial"
+  tariff_code?: string; // e.g. "ESKOM_MEGAFLEX_HV_2025_2026", "MEGAFLEX"
+  voltage_level?: string; // e.g. "high", "low", "> 66kV"
+  meter_type?: string; // e.g. "TOU_SMART", "AMR_FOUR_QUADRANT"
+  supply_type?: string; // e.g. "three_phase", "single_phase", "bulk_transmission"
+  demand_kva?: Decimal | number;
+  capacity_kva?: Decimal | number;
+  contract_eligibility?: string[];
+}
+
+export interface TariffMatchingCriteria {
+  organisationId?: string;
+  account?: string;
+  site?: string;
+  meter?: string;
+  billingPeriod: {
+    start: string | Date;
+    end: string | Date;
+  };
+  supplyConfiguration?: TariffSupplyConfiguration;
+}
+
+export type TariffMatchingStatus =
+  | "MATCH_FOUND"
+  | "AMBIGUOUS_MATCH"
+  | "TARIFF_UNAVAILABLE";
+
+export interface TariffMatchingResult {
+  status: TariffMatchingStatus;
+  selected_tariff?: TariffVersionDefinition;
+  selection_reason?: string;
+  matching_score?: number;
+  matched_rules?: string[];
+  ambiguous_matches?: Array<{
+    tariff: TariffVersionDefinition;
+    reason: string;
+    conflicting_attributes: string[];
+  }>;
+  review_required: boolean;
+  review_reason?: string;
+  search_criteria_summary: Record<string, any>;
+  evaluated_tariffs_count: number;
 }
 
 export interface TariffComponentRule {
@@ -440,6 +596,7 @@ export interface DeterministicCalculationInput {
   reactive_energy_off_peak_kvarh?: Decimal; // Requirement 15
   power_factor: Decimal;
   tax_rules_override?: TariffTaxRule[]; // Requirement 16
+  rounding_policy?: RoundingPolicyConfig; // Requirement 18
 }
 
 export interface UnresolvedCalculationItem {
@@ -474,6 +631,7 @@ export interface TariffCalculationResult {
   vat_amount: Decimal;
   total_inc_vat: Decimal;
   tax_breakdown?: TaxCalculationBreakdown; // Requirement 16
+  rounding_audit?: CalculationRoundingAudit; // Requirement 18
   audit_trace: CalculationAuditStep[];
 }
 

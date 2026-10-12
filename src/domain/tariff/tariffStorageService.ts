@@ -85,6 +85,16 @@ export class TariffStorageService {
   }
 
   /**
+   * Synchronously fetch all currently registered tariff versions in memory
+   */
+  public static getAllVersionsSync(): TariffVersionDefinition[] {
+    if (this.store.size === 0) {
+      this.resetToDefaults();
+    }
+    return Array.from(this.store.values());
+  }
+
+  /**
    * Fetch all registered tariff versions (from persistent store or Supabase)
    */
   public static async getAllVersions(): Promise<TariffVersionDefinition[]> {

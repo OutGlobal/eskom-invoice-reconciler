@@ -18,3 +18,6 @@ export * from "./tariffAssignmentEngine";
 export * from "./canonicalTariffEngine";
 export * from "./tariffProvenanceModel";
 export * from "./tariffImportPipeline";
+export * from "./roundingPolicyEngine";
+export * from "./tariffUnitNormalisationEngine";
+export * from "./tariffMatchingEngine";

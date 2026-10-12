@@ -17,6 +17,7 @@ import type {
 } from "./types";
 import { SOUTH_AFRICAN_VAT_RULES } from "./types";
 import { TouScheduleEngine } from "./touScheduleEngine";
+import { RoundingPolicyEngine, STANDARD_NERSA_ROUNDING_POLICY } from "./roundingPolicyEngine";
 
 export class DeterministicEngine {
   private static readonly VAT_RATE = new Decimal("0.15");
@@ -887,17 +888,28 @@ export class DeterministicEngine {
       tariffVersion.tax_rules ||
       SOUTH_AFRICAN_VAT_RULES;
 
-    const activeTaxRule =
-      availableTaxRules.find((rule) => {
-        const meetsFrom = !rule.effective_from || input.billing_start >= rule.effective_from;
-        const meetsTo = !rule.effective_to || input.billing_start <= rule.effective_to;
-        return meetsFrom && meetsTo;
-      }) || availableTaxRules[availableTaxRules.length - 1];
+    const activeTaxRule = availableTaxRules.find((rule) => {
+      const meetsFrom = !rule.effective_from || input.billing_start >= rule.effective_from;
+      const meetsTo = !rule.effective_to || input.billing_start <= rule.effective_to;
+      return meetsFrom && meetsTo;
+    });
 
-    let resolvedVatRate = activeTaxRule.rate;
-    if (tariffVersion.header.vat_treatment === "zero_rated") {
-      resolvedVatRate = new Decimal(0);
-    } else if (tariffVersion.header.vat_treatment === "exempt") {
+    const isHeaderZeroRated = tariffVersion.header.vat_treatment === "zero_rated";
+    const isHeaderExempt = tariffVersion.header.vat_treatment === "exempt";
+
+    // If the correct tax treatment cannot be established, flag it for review rather than guessing
+    if (!activeTaxRule && !isHeaderZeroRated && !isHeaderExempt) {
+      unresolvedItems.push({
+        component_code: "TAX_VAT",
+        component_name: "Value-Added Tax Treatment",
+        rule_id: "RULE_TAX_UNRESOLVED",
+        reason: `REVIEW_REQUIRED: The correct tax treatment cannot be established for billing start date '${input.billing_start}'. No configured tax rule matches the effective period.`,
+        missing_data: ["applicable_tax_rule"],
+      });
+    }
+
+    let resolvedVatRate = activeTaxRule ? activeTaxRule.rate : new Decimal(0);
+    if (isHeaderZeroRated || isHeaderExempt) {
       resolvedVatRate = new Decimal(0);
     }
 
@@ -911,9 +923,9 @@ export class DeterministicEngine {
         (c) => c.component_code === item.component_code || item.component_code.startsWith(c.component_code),
       );
       const compTaxStatus = compRule?.tax_status || (
-        tariffVersion.header.vat_treatment === "zero_rated"
+        isHeaderZeroRated
           ? "ZERO_RATED"
-          : tariffVersion.header.vat_treatment === "exempt"
+          : isHeaderExempt
           ? "EXEMPT"
           : "TAXABLE"
       );
@@ -927,20 +939,44 @@ export class DeterministicEngine {
       }
     }
 
-    const vatAmount = subtotalTaxable.mul(resolvedVatRate).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-    const totalIncVat = subtotalExVat.add(vatAmount);
+    // 9. Rounding Policy Application (Requirement 18)
+    const roundingPolicy = input.rounding_policy || STANDARD_NERSA_ROUNDING_POLICY;
+    const vatAmount = RoundingPolicyEngine.roundTax(
+      subtotalTaxable.mul(resolvedVatRate),
+      roundingPolicy,
+    );
+    const totalIncVat = RoundingPolicyEngine.roundFinalTotal(
+      subtotalExVat.add(vatAmount),
+      roundingPolicy,
+    );
 
     const taxBreakdown: TaxCalculationBreakdown = {
-      tax_rule_id: activeTaxRule.rule_id,
-      tax_name: activeTaxRule.tax_name,
+      tax_rule_id: activeTaxRule?.rule_id || (isHeaderZeroRated ? "VAT_ZERO_RATED" : isHeaderExempt ? "VAT_EXEMPT" : "TAX_UNRESOLVED"),
+      tax_name: activeTaxRule?.tax_name || (isHeaderZeroRated ? "Zero-Rated Supplies" : isHeaderExempt ? "Exempt Supplies" : "Unresolved Tax Treatment"),
       vat_rate: resolvedVatRate,
+      effective_period: {
+        from: activeTaxRule?.effective_from || "1900-01-01",
+        to: activeTaxRule?.effective_to,
+      },
+      taxable_base: subtotalTaxable,
       subtotal_taxable_ex_vat: subtotalTaxable,
       subtotal_zero_rated_ex_vat: subtotalZeroRated,
       subtotal_exempt_ex_vat: subtotalExempt,
+      applicable_rate: resolvedVatRate,
+      rounding_method: activeTaxRule?.rounding_method || roundingPolicy.tax_rounding_method,
+      calculated_tax: vatAmount,
       vat_amount: vatAmount,
+      source_reference: activeTaxRule?.source_reference || (activeTaxRule?.description || "Statutory VAT Regulations"),
       effective_date: input.billing_start,
       is_historical_rate: resolvedVatRate.eq(new Decimal("0.14")),
     };
+
+    const roundingAudit = RoundingPolicyEngine.auditCalculationRounding(
+      items,
+      subtotalExVat,
+      resolvedVatRate,
+      roundingPolicy,
+    );
 
     return {
       tariff_code: tariffVersion.header.tariff_code,
@@ -955,6 +991,7 @@ export class DeterministicEngine {
       vat_amount: vatAmount,
       total_inc_vat: totalIncVat,
       tax_breakdown: taxBreakdown,
+      rounding_audit: roundingAudit,
       audit_trace: auditTrace,
     };
   }
