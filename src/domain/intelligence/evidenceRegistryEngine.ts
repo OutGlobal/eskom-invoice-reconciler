@@ -59,7 +59,12 @@ export class EvidenceRegistryEngine {
     }
 
     // 2. Extract Billing Determinants and Line Items from tabular and textual streams
-    this.extractDeterministicBillingFields(lines, evidenceItems, () => `evi_${evidenceCounter++}`, docId);
+    this.extractDeterministicBillingFields(
+      lines,
+      evidenceItems,
+      () => `evi_${evidenceCounter++}`,
+      docId,
+    );
 
     return evidenceItems;
   }

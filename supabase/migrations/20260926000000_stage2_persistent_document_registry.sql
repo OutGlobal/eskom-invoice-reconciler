@@ -146,7 +146,8 @@ CREATE INDEX IF NOT EXISTS idx_uploads_upload_timestamp ON public.uploads (organ
 CREATE INDEX IF NOT EXISTS idx_uploads_checksum ON public.uploads (checksum);
 
 -- 6. Canonical Persistent Document Registry View
-CREATE OR REPLACE VIEW public.document_registry AS
+CREATE OR REPLACE VIEW public.document_registry
+WITH (security_invoker = true) AS
 SELECT
     u.id AS document_id,
     u.organisation_id,

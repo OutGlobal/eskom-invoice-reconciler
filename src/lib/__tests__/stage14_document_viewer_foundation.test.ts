@@ -255,7 +255,9 @@ describe("STAGE 14 — DOCUMENT VIEWER FOUNDATION", () => {
 
       // Truthful status without fabricating coordinates
       expect(html).toContain("Source identified on Page 1 via");
-      expect(html).toContain("Bounding box spatial coordinates model established (exact visual coordinates pending OCR calibration).");
+      expect(html).toContain(
+        "Bounding box spatial coordinates model established (exact visual coordinates pending OCR calibration).",
+      );
     });
 
     it("should display guidance when selected field belongs to a different page", () => {

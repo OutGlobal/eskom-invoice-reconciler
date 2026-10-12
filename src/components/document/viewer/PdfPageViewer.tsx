@@ -94,9 +94,7 @@ export const PdfPageViewer: React.FC<PdfPageViewerProps> = ({
             <div className="p-1 rounded bg-primary/10 text-primary">
               <FileText className="w-4 h-4" />
             </div>
-            <span className="text-xs font-bold text-foreground tracking-wide">
-              PDF VIEWER
-            </span>
+            <span className="text-xs font-bold text-foreground tracking-wide">PDF VIEWER</span>
           </div>
 
           <div
@@ -216,8 +214,9 @@ export const PdfPageViewer: React.FC<PdfPageViewerProps> = ({
             <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
               <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
               <span>
-                Selected field <strong className="text-foreground">{selectedField.fieldLabel}</strong>{" "}
-                was extracted from Page {selectedField.source.pageNumber}.
+                Selected field{" "}
+                <strong className="text-foreground">{selectedField.fieldLabel}</strong> was
+                extracted from Page {selectedField.source.pageNumber}.
               </span>
               <button
                 type="button"

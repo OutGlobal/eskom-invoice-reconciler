@@ -148,7 +148,9 @@ Total Amount Due R 2,268,199.63
     const lines = await TextExtractionEngine.extractTextLines(bytes, pages);
 
     expect(lines.length).toBeGreaterThan(5);
-    const hasAccountLine = lines.some((l) => l.text.includes("Account Number") || l.text.includes("7854321098"));
+    const hasAccountLine = lines.some(
+      (l) => l.text.includes("Account Number") || l.text.includes("7854321098"),
+    );
     expect(hasAccountLine).toBe(true);
 
     // Verify bounding box structure [x, y, w, h]
@@ -196,10 +198,9 @@ Total Amount Due R 2,268,199.63
 
     // Page 1 should be categorized as Tax Invoice Header or Line Items
     const p1Class = classification.pageClassifications[0];
-    expect([
-      "PAGE_TAX_INVOICE_HEADER",
-      "PAGE_LINE_ITEM_BREAKDOWN",
-    ]).toContain(p1Class.classification);
+    expect(["PAGE_TAX_INVOICE_HEADER", "PAGE_LINE_ITEM_BREAKDOWN"]).toContain(
+      p1Class.classification,
+    );
   });
 
   it("Stage 9: Extraction Evidence produces grounded determinants with coordinate bounding boxes", async () => {
@@ -218,7 +219,9 @@ Total Amount Due R 2,268,199.63
     expect(peakEvidence?.bbox).toHaveLength(4);
     expect(peakEvidence?.contextSnippet.length).toBeGreaterThan(0);
 
-    const totalDueEvidence = evidence.find((e) => e.fieldKey === "total_invoice_zar" || e.fieldKey === "total_due");
+    const totalDueEvidence = evidence.find(
+      (e) => e.fieldKey === "total_invoice_zar" || e.fieldKey === "total_due",
+    );
     expect(totalDueEvidence).toBeDefined();
     expect(totalDueEvidence?.normalizedValue).toBe(2268199.63);
   });
@@ -234,7 +237,7 @@ Total Amount Due R 2,268,199.63
       {
         skipStorageUpload: true,
         onProgress: (stage) => progressTrack.push(stage),
-      }
+      },
     );
 
     // Verify all 10 stages fired in sequential order
@@ -300,7 +303,7 @@ Total Amount Due R 2,268,199.63
       scannedBytes,
       "scanned_eskom_scan.pdf",
       TEST_ORG_ID,
-      { skipStorageUpload: true }
+      { skipStorageUpload: true },
     );
 
     // Scanned document must be flagged for OCR handoff and enter REVIEW_REQUIRED
@@ -341,7 +344,7 @@ Total Amount Due R 2,268,199.63
           documentId: testDocId,
           toState: "READY_FOR_VALIDATION",
           triggeredBy: "TEST_ILLEGAL",
-        })
+        }),
       ).rejects.toThrow(DocumentLifecycleTransitionError);
 
       // Transition history must still only contain UPLOADED and STORED
@@ -404,8 +407,8 @@ Total Amount Due R 2,268,199.63
           corruptBytes,
           "corrupted_document.pdf",
           TEST_ORG_ID,
-          { skipStorageUpload: true }
-        )
+          { skipStorageUpload: true },
+        ),
       ).rejects.toThrow(/PDF inspection failed/);
     });
 
@@ -424,13 +427,15 @@ Total Amount Due R 2,268,199.63
         nonUtilityBytes,
         "chocolate_cake_recipe.pdf",
         TEST_ORG_ID,
-        { skipStorageUpload: true }
+        { skipStorageUpload: true },
       );
 
       // The frontend / pipeline must NEVER pretend that processing succeeded for an unsupported file!
       expect(pkg.lifecycleState).toBe("UNSUPPORTED");
       expect(pkg.document.state).toBe("UNSUPPORTED");
-      expect(pkg.document.unsupportedReason).toContain("not a recognized Eskom or municipal utility invoice");
+      expect(pkg.document.unsupportedReason).toContain(
+        "not a recognized Eskom or municipal utility invoice",
+      );
 
       const finalTransition = pkg.stateTransitions[pkg.stateTransitions.length - 1];
       expect(finalTransition.toState).toBe("UNSUPPORTED");
@@ -443,16 +448,26 @@ Total Amount Due R 2,268,199.63
       expect(DocumentLifecycleManager.getStateLabel("INSPECTING")).toBe("Inspecting PDF");
       expect(DocumentLifecycleManager.getStateLabel("EXTRACTING")).toBe("Extracting Content");
       expect(DocumentLifecycleManager.getStateLabel("CLASSIFYING")).toBe("Classifying Document");
-      expect(DocumentLifecycleManager.getStateLabel("READY_FOR_VALIDATION")).toBe("Ready for Validation");
+      expect(DocumentLifecycleManager.getStateLabel("READY_FOR_VALIDATION")).toBe(
+        "Ready for Validation",
+      );
       expect(DocumentLifecycleManager.getStateLabel("REVIEW_REQUIRED")).toBe("Review Required");
       expect(DocumentLifecycleManager.getStateLabel("UNSUPPORTED")).toBe("Unsupported Format");
       expect(DocumentLifecycleManager.getStateLabel("FAILED")).toBe("Processing Failed");
 
       // Verify color tokens prevent green success badges on attention/failure states
-      expect(DocumentLifecycleManager.getStateColor("REVIEW_REQUIRED").badgeClass).toContain("text-amber-400");
-      expect(DocumentLifecycleManager.getStateColor("UNSUPPORTED").badgeClass).toContain("text-zinc-300");
-      expect(DocumentLifecycleManager.getStateColor("FAILED").badgeClass).toContain("text-rose-400");
-      expect(DocumentLifecycleManager.getStateColor("READY_FOR_VALIDATION").badgeClass).toContain("text-emerald-400");
+      expect(DocumentLifecycleManager.getStateColor("REVIEW_REQUIRED").badgeClass).toContain(
+        "text-amber-400",
+      );
+      expect(DocumentLifecycleManager.getStateColor("UNSUPPORTED").badgeClass).toContain(
+        "text-zinc-300",
+      );
+      expect(DocumentLifecycleManager.getStateColor("FAILED").badgeClass).toContain(
+        "text-rose-400",
+      );
+      expect(DocumentLifecycleManager.getStateColor("READY_FOR_VALIDATION").badgeClass).toContain(
+        "text-emerald-400",
+      );
     });
   });
 });

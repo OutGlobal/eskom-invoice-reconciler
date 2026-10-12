@@ -162,21 +162,13 @@ startxref
 
     it("should NOT identify duplicate when same filename has different content and checksum", async () => {
       // Month 1 bill named "bill.pdf"
-      const pkg1 = await DocumentIntelligencePipeline.processDocument(
-        bytes1,
-        "bill.pdf",
-        TENANT_A,
-      );
+      const pkg1 = await DocumentIntelligencePipeline.processDocument(bytes1, "bill.pdf", TENANT_A);
 
       expect(pkg1.isDuplicate).toBeFalsy();
       const doc1Id = pkg1.document.documentId;
 
       // Month 2 bill also named "bill.pdf", but containing different bytes/checksum
-      const pkg2 = await DocumentIntelligencePipeline.processDocument(
-        bytes2,
-        "bill.pdf",
-        TENANT_A,
-      );
+      const pkg2 = await DocumentIntelligencePipeline.processDocument(bytes2, "bill.pdf", TENANT_A);
 
       // Must NOT be marked as duplicate
       expect(pkg2.isDuplicate).toBeFalsy();

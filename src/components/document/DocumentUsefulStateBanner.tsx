@@ -9,7 +9,10 @@ import {
   HelpCircle,
   FileSearch,
 } from "lucide-react";
-import type { UsefulDocumentState, UsefulStateConfig } from "@/domain/intelligence/frontendDocumentTypes";
+import type {
+  UsefulDocumentState,
+  UsefulStateConfig,
+} from "@/domain/intelligence/frontendDocumentTypes";
 import { USEFUL_DOCUMENT_STATES } from "@/domain/intelligence/frontendDocumentTypes";
 
 interface DocumentUsefulStateBannerProps {

@@ -330,22 +330,38 @@ export class DocumentErrorService {
   ): DocumentErrorCode {
     const lower = message.toLowerCase();
 
-    if (lower.includes("corrupt") || lower.includes("missing %pdf") || lower.includes("malformed")) {
+    if (
+      lower.includes("corrupt") ||
+      lower.includes("missing %pdf") ||
+      lower.includes("malformed")
+    ) {
       return "PDF_CORRUPTED";
     }
     if (lower.includes("password") || lower.includes("encrypt") || lower.includes("permission")) {
       return "PDF_PASSWORD_PROTECTED";
     }
-    if (lower.includes("unsupported") || lower.includes("not a recognized") || lower.includes("invalid format")) {
+    if (
+      lower.includes("unsupported") ||
+      lower.includes("not a recognized") ||
+      lower.includes("invalid format")
+    ) {
       return "UNSUPPORTED_FORMAT";
     }
     if (lower.includes("text extraction") || lower.includes("font") || lower.includes("token")) {
       return "TEXT_EXTRACTION_FAILED";
     }
-    if (lower.includes("layout") || lower.includes("table extraction") || lower.includes("column")) {
+    if (
+      lower.includes("layout") ||
+      lower.includes("table extraction") ||
+      lower.includes("column")
+    ) {
       return "LAYOUT_EXTRACTION_FAILED";
     }
-    if (lower.includes("page extraction") || lower.includes("viewport") || lower.includes("geometry")) {
+    if (
+      lower.includes("page extraction") ||
+      lower.includes("viewport") ||
+      lower.includes("geometry")
+    ) {
       return "PAGE_PROCESSING_FAILED";
     }
     if (lower.includes("classification") || lower.includes("tariff")) {
@@ -354,7 +370,12 @@ export class DocumentErrorService {
     if (lower.includes("storage") || lower.includes("bucket") || lower.includes("vault")) {
       return "STORAGE_ERROR";
     }
-    if (lower.includes("database") || lower.includes("supabase") || lower.includes("relation") || lower.includes("query")) {
+    if (
+      lower.includes("database") ||
+      lower.includes("supabase") ||
+      lower.includes("relation") ||
+      lower.includes("query")
+    ) {
       return "DATABASE_ERROR";
     }
 

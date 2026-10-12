@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  CheckCircle2,
-  RefreshCw,
-  Clock,
-  XCircle,
-  AlertTriangle,
-  Info,
-} from "lucide-react";
+import { CheckCircle2, RefreshCw, Clock, XCircle, AlertTriangle, Info } from "lucide-react";
 import type {
   TruthfulPipelineStage,
   TruthfulStageExecutionStatus,
@@ -129,9 +122,17 @@ export const TruthfulStagesTracker: React.FC<TruthfulStagesTrackerProps> = ({
       {showDescriptions && (
         <div className="pt-2 border-t border-border/20 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-muted-foreground">
           {stages
-            .filter((s) => s.executionStatus === "RUNNING" || s.executionStatus === "FAILED" || s.executionStatus === "REVIEW_REQUIRED")
+            .filter(
+              (s) =>
+                s.executionStatus === "RUNNING" ||
+                s.executionStatus === "FAILED" ||
+                s.executionStatus === "REVIEW_REQUIRED",
+            )
             .map((s) => (
-              <div key={s.id} className="p-2 rounded-lg bg-muted/20 border border-border/20 flex items-start gap-2">
+              <div
+                key={s.id}
+                className="p-2 rounded-lg bg-muted/20 border border-border/20 flex items-start gap-2"
+              >
                 <Info className="w-3.5 h-3.5 mt-0.5 text-primary shrink-0" />
                 <div>
                   <span className="font-semibold text-foreground">{s.label}: </span>

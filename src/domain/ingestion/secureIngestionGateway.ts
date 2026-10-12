@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { MimeInspector } from "./mimeInspector";
 import { SignedUrlService } from "./signedUrlService";
 import { QuarantineManager } from "./quarantineManager";
+import { ScannedInvoiceOcrAdapter } from "../ocr/scannedInvoiceOcrAdapter";
 import { PdfInvoiceAdapter } from "./adapters/pdfInvoiceAdapter";
 import { AmrCsvAdapter } from "./adapters/amrCsvAdapter";
 import { AmrXlsxAdapter } from "./adapters/amrXlsxAdapter";
@@ -47,6 +48,7 @@ import { LocalWorkspaceStore } from "@/lib/localWorkspaceStore";
 export class SecureIngestionGateway {
   private static processedHashes: Map<string, IngestionGatewayResult> = new Map();
   private static adapters: ILayoutAdapter[] = [
+    new ScannedInvoiceOcrAdapter(),
     new PdfInvoiceAdapter(),
     new AmrCsvAdapter(),
     new AmrXlsxAdapter(),
@@ -1069,11 +1071,16 @@ export class SecureIngestionGateway {
           : null;
 
     // Update persistent upload record
+    const extractedPageCount = (extractRes as any).pageCount || (resolvedFileType === "PDF_INVOICE" ? 1 : null);
     uploadRecord = await UploadStorageService.updateUploadStatus(
       documentId,
       {
         processingStatus: finalProcessingStatus,
         processingCompletion: new Date().toISOString(),
+        pageCount: extractedPageCount,
+        documentClassification: (extractRes as any).documentType || "PDF_INVOICE",
+        extractionStatus: "COMPLETED",
+        ocrStatus: (extractRes as any).ocrRequired ? "COMPLETED" : "NOT_REQUIRED",
         rowCount,
         recordCount,
         validationStatus: finalValidationStatus,
@@ -1082,7 +1089,7 @@ export class SecureIngestionGateway {
         metadata: {
           confidenceScore: extractRes.confidenceScore,
           parserAdapter: adapter.constructor.name,
-          documentType: extractRes.documentType,
+          documentType: extractRes.documentType || "PDF_INVOICE",
           accountNumber: linkedCustomer?.accountNumber || "",
           customerName: linkedCustomer?.customerName || "",
           meterNumber: extractedMeterNumber,

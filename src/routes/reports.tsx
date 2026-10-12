@@ -278,7 +278,11 @@ function ReportsPage() {
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={varianceChartData} margin={{ top: 8, right: 8, bottom: 40 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--border))"
+                    vertical={false}
+                  />
                   <XAxis
                     dataKey="name"
                     angle={-32}
@@ -298,7 +302,12 @@ function ReportsPage() {
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="calculated" name="Calculated" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+                  <Bar
+                    dataKey="calculated"
+                    name="Calculated"
+                    fill="hsl(var(--primary))"
+                    radius={[3, 3, 0, 0]}
+                  />
                   <Bar dataKey="invoiced" name="Invoiced" fill="#64748b" radius={[3, 3, 0, 0]} />
                   <Line
                     type="monotone"
@@ -326,7 +335,11 @@ function ReportsPage() {
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={timeline} margin={{ top: 8, right: 8, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--border))"
+                    vertical={false}
+                  />
                   <XAxis
                     dataKey="label"
                     tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
@@ -379,7 +392,6 @@ function ReportsPage() {
           )}
         </Panel>
       </div>
-
 
       <Panel
         title="Historical Utility Billing Comparison Matrix"

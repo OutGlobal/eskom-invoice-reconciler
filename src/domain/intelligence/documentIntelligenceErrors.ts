@@ -44,8 +44,7 @@ export class DocumentIntelligenceError extends Error {
     this.details = params.details || {};
     this.isFatal = params.isFatal ?? true;
     this.userMessage =
-      params.userMessage ||
-      `Document processing failed at ${params.stage}: ${params.message}`;
+      params.userMessage || `Document processing failed at ${params.stage}: ${params.message}`;
     this.timestamp = new Date().toISOString();
 
     if (params.cause) {
@@ -85,7 +84,8 @@ export class PdfPasswordProtectedError extends DocumentIntelligenceError {
       errorCode: "PDF_PASSWORD_PROTECTED",
       stage: params.stage || "PDF_INSPECTION",
       message,
-      userMessage: "The document is password-protected or encrypted. Please upload an unprotected file.",
+      userMessage:
+        "The document is password-protected or encrypted. Please upload an unprotected file.",
       ...params,
     });
     this.name = "PdfPasswordProtectedError";
@@ -104,7 +104,8 @@ export class UnsupportedFormatError extends DocumentIntelligenceError {
       errorCode: "UNSUPPORTED_FORMAT",
       stage: params.stage || "DOCUMENT_CLASSIFICATION",
       message,
-      userMessage: "The document format is not currently supported for automated billing reconciliation.",
+      userMessage:
+        "The document format is not currently supported for automated billing reconciliation.",
       ...params,
     });
     this.name = "UnsupportedFormatError";
@@ -266,7 +267,8 @@ export class TenantIsolationViolationSecurityError extends DocumentIntelligenceE
       errorCode: "UNAUTHORIZED_TENANT_ACCESS",
       stage: params.stage || "UPLOAD",
       message,
-      userMessage: "You do not have permission to access documents belonging to another organisation.",
+      userMessage:
+        "You do not have permission to access documents belonging to another organisation.",
       ...params,
     });
     this.name = "TenantIsolationViolationSecurityError";
@@ -316,7 +318,8 @@ export class PathTraversalSecurityError extends DocumentIntelligenceError {
       errorCode: "PATH_TRAVERSAL_DETECTED",
       stage: params.stage || "UPLOAD",
       message,
-      userMessage: "The provided filename or storage path is invalid and violates security policies.",
+      userMessage:
+        "The provided filename or storage path is invalid and violates security policies.",
       ...params,
     });
     this.name = "PathTraversalSecurityError";
@@ -394,4 +397,3 @@ export class SecretExposureSecurityError extends DocumentIntelligenceError {
     this.exposedKeys = params.exposedKeys;
   }
 }
-

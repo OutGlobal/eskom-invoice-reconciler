@@ -36,8 +36,11 @@ import type { UploadRecord } from "@/domain/upload/types";
 import { PersistentDocumentIntelligenceService } from "@/domain/intelligence/persistentDocumentIntelligenceService";
 
 interface DocumentProcessingViewProps {
-  documents?: (Partial<DocumentRegistryRecord> | Partial<UploadRecord> | DocumentTreeViewModel | any)[];
-  activeDocument?: Partial<DocumentRegistryRecord> | Partial<UploadRecord> | DocumentTreeViewModel | any | null;
+  documents?: (
+    Partial<DocumentRegistryRecord> | Partial<UploadRecord> | DocumentTreeViewModel | any
+  )[];
+  activeDocument?:
+    Partial<DocumentRegistryRecord> | Partial<UploadRecord> | DocumentTreeViewModel | any | null;
   isProcessing?: boolean;
   onRetryProcessing?: (documentId: string) => void;
   onDownloadSecureFile?: (documentId: string, filename: string) => void;
@@ -58,11 +61,14 @@ export const DocumentProcessingView: React.FC<DocumentProcessingViewProps> = ({
   title = "Document Intelligence Processing",
   description = "Verifiable page extraction, layout modeling, and determinant evidence provenance.",
 }) => {
-  const [selectedStateFilter, setSelectedStateFilter] = useState<"ALL" | UsefulDocumentState>("ALL");
+  const [selectedStateFilter, setSelectedStateFilter] = useState<"ALL" | UsefulDocumentState>(
+    "ALL",
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [viewLayout, setViewLayout] = useState<"cards" | "tree-list">("tree-list");
   const [inspectingDoc, setInspectingDoc] = useState<DocumentTreeViewModel | null>(null);
-  const [viewingDocumentInViewer, setViewingDocumentInViewer] = useState<DocumentTreeViewModel | null>(null);
+  const [viewingDocumentInViewer, setViewingDocumentInViewer] =
+    useState<DocumentTreeViewModel | null>(null);
 
   // Convert raw inputs to DocumentTreeViewModels
   const viewModels: DocumentTreeViewModel[] = useMemo(() => {
@@ -201,9 +207,7 @@ export const DocumentProcessingView: React.FC<DocumentProcessingViewProps> = ({
                 : "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"
             }`}
           >
-            <RefreshCw
-              className={`w-3 h-3 ${counts.processing > 0 ? "animate-spin" : ""}`}
-            />
+            <RefreshCw className={`w-3 h-3 ${counts.processing > 0 ? "animate-spin" : ""}`} />
             <span>Processing</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-primary/20 font-mono">
               {counts.processing}
@@ -368,7 +372,9 @@ export const DocumentProcessingView: React.FC<DocumentProcessingViewProps> = ({
                       <h4 className="font-semibold text-sm text-foreground truncate max-w-[240px]">
                         {doc.filename}
                       </h4>
-                      <p className="text-xs font-mono text-muted-foreground">{doc.uploadDateFormatted}</p>
+                      <p className="text-xs font-mono text-muted-foreground">
+                        {doc.uploadDateFormatted}
+                      </p>
                     </div>
                     <span
                       className={`px-2 py-0.5 text-[11px] font-bold rounded-full border ${
@@ -428,8 +434,12 @@ export const DocumentProcessingView: React.FC<DocumentProcessingViewProps> = ({
               <div className="flex items-center gap-2.5">
                 <FileText className="w-5 h-5 text-primary" />
                 <div>
-                  <h3 className="text-base font-semibold text-foreground">Document Tree Inspection</h3>
-                  <p className="text-xs text-muted-foreground font-mono">{inspectingDoc.documentId}</p>
+                  <h3 className="text-base font-semibold text-foreground">
+                    Document Tree Inspection
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    {inspectingDoc.documentId}
+                  </p>
                 </div>
               </div>
               <button
@@ -509,8 +519,8 @@ export const DocumentProcessingView: React.FC<DocumentProcessingViewProps> = ({
                   f.confidenceTier === "HIGH"
                     ? "HIGH"
                     : f.confidenceTier === "MEDIUM"
-                    ? "MEDIUM"
-                    : "LOW",
+                      ? "MEDIUM"
+                      : "LOW",
                 source: {
                   documentId: viewingDocumentInViewer.documentId,
                   pageNumber: f.pageNumber || 1,
@@ -527,13 +537,13 @@ export const DocumentProcessingView: React.FC<DocumentProcessingViewProps> = ({
                   f.fieldKey?.includes("charge")
                     ? "FINANCIAL"
                     : f.fieldKey?.includes("energy") ||
-                      f.fieldKey?.includes("kwh") ||
-                      f.fieldKey?.includes("demand") ||
-                      f.fieldKey?.includes("kva")
-                    ? "ENERGY"
-                    : f.fieldKey?.includes("date") || f.fieldKey?.includes("period")
-                    ? "DATE"
-                    : "IDENTIFIER",
+                        f.fieldKey?.includes("kwh") ||
+                        f.fieldKey?.includes("demand") ||
+                        f.fieldKey?.includes("kva")
+                      ? "ENERGY"
+                      : f.fieldKey?.includes("date") || f.fieldKey?.includes("period")
+                        ? "DATE"
+                        : "IDENTIFIER",
               }));
             })()}
             onClose={() => setViewingDocumentInViewer(null)}
@@ -544,4 +554,3 @@ export const DocumentProcessingView: React.FC<DocumentProcessingViewProps> = ({
     </div>
   );
 };
-

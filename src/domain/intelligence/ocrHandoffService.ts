@@ -197,7 +197,8 @@ export function buildCleanOcrHandoffPackage(params: {
       rotation: p.rotation,
     });
 
-    const nativeText = p.rawText !== undefined ? sanitizePageText(p.rawText, p.pageNumber) : undefined;
+    const nativeText =
+      p.rawText !== undefined ? sanitizePageText(p.rawText, p.pageNumber) : undefined;
 
     return {
       pageNumber: p.pageNumber,
@@ -289,7 +290,8 @@ export function buildCleanAiValidationHandoffPackage(params: {
     },
     {
       checkKey: "CHECK_METER_CONSUMPTION_INTEGRITY",
-      description: "Verify (Current Reading - Previous Reading) * Multiplying Factor matches Total kWh.",
+      description:
+        "Verify (Current Reading - Previous Reading) * Multiplying Factor matches Total kWh.",
       mandatory: true,
       expectedDataType: "number",
     },
@@ -329,7 +331,10 @@ export function createPipelineStepExecutionRecord(params: {
   let durationMs: number | undefined;
 
   if (params.completedAt) {
-    durationMs = Math.max(0, new Date(params.completedAt).getTime() - new Date(startedAt).getTime());
+    durationMs = Math.max(
+      0,
+      new Date(params.completedAt).getTime() - new Date(startedAt).getTime(),
+    );
   }
 
   const stageIndex = PIPELINE_STAGE_SEQUENCE.indexOf(params.stage);

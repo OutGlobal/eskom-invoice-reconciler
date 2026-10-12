@@ -10,11 +10,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { ProvenanceGuard } from "./provenanceGuard";
-import type {
-  FieldProvenanceRef,
-  ProvenancedField,
-  ProvenanceTraceSummary,
-} from "./types";
+import type { FieldProvenanceRef, ProvenancedField, ProvenanceTraceSummary } from "./types";
 
 export class DocumentEvidenceService {
   // In-memory fallback store: documentId -> (fieldKey -> ProvenancedField)

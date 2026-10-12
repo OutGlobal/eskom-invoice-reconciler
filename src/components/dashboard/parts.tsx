@@ -93,9 +93,8 @@ export function useDerived() {
       ? Number(invoice.extraction.fields.powerFactor.value)
       : 1;
     const parsedDemandDate = invoice?.billingDate ? new Date(invoice.billingDate) : null;
-    const maxDemandAt = parsedDemandDate && !Number.isNaN(parsedDemandDate.getTime())
-      ? parsedDemandDate
-      : null;
+    const maxDemandAt =
+      parsedDemandDate && !Number.isNaN(parsedDemandDate.getTime()) ? parsedDemandDate : null;
     const exceedanceKVA = Math.max(0, maxDemandKVA - nmd);
 
     return {

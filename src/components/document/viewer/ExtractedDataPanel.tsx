@@ -41,7 +41,9 @@ export const ExtractedDataPanel: React.FC<ExtractedDataPanelProps> = ({
         const q = searchQuery.toLowerCase();
         const matchesKey = f.fieldKey.toLowerCase().includes(q);
         const matchesLabel = f.fieldLabel.toLowerCase().includes(q);
-        const matchesVal = String(f.value ?? "").toLowerCase().includes(q);
+        const matchesVal = String(f.value ?? "")
+          .toLowerCase()
+          .includes(q);
         const matchesSource = f.source.sourceDescription.toLowerCase().includes(q);
         return matchesKey || matchesLabel || matchesVal || matchesSource;
       }

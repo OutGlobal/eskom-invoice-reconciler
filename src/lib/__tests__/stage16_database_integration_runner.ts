@@ -78,13 +78,20 @@ async function runStage16TestSuite() {
 
   // Stage 1 & 2: Supabase Storage path
   assert(
-    record.storagePath.includes(`documents/${TEST_ORG_A}/`) && record.storagePath.includes(mockPdf.name),
+    record.storagePath.includes(`documents/${TEST_ORG_A}/`) &&
+      record.storagePath.includes(mockPdf.name),
     "Supabase Storage path contains organisationId and filename",
   );
 
   // Stage 3: Document Registry ID & SHA-256 checksum
-  assert(/^DOC-[A-F0-9]{12}$/.test(record.documentId), "Authoritative Document Registry ID format (DOC-XXXXXXXXXXXX)");
-  assert(typeof record.checksum === "string" && record.checksum.length >= 16, "Cryptographic checksum generated");
+  assert(
+    /^DOC-[A-F0-9]{12}$/.test(record.documentId),
+    "Authoritative Document Registry ID format (DOC-XXXXXXXXXXXX)",
+  );
+  assert(
+    typeof record.checksum === "string" && record.checksum.length >= 16,
+    "Cryptographic checksum generated",
+  );
 
   // Stage 4: Processing Deterministic Extraction
   assert(record.processingStatus === "PROCESSED", "Processing status reached PROCESSED");
@@ -97,7 +104,10 @@ async function runStage16TestSuite() {
   assert(record.financialDeterminants !== undefined, "Financial determinants payload created");
   assert(record.financialDeterminants?.accountNumber === "1234567890", "Account number extracted");
   assert(record.financialDeterminants?.totalAmountDue === 187450.25, "Total amount due extracted");
-  assert(record.financialDeterminants?.activeEnergyKwh === 45820, "Total energy consumption extracted");
+  assert(
+    record.financialDeterminants?.activeEnergyKwh === 45820,
+    "Total energy consumption extracted",
+  );
   assert(record.financialDeterminants?.tariffCode === "MEGAFLEX_RURAL", "Tariff code extracted");
 
   // Stage 6: Dashboard Hydration
@@ -150,7 +160,10 @@ async function runStage16TestSuite() {
     userId: TEST_USER,
   });
 
-  assert(useApp.getState().invoice?.accountNumber === "1234567890", "Store initialised before refresh");
+  assert(
+    useApp.getState().invoice?.accountNumber === "1234567890",
+    "Store initialised before refresh",
+  );
 
   // SIMULATE BROWSER REFRESH (F5):
   // All volatile React memory state and runtime cache are wiped
@@ -161,14 +174,21 @@ async function runStage16TestSuite() {
   assert(useApp.getState().invoice === null, "React store cleared to simulate refresh");
 
   // Rehydrate on page load / refresh
-  const rehydrated = await PersistentDocumentIntelligenceService.rehydrateOnSessionStart(TEST_ORG_A);
+  const rehydrated =
+    await PersistentDocumentIntelligenceService.rehydrateOnSessionStart(TEST_ORG_A);
   assert(rehydrated === true, "rehydrateOnSessionStart returned true");
 
   const refreshedStore = useApp.getState();
-  assert(refreshedStore.invoice?.accountNumber === "1234567890", "Restored accountNumber after refresh");
+  assert(
+    refreshedStore.invoice?.accountNumber === "1234567890",
+    "Restored accountNumber after refresh",
+  );
   assert(refreshedStore.invoice?.amountDue === 187450.25, "Restored amountDue after refresh");
   assert(refreshedStore.invoice?.totalKwh === 45820, "Restored totalKwh after refresh");
-  assert(refreshedStore.invoice?.tariffType === "MEGAFLEX_RURAL", "Restored tariffType after refresh");
+  assert(
+    refreshedStore.invoice?.tariffType === "MEGAFLEX_RURAL",
+    "Restored tariffType after refresh",
+  );
   assert(refreshedStore.customer.accountNumber === "1234567890", "Restored customer after refresh");
 
   const directLoaded = await PersistentDocumentIntelligenceService.loadPersistedDocumentState(
@@ -206,11 +226,15 @@ async function runStage16TestSuite() {
 
   // SIMULATE LOGIN:
   // User logs back in -> rehydration on session start for Org A
-  const sessionRehydrated = await PersistentDocumentIntelligenceService.rehydrateOnSessionStart(TEST_ORG_A);
+  const sessionRehydrated =
+    await PersistentDocumentIntelligenceService.rehydrateOnSessionStart(TEST_ORG_A);
   assert(sessionRehydrated === true, "Session rehydration succeeded on login");
 
   const loggedInStore = useApp.getState();
-  assert(loggedInStore.invoice?.accountNumber === "1234567890", "Processing state intact after login");
+  assert(
+    loggedInStore.invoice?.accountNumber === "1234567890",
+    "Processing state intact after login",
+  );
   assert(loggedInStore.invoice?.amountDue === 187450.25, "Financial amount due intact after login");
   assert(loggedInStore.invoice?.tariffType === "MEGAFLEX_RURAL", "Tariff code intact after login");
 
@@ -259,7 +283,10 @@ async function runStage16TestSuite() {
   assert(accountField?.value === "1234567890", "Account number value matches");
   assert(accountField?.confidenceScore >= 0.95, "Account number confidence is high");
   assert(accountField?.hasExactBoundingBox === true, "Bounding box flag set");
-  assert(Array.isArray(accountField?.boundingBox) && accountField?.boundingBox.length === 4, "Bounding box coordinates valid");
+  assert(
+    Array.isArray(accountField?.boundingBox) && accountField?.boundingBox.length === 4,
+    "Bounding box coordinates valid",
+  );
 
   const totalField = provRecord.extractedFields.find((f) => f.fieldKey === "total_amount_due");
   assert(totalField !== undefined, "Total amount field exists");

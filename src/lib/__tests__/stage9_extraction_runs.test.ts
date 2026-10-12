@@ -44,10 +44,7 @@ import {
   ProvenanceGuard,
   DocumentIntelligencePipeline,
 } from "../../domain/intelligence";
-import type {
-  DocumentExtractionRun,
-  ProvenancedField,
-} from "../../domain/intelligence/types";
+import type { DocumentExtractionRun, ProvenancedField } from "../../domain/intelligence/types";
 
 describe("Stage 9 — Extraction Runs & Historical Processing Architecture", () => {
   beforeEach(async () => {

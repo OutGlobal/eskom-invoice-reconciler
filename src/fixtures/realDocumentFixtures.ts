@@ -469,7 +469,8 @@ export function createDuplicatePdfBytes(): Uint8Array {
  * Synthesizes a high-volume PDF (1+ MB) by expanding valid repetitive data streams.
  */
 export function createLargePdfBytes(targetSizeKb = 1024): Uint8Array {
-  const line = "DATA BLOCK ROW: Eskom Transmission and Distribution Reconciliation Telemetry Stream Verification.";
+  const line =
+    "DATA BLOCK ROW: Eskom Transmission and Distribution Reconciliation Telemetry Stream Verification.";
   const targetBytes = targetSizeKb * 1024;
   let streamData = "";
   let counter = 0;

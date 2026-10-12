@@ -545,7 +545,9 @@ Total Amount Due R 2,268,199.63
       expect(retrieved?.documentId).toBe(doc.documentId);
       expect(retrieved?.processingStatus).toBe("READY_FOR_VALIDATION");
       expect(retrieved?.pageCount).toBe(2);
-      expect(["UTILITY_INVOICE", "ESKOM_MEGAFLEX_INVOICE"]).toContain(retrieved?.documentClassification);
+      expect(["UTILITY_INVOICE", "ESKOM_MEGAFLEX_INVOICE"]).toContain(
+        retrieved?.documentClassification,
+      );
     });
 
     it("registers scanned PDF requiring OCR with ocrStatus=QUEUED and processingStatus=REVIEW_REQUIRED", async () => {

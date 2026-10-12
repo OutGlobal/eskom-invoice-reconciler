@@ -43,15 +43,11 @@ export class DocumentExtractionRunManager {
   /**
    * Start a new processing run for a document
    */
-  public static async startRun(
-    options: StartExtractionRunOptions,
-  ): Promise<DocumentExtractionRun> {
+  public static async startRun(options: StartExtractionRunOptions): Promise<DocumentExtractionRun> {
     const runId = options.runId || crypto.randomUUID();
     const documentId = options.documentId;
-    const organisationId =
-      options.organisationId || "00000000-0000-0000-0000-000000000001";
-    const extractionVersion =
-      options.extractionVersion || this.DEFAULT_EXTRACTION_VERSION;
+    const organisationId = options.organisationId || "00000000-0000-0000-0000-000000000001";
+    const extractionVersion = options.extractionVersion || this.DEFAULT_EXTRACTION_VERSION;
     const extractionMethod = options.extractionMethod || "NATIVE_PDF_TEXT";
     const started = new Date().toISOString();
 
@@ -293,9 +289,7 @@ export class DocumentExtractionRunManager {
   /**
    * Retrieve the exact provenanced fields extracted in a specific historical run
    */
-  public static async getRunEvidence(
-    runId: string,
-  ): Promise<Record<string, ProvenancedField>> {
+  public static async getRunEvidence(runId: string): Promise<Record<string, ProvenancedField>> {
     const run = await this.getRun(runId);
     if (!run) return {};
 
@@ -354,10 +348,7 @@ export class DocumentExtractionRunManager {
   /**
    * Compare two processing runs for the same document to detect algorithm improvements or discrepancies
    */
-  public static async compareRuns(
-    runIdA: string,
-    runIdB: string,
-  ): Promise<RunComparisonDiff> {
+  public static async compareRuns(runIdA: string, runIdB: string): Promise<RunComparisonDiff> {
     const runA = await this.getRun(runIdA);
     const runB = await this.getRun(runIdB);
 
