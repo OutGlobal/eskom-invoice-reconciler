@@ -18,11 +18,7 @@
  */
 
 import Decimal from "decimal.js-light";
-import {
-  VarianceEngine,
-  type DecimalInput,
-  type VarianceResult,
-} from "./varianceEngine";
+import { VarianceEngine, type DecimalInput, type VarianceResult } from "./varianceEngine";
 import {
   type VarianceStatus,
   resolveVarianceStatus,
@@ -30,11 +26,7 @@ import {
 } from "./varianceStatus";
 
 export type ToleranceDimension =
-  | "energy_quantity"
-  | "demand"
-  | "reactive_energy"
-  | "financial_amount"
-  | "financial_percentage";
+  "energy_quantity" | "demand" | "reactive_energy" | "financial_amount" | "financial_percentage";
 
 export interface EnergyQuantityToleranceConfig {
   /** Absolute kWh tolerance (e.g. 100.00 kWh) */
@@ -156,7 +148,8 @@ export const STRICT_AUDIT_TOLERANCE_CONFIG: Readonly<ToleranceModelConfig> = {
   config_id: "ENERA_STRICT_AUDIT_PROFILE",
   version: "2026.1.0",
   name: "Strict Audit & Dispute Forensic Tolerance Matrix",
-  description: "Tightened tolerance boundaries for formal billing disputes and forensic reconciliation.",
+  description:
+    "Tightened tolerance boundaries for formal billing disputes and forensic reconciliation.",
   source: "PROFILE_OVERRIDE",
   dimensions: {
     energy_quantity: {
@@ -303,12 +296,14 @@ export class CentralToleranceRegistry {
     switch (dimension) {
       case "energy_quantity": {
         const dim = profile.dimensions.energy_quantity;
-        absTol = options?.customAbsolute !== undefined
-          ? VarianceEngine.toDecimal(options.customAbsolute).abs()
-          : dim.absolute_kwh;
-        pctTol = options?.customPercentage !== undefined
-          ? VarianceEngine.toDecimal(options.customPercentage).abs()
-          : dim.percentage;
+        absTol =
+          options?.customAbsolute !== undefined
+            ? VarianceEngine.toDecimal(options.customAbsolute).abs()
+            : dim.absolute_kwh;
+        pctTol =
+          options?.customPercentage !== undefined
+            ? VarianceEngine.toDecimal(options.customPercentage).abs()
+            : dim.percentage;
         unit = unit || "kWh";
         rule = rule || `|diff| ≤ ${absTol.toString()} kWh OR |diff %| ≤ ${pctTol.toString()}%`;
         break;
@@ -316,12 +311,16 @@ export class CentralToleranceRegistry {
 
       case "demand": {
         const dim = profile.dimensions.demand;
-        absTol = options?.customAbsolute !== undefined
-          ? VarianceEngine.toDecimal(options.customAbsolute).abs()
-          : (unit.toLowerCase().includes("kw") ? dim.absolute_kw : dim.absolute_kva);
-        pctTol = options?.customPercentage !== undefined
-          ? VarianceEngine.toDecimal(options.customPercentage).abs()
-          : dim.percentage;
+        absTol =
+          options?.customAbsolute !== undefined
+            ? VarianceEngine.toDecimal(options.customAbsolute).abs()
+            : unit.toLowerCase().includes("kw")
+              ? dim.absolute_kw
+              : dim.absolute_kva;
+        pctTol =
+          options?.customPercentage !== undefined
+            ? VarianceEngine.toDecimal(options.customPercentage).abs()
+            : dim.percentage;
         unit = unit || "kVA";
         rule = rule || `|diff| ≤ ${absTol.toString()} ${unit} OR |diff %| ≤ ${pctTol.toString()}%`;
         break;
@@ -329,14 +328,16 @@ export class CentralToleranceRegistry {
 
       case "reactive_energy": {
         const dim = profile.dimensions.reactive_energy;
-        absTol = options?.customAbsolute !== undefined
-          ? VarianceEngine.toDecimal(options.customAbsolute).abs()
-          : (unit.toLowerCase().includes("pf") || unit.toLowerCase().includes("power")
+        absTol =
+          options?.customAbsolute !== undefined
+            ? VarianceEngine.toDecimal(options.customAbsolute).abs()
+            : unit.toLowerCase().includes("pf") || unit.toLowerCase().includes("power")
               ? dim.power_factor_absolute
-              : dim.absolute_kvarh);
-        pctTol = options?.customPercentage !== undefined
-          ? VarianceEngine.toDecimal(options.customPercentage).abs()
-          : dim.percentage;
+              : dim.absolute_kvarh;
+        pctTol =
+          options?.customPercentage !== undefined
+            ? VarianceEngine.toDecimal(options.customPercentage).abs()
+            : dim.percentage;
         unit = unit || "kVArh";
         rule = rule || `|diff| ≤ ${absTol.toString()} ${unit} OR |diff %| ≤ ${pctTol.toString()}%`;
         break;
@@ -344,9 +345,10 @@ export class CentralToleranceRegistry {
 
       case "financial_amount": {
         const dim = profile.dimensions.financial_amount;
-        absTol = options?.customAbsolute !== undefined
-          ? VarianceEngine.toDecimal(options.customAbsolute).abs()
-          : dim.absolute_zar;
+        absTol =
+          options?.customAbsolute !== undefined
+            ? VarianceEngine.toDecimal(options.customAbsolute).abs()
+            : dim.absolute_zar;
         pctTol = null;
         unit = unit || "ZAR";
         rule = rule || `|diff| ≤ R ${absTol.toFixed(2)}`;
@@ -356,9 +358,10 @@ export class CentralToleranceRegistry {
       case "financial_percentage": {
         const dim = profile.dimensions.financial_percentage;
         absTol = null;
-        pctTol = options?.customPercentage !== undefined
-          ? VarianceEngine.toDecimal(options.customPercentage).abs()
-          : dim.percentage;
+        pctTol =
+          options?.customPercentage !== undefined
+            ? VarianceEngine.toDecimal(options.customPercentage).abs()
+            : dim.percentage;
         unit = unit || "%";
         rule = rule || `|variance %| ≤ ${pctTol.toString()}%`;
         break;
@@ -412,10 +415,7 @@ export class CentralToleranceRegistry {
     }
 
     let isWithinPct = false;
-    if (
-      recordedTolerance.percentage_threshold !== null &&
-      variance.variance_percentage !== null
-    ) {
+    if (recordedTolerance.percentage_threshold !== null && variance.variance_percentage !== null) {
       isWithinPct = variance.variance_percentage
         .abs()
         .lessThanOrEqualTo(recordedTolerance.percentage_threshold);
@@ -425,8 +425,7 @@ export class CentralToleranceRegistry {
       recordedTolerance.absolute_threshold !== null ||
       recordedTolerance.percentage_threshold !== null;
 
-    const isWithinTolerance =
-      isExactMatch || (hasAnyTolerance && (isWithinAbs || isWithinPct));
+    const isWithinTolerance = isExactMatch || (hasAnyTolerance && (isWithinAbs || isWithinPct));
 
     const status: VarianceStatus = resolveVarianceStatus({
       hasSufficientData: true,
@@ -437,14 +436,13 @@ export class CentralToleranceRegistry {
     });
 
     const statusDef = getVarianceStatusDefinition(status);
-    const explanation =
-      isExactMatch
-        ? `Exact match (variance: 0 ${recordedTolerance.unit_of_measure}). Status: ${status} (${statusDef.label}).`
-        : isWithinTolerance
-          ? `Non-zero variance of ${variance.absolute_variance.toString()} ${recordedTolerance.unit_of_measure} ` +
-            `is within configured tolerance (${recordedTolerance.applied_rule}). Status: ${status}.`
-          : `Variance of ${variance.absolute_variance.toString()} ${recordedTolerance.unit_of_measure} ` +
-            `exceeds configured tolerance (${recordedTolerance.applied_rule}). Status: ${status} (${statusDef.business_meaning}).`;
+    const explanation = isExactMatch
+      ? `Exact match (variance: 0 ${recordedTolerance.unit_of_measure}). Status: ${status} (${statusDef.label}).`
+      : isWithinTolerance
+        ? `Non-zero variance of ${variance.absolute_variance.toString()} ${recordedTolerance.unit_of_measure} ` +
+          `is within configured tolerance (${recordedTolerance.applied_rule}). Status: ${status}.`
+        : `Variance of ${variance.absolute_variance.toString()} ${recordedTolerance.unit_of_measure} ` +
+          `exceeds configured tolerance (${recordedTolerance.applied_rule}). Status: ${status} (${statusDef.business_meaning}).`;
 
     return {
       variance,

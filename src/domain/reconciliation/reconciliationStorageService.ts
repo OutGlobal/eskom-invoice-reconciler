@@ -7,7 +7,10 @@
 import Decimal from "decimal.js-light";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import type { UserSecurityContext } from "../security/types";
-import { TenantIsolationViolationError, TenantContextService } from "../security/tenantContextService";
+import {
+  TenantIsolationViolationError,
+  TenantContextService,
+} from "../security/tenantContextService";
 import {
   ReconciliationFailureHandler,
   type ReconciliationFailureRecord,
@@ -342,8 +345,7 @@ export class ReconciliationStorageService {
       if (context && context.role !== "SUPER_ADMIN") {
         inMemory = inMemory.filter(
           (r: any) =>
-            r.organisation_id === context.organisationId ||
-            r.tenant_id === context.organisationId,
+            r.organisation_id === context.organisationId || r.tenant_id === context.organisationId,
         );
       }
       return inMemory;
@@ -521,7 +523,11 @@ export class ReconciliationStorageService {
     const unique = new Map<string, AuthoritativeReconciliationRecord>();
     for (const rec of this.authoritativeRecords.values()) {
       if (rec.site === site || rec.source_data.site_id === site) {
-        if (!context || context.role === "SUPER_ADMIN" || (rec as any).organisation_id === context.organisationId) {
+        if (
+          !context ||
+          context.role === "SUPER_ADMIN" ||
+          (rec as any).organisation_id === context.organisationId
+        ) {
           unique.set(rec.reconciliation_id, rec);
         }
       }

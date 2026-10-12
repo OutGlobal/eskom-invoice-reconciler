@@ -44,11 +44,7 @@ export interface AmrDatasetCandidate {
   metadata?: Record<string, any>;
 }
 
-export type MatchingDecision =
-  | "EXACT_MATCH"
-  | "AMBIGUOUS_MATCH"
-  | "NO_MATCH"
-  | "PARTIAL_MATCH";
+export type MatchingDecision = "EXACT_MATCH" | "AMBIGUOUS_MATCH" | "NO_MATCH" | "PARTIAL_MATCH";
 
 export interface CandidateRuleEvaluation {
   candidateId: string;
@@ -173,7 +169,9 @@ export class MatchingEngine {
     if (meterMatch) {
       matchedDimensions.push("METER");
     } else {
-      failureReasons.push(`Meter mismatch: invoice '${target.meterNumber}' vs candidate '${candidate.meterNumber}'`);
+      failureReasons.push(
+        `Meter mismatch: invoice '${target.meterNumber}' vs candidate '${candidate.meterNumber}'`,
+      );
     }
 
     // 2. ACCOUNT RULE
@@ -185,7 +183,9 @@ export class MatchingEngine {
       if (accountMatch) {
         matchedDimensions.push("ACCOUNT");
       } else {
-        failureReasons.push(`Account mismatch: invoice '${target.accountNumber}' vs candidate '${candidate.accountNumber}'`);
+        failureReasons.push(
+          `Account mismatch: invoice '${target.accountNumber}' vs candidate '${candidate.accountNumber}'`,
+        );
       }
     } else if (target.accountNumber) {
       // Inferred account compatibility when AMR does not specify account header
@@ -201,7 +201,9 @@ export class MatchingEngine {
       if (siteMatch) {
         matchedDimensions.push("SITE");
       } else {
-        failureReasons.push(`Site mismatch: invoice '${target.siteId}' vs candidate '${candidate.siteId}'`);
+        failureReasons.push(
+          `Site mismatch: invoice '${target.siteId}' vs candidate '${candidate.siteId}'`,
+        );
       }
     } else if (target.siteId) {
       matchedDimensions.push("SITE_INFERRED");

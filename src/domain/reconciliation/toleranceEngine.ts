@@ -176,7 +176,7 @@ export class ToleranceEngine {
         customAbsolute: tolerance.absolute_tolerance_zar,
         customPercentage: tolerance.percentage_tolerance.times(100),
         customUnit: tolerance.unit,
-      }
+      },
     );
 
     return {
