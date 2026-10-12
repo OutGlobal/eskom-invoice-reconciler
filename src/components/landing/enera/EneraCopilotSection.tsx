@@ -1,1 +1,3 @@
-export function EneraCopilotSection() { return null; }
+export function EneraCopilotSection() {
+  return null;
+}

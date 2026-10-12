@@ -96,10 +96,11 @@ graph TD
 ## 3. Detailed Branch Contract Specifications
 
 ### 1. `security/hardening`
-* **Role**: Foundational platform security and governance.
-* **Dependencies**: None (Root foundation).
-* **Downstream Consumers**: All branches (`upload-pipeline`, `reconciliation-engine`, `tariff-engine`, `reporting`).
-* **Artifacts & Contracts**:
+
+- **Role**: Foundational platform security and governance.
+- **Dependencies**: None (Root foundation).
+- **Downstream Consumers**: All branches (`upload-pipeline`, `reconciliation-engine`, `tariff-engine`, `reporting`).
+- **Artifacts & Contracts**:
   - Multi-tenant tenant context enforcement (`UserSecurityContext`).
   - Row-Level Security (RLS) policies on authoritative database tables.
   - SHA-256 cryptographic lineage and tamper-evident chaining.
@@ -108,10 +109,11 @@ graph TD
 ---
 
 ### 2. `feature/upload-pipeline`
-* **Role**: Secure reception, storage vault persistence, and MIME integrity.
-* **Dependencies**: `security/hardening`.
-* **Downstream Consumers**: `feature/document-intelligence`, `feature/energy-analytics`.
-* **Artifacts & Contracts**:
+
+- **Role**: Secure reception, storage vault persistence, and MIME integrity.
+- **Dependencies**: `security/hardening`.
+- **Downstream Consumers**: `feature/document-intelligence`, `feature/energy-analytics`.
+- **Artifacts & Contracts**:
   - `UploadRecord`: Canonical database record tracking upload lifecycle (`UPLOADED` $\to$ `VALIDATING` $\to$ `PROCESSING` $\to$ `PROCESSED`).
   - Persistent vault storage in `source_files` bucket (`tenants/{orgId}/uploads/...`).
   - Anti-virus/anti-spoofing magic byte verification.
@@ -120,10 +122,11 @@ graph TD
 ---
 
 ### 3. `feature/document-intelligence`
-* **Role**: Deterministic PDF layout decomposition, table extraction, and determinant normalization.
-* **Dependencies**: `feature/upload-pipeline` (consumes raw binary PDF streams).
-* **Downstream Consumers**: `feature/ocr` (fallback trigger), `feature/ai-validation`, `feature/reconciliation-engine`.
-* **Artifacts & Contracts**:
+
+- **Role**: Deterministic PDF layout decomposition, table extraction, and determinant normalization.
+- **Dependencies**: `feature/upload-pipeline` (consumes raw binary PDF streams).
+- **Downstream Consumers**: `feature/ocr` (fallback trigger), `feature/ai-validation`, `feature/reconciliation-engine`.
+- **Artifacts & Contracts**:
   - `ExtractedInvoiceData`: Account number, meter number, billing period start/end, notified maximum demand (NMD).
   - Billed determinant values: Peak kWh, Standard kWh, Off-Peak kWh, total kWh, max demand kVA, reactive energy kVArh.
   - Billed financial charges: Network charges, transmission, generation capacity, environmental levy, service charges, VAT.
@@ -131,10 +134,11 @@ graph TD
 ---
 
 ### 4. `feature/ocr`
-* **Role**: Fallback optical character recognition for scanned, distorted, or raster image documents.
-* **Dependencies**: `feature/document-intelligence` (invoked when confidence $< 0.85$ or native digital text layer is absent).
-* **Downstream Consumers**: `feature/ai-validation`, `feature/document-intelligence` (feeds back normalized text).
-* **Artifacts & Contracts**:
+
+- **Role**: Fallback optical character recognition for scanned, distorted, or raster image documents.
+- **Dependencies**: `feature/document-intelligence` (invoked when confidence $< 0.85$ or native digital text layer is absent).
+- **Downstream Consumers**: `feature/ai-validation`, `feature/document-intelligence` (feeds back normalized text).
+- **Artifacts & Contracts**:
   - Image binarization, de-skewing, and OCR text stream extraction.
   - Character and field-level confidence scoring.
   - Automated flag generation for manual human review (`REVIEW_REQUIRED`) when confidence thresholds fail.
@@ -142,10 +146,11 @@ graph TD
 ---
 
 ### 5. `feature/tariff-engine`
-* **Role**: Authoritative tariff modeling, TOU calendar scheduling, and rate lookups.
-* **Dependencies**: `security/hardening` (tenant-isolated tariff stores).
-* **Downstream Consumers**: `feature/reconciliation-engine`.
-* **Artifacts & Contracts**:
+
+- **Role**: Authoritative tariff modeling, TOU calendar scheduling, and rate lookups.
+- **Dependencies**: `security/hardening` (tenant-isolated tariff stores).
+- **Downstream Consumers**: `feature/reconciliation-engine`.
+- **Artifacts & Contracts**:
   - `TariffDefinition`: Structured Eskom Megaflex, Nightsave, Miniflex, and municipal rate cards.
   - Time-of-Use (TOU) determinant calendar: High Season (June–August) vs Low Season (September–May).
   - Hourly slots: Peak, Standard, and Off-Peak allocations.
@@ -154,10 +159,11 @@ graph TD
 ---
 
 ### 6. `feature/energy-analytics`
-* **Role**: High-frequency interval telemetry aggregation and physical determinant derivation.
-* **Dependencies**: `feature/upload-pipeline` (consumes raw AMR CSVs, XLSX sheets, and meter logs).
-* **Downstream Consumers**: `feature/ai-validation`, `feature/reconciliation-engine`.
-* **Artifacts & Contracts**:
+
+- **Role**: High-frequency interval telemetry aggregation and physical determinant derivation.
+- **Dependencies**: `feature/upload-pipeline` (consumes raw AMR CSVs, XLSX sheets, and meter logs).
+- **Downstream Consumers**: `feature/ai-validation`, `feature/reconciliation-engine`.
+- **Artifacts & Contracts**:
   - `CanonicalEnergyRecord`: Clean, gap-repaired 30-minute interval series.
   - Physical determinant calculation: Active power ($kW$), reactive power ($kVAr$), apparent power ($kVA$).
   - Vector power factor calculation: $PF = \frac{kW}{kVA} = \frac{kW}{\sqrt{kW^2 + kVAr^2}}$.
@@ -166,27 +172,29 @@ graph TD
 ---
 
 ### 7. `feature/ai-validation`
-* **Role**: Deterministic anomaly detection, confidence triangulation, and discrepancy categorization.
-* **Dependencies**:
+
+- **Role**: Deterministic anomaly detection, confidence triangulation, and discrepancy categorization.
+- **Dependencies**:
   - `feature/document-intelligence` / `feature/ocr` (invoice determinants).
   - `feature/energy-analytics` (telemetry aggregates).
-* **Downstream Consumers**: `feature/reconciliation-engine`.
-* **Artifacts & Contracts**:
+- **Downstream Consumers**: `feature/reconciliation-engine`.
+- **Artifacts & Contracts**:
   - `ValidationIssue[]`: Mathematical discrepancy warnings, missing interval notifications, meter roll-over events.
   - Determinant cross-checks: Flagging differences between billed utility figures and physical meter readings.
 
 ---
 
 ### 8. `feature/reconciliation-engine`
-* **Role**: The authoritative financial and engineering reconciliation core.
-* **Dependencies**:
+
+- **Role**: The authoritative financial and engineering reconciliation core.
+- **Dependencies**:
   - `feature/document-intelligence` (billed invoice determinants).
   - `feature/energy-analytics` (meter telemetry calculated baseline).
   - `feature/tariff-engine` (mandatory active tariff version and calendar rules).
   - `feature/ai-validation` (triaged discrepancy events).
   - `security/hardening` (cryptographic audit lineage & tenant context).
-* **Downstream Consumers**: `feature/reporting`.
-* **Artifacts & Contracts**:
+- **Downstream Consumers**: `feature/reporting`.
+- **Artifacts & Contracts**:
   - `AuthoritativeReconciliationRun`: 14 core comparison determinants.
   - Financial variances (billed vs calculated energy, demand charges, network charges, surcharges, VAT).
   - Discrepancy classification: `PASS`, `TOLERABLE_VARIANCE`, `MATERIAL_DISCREPANCY`.
@@ -195,10 +203,11 @@ graph TD
 ---
 
 ### 9. `feature/reporting`
-* **Role**: Formal audit artifacts, statutory utility dispute packs, and executive visibility.
-* **Dependencies**: `feature/reconciliation-engine` (requires final, immutable reconciliation run results).
-* **Downstream Consumers**: External utility submission, finance department, executive dashboard.
-* **Artifacts & Contracts**:
+
+- **Role**: Formal audit artifacts, statutory utility dispute packs, and executive visibility.
+- **Dependencies**: `feature/reconciliation-engine` (requires final, immutable reconciliation run results).
+- **Downstream Consumers**: External utility submission, finance department, executive dashboard.
+- **Artifacts & Contracts**:
   - Formal Eskom dispute pack generation (PDF & Excel).
   - Cryptographic reconciliation certificates with verification hash.
   - Audit trail viewer and statutory submission packages.

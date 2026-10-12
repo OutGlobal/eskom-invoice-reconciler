@@ -6,7 +6,7 @@
  */
 
 import Decimal from "decimal.js-light";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import {
   type TariffVersionDefinition,
   type TariffFamilyType,
@@ -15,6 +15,7 @@ import {
   type TariffFunctionalityClassification,
   TariffImmutabilityViolationError,
 } from "./types";
+import { ALL_PRODUCTION_TARIFF_FIXTURES } from "./tariffFixtures";
 
 export interface TariffFamilyRecord {
   id: string;
@@ -42,9 +43,13 @@ export class TariffStorageService {
     return `${tariffCode.toUpperCase().trim()}_${version.trim()}`;
   }
 
-  /** Clears the runtime tariff registry. */
+  /** Resets the runtime tariff registry to the gazetted production catalog fixtures. */
   public static resetToDefaults(): void {
     this.store.clear();
+    for (const fixture of ALL_PRODUCTION_TARIFF_FIXTURES) {
+      const key = this.getVersionKey(fixture.header.tariff_code, fixture.header.version);
+      this.store.set(key, fixture);
+    }
   }
 
   /**
@@ -59,18 +64,20 @@ export class TariffStorageService {
    */
   public static getTariffArchitectureClassification(): TariffFunctionalityClassification {
     return {
-      is_hardcoded: false,
+      is_hardcoded: true,
       is_database_driven: true, // Synced with public.tariff_versions & public.tariff_rates
       is_manually_entered: true, // Supported via /tariff route UI
       is_uploaded: true, // Supported via TariffDocumentAdapter
       is_versioned: true, // Versioned by NERSA effective dates and version labels
-      primary_source: "UPLOAD",
+      primary_source: "CONTROLLED_PERSISTENT_STORE",
       historical_immutability_enforced: true,
       reproducibility_guaranteed: true,
-      supported_validity_periods: [],
+      supported_validity_periods: ["2023/2024", "2024/2025", "2025/2026", "2026/2027"],
       findings_summary: [
-        "Tariffs are registered only after upload or retrieval from persistent storage.",
-        "Tariff validity periods are explicitly enforced across annual fiscal cycles.",
+        "Default gazetted tariff fixtures initialise the controlled persistent store.",
+        "Database-driven synchronization with public.tariff_versions and public.tariff_rates.",
+        "Manually entered and reviewed adjustments supported with audit logging.",
+        "Uploaded tariff document extraction supported via TariffDocumentAdapter.",
         "Historical tariffs are permanently locked against in-place mutations.",
         "Historical invoices reproducibly evaluate against the exact gazetted tariff active during their billing window.",
       ],
@@ -78,10 +85,31 @@ export class TariffStorageService {
   }
 
   /**
+   * Synchronously fetch all currently registered tariff versions in memory
+   */
+  public static getAllVersionsSync(): TariffVersionDefinition[] {
+    if (this.store.size === 0) {
+      this.resetToDefaults();
+    }
+    return Array.from(this.store.values());
+  }
+
+  /**
    * Fetch all registered tariff versions (from persistent store or Supabase)
    */
   public static async getAllVersions(): Promise<TariffVersionDefinition[]> {
     if (this.store.size > 0) {
+      return Array.from(this.store.values());
+    }
+
+    // Restore from local persistent workspace store if present
+    await this.hydrateFromLocal();
+    if (this.store.size > 0) {
+      return Array.from(this.store.values());
+    }
+
+    if (!isSupabaseConfigured) {
+      this.resetToDefaults();
       return Array.from(this.store.values());
     }
 
@@ -190,15 +218,37 @@ export class TariffStorageService {
       return code.includes(query) || family.includes(query) || query.includes(family);
     });
 
+    const matching: TariffVersionDefinition[] = [];
     for (const v of candidates) {
       const eff = v.header.effective_date;
       const exp = v.header.expiry_date || "2099-12-31";
       if (targetIso >= eff && targetIso <= exp) {
-        return v;
+        matching.push(v);
       }
     }
 
-    return null;
+    if (matching.length === 0) return null;
+
+    // Detect and prevent silent conflicting/overlapping approved tariff versions
+    const byCode = new Map<string, TariffVersionDefinition[]>();
+    for (const m of matching) {
+      const groupKey = `${m.header.tariff_code.toUpperCase()}_${m.header.customer_class}_${m.header.voltage_level}`;
+      if (!byCode.has(groupKey)) byCode.set(groupKey, []);
+      byCode.get(groupKey)!.push(m);
+    }
+
+    for (const [key, group] of byCode.entries()) {
+      const distinctVersions = Array.from(new Set(group.map((g) => g.header.version)));
+      if (distinctVersions.length > 1) {
+        throw new Error(
+          `ConflictingTariffVersionError: Multiple approved tariff versions [${distinctVersions.join(
+            ", ",
+          )}] overlap on date ${targetIso} for ${key}. Silent ambiguous selection is forbidden.`,
+        );
+      }
+    }
+
+    return matching[0];
   }
 
   /**
@@ -271,7 +321,6 @@ export class TariffStorageService {
     }
   }
 
-
   /**
    * Get all registered versions belonging to a tariff family
    */
@@ -321,7 +370,8 @@ export class TariffStorageService {
     }
 
     // Persist to Supabase in background
-    try {
+    if (isSupabaseConfigured) {
+      try {
       const serialisedComponents = version.components.map((c) => ({
         code: c.component_code,
         name: c.component_name,
@@ -407,6 +457,7 @@ export class TariffStorageService {
     } catch (e: any) {
       console.warn("[TariffStorageService] Background Supabase persist warning:", e?.message);
     }
+  }
 
     return {
       success: true,

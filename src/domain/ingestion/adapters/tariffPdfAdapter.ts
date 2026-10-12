@@ -137,14 +137,56 @@ export class TariffPdfAdapter implements ILayoutAdapter {
         );
       });
 
-      push("NETWORK_CAPACITY", "Network capacity charge", "NETWORK_CAPACITY", "R/kVA/month", tariff.networkCapacity);
-      push("NETWORK_DEMAND", "Network demand charge", "NETWORK_DEMAND", "R/kVA/month", tariff.networkDemand);
-      push("TRANSMISSION_NETWORK", "Transmission network charge", "TRANSMISSION_NETWORK", "R/kVA/month", tariff.transmissionNetwork);
-      push("GENERATION_CAPACITY", "Generation capacity charge", "GENERATION_CAPACITY", "R/kVA/month", tariff.generationCapacity);
-      push("ANCILLARY_SERVICE", "Ancillary service charge", "ANCILLARY_SERVICE", "c/kWh", tariff.ancillary);
+      push(
+        "NETWORK_CAPACITY",
+        "Network capacity charge",
+        "NETWORK_CAPACITY",
+        "R/kVA/month",
+        tariff.networkCapacity,
+      );
+      push(
+        "NETWORK_DEMAND",
+        "Network demand charge",
+        "NETWORK_DEMAND",
+        "R/kVA/month",
+        tariff.networkDemand,
+      );
+      push(
+        "TRANSMISSION_NETWORK",
+        "Transmission network charge",
+        "TRANSMISSION_NETWORK",
+        "R/kVA/month",
+        tariff.transmissionNetwork,
+      );
+      push(
+        "GENERATION_CAPACITY",
+        "Generation capacity charge",
+        "GENERATION_CAPACITY",
+        "R/kVA/month",
+        tariff.generationCapacity,
+      );
+      push(
+        "ANCILLARY_SERVICE",
+        "Ancillary service charge",
+        "ANCILLARY_SERVICE",
+        "c/kWh",
+        tariff.ancillary,
+      );
       push("LEGACY_CHARGE", "Legacy charge", "ADMINISTRATION_CHARGE", "c/kWh", tariff.legacy);
-      push("ELECTRIFICATION_SUBSIDY", "Electrification and rural subsidy", "ELECTRIFICATION_SUBSIDY", "c/kWh", tariff.electrification);
-      push("AFFORDABILITY_SUBSIDY", "Affordability subsidy", "AFFORDABILITY_SUBSIDY", "c/kWh", tariff.affordability);
+      push(
+        "ELECTRIFICATION_SUBSIDY",
+        "Electrification and rural subsidy",
+        "ELECTRIFICATION_SUBSIDY",
+        "c/kWh",
+        tariff.electrification,
+      );
+      push(
+        "AFFORDABILITY_SUBSIDY",
+        "Affordability subsidy",
+        "AFFORDABILITY_SUBSIDY",
+        "c/kWh",
+        tariff.affordability,
+      );
 
       if (components.length === 0) {
         throw new Error(
@@ -153,9 +195,9 @@ export class TariffPdfAdapter implements ILayoutAdapter {
       }
 
       const name = tariff.name || "Uploaded tariff schedule";
-      const family = (
-        ["megaflex", "miniflex", "nightsave"].find((f) => name.toLowerCase().includes(f)) || "custom"
-      ) as TariffFamilyType;
+      const family = (["megaflex", "miniflex", "nightsave"].find((f) =>
+        name.toLowerCase().includes(f),
+      ) || "custom") as TariffFamilyType;
 
       const tariffDefinition: TariffVersionDefinition = {
         header: {

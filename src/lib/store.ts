@@ -54,9 +54,15 @@ export interface InvoiceData {
   billingPeriodStart?: string;
   billingPeriodEnd?: string;
   peakKWh?: number | null;
+  peakKwh?: number | null;
   standardKWh?: number | null;
+  standardKwh?: number | null;
   offPeakKWh?: number | null;
+  offPeakKwh?: number | null;
   totalKWh?: number | null;
+  totalKwh?: number | null;
+  amountDue?: number | null;
+  tariffType?: string;
   maxDemandKVA?: number | null;
   transmissionNetworkCharge?: number | null;
   networkCapacityCharge?: number | null;

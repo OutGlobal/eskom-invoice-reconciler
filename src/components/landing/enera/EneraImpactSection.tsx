@@ -1,1 +1,3 @@
-export function EneraImpactSection() { return null; }
+export function EneraImpactSection() {
+  return null;
+}
