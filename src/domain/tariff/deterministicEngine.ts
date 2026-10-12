@@ -9,6 +9,7 @@ import type {
   DeterministicCalculationInput,
   TariffCalculationResult,
   TariffCalculationItem,
+  UnresolvedCalculationItem,
   CalculationAuditStep,
   TariffVersionDefinition,
   SeasonType,
@@ -290,102 +291,349 @@ export class DeterministicEngine {
       }
     }
 
-    // 2. Demand & Capacity Charges (R/kVA/month or R/kW/month)
-    const demandComponents = (tariffVersion.components || []).filter((c) =>
-      [
-        "NETWORK_DEMAND",
-        "NETWORK_CAPACITY",
-        "GENERATION_CAPACITY",
-        "TRANSMISSION_NETWORK",
-        "DEMAND_CHARGE",
-        "NETWORK_CHARGE",
-        "CAPACITY_CHARGE",
-      ].includes(c.component_type),
-    );
+    // 2. Demand & Capacity Charges (Requirement 13)
+    const demandComponents = (tariffVersion.components || []).filter((c) => {
+      if (c.fixed_charge_config) return false;
+      return (
+        [
+          "NETWORK_DEMAND",
+          "NETWORK_CAPACITY",
+          "GENERATION_CAPACITY",
+          "TRANSMISSION_NETWORK",
+          "DEMAND_CHARGE",
+          "NETWORK_CHARGE",
+          "CAPACITY_CHARGE",
+          "NMD_RATCHET_PENALTY",
+        ].includes(c.component_type) || Boolean(c.demand_config)
+      );
+    });
+
+    const unresolvedItems: UnresolvedCalculationItem[] = [];
 
     for (const comp of demandComponents) {
-      let qty = input.maximum_demand_kva;
-      let basisText = "kVA of billing demand";
-
-      if (
+      const dConfig = comp.demand_config;
+      const demandUnit = dConfig?.demand_unit || (comp.unit_of_measure.includes("kW") ? "kW" : "kVA");
+      const demandBasis = dConfig?.demand_basis || (
         comp.component_type === "NETWORK_CAPACITY" ||
         comp.component_type === "GENERATION_CAPACITY" ||
         comp.component_type === "TRANSMISSION_NETWORK" ||
         comp.component_type === "CAPACITY_CHARGE"
-      ) {
-        // Notified Maximum Demand (kVA)
-        qty = input.notified_maximum_demand_kva.gt(0)
-          ? input.notified_maximum_demand_kva
+          ? "NOTIFIED_MAXIMUM_DEMAND"
+          : comp.component_type === "NMD_RATCHET_PENALTY"
+          ? "EXCESS_NMD_DEMAND"
+          : "MAXIMUM_DEMAND"
+      );
+
+      // Handle Excess NMD Ratchet Penalty (Requirement 13)
+      if (demandBasis === "EXCESS_NMD_DEMAND" || comp.component_type === "NMD_RATCHET_PENALTY") {
+        const actualDemand = demandUnit === "kW"
+          ? (input.maximum_demand_kw ?? input.maximum_demand_kva)
           : input.maximum_demand_kva;
-        basisText = `Contracted Notified Maximum Demand (${qty.toString()} kVA)`;
-      } else if (
-        comp.component_type === "NETWORK_DEMAND" ||
-        comp.component_type === "DEMAND_CHARGE"
-      ) {
-        // Recorded Maximum Demand or Utilised Demand
-        qty = input.utilised_capacity_kva.gt(0)
+        const nmd = demandUnit === "kW"
+          ? (input.notified_maximum_demand_kw ?? input.notified_maximum_demand_kva)
+          : input.notified_maximum_demand_kva;
+
+        if (!nmd || nmd.isZero()) {
+          unresolvedItems.push({
+            component_code: comp.component_code,
+            component_name: comp.component_name,
+            rule_id: comp.rule_id || `RULE_${comp.component_code}`,
+            reason: `Missing Notified Maximum Demand (${demandUnit}) required to evaluate excess demand penalty.`,
+            missing_data: [demandUnit === "kW" ? "notified_maximum_demand_kw" : "notified_maximum_demand_kva"],
+          });
+          continue;
+        }
+
+        const excess = actualDemand.gt(nmd) ? actualDemand.sub(nmd) : new Decimal(0);
+        if (excess.gt(0)) {
+          const multiplier = dConfig?.excess_nmd_multiplier ?? tariffVersion.nmd_ratchet_multiplier ?? new Decimal(2);
+          const penaltyRate = comp.rate_value.mul(multiplier);
+          addItem(
+            comp.component_code,
+            comp.component_name,
+            comp.unit_of_measure,
+            penaltyRate,
+            excess,
+            `Excess demand penalty: ${excess.toString()} ${demandUnit} above NMD (${nmd.toString()} ${demandUnit}) at ${multiplier.toString()}x multiplier`,
+            `amount = excess_${demandUnit.toLowerCase()} * (rate * ${multiplier.toString()})`,
+            comp.rule_id || `RULE_${comp.component_code}`,
+            "all",
+          );
+        }
+        continue;
+      }
+
+      // Check for missing data in TOU or Peak demand (Requirement 13)
+      if (demandBasis === "PEAK_DEMAND") {
+        const peakVal = demandUnit === "kW" ? input.peak_demand_kw : input.peak_demand_kva;
+        if (peakVal === undefined) {
+          unresolvedItems.push({
+            component_code: comp.component_code,
+            component_name: comp.component_name,
+            rule_id: comp.rule_id || `RULE_${comp.component_code}`,
+            reason: `Required peak demand value (${demandUnit}) is missing from calculation input. Cannot assume interval maximum kW.`,
+            missing_data: [demandUnit === "kW" ? "peak_demand_kw" : "peak_demand_kva"],
+          });
+          continue;
+        }
+      }
+
+      // Determine raw quantity based on basis and unit
+      let rawQty = new Decimal(0);
+      let basisText = `${demandUnit} of billing demand`;
+
+      if (demandBasis === "PEAK_DEMAND") {
+        const peakVal = demandUnit === "kW" ? input.peak_demand_kw : input.peak_demand_kva;
+        rawQty = peakVal ?? new Decimal(0);
+        basisText = `Peak Period Demand (${rawQty.toString()} ${demandUnit})`;
+      } else if (demandBasis === "NOTIFIED_MAXIMUM_DEMAND") {
+        const nmdVal = demandUnit === "kW"
+          ? (input.notified_maximum_demand_kw ?? input.notified_maximum_demand_kva)
+          : input.notified_maximum_demand_kva;
+        if (!nmdVal || nmdVal.isZero()) {
+          unresolvedItems.push({
+            component_code: comp.component_code,
+            component_name: comp.component_name,
+            rule_id: comp.rule_id || `RULE_${comp.component_code}`,
+            reason: `Required Notified Maximum Demand (${demandUnit}) is missing from calculation input.`,
+            missing_data: [demandUnit === "kW" ? "notified_maximum_demand_kw" : "notified_maximum_demand_kva"],
+          });
+          continue;
+        }
+        rawQty = nmdVal;
+        basisText = `Contracted Notified Maximum Demand (${rawQty.toString()} ${demandUnit})`;
+      } else if (demandBasis === "CONTRACTED_CAPACITY") {
+        const capVal = demandUnit === "kW"
+          ? (input.contracted_capacity_kw ?? input.contracted_capacity_kva)
+          : (input.contracted_capacity_kva ?? input.notified_maximum_demand_kva);
+        rawQty = capVal ?? input.maximum_demand_kva;
+        basisText = `Contracted Capacity (${rawQty.toString()} ${demandUnit})`;
+      } else if (demandBasis === "UTILISED_CAPACITY") {
+        rawQty = input.utilised_capacity_kva.gt(0)
           ? input.utilised_capacity_kva
           : input.maximum_demand_kva;
-        basisText = `Recorded Maximum Demand (${qty.toString()} kVA)`;
+        basisText = `Recorded Utilised Demand (${rawQty.toString()} ${demandUnit})`;
+      } else {
+        // MAXIMUM_DEMAND
+        rawQty = demandUnit === "kW"
+          ? (input.maximum_demand_kw ?? input.maximum_demand_kva)
+          : input.maximum_demand_kva;
+        basisText = `Recorded Maximum Demand (${rawQty.toString()} ${demandUnit})`;
       }
 
-      if (qty.gt(0)) {
-        addItem(
-          comp.component_code,
-          comp.component_name,
-          comp.unit_of_measure,
-          comp.rate_value,
-          qty,
-          `Gazetted ${comp.component_name} applied to ${basisText}`,
-          `amount = demand_kva * rate_zar`,
-          comp.rule_id || `RULE_${comp.component_code}`,
-          "all",
-        );
+      // Apply Minimum Demand Rules (Requirement 13)
+      if (dConfig?.minimum_chargeable_demand_percentage && input.notified_maximum_demand_kva.gt(0)) {
+        const minPctDemand = input.notified_maximum_demand_kva
+          .mul(dConfig.minimum_chargeable_demand_percentage)
+          .div(100);
+        if (rawQty.lt(minPctDemand)) {
+          basisText += ` [Adjusted to min ${dConfig.minimum_chargeable_demand_percentage}% of NMD: ${minPctDemand.toString()} ${demandUnit}]`;
+          rawQty = minPctDemand;
+        }
       }
+      if (dConfig?.minimum_chargeable_demand_value && rawQty.lt(dConfig.minimum_chargeable_demand_value)) {
+        basisText += ` [Adjusted to minimum demand floor: ${dConfig.minimum_chargeable_demand_value.toString()} ${demandUnit}]`;
+        rawQty = dConfig.minimum_chargeable_demand_value;
+      }
+
+      // Apply Rounding Rules (Requirement 13)
+      if (dConfig?.rounding_rule === "INTEGER") {
+        rawQty = rawQty.toDecimalPlaces(0, Decimal.ROUND_HALF_UP);
+      } else if (dConfig?.rounding_rule === "ROUND_2_DECIMALS") {
+        rawQty = rawQty.toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+      }
+
+      if (!rawQty.gt(0)) continue;
+
+      // Capacity / Demand Bands (Requirement 13)
+      if (dConfig?.demand_bands && dConfig.demand_bands.length > 0) {
+        const bands = [...dConfig.demand_bands].sort((a, b) => a.band_number - b.band_number);
+        const method = dConfig.calculation_method || "PROGRESSIVE_BAND";
+
+        if (method === "PROGRESSIVE_BAND") {
+          for (const band of bands) {
+            const minD = band.min_demand;
+            if (rawQty.gt(minD)) {
+              const diffFromMin = rawQty.sub(minD);
+              const bandCapacity = band.max_demand !== undefined ? band.max_demand.sub(minD) : null;
+              const sliceDemand =
+                bandCapacity === null || diffFromMin.lt(bandCapacity)
+                  ? diffFromMin
+                  : bandCapacity;
+
+              if (sliceDemand.gt(0)) {
+                addItem(
+                  `${comp.component_code}_BAND_${band.band_number}`,
+                  `${comp.component_name} (Band ${band.band_number}: ${band.min_demand}-${band.max_demand ? band.max_demand.toString() : "above"} ${demandUnit})`,
+                  band.unit_of_measure || comp.unit_of_measure,
+                  band.rate_value,
+                  sliceDemand,
+                  `Progressive demand band ${band.band_number} applied to slice between ${band.min_demand} and ${band.max_demand ? band.max_demand.toString() : "above"} ${demandUnit}`,
+                  `amount = slice_demand * rate_zar`,
+                  band.rule_id || `${comp.rule_id}_B${band.band_number}`,
+                  "all",
+                );
+              }
+            }
+          }
+        } else if (method === "ENTIRE_BAND") {
+          const matchingBand = bands.find((b) => {
+            const meetsMin = rawQty.gte(b.min_demand);
+            const meetsMax = b.max_demand === undefined || rawQty.lte(b.max_demand);
+            return meetsMin && meetsMax;
+          });
+
+          if (matchingBand) {
+            addItem(
+              `${comp.component_code}_BAND_${matchingBand.band_number}`,
+              `${comp.component_name} (Band ${matchingBand.band_number}: Entire demand volume)`,
+              matchingBand.unit_of_measure || comp.unit_of_measure,
+              matchingBand.rate_value,
+              rawQty,
+              `Entire demand band ${matchingBand.band_number} rate applied to ${rawQty.toString()} ${demandUnit}`,
+              `amount = total_demand * band_rate`,
+              matchingBand.rule_id || `${comp.rule_id}_B${matchingBand.band_number}`,
+              "all",
+            );
+          }
+        }
+        continue;
+      }
+
+      // Standard Linear Demand Charge
+      addItem(
+        comp.component_code,
+        comp.component_name,
+        comp.unit_of_measure,
+        comp.rate_value,
+        rawQty,
+        `Gazetted ${comp.component_name} applied to ${basisText}`,
+        `amount = demand_${demandUnit.toLowerCase()} * rate_zar`,
+        comp.rule_id || `RULE_${comp.component_code}`,
+        "all",
+      );
     }
 
-    // 3. Fixed Daily & Monthly Charges (Service, Administration, Fixed Capacity)
-    const fixedComponents = (tariffVersion.components || []).filter((c) =>
-      [
-        "SERVICE_CHARGE",
-        "ADMINISTRATION_CHARGE",
-        "FIXED_DAILY_CHARGE",
-        "FIXED_MONTHLY_CHARGE",
-      ].includes(c.component_type),
-    );
+    // 3. Fixed Daily & Monthly Charges, Service, Network, Metering (Requirement 14)
+    const fixedComponents = (tariffVersion.components || []).filter((c) => {
+      if (c.demand_config) return false;
+      return (
+        [
+          "SERVICE_CHARGE",
+          "ADMINISTRATION_CHARGE",
+          "FIXED_DAILY_CHARGE",
+          "FIXED_MONTHLY_CHARGE",
+          "METERING_CHARGE",
+        ].includes(c.component_type) || Boolean(c.fixed_charge_config)
+      );
+    });
+
+    const appliedFixedChargeKeys = new Set<string>();
 
     for (const comp of fixedComponents) {
+      const fConfig = comp.fixed_charge_config;
+      const scope = fConfig?.charge_scope || (
+        comp.unit_of_measure === "R/day" || comp.component_type === "FIXED_DAILY_CHARGE"
+          ? "per_day"
+          : comp.unit_of_measure.includes("meter") || comp.component_type === "METERING_CHARGE"
+          ? "per_meter"
+          : "per_month"
+      );
+
+      // Duplicate Prevention across accounts, meters, and billing-period segments (Requirement 14)
+      const dedupKey = fConfig?.deduplication_key || (
+        scope === "per_account"
+          ? `${input.account_number || "acc"}_${comp.component_code}`
+          : undefined
+      );
+
       if (
-        comp.component_type === "FIXED_MONTHLY_CHARGE" ||
-        comp.unit_of_measure === "R/month"
+        dedupKey &&
+        (appliedFixedChargeKeys.has(dedupKey) || input.already_applied_fixed_charge_keys?.includes(dedupKey))
       ) {
-        // Monthly fixed charge
-        addItem(
-          comp.component_code,
-          comp.component_name,
-          comp.unit_of_measure,
-          comp.rate_value,
-          new Decimal(1),
-          `Fixed monthly ${comp.component_name}`,
-          `amount = 1 * rate_per_month`,
-          comp.rule_id || `RULE_${comp.component_code}`,
-          "all",
-        );
-      } else {
-        // Daily fixed charge (R/day)
-        const days = new Decimal(billingDays);
-        addItem(
-          comp.component_code,
-          comp.component_name,
-          comp.unit_of_measure,
-          comp.rate_value,
-          days,
-          `Fixed daily ${comp.component_name} multiplied by ${billingDays} billing days`,
-          `amount = billing_days * rate_per_day`,
-          comp.rule_id || `RULE_${comp.component_code}`,
-          "all",
-        );
+        auditTrace.push({
+          step_number: stepCounter++,
+          tariff_code: tariffVersion.header.tariff_code,
+          tariff_version: tariffVersion.header.version,
+          rule_id: comp.rule_id || `RULE_${comp.component_code}`,
+          component_code: comp.component_code,
+          component_name: comp.component_name,
+          season: "all",
+          rate_applied: `${comp.rate_value.toString()} ${comp.unit_of_measure}`,
+          input_value: `Dedup Key: ${dedupKey}`,
+          unit: comp.unit_of_measure,
+          rule_applied: `Fixed charge suppressed to prevent duplicate application on account/billing-period segment.`,
+          formula_used: "amount = 0 (deduplicated)",
+          rounding_rule: "N/A",
+          calculated_amount_zar: new Decimal(0),
+          formatted_amount_zar: "R 0.00 (Suppressed Duplicate)",
+        });
+        continue;
       }
+      if (dedupKey) {
+        appliedFixedChargeKeys.add(dedupKey);
+      }
+
+      // Partial Billing Period Proration handling (Requirement 14)
+      const prorationRule = fConfig?.proration_rule || (
+        scope === "per_day" ? "DAILY_RATE_MULTIPLIER" : "PRO_RATA_30_DAYS"
+      );
+
+      let chargeQty = new Decimal(1);
+      let calcDescription = `Fixed ${comp.component_name}`;
+      let formulaUsed = `amount = rate`;
+
+      if (scope === "per_day" || prorationRule === "DAILY_RATE_MULTIPLIER") {
+        const meterMult = scope === "per_meter" ? new Decimal(input.meter_count ?? 1) : new Decimal(1);
+        chargeQty = new Decimal(billingDays).mul(meterMult);
+        calcDescription = `Daily ${comp.component_name} multiplied by ${billingDays} billing days${meterMult.gt(1) ? ` across ${meterMult.toString()} meters` : ""}`;
+        formulaUsed = `amount = billing_days (${billingDays}) * rate_per_day${meterMult.gt(1) ? ` * ${meterMult.toString()} meters` : ""}`;
+      } else if (scope === "per_meter") {
+        const meterCount = new Decimal(input.meter_count ?? 1);
+        if (prorationRule === "EXACT_DAYS_IN_MONTH") {
+          const daysInMonth = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0).getDate();
+          chargeQty = new Decimal(billingDays).div(daysInMonth).mul(meterCount);
+          calcDescription = `Metering charge prorated by exact calendar days (${billingDays}/${daysInMonth}) for ${meterCount.toString()} meters`;
+          formulaUsed = `amount = (billing_days / ${daysInMonth}) * ${meterCount.toString()} meters * rate`;
+        } else {
+          chargeQty = meterCount;
+          calcDescription = `Metering charge applied to ${meterCount.toString()} meters`;
+          formulaUsed = `amount = meter_count (${meterCount.toString()}) * rate`;
+        }
+      } else if (scope === "per_connection") {
+        const connCount = new Decimal(input.connection_count ?? 1);
+        chargeQty = connCount;
+        calcDescription = `Connection charge applied to ${connCount.toString()} connections`;
+        formulaUsed = `amount = connection_count (${connCount.toString()}) * rate`;
+      } else {
+        // Monthly charges (per_month, per_account, per_billing_period)
+        if (prorationRule === "EXACT_DAYS_IN_MONTH") {
+          const daysInMonth = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0).getDate();
+          chargeQty = new Decimal(billingDays).div(daysInMonth);
+          calcDescription = `Monthly ${comp.component_name} prorated by exact calendar days (${billingDays}/${daysInMonth} days)`;
+          formulaUsed = `amount = (billing_days / ${daysInMonth}) * rate_per_month`;
+        } else if (prorationRule === "PRO_RATA_30_DAYS") {
+          chargeQty = new Decimal(billingDays).div(30);
+          calcDescription = `Monthly ${comp.component_name} prorated using 30-day tariff rule (${billingDays}/30 days)`;
+          formulaUsed = `amount = (billing_days / 30) * rate_per_month`;
+        } else if (prorationRule === "NO_PRORATION_FULL_MONTH" || prorationRule === "PER_BILLING_PERIOD_FLAT") {
+          chargeQty = new Decimal(1);
+          calcDescription = `Unconditional fixed ${comp.component_name} (no proration for partial period)`;
+          formulaUsed = `amount = 1 * rate_per_month`;
+        }
+      }
+
+      addItem(
+        comp.component_code,
+        comp.component_name,
+        comp.unit_of_measure,
+        comp.rate_value,
+        chargeQty,
+        calcDescription,
+        formulaUsed,
+        comp.rule_id || `RULE_${comp.component_code}`,
+        "all",
+      );
     }
 
     // 4. Subsidies, Levies & Ancillary (c/kWh on Total Energy)
@@ -500,6 +748,7 @@ export class DeterministicEngine {
       billing_days: billingDays,
       season,
       items,
+      unresolved_items: unresolvedItems.length > 0 ? unresolvedItems : undefined,
       subtotal_ex_vat: subtotalExVat,
       vat_amount: vatAmount,
       total_inc_vat: totalIncVat,

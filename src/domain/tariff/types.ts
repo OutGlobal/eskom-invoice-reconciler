@@ -207,6 +207,64 @@ export interface TariffTierConfig {
   tiers: TariffTierBand[];
 }
 
+export type DemandUnitType = "kVA" | "kW";
+export type DemandBasisType =
+  | "MAXIMUM_DEMAND"
+  | "PEAK_DEMAND"
+  | "NOTIFIED_MAXIMUM_DEMAND"
+  | "CONTRACTED_CAPACITY"
+  | "UTILISED_CAPACITY"
+  | "NETWORK_DEMAND"
+  | "EXCESS_NMD_DEMAND"
+  | "MINIMUM_DEMAND";
+
+export interface DemandBandConfig {
+  band_number: number;
+  band_name?: string;
+  min_demand: Decimal;
+  max_demand?: Decimal; // undefined for upper open-ended band
+  rate_value: Decimal;
+  unit_of_measure: string;
+  rule_id?: string;
+}
+
+export interface TariffDemandConfig {
+  demand_unit: DemandUnitType; // "kVA" | "kW"
+  demand_basis: DemandBasisType;
+  measurement_window_minutes?: number; // e.g. 30 for 30-min integrating window
+  measurement_period?: "peak" | "standard" | "off_peak" | "all"; // TOU-specific demand
+  minimum_chargeable_demand_percentage?: Decimal; // e.g. 70% of NMD
+  minimum_chargeable_demand_value?: Decimal; // e.g. 50 kVA
+  excess_nmd_multiplier?: Decimal; // e.g. 2.0x for NMD ratchet penalty
+  demand_bands?: DemandBandConfig[]; // Capacity / demand bands
+  calculation_method?: "PROGRESSIVE_BAND" | "ENTIRE_BAND" | "STANDARD_LINEAR";
+  rounding_rule?: "INTEGER" | "ROUND_2_DECIMALS" | "NONE";
+}
+
+export type FixedChargeScope =
+  | "per_day"
+  | "per_month"
+  | "per_meter"
+  | "per_account"
+  | "per_connection"
+  | "per_point"
+  | "per_billing_period";
+
+export type PartialPeriodProrationRule =
+  | "EXACT_DAYS_IN_MONTH"
+  | "PRO_RATA_30_DAYS"
+  | "NO_PRORATION_FULL_MONTH"
+  | "DAILY_RATE_MULTIPLIER"
+  | "PER_BILLING_PERIOD_FLAT";
+
+export interface TariffFixedChargeConfig {
+  charge_scope: FixedChargeScope;
+  proration_rule: PartialPeriodProrationRule;
+  meter_count?: number; // default 1 if per_meter
+  connection_count?: number; // default 1 if per_connection
+  deduplication_key?: string; // unique key to prevent duplicate application across meters/invoices
+}
+
 export interface TariffComponentRule {
   component_code: string;
   component_name: string;
@@ -224,6 +282,9 @@ export interface TariffComponentRule {
     | "ELECTRIFICATION_SUBSIDY"
     | "AFFORDABILITY_SUBSIDY"
     | "NMD_RATCHET_PENALTY"
+    | "METERING_CHARGE"
+    | "FIXED_DAILY_CHARGE"
+    | "FIXED_MONTHLY_CHARGE"
     | string;
   unit_of_measure:
     | "c/kWh"
@@ -245,6 +306,8 @@ export interface TariffComponentRule {
   formula_template: string; // e.g. "quantity * rate / 100"
   provenance?: any; // TariffRateProvenance (Requirement 7)
   tier_config?: TariffTierConfig; // Requirement 12
+  demand_config?: TariffDemandConfig; // Requirement 13
+  fixed_charge_config?: TariffFixedChargeConfig; // Requirement 14
 }
 
 export interface TariffVersionDefinition {
@@ -287,15 +350,34 @@ export interface DeterministicCalculationInput {
   billing_end: string; // YYYY-MM-DD
   meter_id?: string;
   account_number?: string;
+  connection_count?: number; // Requirement 14 (default 1)
+  meter_count?: number; // Requirement 14 (default 1)
+  already_applied_fixed_charge_keys?: string[]; // Requirement 14 duplicate prevention
   notified_maximum_demand_kva: Decimal;
+  notified_maximum_demand_kw?: Decimal; // Requirement 13
   utilised_capacity_kva: Decimal;
   maximum_demand_kva: Decimal;
+  maximum_demand_kw?: Decimal; // Requirement 13
+  peak_demand_kva?: Decimal; // Requirement 13
+  peak_demand_kw?: Decimal; // Requirement 13
+  standard_demand_kva?: Decimal; // Requirement 13
+  off_peak_demand_kva?: Decimal; // Requirement 13
+  contracted_capacity_kva?: Decimal; // Requirement 13
+  contracted_capacity_kw?: Decimal; // Requirement 13
   active_energy_kwh: Decimal;
   peak_kwh: Decimal;
   standard_kwh: Decimal;
   off_peak_kwh: Decimal;
   reactive_energy_kvarh: Decimal;
   power_factor: Decimal;
+}
+
+export interface UnresolvedCalculationItem {
+  component_code: string;
+  component_name: string;
+  rule_id: string;
+  reason: string;
+  missing_data: string[];
 }
 
 export interface TariffCalculationItem {
@@ -317,6 +399,7 @@ export interface TariffCalculationResult {
   billing_days: number;
   season: SeasonType;
   items: TariffCalculationItem[];
+  unresolved_items?: UnresolvedCalculationItem[]; // Requirement 13
   subtotal_ex_vat: Decimal;
   vat_amount: Decimal;
   total_inc_vat: Decimal;
