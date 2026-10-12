@@ -47,7 +47,7 @@ export interface ApplicableRateItem {
   rate_value: Decimal; // Gazetted rate value provided by Tariff Engine
   unit_of_measure:
     "c/kWh" | "R/kVA/month" | "R/kW/month" | "R/kVARh" | "R/day" | "R/month" | "%" | string;
-  season?: SeasonType | "all";
+  season?: SeasonType | "all" | string;
   tou_period?: TouPeriodType | "all";
   rule_id: string; // Tariff engine authoritative rule identifier
   tariff_code: string; // e.g. "MEGAFLEX"
