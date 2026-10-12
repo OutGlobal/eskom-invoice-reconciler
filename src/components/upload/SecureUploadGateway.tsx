@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 import {
   Upload,
@@ -26,7 +26,6 @@ import {
   Sparkles,
   History,
   Scale,
-
 } from "lucide-react";
 import { SecureIngestionGateway } from "@/domain/ingestion/secureIngestionGateway";
 import { UploadStorageService } from "@/domain/upload/uploadStorageService";
@@ -49,13 +48,13 @@ import type {
   AutomatedPipelineResult,
 } from "@/domain/pipeline/types";
 import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
+import { computeTotals } from "@/lib/reconciliation";
 import { LocalFileVault } from "@/lib/localFileVault";
 import { LocalWorkspaceStore } from "@/lib/localWorkspaceStore";
 import {
   runAutomaticReconciliation,
   type AutoReconciliationOutcome,
 } from "@/domain/reconciliation/autoReconciliationRunner";
-
 
 const AUTOMATED_STAGES: { id: AutomatedPipelineStage; label: string }[] = [
   { id: "UPLOAD_SUCCESSFUL", label: "Upload successful" },
@@ -80,6 +79,21 @@ const SOURCE_TABS: { label: string; value: string; icon: any }[] = [
 ];
 
 export function SecureUploadGateway() {
+  const workspaceRows = useApp((state) => state.rows);
+  const partialTotals = useMemo(
+    () =>
+      computeTotals(
+        workspaceRows
+          .map((row) => ({ ...row, ts: new Date(row.ts) }))
+          .filter(
+            (row) =>
+              Number.isFinite(row.ts.getTime()) &&
+              Number.isFinite(row.kW) &&
+              Number.isFinite(row.kVA),
+          ),
+      ),
+    [workspaceRows],
+  );
   const [dragActive, setDragActive] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [currentState, setCurrentState] = useState<IngestionLifecycleState | null>(null);
@@ -99,7 +113,6 @@ export function SecureUploadGateway() {
     setAutoRecon(outcome);
     return outcome;
   };
-
 
   const handleDownloadSecureFile = async (upload: UploadRecord) => {
     setDownloadingUrl(true);
@@ -166,10 +179,9 @@ export function SecureUploadGateway() {
 
   useEffect(() => {
     loadHistory();
-    import("@/domain/tariff/tariffStorageService").then(({ TariffStorageService }) =>
-      TariffStorageService.hydrateFromLocal(),
-    );
-    LocalWorkspaceStore.loadDataset().then((dataset) => {
+    import("@/domain/tariff/tariffStorageService").then(async ({ TariffStorageService }) => {
+      await TariffStorageService.hydrateFromLocal();
+      const dataset = await LocalWorkspaceStore.loadDataset();
       if (!dataset) return;
       const store = useApp.getState();
       if (dataset.invoice) {
@@ -183,6 +195,7 @@ export function SecureUploadGateway() {
         });
       }
       if (dataset.rows.length > 0) store.setRows(dataset.rows);
+      runReconciliationAfterUpload();
     });
   }, []);
 
@@ -208,7 +221,8 @@ export function SecureUploadGateway() {
     action: DuplicateResolutionAction,
   ) => {
     if (!candidateResult.duplicateResult) return;
-    const file = candidateResult.fileHeader.fileExtension === "pdf" ? activeInvoiceFile : activeMeterFile;
+    const file =
+      candidateResult.fileHeader.fileExtension === "pdf" ? activeInvoiceFile : activeMeterFile;
     const candidate: DuplicateEvaluationCandidate = {
       organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
       sourceType: candidateResult.fileHeader.fileExtension === "pdf" ? "INVOICE" : "TELEMETRY",
@@ -252,6 +266,104 @@ export function SecureUploadGateway() {
   // Stage 23: Retry Processing State & Handler
   const [retryingUploadId, setRetryingUploadId] = useState<string | null>(null);
 
+  const applyIngestionResult = async (
+    res: IngestionGatewayResult,
+    file: { name: string; size: number },
+  ) => {
+    const store = useApp.getState();
+
+    // 1. If invoice fields were extracted, reflect in app store
+    if (res.extractedInvoice && res.fileHeader.fileExtension === "pdf") {
+      const ext: any = res.extractedInvoice;
+      const mappedInvoice: InvoiceData = {
+        source: file.name,
+        invoiceNumber: ext.invoiceNumber || "",
+        customerName: ext.customerName || ext.pod || ext.premiseId || "",
+        accountNumber: ext.accountNumber || "",
+        meterNumber: ext.meterNumber || ext.meterSerial || "",
+        tariffName: ext.tariff || "",
+        voltage: ext.voltage || "",
+        nmd: ext.notifiedMaximumDemand || 0,
+        billingPeriod: ext.billingPeriod || "",
+        billingPeriodStart: ext.billingStart,
+        billingPeriodEnd: ext.billingEnd,
+        peakKWh: ext.peakKwh || 0,
+        standardKWh: ext.standardKwh || 0,
+        offPeakKWh: ext.offPeakKwh || 0,
+        totalKWh: ext.totalKwh || 0,
+        maxDemandKVA: ext.billedMaximumDemand || ext.kva || 0,
+        transmissionNetworkCharge: ext.transmissionNetworkCharge || 0,
+        networkCapacityCharge: ext.networkCapacityCharge || 0,
+        generationCapacityCharge: 0,
+        networkDemandCharge: ext.networkDemandCharge || ext.demandCharges || 0,
+        ancillary: ext.ancillaryCharges || 0,
+        legacy: 0,
+        affordability: ext.affordability || 0,
+        electrification: ext.electrification || 0,
+        reactive: 0,
+        peakEnergyCharge: ext.peakEnergyCharge || 0,
+        standardEnergyCharge: ext.standardEnergyCharge || 0,
+        offPeakEnergyCharge: ext.offPeakEnergyCharge || 0,
+        vat: ext.vat || 0,
+        invoiceTotal: ext.totalInvoice ? ext.totalInvoice - (ext.vat || 0) : 0,
+        totalInclVat: ext.totalInvoice || 0,
+      };
+
+      store.setInvoice(mappedInvoice);
+      store.setCustomer({
+        name: mappedInvoice.customerName,
+        accountNumber: mappedInvoice.accountNumber,
+        meter: mappedInvoice.meterNumber,
+        address: mappedInvoice.address || "",
+        nmd: mappedInvoice.nmd || 0,
+      });
+      store.addUpload({
+        name: file.name,
+        size: file.size,
+        type: "invoice",
+        uploadedAt: new Date(),
+      });
+      await LocalWorkspaceStore.saveDataset(mappedInvoice, store.rows);
+    }
+
+    // 2. If interval telemetry was extracted, reflect in app store rows
+    if (res.intervals && res.intervals.length > 0) {
+      const measurements: Measurement[] = res.intervals.map((r: any) => ({
+        ts: new Date(r.ts || r.timestamp_utc),
+        kW: r.kW ?? r.active_power_kw ?? 0,
+        kVAr:
+          r.kVAr ??
+          (r.reactive_energy_kvarh
+            ? r.reactive_energy_kvarh * (60 / (r.interval_minutes || 30))
+            : 0),
+        kVA: r.kVA ?? r.apparent_power_kva ?? 0,
+        pf: r.pf ?? r.power_factor ?? 0.96,
+        tou: (r.tou || r.tou_period || "peak") as any,
+        estimated: r.quality_status === "estimated",
+      }));
+      store.setRows(measurements);
+      store.addUpload({
+        name: file.name,
+        size: file.size,
+        type: "meter",
+        uploadedAt: new Date(),
+      });
+      await LocalWorkspaceStore.saveDataset(store.invoice, measurements);
+    }
+
+    // Notify realtime refresh manager for automatic dashboard/charts update
+    RealtimeRefreshManager.notifyProcessingComplete({
+      entityType: file.name.toLowerCase().endsWith(".pdf") ? "invoice" : "meter_telemetry",
+      timestamp: new Date().toISOString(),
+    });
+
+    // Reconcile immediately with everything now loaded
+    runReconciliationAfterUpload();
+
+    // Refresh database history
+    await loadHistory();
+  };
+
   const handleRetryProcessing = async (uploadId: string) => {
     setRetryingUploadId(uploadId);
     setProcessing(true);
@@ -272,6 +384,12 @@ export function SecureUploadGateway() {
       );
       setIngestionResult(res);
       await loadHistory();
+      if (res.extractedInvoice || res.intervals?.length) {
+        await applyIngestionResult(res, {
+          name: res.fileHeader.filename,
+          size: res.fileHeader.fileSizeBytes,
+        });
+      }
       if (res.success) {
         RealtimeRefreshManager.notifyProcessingComplete({
           entityType: res.fileHeader?.fileExtension === "pdf" ? "invoice" : "meter_telemetry",
@@ -460,7 +578,7 @@ export function SecureUploadGateway() {
                   r.kVAr ??
                   (r.reactive_energy_kvarh
                     ? r.reactive_energy_kvarh * (60 / (r.interval_minutes || 30))
-                    : r.kvarh ?? 0),
+                    : (r.kvarh ?? 0)),
                 kVA: r.kVA ?? r.apparent_power_kva ?? r.kva ?? 0,
                 pf: r.pf ?? r.power_factor ?? 0.96,
                 tou: (r.tou || r.tou_period || "peak") as any,
@@ -490,7 +608,6 @@ export function SecureUploadGateway() {
 
           runReconciliationAfterUpload();
           await loadHistory();
-
         } else if (current.status === "FAILED") {
           unsubscribe();
           setAutomatedPipelineRunning(false);
@@ -579,7 +696,12 @@ export function SecureUploadGateway() {
 
     // If both files dropped together, trigger the automated pipeline!
     if (invoiceFile && meterFile) {
-      await runAutomatedPipeline(invoiceFile, meterFile);
+      for (const file of fileList) await handleFiles([file]);
+      return;
+    }
+
+    if (fileList.length > 1) {
+      for (const file of fileList) await handleFiles([file]);
       return;
     }
 
@@ -610,100 +732,8 @@ export function SecureUploadGateway() {
         mimeType: file.type,
       });
 
-      if (res.success) {
-        const store = useApp.getState();
-
-        // 1. If invoice fields were extracted, reflect in app store
-        if (res.extractedInvoice && res.fileHeader.fileExtension === "pdf") {
-          const ext: any = res.extractedInvoice;
-          const mappedInvoice: InvoiceData = {
-            source: file.name,
-            invoiceNumber: ext.invoiceNumber || "",
-            customerName: ext.customerName || ext.pod || ext.premiseId || "",
-            accountNumber: ext.accountNumber || "",
-            meterNumber: ext.meterNumber || ext.meterSerial || "",
-            tariffName: ext.tariff || "",
-            voltage: ext.voltage || "",
-            nmd: ext.notifiedMaximumDemand || 0,
-            billingPeriod: ext.billingPeriod || "",
-            billingPeriodStart: ext.billingStart,
-            billingPeriodEnd: ext.billingEnd,
-            peakKWh: ext.peakKwh || 0,
-            standardKWh: ext.standardKwh || 0,
-            offPeakKWh: ext.offPeakKwh || 0,
-            totalKWh: ext.totalKwh || 0,
-            maxDemandKVA: ext.billedMaximumDemand || ext.kva || 0,
-            transmissionNetworkCharge: ext.transmissionNetworkCharge || 0,
-            networkCapacityCharge: ext.networkCapacityCharge || 0,
-            generationCapacityCharge: 0,
-            networkDemandCharge: ext.networkDemandCharge || ext.demandCharges || 0,
-            ancillary: ext.ancillaryCharges || 0,
-            legacy: 0,
-            affordability: ext.affordability || 0,
-            electrification: ext.electrification || 0,
-            reactive: 0,
-            peakEnergyCharge: ext.peakEnergyCharge || 0,
-            standardEnergyCharge: ext.standardEnergyCharge || 0,
-            offPeakEnergyCharge: ext.offPeakEnergyCharge || 0,
-            vat: ext.vat || 0,
-            invoiceTotal: ext.totalInvoice ? ext.totalInvoice - (ext.vat || 0) : 0,
-            totalInclVat: ext.totalInvoice || 0,
-          };
-
-          store.setInvoice(mappedInvoice);
-          store.setCustomer({
-            name: mappedInvoice.customerName,
-            accountNumber: mappedInvoice.accountNumber,
-            meter: mappedInvoice.meterNumber,
-            address: mappedInvoice.address || "",
-            nmd: mappedInvoice.nmd || 0,
-          });
-          store.addUpload({
-            name: file.name,
-            size: file.size,
-            type: "invoice",
-            uploadedAt: new Date(),
-          });
-          await LocalWorkspaceStore.saveDataset(mappedInvoice, store.rows);
-        }
-
-        // 2. If interval telemetry was extracted, reflect in app store rows
-        if (res.intervals && res.intervals.length > 0) {
-          const measurements: Measurement[] = res.intervals.map((r: any) => ({
-            ts: r.ts || new Date(r.timestamp_utc),
-            kW: r.kW ?? r.active_power_kw ?? 0,
-            kVAr:
-              r.kVAr ??
-              (r.reactive_energy_kvarh
-                ? r.reactive_energy_kvarh * (60 / (r.interval_minutes || 30))
-                : 0),
-            kVA: r.kVA ?? r.apparent_power_kva ?? 0,
-            pf: r.pf ?? r.power_factor ?? 0.96,
-            tou: (r.tou || r.tou_period || "peak") as any,
-            estimated: r.quality_status === "estimated",
-          }));
-          store.setRows(measurements);
-          store.addUpload({
-            name: file.name,
-            size: file.size,
-            type: "meter",
-            uploadedAt: new Date(),
-          });
-          await LocalWorkspaceStore.saveDataset(store.invoice, measurements);
-        }
-
-        // Notify realtime refresh manager for automatic dashboard/charts update
-        RealtimeRefreshManager.notifyProcessingComplete({
-          entityType: file.name.toLowerCase().endsWith(".pdf") ? "invoice" : "meter_telemetry",
-          timestamp: new Date().toISOString(),
-        });
-
-        // Reconcile immediately with everything now loaded
-        runReconciliationAfterUpload();
-
-        // Refresh database history
-        await loadHistory();
-
+      if (res.success || res.extractedInvoice || res.intervals?.length) {
+        await applyIngestionResult(res, file);
       }
     } catch (err: any) {
       console.error("Ingestion pipeline execution failure:", err);
@@ -790,6 +820,24 @@ export function SecureUploadGateway() {
           Sync Registry
         </button>
       </div>
+
+      {workspaceRows.length > 0 && (
+        <section className="rounded-xl border border-amber-500/30 p-4">
+          <h2 className="font-semibold">Available meter calculations (partial results)</h2>
+          <p className="text-sm">
+            {workspaceRows.length} intervals loaded · {partialTotals.totalKWh.toFixed(2)} kWh ·
+            Maximum demand {partialTotals.maxDemandKVA.toFixed(2)} kVA
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Uses the workspace’s 30-minute interval convention. Partial coverage is not a complete
+            invoice verification; missing invoice or applicable tariff will keep financial
+            reconciliation pending.
+          </p>
+          <a href="/reconciliation" className="underline text-sm">
+            Open reconciliation workspace
+          </a>
+        </section>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -883,7 +931,8 @@ export function SecureUploadGateway() {
             Drop Invoice + Meter Data together (or click to browse)
           </p>
           <p className="text-xs text-muted-foreground mt-1 max-w-md">
-            Automatic end-to-end reconciliation: Upload your invoice (PDF) and AMR interval data (CSV/Excel) simultaneously for automated 8-stage processing with zero extra clicks.
+            Automatic end-to-end reconciliation: Upload your invoice (PDF) and AMR interval data
+            (CSV/Excel) simultaneously for automated 8-stage processing with zero extra clicks.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-[11px] text-muted-foreground">
             <span className="px-2 py-0.5 rounded border border-border/60 bg-muted/30">
@@ -942,8 +991,8 @@ export function SecureUploadGateway() {
                   automatedStage === "COMPLETE"
                     ? "bg-emerald-400"
                     : automatedStage === "STOPPED_FOR_AMBIGUITY"
-                    ? "bg-amber-400"
-                    : "bg-primary"
+                      ? "bg-amber-400"
+                      : "bg-primary"
                 }`}
                 style={{ width: `${automatedProgressPct}%` }}
               />
@@ -967,10 +1016,10 @@ export function SecureUploadGateway() {
                         isCurrent
                           ? "border-primary bg-primary/10 text-primary font-bold shadow-sm"
                           : isPassed
-                          ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-400"
-                          : isPaused
-                          ? "border-amber-500/40 bg-amber-500/10 text-amber-400 font-bold animate-pulse"
-                          : "border-border/30 bg-card/20 text-muted-foreground"
+                            ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-400"
+                            : isPaused
+                              ? "border-amber-500/40 bg-amber-500/10 text-amber-400 font-bold animate-pulse"
+                              : "border-border/30 bg-card/20 text-muted-foreground"
                       }`}
                     >
                       <span className="text-[9px] opacity-70">Step {idx + 1}</span>
@@ -1048,7 +1097,8 @@ export function SecureUploadGateway() {
                     Reconciliation Complete: All 8 Stages Successfully Executed
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Invoice and meter telemetry matched, determinants calculated, and discrepancy analysis generated.
+                    Invoice and meter telemetry matched, determinants calculated, and discrepancy
+                    analysis generated.
                   </p>
                 </div>
               </div>
@@ -1160,16 +1210,41 @@ export function SecureUploadGateway() {
                 <div className="text-xs opacity-80 mt-1">
                   {autoRecon.payload.determinant_comparisons.length} determinants compared — open
                   Reconciliation for the full breakdown.
+                  <a href="/reconciliation" className="block underline mt-2">
+                    View calculated results
+                  </a>
+                  <table className="mt-3 w-full text-left">
+                    <thead>
+                      <tr>
+                        <th>Determinant</th>
+                        <th>Billed</th>
+                        <th>Calculated</th>
+                        <th>Variance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {autoRecon.payload.determinant_comparisons.map((item) => (
+                        <tr key={item.determinant_code}>
+                          <td>
+                            {item.determinant_name} ({item.unit_of_measure})
+                          </td>
+                          <td>{item.billed_value.toString()}</td>
+                          <td>{item.calculated_value.toString()}</td>
+                          <td>{item.variance_value.toString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
           </div>
         )}
 
-
         {/* Stage 23: Ingestion Result & Failure Display (Zero Silent Discards) */}
-        {ingestionResult && !processing && (
-          ingestionResult.success ? (
+        {ingestionResult &&
+          !processing &&
+          (ingestionResult.success ? (
             <div className="mt-6 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 text-emerald-300 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
@@ -1178,7 +1253,10 @@ export function SecureUploadGateway() {
                     Ingestion Succeeded — {ingestionResult.fileHeader.filename}
                   </div>
                   <div className="text-xs opacity-90 mt-0.5">
-                    Status: {ingestionResult.uploadRecord?.processingStatus || "PROCESSED"} | Rows: {ingestionResult.uploadRecord?.rowCount || 1} | Records: {ingestionResult.uploadRecord?.recordCount || 1} | Confidence: {(ingestionResult.confidenceScore * 100).toFixed(0)}%
+                    Status: {ingestionResult.uploadRecord?.processingStatus || "PROCESSED"} | Rows:{" "}
+                    {ingestionResult.uploadRecord?.rowCount || 1} | Records:{" "}
+                    {ingestionResult.uploadRecord?.recordCount || 1} | Confidence:{" "}
+                    {(ingestionResult.confidenceScore * 100).toFixed(0)}%
                   </div>
                 </div>
               </div>
@@ -1218,9 +1296,7 @@ export function SecureUploadGateway() {
                       FAILED SAFELY
                     </span>
                   </div>
-                  <div className="text-sm font-semibold text-foreground mt-1">
-                    Reason:
-                  </div>
+                  <div className="text-sm font-semibold text-foreground mt-1">Reason:</div>
                   <p className="text-sm text-rose-200/90 font-medium">
                     {ingestionResult.uploadRecord?.errorMessage ||
                       ingestionResult.batchJob?.quarantineReason ||
@@ -1233,7 +1309,10 @@ export function SecureUploadGateway() {
               <div className="p-3.5 rounded-xl border border-border/40 bg-card/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-2 text-foreground font-medium">
                   <Lock className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>The original file remains stored in encrypted storage vault (ID: {ingestionResult.fileHeader?.documentId || ingestionResult.uploadRecord?.id}).</span>
+                  <span>
+                    The original file remains stored in encrypted storage vault (ID:{" "}
+                    {ingestionResult.fileHeader?.documentId || ingestionResult.uploadRecord?.id}).
+                  </span>
                 </div>
                 <span className="text-[11px] text-emerald-400 font-mono font-semibold">
                   Never Silently Discarded
@@ -1243,7 +1322,9 @@ export function SecureUploadGateway() {
               {/* Error Recorded in Audit Trail */}
               <div className="text-xs text-muted-foreground flex items-center gap-2 px-1">
                 <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                <span>The error is recorded in the persistent audit trail and ingestion error registry.</span>
+                <span>
+                  The error is recorded in the persistent audit trail and ingestion error registry.
+                </span>
               </div>
 
               {/* Retry & Download Actions */}
@@ -1281,161 +1362,166 @@ export function SecureUploadGateway() {
                 )}
               </div>
             </div>
-          )
-        )}
+          ))}
 
         {/* Stage 21: Controlled Duplicate Protection & Correction Handling Card */}
-        {ingestionResult?.duplicateResult && ingestionResult.duplicateResult.status !== "NEW" && !processing && (
-          <div
-            className={`mt-4 p-5 rounded-xl border space-y-4 backdrop-blur-sm ${
-              ingestionResult.duplicateResult.status === "CORRECTION"
-                ? "border-purple-500/40 bg-purple-500/5 text-purple-200"
-                : ingestionResult.duplicateResult.status === "DUPLICATE"
-                ? "border-amber-500/40 bg-amber-500/5 text-amber-200"
-                : "border-cyan-500/40 bg-cyan-500/5 text-cyan-200"
-            }`}
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/30 pb-3">
-              <div className="flex items-center gap-2.5">
-                {ingestionResult.duplicateResult.status === "CORRECTION" ? (
-                  <Sparkles className="w-5 h-5 text-purple-400 shrink-0" />
-                ) : ingestionResult.duplicateResult.status === "DUPLICATE" ? (
-                  <Copy className="w-5 h-5 text-amber-400 shrink-0" />
-                ) : (
-                  <History className="w-5 h-5 text-cyan-400 shrink-0" />
-                )}
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-foreground">
-                      {ingestionResult.duplicateResult.status === "CORRECTION"
-                        ? "Legitimate Billing Correction Detected"
-                        : ingestionResult.duplicateResult.status === "DUPLICATE"
-                        ? "Accidental Duplicate Import Detected"
-                        : "Controlled Dataset Replacement"}
-                    </h3>
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
-                        ingestionResult.duplicateResult.status === "CORRECTION"
-                          ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
+        {ingestionResult?.duplicateResult &&
+          ingestionResult.duplicateResult.status !== "NEW" &&
+          !processing && (
+            <div
+              className={`mt-4 p-5 rounded-xl border space-y-4 backdrop-blur-sm ${
+                ingestionResult.duplicateResult.status === "CORRECTION"
+                  ? "border-purple-500/40 bg-purple-500/5 text-purple-200"
+                  : ingestionResult.duplicateResult.status === "DUPLICATE"
+                    ? "border-amber-500/40 bg-amber-500/5 text-amber-200"
+                    : "border-cyan-500/40 bg-cyan-500/5 text-cyan-200"
+              }`}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/30 pb-3">
+                <div className="flex items-center gap-2.5">
+                  {ingestionResult.duplicateResult.status === "CORRECTION" ? (
+                    <Sparkles className="w-5 h-5 text-purple-400 shrink-0" />
+                  ) : ingestionResult.duplicateResult.status === "DUPLICATE" ? (
+                    <Copy className="w-5 h-5 text-amber-400 shrink-0" />
+                  ) : (
+                    <History className="w-5 h-5 text-cyan-400 shrink-0" />
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-foreground">
+                        {ingestionResult.duplicateResult.status === "CORRECTION"
+                          ? "Legitimate Billing Correction Detected"
                           : ingestionResult.duplicateResult.status === "DUPLICATE"
-                          ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                          : "bg-cyan-500/20 text-cyan-300 border-cyan-500/30"
-                      }`}
-                    >
-                      {ingestionResult.duplicateResult.status}
-                    </span>
+                            ? "Accidental Duplicate Import Detected"
+                            : "Controlled Dataset Replacement"}
+                      </h3>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
+                          ingestionResult.duplicateResult.status === "CORRECTION"
+                            ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                            : ingestionResult.duplicateResult.status === "DUPLICATE"
+                              ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                              : "bg-cyan-500/20 text-cyan-300 border-cyan-500/30"
+                        }`}
+                      >
+                        {ingestionResult.duplicateResult.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {ingestionResult.duplicateResult.summary}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {ingestionResult.duplicateResult.summary}
-                  </p>
                 </div>
+
+                {ingestionResult.duplicateResult.existingRecord && (
+                  <div className="text-right text-[11px] text-muted-foreground font-mono">
+                    <div>Matched Record:</div>
+                    <div className="font-semibold text-foreground">
+                      {ingestionResult.duplicateResult.existingRecord.invoiceNumber ||
+                        ingestionResult.duplicateResult.existingRecord.id}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {ingestionResult.duplicateResult.existingRecord && (
-                <div className="text-right text-[11px] text-muted-foreground font-mono">
-                  <div>Matched Record:</div>
-                  <div className="font-semibold text-foreground">
-                    {ingestionResult.duplicateResult.existingRecord.invoiceNumber ||
-                      ingestionResult.duplicateResult.existingRecord.id}
+              {/* Differences Table for Corrections */}
+              {ingestionResult.duplicateResult.differences.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-foreground flex items-center justify-between">
+                    <span>Detected Metric Variances &amp; Adjustments:</span>
+                    <span className="text-[10px] text-purple-300">
+                      {ingestionResult.duplicateResult.differences.length} determinant adjustment(s)
+                    </span>
+                  </div>
+                  <div className="rounded-lg border border-border/40 overflow-hidden bg-card/40">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-muted/30 text-muted-foreground text-[10px] uppercase font-semibold">
+                        <tr>
+                          <th className="py-2 px-3">Determinant Field</th>
+                          <th className="py-2 px-3 text-right">Prior Registered Value</th>
+                          <th className="py-2 px-3 text-right">Corrected Value</th>
+                          <th className="py-2 px-3 text-right">Calculated Delta</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/20 font-mono">
+                        {ingestionResult.duplicateResult.differences.map((diff, i) => (
+                          <tr key={i} className="hover:bg-muted/10">
+                            <td className="py-2 px-3 font-sans font-medium text-foreground">
+                              {diff.label}
+                            </td>
+                            <td className="py-2 px-3 text-right text-muted-foreground">
+                              {typeof diff.existingValue === "number"
+                                ? diff.existingValue.toLocaleString("en-ZA", {
+                                    maximumFractionDigits: 2,
+                                  })
+                                : String(diff.existingValue)}
+                            </td>
+                            <td className="py-2 px-3 text-right font-bold text-foreground">
+                              {typeof diff.incomingValue === "number"
+                                ? diff.incomingValue.toLocaleString("en-ZA", {
+                                    maximumFractionDigits: 2,
+                                  })
+                                : String(diff.incomingValue)}
+                            </td>
+                            <td
+                              className={`py-2 px-3 text-right font-bold ${
+                                (diff.delta || 0) < 0
+                                  ? "text-emerald-400"
+                                  : (diff.delta || 0) > 0
+                                    ? "text-amber-400"
+                                    : "text-muted-foreground"
+                              }`}
+                            >
+                              {diff.formattedDelta || (diff.delta ? String(diff.delta) : "—")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Differences Table for Corrections */}
-            {ingestionResult.duplicateResult.differences.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>Detected Metric Variances &amp; Adjustments:</span>
-                  <span className="text-[10px] text-purple-300">
-                    {ingestionResult.duplicateResult.differences.length} determinant adjustment(s)
-                  </span>
-                </div>
-                <div className="rounded-lg border border-border/40 overflow-hidden bg-card/40">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-muted/30 text-muted-foreground text-[10px] uppercase font-semibold">
-                      <tr>
-                        <th className="py-2 px-3">Determinant Field</th>
-                        <th className="py-2 px-3 text-right">Prior Registered Value</th>
-                        <th className="py-2 px-3 text-right">Corrected Value</th>
-                        <th className="py-2 px-3 text-right">Calculated Delta</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/20 font-mono">
-                      {ingestionResult.duplicateResult.differences.map((diff, i) => (
-                        <tr key={i} className="hover:bg-muted/10">
-                          <td className="py-2 px-3 font-sans font-medium text-foreground">
-                            {diff.label}
-                          </td>
-                          <td className="py-2 px-3 text-right text-muted-foreground">
-                            {typeof diff.existingValue === "number"
-                              ? diff.existingValue.toLocaleString("en-ZA", { maximumFractionDigits: 2 })
-                              : String(diff.existingValue)}
-                          </td>
-                          <td className="py-2 px-3 text-right font-bold text-foreground">
-                            {typeof diff.incomingValue === "number"
-                              ? diff.incomingValue.toLocaleString("en-ZA", { maximumFractionDigits: 2 })
-                              : String(diff.incomingValue)}
-                          </td>
-                          <td
-                            className={`py-2 px-3 text-right font-bold ${
-                              (diff.delta || 0) < 0
-                                ? "text-emerald-400"
-                                : (diff.delta || 0) > 0
-                                ? "text-amber-400"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {diff.formattedDelta || (diff.delta ? String(diff.delta) : "—")}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {/* Controlled Resolution Actions */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                <p className="text-xs text-muted-foreground italic">
+                  {ingestionResult.duplicateResult.recommendation}
+                </p>
+
+                <div className="flex items-center gap-2">
+                  {ingestionResult.duplicateResult?.resolutionOptions.map((opt) => (
+                    <button
+                      key={opt.action}
+                      aria-label={
+                        opt.action === "ACCEPT_CORRECTION"
+                          ? "Accept Legitimate Correction"
+                          : opt.action === "KEEP_EXISTING_SKIP"
+                            ? "Skip Duplicate"
+                            : opt.title
+                      }
+                      onClick={() => handleDuplicateResolution(ingestionResult, opt.action)}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+                        opt.isRecommended
+                          ? ingestionResult.duplicateResult?.status === "CORRECTION"
+                            ? "bg-purple-600 hover:bg-purple-500 text-white border-purple-400 shadow-md"
+                            : "bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-400 shadow-md"
+                          : "bg-card/70 hover:bg-card border-border text-foreground"
+                      }`}
+                    >
+                      {opt.title}
+                    </button>
+                  ))}
                 </div>
               </div>
-            )}
 
-            {/* Controlled Resolution Actions */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-              <p className="text-xs text-muted-foreground italic">
-                {ingestionResult.duplicateResult.recommendation}
-              </p>
-
-              <div className="flex items-center gap-2">
-                {ingestionResult.duplicateResult?.resolutionOptions.map((opt) => (
-                  <button
-                    key={opt.action}
-                    aria-label={
-                      opt.action === "ACCEPT_CORRECTION"
-                        ? "Accept Legitimate Correction"
-                        : opt.action === "KEEP_EXISTING_SKIP"
-                        ? "Skip Duplicate"
-                        : opt.title
-                    }
-                    onClick={() => handleDuplicateResolution(ingestionResult, opt.action)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                      opt.isRecommended
-                        ? ingestionResult.duplicateResult?.status === "CORRECTION"
-                          ? "bg-purple-600 hover:bg-purple-500 text-white border-purple-400 shadow-md"
-                          : "bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-400 shadow-md"
-                        : "bg-card/70 hover:bg-card border-border text-foreground"
-                    }`}
-                  >
-                    {opt.title}
-                  </button>
-                ))}
-              </div>
+              {duplicateResolutionMessage && (
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{duplicateResolutionMessage}</span>
+                </div>
+              )}
             </div>
-
-            {duplicateResolutionMessage && (
-              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>{duplicateResolutionMessage}</span>
-              </div>
-            )}
-          </div>
-        )}
+          )}
 
         {/* Stage 9: Interval Telemetry Processing Summary Card */}
         {ingestionResult?.intervalSummary && (
@@ -1607,7 +1693,9 @@ export function SecureUploadGateway() {
                           {rec.metadata?.accountNumber || "Unassigned"}
                         </div>
                         <div className="text-[10px] text-muted-foreground max-w-[180px] truncate">
-                          {rec.metadata?.customerName || rec.metadata?.meterNumber || "Awaiting account match"}
+                          {rec.metadata?.customerName ||
+                            rec.metadata?.meterNumber ||
+                            "Awaiting account match"}
                         </div>
                       </td>
                       <td className="py-3 px-4">
@@ -1733,7 +1821,9 @@ export function SecureUploadGateway() {
                 <div>
                   <span className="text-muted-foreground">Customer / Meter:</span>
                   <div className="font-medium text-foreground mt-0.5">
-                    {selectedUpload.metadata?.customerName || selectedUpload.metadata?.meterNumber || "Awaiting match"}
+                    {selectedUpload.metadata?.customerName ||
+                      selectedUpload.metadata?.meterNumber ||
+                      "Awaiting match"}
                   </div>
                 </div>
                 <div>
