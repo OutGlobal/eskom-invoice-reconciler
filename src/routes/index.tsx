@@ -11,6 +11,7 @@ import { EneraTrustSection } from "@/components/landing/enera/EneraTrustSection"
 import { EneraContactSection } from "@/components/landing/enera/EneraContactSection";
 import { EneraFaqSection } from "@/components/landing/enera/EneraFaqSection";
 import { EneraFooter } from "@/components/landing/enera/EneraFooter";
+import { EneraBrandLoader } from "@/components/landing/enera/EneraBrandLoader";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:site_name",
-        content: "ENERA",
+        content: "ENERA AI",
       },
       {
         property: "og:title",
@@ -55,13 +56,11 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/52505294-a8b7-405f-bd46-268d13880296/id-preview-99af2560--d4e14f91-1593-4534-bd09-833873bc7bd1.lovable.app-1785402555429.png",
+        content: "https://enera-ai.com/images/enera-ai-social.png",
       },
       {
         name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/52505294-a8b7-405f-bd46-268d13880296/id-preview-99af2560--d4e14f91-1593-4534-bd09-833873bc7bd1.lovable.app-1785402555429.png",
+        content: "https://enera-ai.com/images/enera-ai-social.png",
       },
     ],
   }),
@@ -71,6 +70,9 @@ export const Route = createFileRoute("/")({
 function EneraLandingPage() {
   return (
     <div className="min-h-screen bg-white text-slate-900 selection:bg-cyan-500/20 selection:text-cyan-950 font-sans antialiased overflow-x-hidden">
+      {/* Cinematic Site Name Loading Sequence */}
+      <EneraBrandLoader />
+
       {/* Keyboard Accessibility Skip Link */}
       <a
         href="#main-content"

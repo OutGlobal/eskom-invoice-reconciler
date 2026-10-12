@@ -81,11 +81,6 @@ export function formatSastTimestamp(date: Date | string): string {
 /**
  * Determines if two closed date intervals [startA, endA] and [startB, endB] overlap
  */
-export function doDateRangesOverlap(
-  startA: Date,
-  endA: Date,
-  startB: Date,
-  endB: Date,
-): boolean {
+export function doDateRangesOverlap(startA: Date, endA: Date, startB: Date, endB: Date): boolean {
   return startA.getTime() <= endB.getTime() && endA.getTime() >= startB.getTime();
 }

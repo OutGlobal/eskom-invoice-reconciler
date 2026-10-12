@@ -36,7 +36,11 @@ export function formatNumber(value: number, decimals: number = 2): string {
  * Formats a percentage value with optional directional plus sign
  * e.g. 1.25 -> "+1.25%" or "-0.50%"
  */
-export function formatPercent(value: number, decimals: number = 2, includeSign: boolean = false): string {
+export function formatPercent(
+  value: number,
+  decimals: number = 2,
+  includeSign: boolean = false,
+): string {
   const safeVal = isNaN(value) ? 0 : value;
   const formatted = safeVal.toLocaleString("en-ZA", {
     minimumFractionDigits: decimals,

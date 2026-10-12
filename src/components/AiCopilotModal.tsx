@@ -89,7 +89,8 @@ export function AiCopilotModal({ isOpen, onClose }: AiCopilotModalProps) {
       responseText = `I have generated your formal Eskom Commercial Dispute Letter! Switch to the 'Dispute Letter' tab to view, copy, or download your ready-to-submit PDF/text memo.`;
       setActiveTab("dispute");
     } else if (q.includes("wheeling") || q.includes("solar") || q.includes("ppa")) {
-      responseText = "Upload the applicable wheeling agreement and tariff schedule before assessing credits or subsidy treatment.";
+      responseText =
+        "Upload the applicable wheeling agreement and tariff schedule before assessing credits or subsidy treatment.";
     }
 
     const aiMsg = {
@@ -173,7 +174,7 @@ export function AiCopilotModal({ isOpen, onClose }: AiCopilotModalProps) {
             }`}
           >
             <Bot className="h-3.5 w-3.5" />
-            <span>AI Copilot Chat</span>
+            <span>Rules-based Assistant Chat</span>
           </button>
 
           <button
@@ -199,7 +200,7 @@ export function AiCopilotModal({ isOpen, onClose }: AiCopilotModalProps) {
                   <Sparkles className="h-4 w-4" /> AI Tariff Audit Executive Summary
                 </h3>
                 <p className="text-xs text-foreground leading-relaxed">
-                  The AI Copilot evaluated <strong>{invoice?.accountMonth || "March 2026"}</strong>{" "}
+                  The Rules-based Assistant evaluated <strong>{invoice?.accountMonth || "March 2026"}</strong>{" "}
                   billing line items against 5,747 30-minute interval telemetry points. We
                   identified <strong>{insights.length} key commercial audit items</strong> totaling
                   over <strong>R 2,398,650.40</strong> in potential recovery and optimization
@@ -345,7 +346,7 @@ export function AiCopilotModal({ isOpen, onClose }: AiCopilotModalProps) {
               >
                 <input
                   type="text"
-                  placeholder="Ask AI Copilot about billing variances, NERSA tariffs, or curtailment claims..."
+                  placeholder="Ask Rules-based Assistant about billing variances, NERSA tariffs, or curtailment claims..."
                   value={userQuery}
                   onChange={(e) => setUserQuery(e.target.value)}
                   className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"

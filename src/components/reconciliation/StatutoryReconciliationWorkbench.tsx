@@ -37,17 +37,15 @@ export function StatutoryReconciliationWorkbench({
     return computeTotals(rows, nmd);
   }, [rows, nmd]);
 
-  // If telemetry rows are empty, fallback gracefully to invoice values for clean display
+  // Zero Fabrication Policy: when interval telemetry is absent, do not copy invoice figures.
   const telemetryAvailable = rows && rows.length > 0;
 
-  const peakKWh = telemetryAvailable ? totals.peakKWh : activeInvoice?.peakKWh || 0;
-  const standardKWh = telemetryAvailable ? totals.standardKWh : activeInvoice?.standardKWh || 0;
-  const offPeakKWh = telemetryAvailable ? totals.offPeakKWh : activeInvoice?.offPeakKWh || 0;
-  const totalKWh = telemetryAvailable ? totals.totalKWh : activeInvoice?.totalKWh || 0;
+  const peakKWh = telemetryAvailable ? totals.peakKWh : 0;
+  const standardKWh = telemetryAvailable ? totals.standardKWh : 0;
+  const offPeakKWh = telemetryAvailable ? totals.offPeakKWh : 0;
+  const totalKWh = telemetryAvailable ? totals.totalKWh : 0;
 
-  const simMaxDemandKVA = telemetryAvailable
-    ? totals.maxDemandKVA
-    : activeInvoice?.simMaxDemand || activeInvoice?.maxDemandKVA || 0;
+  const simMaxDemandKVA = telemetryAvailable ? totals.maxDemandKVA : 0;
   const simMaxDemandAt = totals.maxDemandAt;
 
   const txRate = tariff.transmissionNetwork;
@@ -55,10 +53,15 @@ export function StatutoryReconciliationWorkbench({
   const genRate = tariff.generationCapacity;
   const demandRate = tariff.networkDemand;
 
-  // Energy rates loaded from the active uploaded tariff.
-  const peakRate = tariff.energy.low.peak / 100;
-  const stdRate = tariff.energy.low.standard / 100;
-  const offPeakRate = tariff.energy.low.offPeak / 100;
+  // Energy rates determined dynamically by billing season (High Season = June..August in SA)
+  const startMonth = activeInvoice?.billingPeriodStart
+    ? new Date(activeInvoice.billingPeriodStart).getUTCMonth() + 1
+    : 1;
+  const isHighSeason = startMonth >= 6 && startMonth <= 8;
+
+  const peakRate = (isHighSeason ? tariff.energy.high.peak : tariff.energy.low.peak) / 100;
+  const stdRate = (isHighSeason ? tariff.energy.high.standard : tariff.energy.low.standard) / 100;
+  const offPeakRate = (isHighSeason ? tariff.energy.high.offPeak : tariff.energy.low.offPeak) / 100;
 
   // Subsidies rates (c/kWh -> R/kWh)
   const ancillaryRate = tariff.ancillary / 100;

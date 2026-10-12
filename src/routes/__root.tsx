@@ -1,3 +1,4 @@
+import { EneraBrandMark } from "@/components/landing/enera/EneraBrandPrimitives";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -7,9 +8,11 @@ import {
   useRouterState,
   HeadContent,
   Scripts,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Toaster } from "react-hot-toast";
+import { Analytics } from "@vercel/analytics/react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -43,7 +46,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
@@ -99,6 +102,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "ENERA transforms complex energy and billing information into clear, actionable intelligence for better financial and operational decisions.",
       },
       { property: "og:site_name", content: "ENERA AI" },
+      { property: "og:url", content: "https://enera-ai.com" },
       { property: "og:title", content: "ENERA AI | Energy Financial Intelligence" },
       {
         property: "og:description",
@@ -115,18 +119,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/52505294-a8b7-405f-bd46-268d13880296/id-preview-99af2560--d4e14f91-1593-4534-bd09-833873bc7bd1.lovable.app-1785402555429.png",
+        content: "https://enera-ai.com/images/enera-ai-social.png",
       },
       {
         name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/52505294-a8b7-405f-bd46-268d13880296/id-preview-99af2560--d4e14f91-1593-4534-bd09-833873bc7bd1.lovable.app-1785402555429.png",
+        content: "https://enera-ai.com/images/enera-ai-social.png",
       },
     ],
     links: [
+      { rel: "canonical", href: "https://enera-ai.com" },
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.png", type: "image/png", sizes: "32x32" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -143,6 +148,7 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <Analytics />
         <Scripts />
       </body>
     </html>
@@ -183,7 +189,7 @@ function RootComponent() {
                       className="text-xs font-mono font-bold text-cyan-500 hover:text-cyan-400 transition-colors flex items-center gap-1 shrink-0"
                       title="Return to ENERA Public Landing Page"
                     >
-                      <span>ENERA</span>
+                      <EneraBrandMark size="sm" showDescriptor={false} />
                       <span className="text-muted-foreground/40 font-normal">/</span>
                     </Link>
                     <span className="truncate">Eskom Meter Data Reconciliation</span>
@@ -194,7 +200,7 @@ function RootComponent() {
                       className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 border border-primary/30 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition shadow-2xs"
                     >
                       <Sparkles className="h-3.5 w-3.5 animate-pulse text-primary" />
-                      <span>AI Copilot</span>
+                      <span>Rules-based Assistant</span>
                     </button>
                     <div className="text-xs text-muted-foreground hidden lg:block">
                       2025/2026 Tariff Book · 30-min analytics

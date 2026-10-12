@@ -119,6 +119,9 @@ import { runMeterSubsystemTests } from "./meter_subsystem.test";
 import { runTelemetrySubsystemTests } from "./telemetry_subsystem.test";
 import { runVersionedTariffEngineTests } from "./versioned_tariff_engine.test";
 import { runEvidenceSubsystemTests } from "./evidence_chain_subsystem.test";
+import { runLargeDatasetsAndPerformanceTests } from "./large_datasets_and_db_performance.test";
+import { runSecurityAndFailureHandlingTests } from "./security_and_failure_handling.test";
+import { runReconciliationMatrixTests } from "./reconciliation_comprehensive_matrix.test";
 
 runAiInvestigationTests();
 runGovernanceWorkflowTests();
@@ -128,6 +131,9 @@ await runMeterSubsystemTests();
 await runTelemetrySubsystemTests();
 runVersionedTariffEngineTests();
 runEvidenceSubsystemTests();
+await runLargeDatasetsAndPerformanceTests();
+await runSecurityAndFailureHandlingTests();
+await runReconciliationMatrixTests();
 
 console.log("=== ALL AUTOMATED TESTS PASSED SUCCESSFULLY ===");
 process.exit(0);

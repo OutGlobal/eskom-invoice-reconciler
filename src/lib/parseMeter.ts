@@ -12,7 +12,6 @@ export interface Measurement {
   outage?: boolean;
 }
 
-
 /**
  * Parses an Excel / CSV AMR meter file.
  * Handles flexible header names across vendor formats:
@@ -225,4 +224,3 @@ export function imputeAndFlag(inputRows: Measurement[]): Measurement[] {
 
   return filledRows;
 }
-
