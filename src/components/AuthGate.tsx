@@ -1,7 +1,7 @@
 import { EneraBrandMark } from "@/components/landing/enera/EneraBrandPrimitives";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { LogIn, ShieldCheck, Loader2, Mail, AlertTriangle, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 import { identityFromVerifiedUser } from "@/domain/security/verifiedIdentity";
@@ -123,17 +123,26 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 function friendlyAuthError(err: any): string {
   const code = err?.code || err?.error_code || "";
   const msg: string = err?.message || "Authentication failed";
-  if (code === "invalid_credentials" || msg.toLowerCase().includes("invalid login credentials"))
+  const lowerMsg = msg.toLowerCase();
+
+  if (
+    lowerMsg.includes("failed to fetch") ||
+    lowerMsg.includes("networkerror") ||
+    lowerMsg.includes("load failed")
+  ) {
+    return "Authentication service is currently unreachable. Please check your network connection or try again shortly.";
+  }
+  if (code === "invalid_credentials" || lowerMsg.includes("invalid login credentials"))
     return "Email or password is incorrect. Double-check your details or register below.";
-  if (code === "email_not_confirmed" || msg.toLowerCase().includes("email not confirmed"))
+  if (code === "email_not_confirmed" || lowerMsg.includes("email not confirmed"))
     return "This account requires email confirmation. Please check your inbox or resend the confirmation link below.";
-  if (code === "email_address_invalid" || msg.toLowerCase().includes("invalid email"))
+  if (code === "email_address_invalid" || lowerMsg.includes("invalid email"))
     return "That email domain or format is invalid. Use a real, deliverable mailbox.";
-  if (code === "over_email_send_rate_limit" || msg.toLowerCase().includes("rate limit"))
+  if (code === "over_email_send_rate_limit" || lowerMsg.includes("rate limit"))
     return "Too many confirmation emails requested. Please wait a minute before trying again.";
-  if (code === "user_already_exists" || msg.toLowerCase().includes("user already registered"))
+  if (code === "user_already_exists" || lowerMsg.includes("user already registered"))
     return "An account with this email already exists — switch to Sign in below.";
-  if (code === "weak_password" || msg.toLowerCase().includes("at least 6 characters"))
+  if (code === "weak_password" || lowerMsg.includes("at least 6 characters"))
     return "Password too weak. Please use at least 8 characters.";
   return msg;
 }
@@ -154,6 +163,14 @@ export function SignInScreen() {
     setAuthError(null);
     setNotice(null);
     setUnconfirmedEmail(null);
+
+    if (!isSupabaseConfigured) {
+      setAuthError(
+        "Authentication service is currently unavailable or initializing. Please contact your system administrator.",
+      );
+      setBusy(false);
+      return;
+    }
 
     const cleanEmail = email.trim().toLowerCase();
 

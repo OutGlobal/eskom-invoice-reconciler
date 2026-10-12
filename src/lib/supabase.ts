@@ -2,26 +2,40 @@ import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_SUPABASE_URL) ||
+  (typeof import.meta !== "undefined" && import.meta.env?.NEXT_PUBLIC_SUPABASE_URL) ||
+  (typeof import.meta !== "undefined" && import.meta.env?.SUPABASE_URL) ||
   (typeof process !== "undefined" && process.env?.VITE_SUPABASE_URL) ||
+  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_SUPABASE_URL) ||
   (typeof process !== "undefined" && process.env?.SUPABASE_URL) ||
   "https://placeholder-project.supabase.co";
 
 const SUPABASE_ANON_KEY =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
+  (typeof import.meta !== "undefined" && import.meta.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+  (typeof import.meta !== "undefined" && import.meta.env?.SUPABASE_ANON_KEY) ||
   (typeof process !== "undefined" && process.env?.VITE_SUPABASE_ANON_KEY) ||
+  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY) ||
+  (typeof import.meta !== "undefined" && import.meta.env?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ||
   (typeof process !== "undefined" && process.env?.SUPABASE_PUBLISHABLE_KEY) ||
   "placeholder-anon-key";
 
 export const isSupabaseConfigured =
   Boolean(
     (typeof import.meta !== "undefined" &&
-      (import.meta.env?.VITE_SUPABASE_URL || import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY)) ||
+      (import.meta.env?.VITE_SUPABASE_URL ||
+        import.meta.env?.NEXT_PUBLIC_SUPABASE_URL ||
+        import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY ||
+        import.meta.env?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+        import.meta.env?.VITE_SUPABASE_ANON_KEY ||
+        import.meta.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY)) ||
     (typeof process !== "undefined" &&
-      (process.env?.VITE_SUPABASE_URL || process.env?.SUPABASE_URL)),
+      (process.env?.VITE_SUPABASE_URL ||
+        process.env?.NEXT_PUBLIC_SUPABASE_URL ||
+        process.env?.SUPABASE_URL)),
   ) &&
-  !SUPABASE_URL.includes("placeholder-project.supabase.co") &&
-  SUPABASE_ANON_KEY !== "placeholder-anon-key";
+  Boolean(SUPABASE_URL && !SUPABASE_URL.includes("placeholder-project.supabase.co")) &&
+  Boolean(SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== "placeholder-anon-key");
 
 const defaultClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let serverClientResolver: (() => typeof defaultClient | undefined) | undefined;
