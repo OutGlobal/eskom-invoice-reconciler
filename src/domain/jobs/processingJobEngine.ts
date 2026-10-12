@@ -19,6 +19,7 @@ import { SecureIngestionGateway } from "../ingestion/secureIngestionGateway";
 import { EnergyDataNormalizationEngine } from "../telemetry/energyDataNormalizationEngine";
 import { DeterministicReconciliationEngine } from "../reconciliation/reconciliationEngine";
 import type { AuthoritativeReconciliationInput } from "../reconciliation/reconciliationEngine";
+import { PowerFactorEngine } from "../reconciliation/powerFactorEngine";
 import { DeterministicDiagnosticsEngine } from "../discrepancy/deterministicDiagnosticsEngine";
 import { ESKOM_MEGAFLEX_2025_2026, ESKOM_MINIFLEX_2025_2026 } from "../tariff/tariffFixtures";
 import Decimal from "decimal.js-light";
@@ -93,7 +94,7 @@ export class ProcessingJobEngine {
       currentStage: "QUEUED",
       progressPercentage: 0,
       recordsProcessed: 0,
-      stageMessage: "Job queued for server-side execution",
+      stageMessage: "Local job queued; keep this tab open",
       sourceInvoiceFile: input.invoiceFile
         ? {
             name: invoiceName,
@@ -670,7 +671,14 @@ export class ProcessingJobEngine {
       }
     }
 
-    const calculatedTotalKwh = aggPeak + aggStd + aggOffPeak || canonicalTelemetry.length * 15;
+    const calculatedTotalKwh = aggPeak + aggStd + aggOffPeak;
+
+    // Derive actual vector power factor from telemetry determinants
+    const pfRecord = PowerFactorEngine.calculatePowerFactor({
+      kWh: calculatedTotalKwh,
+      kVArh: aggReactive,
+    });
+    const derivedPf = pfRecord.calculated_pf;
 
     // -------------------------------------------------------------
     // STAGE 6: RECONCILIATION
@@ -739,7 +747,7 @@ export class ProcessingJobEngine {
       calc_total_kwh: new Decimal(calculatedTotalKwh.toString()),
       calc_maximum_demand_kva: new Decimal(maxDemand.toString()),
       calc_reactive_energy_kvarh: new Decimal(aggReactive.toString()),
-      calc_power_factor: new Decimal("0.98"),
+      calc_power_factor: derivedPf,
     };
 
     // Log RECONCILIATION_STARTED into the immutable audit ledger

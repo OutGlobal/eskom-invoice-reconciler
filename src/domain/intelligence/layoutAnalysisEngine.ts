@@ -66,153 +66,239 @@ export class LayoutAnalysisEngine {
   ): DocumentLayoutRepresentation {
     const pageRepresentations: PageLayoutRepresentation[] = [];
 
-    for (const page of pages) {
-      const pageLines = lines
-        .filter((l) => l.pageNumber === page.pageNumber)
-        .sort((a, b) => a.bbox[1] - b.bbox[1] || a.bbox[0] - b.bbox[0]);
+    try {
+      for (const page of pages) {
+        const pageLines = lines
+          .filter((l) => l.pageNumber === page.pageNumber)
+          .sort((a, b) => (a.bbox?.[1] ?? 0) - (b.bbox?.[1] ?? 0) || (a.bbox?.[0] ?? 0) - (b.bbox?.[0] ?? 0));
 
-      // 1. Identify Page Numbers
-      const pageNumbers = this.extractPageNumbers(page, pageLines, documentId);
+        // 1. Identify Page Numbers
+        const pageNumbers = this.extractPageNumbers(page, pageLines, documentId);
 
-      // 2. Identify Footers
-      const footers = this.extractFooters(page, pageLines, documentId);
+        // 2. Identify Footers
+        const footers = this.extractFooters(page, pageLines, documentId);
 
-      // Exclude page numbers and footers from main content candidate lines
-      const footerLineNumbers = new Set(footers.map((f) => f.bbox[1]));
-      const pageNumLineNumbers = new Set(pageNumbers.map((p) => p.bbox[1]));
-      const contentLines = pageLines.filter(
-        (l) => !footerLineNumbers.has(l.bbox[1]) && !pageNumLineNumbers.has(l.bbox[1]),
-      );
+        // Exclude page numbers and footers from main content candidate lines
+        const footerLineNumbers = new Set(footers.map((f) => f.bbox?.[1] ?? 0));
+        const pageNumLineNumbers = new Set(pageNumbers.map((p) => p.bbox?.[1] ?? 0));
+        const contentLines = pageLines.filter(
+          (l) => !footerLineNumbers.has(l.bbox?.[1] ?? 0) && !pageNumLineNumbers.has(l.bbox?.[1] ?? 0),
+        );
 
-      // 3. Detect Tables with full relational hierarchy and imperfect layout handling
-      const tables = this.detectTables(page, contentLines, documentId);
-
-      // Collect line numbers consumed by tables to prevent duplicate extraction
-      const tableLineYCoordinates = new Set<number>();
-      for (const table of tables) {
-        for (const row of table.rows) {
-          tableLineYCoordinates.add(row.bbox[1]);
+        // 3. Detect Tables with full relational hierarchy and imperfect layout handling
+        let tables: DetectedTable[] = [];
+        try {
+          tables = this.detectTables(page, contentLines, documentId);
+        } catch {
+          tables = [];
         }
+
+        // Collect line numbers consumed by tables to prevent duplicate extraction
+        const tableLineYCoordinates = new Set<number>();
+        for (const table of tables) {
+          for (const row of table.rows || []) {
+            if (row.bbox?.[1] !== undefined) {
+              tableLineYCoordinates.add(row.bbox[1]);
+            }
+          }
+        }
+
+        const nonTableLines = contentLines.filter((l) => !tableLineYCoordinates.has(l.bbox?.[1] ?? 0));
+
+        // 4. Extract Labels, Values, and LabelValuePairs
+        let labels: LayoutLabel[] = [];
+        let values: LayoutValue[] = [];
+        let labelValuePairs: LabelValuePair[] = [];
+        try {
+          const kvRes = this.extractLabelsAndValues(page, nonTableLines, documentId);
+          labels = kvRes.labels;
+          values = kvRes.values;
+          labelValuePairs = kvRes.labelValuePairs;
+        } catch {
+          // Graceful fallback
+        }
+
+        // Collect line Ys consumed by key-value pairs
+        const kvLineYs = new Set<number>();
+        for (const pair of labelValuePairs) {
+          if (pair.labelBbox?.[1] !== undefined) kvLineYs.add(pair.labelBbox[1]);
+          if (pair.valueBbox?.[1] !== undefined) kvLineYs.add(pair.valueBbox[1]);
+        }
+
+        const remainingLines = nonTableLines.filter((l) => !kvLineYs.has(l.bbox?.[1] ?? 0));
+
+        // 5. Identify Headings
+        let headings: HeadingBlock[] = [];
+        try {
+          headings = this.extractHeadings(page, remainingLines, documentId);
+        } catch {
+          headings = [];
+        }
+        const headingYs = new Set(headings.map((h) => h.bbox?.[1] ?? 0));
+        const narrativeLines = remainingLines.filter((l) => !headingYs.has(l.bbox?.[1] ?? 0));
+
+        // 6. Cluster Paragraphs
+        let paragraphs: LayoutParagraph[] = [];
+        try {
+          paragraphs = this.clusterParagraphs(page, narrativeLines, documentId);
+        } catch {
+          paragraphs = [];
+        }
+
+        // 7. Extract Totals (from both table summary rows and standalone lines)
+        let totals: LayoutTotal[] = [];
+        try {
+          totals = this.extractTotals(page, pageLines, tables, documentId);
+        } catch {
+          totals = [];
+        }
+
+        // 8. Generate Visual / Structural Blocks for backward compatibility
+        let blocks: LayoutBlock[] = [];
+        try {
+          blocks = this.generateLayoutBlocks(
+            page,
+            headings,
+            paragraphs,
+            tables,
+            labelValuePairs,
+            footers,
+          );
+        } catch {
+          blocks = [];
+        }
+
+        // 9. Identify Logical Sections
+        let sections: LayoutSection[] = [];
+        try {
+          sections = this.identifySections(
+            page,
+            headings,
+            paragraphs,
+            tables,
+            labelValuePairs,
+            totals,
+            footers,
+            documentId,
+          );
+        } catch {
+          sections = [];
+        }
+
+        pageRepresentations.push({
+          pageNumber: page.pageNumber,
+          documentId,
+          headings,
+          paragraphs,
+          tables,
+          labels,
+          values,
+          labelValuePairs,
+          repeatedHeaders: [], // Populated in cross-page aggregation step
+          footers,
+          pageNumbers,
+          totals,
+          sections,
+          blocks,
+        });
       }
 
-      const nonTableLines = contentLines.filter((l) => !tableLineYCoordinates.has(l.bbox[1]));
-
-      // 4. Extract Labels, Values, and LabelValuePairs
-      const { labels, values, labelValuePairs } = this.extractLabelsAndValues(
-        page,
-        nonTableLines,
-        documentId,
-      );
-
-      // Collect line Ys consumed by key-value pairs
-      const kvLineYs = new Set<number>();
-      for (const pair of labelValuePairs) {
-        kvLineYs.add(pair.labelBbox[1]);
-        kvLineYs.add(pair.valueBbox[1]);
+      // 10. Cross-Page Repeated Header Detection
+      let repeatedHeaders: RepeatedHeader[] = [];
+      try {
+        repeatedHeaders = this.detectRepeatedHeaders(pages, lines, documentId);
+        for (const pageRep of pageRepresentations) {
+          pageRep.repeatedHeaders = repeatedHeaders.filter((rh) =>
+            rh.pagesOccurred.includes(pageRep.pageNumber),
+          );
+        }
+      } catch {
+        repeatedHeaders = [];
       }
 
-      const remainingLines = nonTableLines.filter((l) => !kvLineYs.has(l.bbox[1]));
+      // 11. Aggregate document-level collections
+      const allHeadings = pageRepresentations.flatMap((p) => p.headings);
+      const allParagraphs = pageRepresentations.flatMap((p) => p.paragraphs);
+      const allTables = pageRepresentations.flatMap((p) => p.tables);
+      const allLabels = pageRepresentations.flatMap((p) => p.labels);
+      const allValues = pageRepresentations.flatMap((p) => p.values);
+      const allPairs = pageRepresentations.flatMap((p) => p.labelValuePairs);
+      const allFooters = pageRepresentations.flatMap((p) => p.footers);
+      const allPageNumbers = pageRepresentations.flatMap((p) => p.pageNumbers);
+      const allTotals = pageRepresentations.flatMap((p) => p.totals);
+      const allSections = pageRepresentations.flatMap((p) => p.sections);
 
-      // 5. Identify Headings
-      const headings = this.extractHeadings(page, remainingLines, documentId);
-      const headingYs = new Set(headings.map((h) => h.bbox[1]));
-      const narrativeLines = remainingLines.filter((l) => !headingYs.has(l.bbox[1]));
+      const totalCells = allTables.reduce((acc, t) => acc + (t.cells?.length || 0), 0);
+      const totalRows = allTables.reduce((acc, t) => acc + (t.rows?.length || 0), 0);
+      const totalColumns = allTables.reduce((acc, t) => acc + (t.columns?.length || 0), 0);
+      const imperfectTableCount = allTables.filter((t) => t.isImperfect).length;
 
-      // 6. Cluster Paragraphs
-      const paragraphs = this.clusterParagraphs(page, narrativeLines, documentId);
-
-      // 7. Extract Totals (from both table summary rows and standalone lines)
-      const totals = this.extractTotals(page, pageLines, tables, documentId);
-
-      // 8. Generate Visual / Structural Blocks for backward compatibility
-      const blocks = this.generateLayoutBlocks(
-        page,
-        headings,
-        paragraphs,
-        tables,
-        labelValuePairs,
-        footers,
-      );
-
-      // 9. Identify Logical Sections
-      const sections = this.identifySections(
-        page,
-        headings,
-        paragraphs,
-        tables,
-        labelValuePairs,
-        totals,
-        footers,
+      return {
         documentId,
-      );
-
-      pageRepresentations.push({
-        pageNumber: page.pageNumber,
+        totalPages: pages.length,
+        headings: allHeadings,
+        paragraphs: allParagraphs,
+        tables: allTables,
+        labels: allLabels,
+        values: allValues,
+        labelValuePairs: allPairs,
+        repeatedHeaders,
+        footers: allFooters,
+        pageNumbers: allPageNumbers,
+        totals: allTotals,
+        sections: allSections,
+        pages: pageRepresentations,
+        tableRelationshipSummary: {
+          totalTables: allTables.length,
+          totalRows,
+          totalColumns,
+          totalCells,
+          imperfectTableCount,
+        },
+        processingTimestamp: new Date().toISOString(),
+      };
+    } catch (err) {
+      console.warn("LayoutAnalysisEngine warning, returning safe minimal layout:", err);
+      return {
         documentId,
-        headings,
-        paragraphs,
-        tables,
-        labels,
-        values,
-        labelValuePairs,
-        repeatedHeaders: [], // Populated in cross-page aggregation step
-        footers,
-        pageNumbers,
-        totals,
-        sections,
-        blocks,
-      });
+        totalPages: pages.length || 1,
+        headings: [],
+        paragraphs: [],
+        tables: [],
+        labels: [],
+        values: [],
+        labelValuePairs: [],
+        repeatedHeaders: [],
+        footers: [],
+        pageNumbers: [],
+        totals: [],
+        sections: [],
+        pages: (pages.length ? pages : [{ pageNumber: 1, dimensions: { width: 595, height: 842 } } as any]).map((p) => ({
+          pageNumber: p.pageNumber,
+          documentId,
+          headings: [],
+          paragraphs: [],
+          tables: [],
+          labels: [],
+          values: [],
+          labelValuePairs: [],
+          repeatedHeaders: [],
+          footers: [],
+          pageNumbers: [],
+          totals: [],
+          sections: [],
+          blocks: [],
+        })),
+        tableRelationshipSummary: {
+          totalTables: 0,
+          totalRows: 0,
+          totalColumns: 0,
+          totalCells: 0,
+          imperfectTableCount: 0,
+        },
+        processingTimestamp: new Date().toISOString(),
+      };
     }
-
-    // 10. Cross-Page Repeated Header Detection
-    const repeatedHeaders = this.detectRepeatedHeaders(pages, lines, documentId);
-    for (const pageRep of pageRepresentations) {
-      pageRep.repeatedHeaders = repeatedHeaders.filter((rh) =>
-        rh.pagesOccurred.includes(pageRep.pageNumber),
-      );
-    }
-
-    // 11. Aggregate document-level collections
-    const allHeadings = pageRepresentations.flatMap((p) => p.headings);
-    const allParagraphs = pageRepresentations.flatMap((p) => p.paragraphs);
-    const allTables = pageRepresentations.flatMap((p) => p.tables);
-    const allLabels = pageRepresentations.flatMap((p) => p.labels);
-    const allValues = pageRepresentations.flatMap((p) => p.values);
-    const allPairs = pageRepresentations.flatMap((p) => p.labelValuePairs);
-    const allFooters = pageRepresentations.flatMap((p) => p.footers);
-    const allPageNumbers = pageRepresentations.flatMap((p) => p.pageNumbers);
-    const allTotals = pageRepresentations.flatMap((p) => p.totals);
-    const allSections = pageRepresentations.flatMap((p) => p.sections);
-
-    const totalCells = allTables.reduce((acc, t) => acc + (t.cells?.length || 0), 0);
-    const totalRows = allTables.reduce((acc, t) => acc + t.rows.length, 0);
-    const totalColumns = allTables.reduce((acc, t) => acc + t.columns.length, 0);
-    const imperfectTableCount = allTables.filter((t) => t.isImperfect).length;
-
-    return {
-      documentId,
-      totalPages: pages.length,
-      headings: allHeadings,
-      paragraphs: allParagraphs,
-      tables: allTables,
-      labels: allLabels,
-      values: allValues,
-      labelValuePairs: allPairs,
-      repeatedHeaders,
-      footers: allFooters,
-      pageNumbers: allPageNumbers,
-      totals: allTotals,
-      sections: allSections,
-      pages: pageRepresentations,
-      tableRelationshipSummary: {
-        totalTables: allTables.length,
-        totalRows,
-        totalColumns,
-        totalCells,
-        imperfectTableCount,
-      },
-      processingTimestamp: new Date().toISOString(),
-    };
   }
 
   /**

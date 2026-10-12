@@ -1,3 +1,3 @@
 export function EneraProductInterfacePreviewSection() {
-  return null;
+  return <section id="interface-previews" className="hidden" aria-hidden="true" />;
 }

@@ -407,4 +407,17 @@ export class AutomaticProcessingPipeline {
     const blob = new Blob([content], { type: mime });
     return new File([blob], name, { type: mime });
   }
+  /**
+   * Fallback invoice extractor for demo / isolated test environments
+   */
+  private static buildFallbackInvoice(filename: string) {
+    return {
+      accountNumber: "",
+      meterNumber: "",
+      tariff: "",
+      billingPeriod: "",
+      billingStart: "",
+      billingEnd: "",
+    };
+  }
 }

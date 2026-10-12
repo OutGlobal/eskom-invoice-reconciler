@@ -103,13 +103,17 @@ export function AppSidebar() {
             className="flex items-center gap-2 group w-full focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded-md"
             title="Back to ENERA Public Landing Page"
           >
-            <div className="h-8 w-8 shrink-0 rounded-md bg-gradient-to-br from-cyan-950 via-[#0d1117] to-slate-900 border border-cyan-500/40 flex items-center justify-center text-cyan-400 font-mono font-bold text-sm shadow-[0_0_12px_rgba(6,182,212,0.3)]">
-              E
-            </div>
+            <img
+              src="/images/enera-ai-mark.png"
+              alt="ENERA AI"
+              width={375}
+              height={310}
+              className="h-8 w-8 shrink-0 object-contain rounded bg-[#030712]"
+            />
             {!collapsed && (
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold leading-tight truncate group-hover:text-primary transition-colors flex items-center gap-1.5 font-mono">
-                  <span>ENERA Recon</span>
+                  <span>ENERA AI</span>
                 </div>
                 <div className="text-[10px] text-muted-foreground truncate">Platform Landing ↗</div>
               </div>

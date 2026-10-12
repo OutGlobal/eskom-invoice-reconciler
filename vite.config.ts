@@ -14,13 +14,20 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    ssr: {
+      noExternal: true,
+    },
     resolve: {
-      alias: {
-        "lucide-react": path.resolve(
-          __dirname,
-          "node_modules/lucide-react/dist/cjs/lucide-react.js",
-        ),
-      },
+      alias: [
+        { find: /^tslib$/, replacement: path.resolve(__dirname, "src/lib/tslib-shim.ts") },
+        {
+          find: "lucide-react",
+          replacement: path.resolve(
+            __dirname,
+            "node_modules/lucide-react/dist/cjs/lucide-react.js",
+          ),
+        },
+      ],
     },
   },
 });

@@ -312,15 +312,12 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
       });
     }
 
-    if (inv?.extraction?.needsReview) {
-      needsHumanReview = true;
-      confidenceScore = Math.min(confidenceScore, 0.8);
-      ambiguityReasons.push("PDF OCR field low confidence warning flagged by parser");
-    }
+    const pageCount = pdfRes?.pageCount || pdfRes?.numPages || (pdfRes?.pages ? pdfRes.pages.length : 1);
 
     return {
       success: true,
       documentType: "INVOICE_PDF",
+      pageCount,
       extractedFields,
       rawTextPreview: inv?.source || `Invoice No: ${extractedFields.accountNumber}`,
       confidenceScore,

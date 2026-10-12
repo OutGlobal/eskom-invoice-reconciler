@@ -230,4 +230,163 @@ export class TenantContextService {
     const { SecurityHardeningService } = require("./securityHardeningService");
     SecurityHardeningService.assertAdminPrivilege(context, requiredPermission);
   }
+
+  // =========================================================================
+  // REQUIREMENT 38: 8 AUTHORITATIVE RESOURCE ACCESS VERIFIERS
+  // =========================================================================
+
+  /**
+   * 1. Verify Organisation Isolation:
+   * Asserts that a user only accesses their designated organization tenant.
+   */
+  public static verifyOrganisationAccess(
+    context: UserSecurityContext,
+    targetOrgId: string,
+  ): void {
+    assertTenantAccess(context, targetOrgId);
+  }
+
+  /**
+   * 2. Verify RLS (Row Level Security) Query Compliance:
+   * Asserts that any database query filter enforces tenant isolation before dispatch.
+   */
+  public static verifyRlsQuery<T extends Record<string, any>>(
+    context: UserSecurityContext,
+    tableName: string,
+    queryFilter: T,
+  ): T & { organisation_id: string } {
+    if (!context) {
+      throw new Error(`RLS_VIOLATION: Missing UserSecurityContext for table '${tableName}'`);
+    }
+
+    if (context.role === "SUPER_ADMIN") {
+      return {
+        ...queryFilter,
+        organisation_id: queryFilter.organisation_id || context.organisationId,
+      };
+    }
+
+    const requestedOrg = queryFilter.organisation_id || queryFilter.tenant_id;
+    if (requestedOrg && requestedOrg !== context.organisationId) {
+      throw new TenantIsolationViolationError(context.organisationId, requestedOrg,
+        `RLS_POLICY_BLOCKED: Query on table '${tableName}' targeted unauthorized organisation '${requestedOrg}'`
+      );
+    }
+
+    return {
+      ...queryFilter,
+      organisation_id: context.organisationId,
+    };
+  }
+
+  /**
+   * 3. Verify Account Access:
+   * Asserts that the customer account belongs to the caller's organization.
+   */
+  public static verifyAccountAccess(
+    context: UserSecurityContext,
+    account: { organisation_id?: string; account_number?: string },
+  ): void {
+    const orgId = account.organisation_id;
+    if (!orgId) {
+      throw new Error("SECURITY_VIOLATION: Account lacks organisation attribution");
+    }
+    assertTenantAccess(context, orgId);
+  }
+
+  /**
+   * 4. Verify Meter Access:
+   * Asserts that the physical meter belongs to the caller's organization.
+   */
+  public static verifyMeterAccess(
+    context: UserSecurityContext,
+    meter: { organisation_id?: string; meter_id?: string; meter_number?: string },
+  ): void {
+    const orgId = meter.organisation_id;
+    if (!orgId) {
+      throw new Error("SECURITY_VIOLATION: Meter lacks organisation attribution");
+    }
+    assertTenantAccess(context, orgId);
+  }
+
+  /**
+   * 5. Verify Invoice Access:
+   * Asserts that the invoice belongs to the caller's organization.
+   */
+  public static verifyInvoiceAccess(
+    context: UserSecurityContext,
+    invoice: { organisation_id?: string; invoice_id?: string; invoice_number?: string },
+  ): void {
+    const orgId = invoice.organisation_id;
+    if (!orgId) {
+      throw new Error("SECURITY_VIOLATION: Invoice lacks organisation attribution");
+    }
+    assertTenantAccess(context, orgId);
+  }
+
+  /**
+   * 6. Verify AMR Telemetry Access:
+   * Asserts that the AMR interval data or source file belongs to the caller's organization.
+   */
+  public static verifyAmrAccess(
+    context: UserSecurityContext,
+    amr: { organisation_id?: string; meter_id?: string; file_id?: string },
+  ): void {
+    const orgId = amr.organisation_id;
+    if (!orgId) {
+      throw new Error("SECURITY_VIOLATION: AMR telemetry lacks organisation attribution");
+    }
+    assertTenantAccess(context, orgId);
+  }
+
+  /**
+   * 7. Verify Reconciliation Access:
+   * CRITICAL INVARIANT (Requirement 38):
+   * "A user from Organisation A must never retrieve Organisation B's reconciliation results."
+   */
+  public static verifyReconciliationAccess(
+    context: UserSecurityContext,
+    reconciliation: {
+      organisation_id?: string;
+      tenant_id?: string;
+      run_id?: string;
+      reconciliation_id?: string;
+    },
+  ): void {
+    if (!context) {
+      throw new Error("SECURITY_VIOLATION: Missing UserSecurityContext for reconciliation access");
+    }
+
+    if (context.role === "SUPER_ADMIN") {
+      return;
+    }
+
+    const targetOrg = reconciliation.organisation_id || reconciliation.tenant_id;
+    if (!targetOrg) {
+      throw new Error("SECURITY_VIOLATION: Reconciliation result lacks organisation attribution");
+    }
+
+    if (context.organisationId !== targetOrg) {
+      throw new TenantIsolationViolationError(
+        context.organisationId,
+        targetOrg,
+        `SECURITY_VIOLATION (Req 38): User from Organisation '${context.organisationId}' attempted to access Reconciliation '${reconciliation.run_id || reconciliation.reconciliation_id || "UNKNOWN"}' belonging to Organisation '${targetOrg}'. Access denied.`
+      );
+    }
+  }
+
+  /**
+   * 8. Verify Report & Dispute Pack Access:
+   * Asserts that generated reports and audit evidence belong to the caller's organization.
+   */
+  public static verifyReportAccess(
+    context: UserSecurityContext,
+    report: { organisation_id?: string; report_id?: string; pack_id?: string },
+  ): void {
+    const orgId = report.organisation_id;
+    if (!orgId) {
+      throw new Error("SECURITY_VIOLATION: Report pack lacks organisation attribution");
+    }
+    assertTenantAccess(context, orgId);
+  }
 }

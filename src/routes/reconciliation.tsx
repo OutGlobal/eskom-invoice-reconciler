@@ -29,6 +29,8 @@ import { AnomalyDashboard } from "@/components/discrepancy/AnomalyDashboard";
 import { AuditViewer } from "@/components/audit/AuditViewer";
 import { InvoiceSelector } from "@/components/InvoiceSelector";
 import { StatutoryReconciliationWorkbench } from "@/components/reconciliation/StatutoryReconciliationWorkbench";
+import { EneraReconciliationView } from "@/components/reconciliation/EneraReconciliationView";
+import { DataLineageModal } from "@/components/reconciliation/DataLineageModal";
 import { Calculator } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 
@@ -45,11 +47,13 @@ function ReconciliationPage() {
     null,
   );
   const [isExplainerOpen, setIsExplainerOpen] = useState<boolean>(false);
+  const [isLineageModalOpen, setIsLineageModalOpen] = useState<boolean>(false);
+  const [lineageDeterminant, setLineageDeterminant] = useState<DeterminantComparisonItem | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [filterTab, setFilterTab] = useState<"all" | "discrepancies" | "matches">("all");
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<
-    "statutory" | "matrix" | "anomalies" | "evidence"
-  >("statutory");
+    "enera" | "statutory" | "matrix" | "anomalies" | "evidence"
+  >("enera");
 
   const runReconciliation = () => {
     const outcome = runAutomaticReconciliation(activeInvoice, meterRows, DEFAULT_TOLERANCE_CONFIG);
@@ -147,6 +151,21 @@ function ReconciliationPage() {
       {/* Workspace Hub Navigation Tabs */}
       <div className="flex border-b border-border gap-2 overflow-x-auto">
         <button
+          onClick={() => setActiveWorkspaceTab("enera")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+            activeWorkspaceTab === "enera"
+              ? "border-primary text-primary font-bold"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Scale className="h-4 w-4 text-primary" />
+          <span>Executive Reconciliation (ENERA)</span>
+          <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-primary/10 text-primary font-mono font-bold">
+            Live
+          </span>
+        </button>
+
+        <button
           onClick={() => setActiveWorkspaceTab("statutory")}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
             activeWorkspaceTab === "statutory"
@@ -206,6 +225,8 @@ function ReconciliationPage() {
           </span>
         </button>
       </div>
+
+      {activeWorkspaceTab === "enera" && <EneraReconciliationView payload={payload} />}
 
       {activeWorkspaceTab === "statutory" && <StatutoryReconciliationWorkbench />}
 
@@ -389,6 +410,16 @@ function ReconciliationPage() {
                       <td className="p-2.5 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
+                            onClick={() => {
+                              setLineageDeterminant(item);
+                              setIsLineageModalOpen(true);
+                            }}
+                            className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary hover:bg-primary/20 rounded"
+                            title="Trace 6-tier data lineage to source PDF"
+                          >
+                            View Source
+                          </button>
+                          <button
                             onClick={() => openExplainer(item)}
                             className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
                             title="Inspect calculation explanation formula lineage"
@@ -501,6 +532,18 @@ function ReconciliationPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 6-Tier Data Lineage Modal */}
+      {isLineageModalOpen && (
+        <DataLineageModal
+          isOpen={isLineageModalOpen}
+          onClose={() => setIsLineageModalOpen(false)}
+          determinant={lineageDeterminant}
+          payload={payload}
+          invoice={activeInvoice}
+          meterRows={meterRows}
+        />
       )}
     </div>
   );

@@ -4,7 +4,7 @@
  * quarantine registration, gap analytics, and paginated queries.
  */
 
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import type {
   TelemetryIntervalRecord,
   QuarantineRecord,
@@ -13,6 +13,12 @@ import type {
   TelemetryQualitySummary,
   TelemetryQualityState,
 } from "./types";
+import { LargeDatasetQueryEngine } from "./largeDatasetQueryEngine";
+import type {
+  PaginatedTelemetryResult,
+  AggregatedChartDataResponse,
+  AggregationCadence,
+} from "./largeDatasetTypes";
 
 export class TelemetryStorageService {
   private static readonly BATCH_CHUNK_SIZE = 5000;
@@ -22,7 +28,9 @@ export class TelemetryStorageService {
 
   public static recordIntervalsMemory(key: string, intervals: any[]): void {
     const existing = this.memoryIntervals.get(key) || [];
-    this.memoryIntervals.set(key, [...existing, ...intervals]);
+    const merged = [...existing, ...intervals];
+    this.memoryIntervals.set(key, merged);
+    LargeDatasetQueryEngine.registerDataset(key, merged);
   }
 
   public static getIntervalsMemory(key: string): any[] {
@@ -42,6 +50,11 @@ export class TelemetryStorageService {
     this.memoryIntervals.clear();
     this.memoryGaps.clear();
     this.memoryQuarantine.clear();
+    LargeDatasetQueryEngine.clearCache();
+  }
+
+  public static clearStorage(): void {
+    this.clearMemoryStore();
   }
 
   /**
@@ -101,18 +114,20 @@ export class TelemetryStorageService {
           power_factor: item.channel === "power_factor" ? item.engineering_value : 0.96,
         }));
 
-        const { error } = await supabase.from("telemetry_intervals").upsert(payload, {
-          onConflict: "meter_id,timestamp_utc",
-        });
+        if (isSupabaseConfigured) {
+          const { error } = await supabase.from("telemetry_intervals").upsert(payload, {
+            onConflict: "meter_id,timestamp_utc",
+          });
 
-        if (error && !error.message.includes("FetchError")) {
-          console.warn("Supabase telemetry_intervals chunk upsert warning:", error.message);
+          if (error && !error.message.includes("FetchError")) {
+            console.warn("Supabase telemetry_intervals chunk upsert warning:", error.message);
+          }
         }
         insertedCount += chunk.length;
       }
 
       // 2. Insert Quarantine Records
-      if (quarantineRecords.length > 0) {
+      if (quarantineRecords.length > 0 && isSupabaseConfigured) {
         const qPayload = quarantineRecords.map((q) => ({
           ingestion_batch_id:
             q.ingestion_batch_id && q.ingestion_batch_id.length > 10
@@ -133,7 +148,7 @@ export class TelemetryStorageService {
       }
 
       // 3. Insert Missing Gap Records
-      if (missingGaps.length > 0) {
+      if (missingGaps.length > 0 && isSupabaseConfigured) {
         const gPayload = missingGaps.slice(0, 200).map((g) => ({
           meter_id: g.meter_id,
           expected_interval: g.expected_interval,
@@ -178,7 +193,9 @@ export class TelemetryStorageService {
         created_by: estimation.created_by,
       };
 
-      await supabase.from("telemetry_estimations").insert(payload);
+      if (isSupabaseConfigured) {
+        await supabase.from("telemetry_estimations").insert(payload);
+      }
 
       // Save estimated interval record to intervals table
       await this.saveTelemetryBatch({
@@ -241,23 +258,25 @@ export class TelemetryStorageService {
     limit: number = 100,
     meterId?: string,
   ): Promise<TelemetryIntervalRecord[]> {
-    try {
-      let query = supabase
-        .from("telemetry_intervals")
-        .select("*")
-        .order("timestamp_utc", { ascending: false })
-        .limit(limit);
+    if (isSupabaseConfigured) {
+      try {
+        let query = supabase
+          .from("telemetry_intervals")
+          .select("*")
+          .order("timestamp_utc", { ascending: false })
+          .limit(limit);
 
-      if (meterId) {
-        query = query.eq("meter_id", meterId);
-      }
+        if (meterId) {
+          query = query.eq("meter_id", meterId);
+        }
 
-      const { data, error } = await query;
-      if (!error && data && data.length > 0) {
-        return data as unknown as TelemetryIntervalRecord[];
+        const { data, error } = await query;
+        if (!error && data && data.length > 0) {
+          return data as unknown as TelemetryIntervalRecord[];
+        }
+      } catch {
+        // Offline fallback
       }
-    } catch {
-      // Offline fallback
     }
 
     if (meterId) {
@@ -294,5 +313,240 @@ export class TelemetryStorageService {
       if (mem && mem.length > 0) return mem;
     }
     return this.fetchIntervals(500, key);
+  }
+
+  /**
+   * Server-Side Paginated Query
+   * Restricts browser heap by returning strictly bounded pages (e.g. 50 items)
+   * with exact total counts and execution time without transferring entire datasets.
+   */
+  public static async queryPaginated(params: {
+    organisationId?: string;
+    meterId?: string;
+    searchQuery?: string;
+    qualityState?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<PaginatedTelemetryResult<TelemetryIntervalRecord>> {
+    const page = Math.max(1, params.page || 1);
+    const pageSize = Math.min(1000, Math.max(1, params.pageSize || 50));
+    const offset = (page - 1) * pageSize;
+    const startTime = performance.now();
+
+    if (isSupabaseConfigured) {
+      try {
+        let query = supabase
+          .from("telemetry_intervals")
+          .select("*", { count: "exact" })
+          .order("timestamp_utc", { ascending: false })
+          .range(offset, offset + pageSize - 1);
+
+        if (params.meterId) {
+          query = query.eq("meter_id", params.meterId);
+        }
+        if (params.organisationId) {
+          query = query.eq("organisation_id", params.organisationId);
+        }
+        if (params.qualityState && params.qualityState !== "ALL") {
+          query = query.eq("quality_state", params.qualityState);
+        }
+        if (params.startDate) {
+          query = query.gte("timestamp_utc", params.startDate);
+        }
+        if (params.endDate) {
+          query = query.lte("timestamp_utc", params.endDate);
+        }
+
+        const { data, count, error } = await query;
+        if (!error && data) {
+          const totalCount = count || data.length;
+          const totalPages = Math.ceil(totalCount / pageSize) || 1;
+          const duration = Math.round(performance.now() - startTime);
+
+          return {
+            items: data as unknown as TelemetryIntervalRecord[],
+            totalCount,
+            page,
+            pageSize,
+            totalPages,
+            hasNextPage: page < totalPages,
+            hasPrevPage: page > 1,
+            executionDurationMs: duration,
+          };
+        }
+      } catch {
+        // Fallback to local memory / cache query
+      }
+    }
+
+    // Memory / Local Dataset fallback via LargeDatasetQueryEngine
+    const allRecords = Array.from(this.memoryIntervals.values()).flat();
+    // Deduplicate by record id if stored under multiple keys
+    const seenIds = new Set<string>();
+    const rawCandidates = (params.meterId
+      ? this.memoryIntervals.get(params.meterId) || []
+      : allRecords
+    ).filter((r: any) => {
+      if (r.id) {
+        if (seenIds.has(r.id)) return false;
+        seenIds.add(r.id);
+      }
+      return true;
+    });
+
+    return LargeDatasetQueryEngine.queryPaginatedIntervals(
+      {
+        organisationId: params.organisationId || "",
+        meterId: params.meterId,
+        qualityStates:
+          params.qualityState && params.qualityState !== "ALL"
+            ? [params.qualityState as any]
+            : undefined,
+        startDate: params.startDate,
+        endDate: params.endDate,
+      },
+      {
+        page,
+        pageSize,
+      },
+      rawCandidates,
+    );
+  }
+
+  /**
+   * Server-Side / Database Aggregation Query for Charts
+   * Aggregates raw millions of records into strictly bounded plottable points (max 300)
+   */
+  public static async getAggregatedTimeSeries(
+    arg1: string | {
+      meterId: string;
+      organisationId?: string;
+      cadence?: AggregationCadence;
+      startDate?: string;
+      endDate?: string;
+      maxBuckets?: number;
+    },
+    channelOrCadence?: string,
+    maxBucketsParam?: number,
+  ): Promise<any> {
+    if (typeof arg1 === "string") {
+      const meterId = arg1;
+      const maxBuckets = maxBucketsParam || 100;
+      const rawRecords = this.memoryIntervals.get(meterId) || Array.from(this.memoryIntervals.values()).flat();
+      const seen = new Set<string>();
+      const records = rawRecords.filter((r: any) => {
+        if (r.id) {
+          if (seen.has(r.id)) return false;
+          seen.add(r.id);
+        }
+        return true;
+      });
+
+      if (records.length === 0) return [];
+      const bucketSize = Math.max(1, Math.ceil(records.length / maxBuckets));
+      const buckets: any[] = [];
+      for (let i = 0; i < records.length; i += bucketSize) {
+        const slice = records.slice(i, i + bucketSize);
+        const sumVal = slice.reduce((s: number, r: any) => s + (Number(r.engineering_value ?? r.raw_value ?? 0)), 0);
+        buckets.push({
+          bucketIndex: buckets.length,
+          intervalCount: slice.length,
+          sumValue: sumVal,
+          avgValue: sumVal / slice.length,
+        });
+      }
+      return buckets;
+    }
+
+    const params = arg1;
+    const intervals = this.memoryIntervals.get(params.meterId) || [];
+    return LargeDatasetQueryEngine.aggregateIntervalsForCharts(
+      {
+        organisationId: params.organisationId || "DEFAULT",
+        meterId: params.meterId,
+        startDate: params.startDate,
+        endDate: params.endDate,
+      },
+      params.cadence || "day",
+      params.maxBuckets || 300,
+      intervals,
+    );
+  }
+
+  /**
+   * Aggregated Quality State Distribution Query
+   * Counts quality states without transferring million-record arrays to caller
+   */
+  public static async getQualityStateDistribution(params?: {
+    meterId?: string;
+    organisationId?: string;
+  }): Promise<Record<TelemetryQualityState, number>> {
+    const counts: Record<TelemetryQualityState, number> = {
+      ACTUAL: 0,
+      ESTIMATED: 0,
+      INTERPOLATED: 0,
+      MISSING: 0,
+      INVALID: 0,
+      DUPLICATE: 0,
+      CORRECTED: 0,
+      MANUAL_OVERRIDE: 0,
+    };
+
+    const rawRecords = params?.meterId
+      ? this.memoryIntervals.get(params.meterId) || []
+      : Array.from(this.memoryIntervals.values()).flat();
+
+    const seen = new Set<string>();
+    const records = rawRecords.filter((r: any) => {
+      if (r.id) {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+      }
+      return true;
+    });
+
+    for (const r of records) {
+      const st = r.quality_state as TelemetryQualityState;
+      if (st && counts[st] !== undefined) {
+        counts[st]++;
+      }
+    }
+
+    return counts;
+  }
+
+  /**
+   * Chunked Batch Processing Runner
+   * Processes large dataset streams in safe chunks (e.g. 5,000 intervals) with
+   * cooperative event-loop tick yielding to prevent browser/server lockup.
+   */
+  public static async processInChunks<T, R = any>(
+    items: T[],
+    arg2: number | ((chunk: T[], index: number) => Promise<R[]> | R[]),
+    arg3?: ((chunk: T[]) => Promise<any> | any) | {
+      chunkSize?: number;
+      yieldTickIntervalMs?: number;
+      onProgress?: (done: number, total: number, pct: number) => void;
+    },
+  ): Promise<any> {
+    if (typeof arg2 === "number" && typeof arg3 === "function") {
+      const chunkSize = arg2;
+      const callback = arg3;
+      for (let i = 0; i < items.length; i += chunkSize) {
+        const chunk = items.slice(i, i + chunkSize);
+        await callback(chunk);
+      }
+      return;
+    }
+
+    const processChunk = arg2 as (chunk: T[], index: number) => Promise<R[]> | R[];
+    const options = arg3 as any;
+    return LargeDatasetQueryEngine.streamBatchProcessor(items, processChunk, {
+      batchSize: options?.chunkSize || 5000,
+      yieldTickIntervalMs: options?.yieldTickIntervalMs ?? 0,
+      onProgress: options?.onProgress,
+    });
   }
 }

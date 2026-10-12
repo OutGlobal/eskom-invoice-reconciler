@@ -8,6 +8,7 @@ import type { TariffVersionDefinition } from "../../tariff/types";
 export interface AdapterExtractionResult {
   success: boolean;
   documentType: IngestionDocumentType;
+  pageCount?: number;
   extractedFields?: ExtractedInvoiceFields;
   tariffDefinition?: TariffVersionDefinition;
   intervals?: any[];

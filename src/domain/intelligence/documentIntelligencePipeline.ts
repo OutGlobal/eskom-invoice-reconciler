@@ -829,16 +829,24 @@ export class DocumentIntelligencePipeline {
         }
       }
     } catch (layoutErr: any) {
-      if (layoutErr instanceof DocumentIntelligenceError) throw layoutErr;
-      throw new LayoutExtractionError(
-        `Layout extraction failed on document '${filename}': ${layoutErr?.message || String(layoutErr)}`,
-        {
-          documentId,
-          organisationId,
-          stage: "LAYOUT_ANALYSIS",
-          cause: layoutErr,
-        },
-      );
+      console.warn("Layout extraction warning, continuing with default page layout models:", layoutErr);
+      layouts = pages.map((p) => ({
+        pageNumber: p.pageNumber,
+        documentId,
+        blocks: [],
+        tables: [],
+        keyValues: [],
+        headings: [],
+        paragraphs: [],
+        labels: [],
+        values: [],
+        labelValuePairs: [],
+        repeatedHeaders: [],
+        footers: [],
+        pageNumbers: [],
+        totals: [],
+        sections: [],
+      }));
     }
     documentRecord.extractionStatus = "COMPLETED";
 

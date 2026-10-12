@@ -14,7 +14,6 @@ import Decimal from "decimal.js-light";
 import type { TelemetryIntervalRecord, TelemetryQualityState } from "./types";
 import { TenantIsolationViolationError } from "../security/tenantContextService";
 import type { UserSecurityContext } from "../security/types";
-import { TelemetryStorageService } from "./telemetryStorageService";
 import type {
   AggregationCadence,
   AggregatedChartDataResponse,
@@ -53,6 +52,10 @@ export class LargeDatasetQueryEngine {
     this.datasetCache.clear();
   }
 
+  public static clearCache(): void {
+    this.clearDatasetCache();
+  }
+
   /**
    * Server-Side Pagination & Filtering
    * Protects browser heap by slicing large datasets into bounded pages (default 50, max 1000).
@@ -82,8 +85,6 @@ export class LargeDatasetQueryEngine {
       candidateRecords = this.datasetCache.get(filter.sourceFileId)!;
     } else if (filter.meterId && this.datasetCache.has(filter.meterId)) {
       candidateRecords = this.datasetCache.get(filter.meterId)!;
-    } else if (filter.meterId) {
-      candidateRecords = TelemetryStorageService.getIntervalsMemory(filter.meterId);
     }
 
     // 2. Server-side deterministic filtering
@@ -198,8 +199,6 @@ export class LargeDatasetQueryEngine {
       candidateRecords = this.datasetCache.get(filter.sourceFileId)!;
     } else if (filter.meterId && this.datasetCache.has(filter.meterId)) {
       candidateRecords = this.datasetCache.get(filter.meterId)!;
-    } else if (filter.meterId) {
-      candidateRecords = TelemetryStorageService.getIntervalsMemory(filter.meterId);
     }
 
     // 2. Filter records
