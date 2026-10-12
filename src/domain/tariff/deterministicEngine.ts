@@ -13,7 +13,9 @@ import type {
   CalculationAuditStep,
   TariffVersionDefinition,
   SeasonType,
+  TaxCalculationBreakdown,
 } from "./types";
+import { SOUTH_AFRICAN_VAT_RULES } from "./types";
 import { TouScheduleEngine } from "./touScheduleEngine";
 
 export class DeterministicEngine {
@@ -663,28 +665,173 @@ export class DeterministicEngine {
       }
     }
 
-    // 5. Reactive Energy & Power Factor Penalty
-    const reactiveComp = (tariffVersion.components || []).find(
-      (c) => c.component_type === "REACTIVE_ENERGY",
+    // 5. Reactive Energy & Power Factor Charges (Requirement 15)
+    const reactiveComponents = (tariffVersion.components || []).filter(
+      (c) => c.component_type === "REACTIVE_ENERGY" || Boolean(c.reactive_config),
     );
-    if (reactiveComp && input.power_factor.gt(0) && input.power_factor.lt(new Decimal("0.96"))) {
-      const reactiveQty =
-        input.reactive_energy_kvarh && input.reactive_energy_kvarh.gt(0)
-          ? input.reactive_energy_kvarh
+
+    for (const comp of reactiveComponents) {
+      const rConfig = comp.reactive_config;
+      const threshold = rConfig?.pf_threshold ?? tariffVersion.pf_threshold ?? new Decimal("0.95");
+
+      // Validate threshold: Do not calculate penalty from an unsupported threshold!
+      if (threshold.lte(0) || threshold.gt(1.0) || threshold.lt(new Decimal("0.80"))) {
+        unresolvedItems.push({
+          component_code: comp.component_code,
+          component_name: comp.component_name,
+          rule_id: comp.rule_id || `RULE_${comp.component_code}`,
+          reason: `REVIEW_REQUIRED: Unsupported power factor threshold (${threshold.toString()}). Valid documented regulatory range is 0.80 to 1.00.`,
+          missing_data: ["valid_pf_threshold"],
+        });
+        continue;
+      }
+
+      // Check for missing data
+      const hasPf = input.power_factor !== undefined && !input.power_factor.isZero();
+      const hasKvarh = input.reactive_energy_kvarh !== undefined && input.reactive_energy_kvarh.gt(0);
+      const hasKvah = input.apparent_energy_kvah !== undefined && input.apparent_energy_kvah.gt(0);
+      const hasKwh = input.active_energy_kwh !== undefined && input.active_energy_kwh.gt(0);
+
+      let effectivePf = input.power_factor;
+
+      if (!hasPf && !hasKvarh && !hasKvah) {
+        unresolvedItems.push({
+          component_code: comp.component_code,
+          component_name: comp.component_name,
+          rule_id: comp.rule_id || `RULE_${comp.component_code}`,
+          reason: "INSUFFICIENT_DATA: Missing reactive energy (kVArh) and power factor measurements required to evaluate reactive charge.",
+          missing_data: ["power_factor", "reactive_energy_kvarh"],
+        });
+        continue;
+      }
+
+      // If PF is not directly supplied, derive from kWh and kVAh or vector triangle
+      if (!hasPf) {
+        if (hasKwh && hasKvah) {
+          effectivePf = input.active_energy_kwh.div(input.apparent_energy_kvah!).toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
+        } else if (hasKwh && hasKvarh) {
+          const kwhSq = input.active_energy_kwh.mul(input.active_energy_kwh).toNumber();
+          const kvarhSq = input.reactive_energy_kvarh.mul(input.reactive_energy_kvarh).toNumber();
+          const apparent = new Decimal(Math.sqrt(kwhSq + kvarhSq));
+          effectivePf = apparent.gt(0)
+            ? input.active_energy_kwh.div(apparent).toDecimalPlaces(4, Decimal.ROUND_HALF_UP)
+            : new Decimal(1);
+        } else {
+          unresolvedItems.push({
+            component_code: comp.component_code,
+            component_name: comp.component_name,
+            rule_id: comp.rule_id || `RULE_${comp.component_code}`,
+            reason: "INSUFFICIENT_DATA: Active energy (kWh) required to derive power factor from reactive/apparent telemetry.",
+            missing_data: ["active_energy_kwh"],
+          });
+          continue;
+        }
+      }
+
+      // Check if PF meets or exceeds threshold (zero penalty payable)
+      if (effectivePf.gte(threshold)) {
+        continue;
+      }
+
+      // Check seasonal applicability (e.g. Eskom Megaflex: High season only)
+      if (rConfig?.applicable_season && rConfig.applicable_season !== "all" && rConfig.applicable_season !== season) {
+        continue;
+      }
+
+      // Calculation method (Requirement 15)
+      const method = rConfig?.calculation_method || "EXCESS_KVARH_ABOVE_PF_THRESHOLD";
+
+      if (method === "EXCESS_KVARH_ABOVE_PF_THRESHOLD") {
+        if (!input.active_energy_kwh || input.active_energy_kwh.isZero()) {
+          unresolvedItems.push({
+            component_code: comp.component_code,
+            component_name: comp.component_name,
+            rule_id: comp.rule_id || `RULE_${comp.component_code}`,
+            reason: "INSUFFICIENT_DATA: Active energy (kWh) required to determine allowable reactive energy quota.",
+            missing_data: ["active_energy_kwh"],
+          });
+          continue;
+        }
+
+        let tanPhi: Decimal;
+        if (rConfig?.allowance_tan_phi) {
+          tanPhi = rConfig.allowance_tan_phi;
+        } else {
+          const pfNum = threshold.toNumber();
+          const sinPhi = Math.sqrt(1 - pfNum * pfNum);
+          tanPhi = new Decimal((sinPhi / pfNum).toFixed(6));
+        }
+
+        let applicableKvarh = input.reactive_energy_kvarh;
+        if (rConfig?.applicable_tou_period === "peak_and_standard") {
+          applicableKvarh = (input.reactive_energy_peak_kvarh ?? new Decimal(0)).add(
+            input.reactive_energy_standard_kvarh ?? new Decimal(0),
+          );
+        }
+
+        const allowableKvarh = input.active_energy_kwh.mul(tanPhi).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+        const excessKvarh = applicableKvarh.gt(allowableKvarh)
+          ? applicableKvarh.sub(allowableKvarh)
           : new Decimal(0);
 
-      if (reactiveQty.gt(0)) {
+        if (excessKvarh.gt(0)) {
+          addItem(
+            comp.component_code,
+            comp.component_name,
+            comp.unit_of_measure,
+            comp.rate_value,
+            excessKvarh,
+            `Excess reactive energy: ${excessKvarh.toString()} kVArh above allowable quota of ${allowableKvarh.toString()} kVArh (PF ${effectivePf.toString()} < ${threshold.toString()})`,
+            `amount = (applicable_kvarh - (kwh * tan_phi)) * rate`,
+            comp.rule_id || `RULE_${comp.component_code}`,
+            season,
+          );
+        }
+      } else if (method === "DIRECT_KVARH_RATE") {
+        const reactiveQty = input.reactive_energy_kvarh ?? new Decimal(0);
+        if (reactiveQty.gt(0)) {
+          addItem(
+            comp.component_code,
+            comp.component_name,
+            comp.unit_of_measure,
+            comp.rate_value,
+            reactiveQty,
+            `Direct reactive energy charge for PF ${effectivePf.toString()} below ${threshold.toString()}`,
+            `amount = reactive_kvarh * rate`,
+            comp.rule_id || `RULE_${comp.component_code}`,
+            season,
+          );
+        }
+      } else if (method === "POWER_FACTOR_SURCHARGE_PERCENTAGE") {
+        const surchargePct = threshold.sub(effectivePf).div(threshold).mul(100).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
         addItem(
-          reactiveComp.component_code,
-          reactiveComp.component_name,
-          reactiveComp.unit_of_measure,
-          reactiveComp.rate_value,
-          reactiveQty,
-          `Power factor penalty applied (PF ${input.power_factor.toString()} < 0.96 threshold)`,
-          `amount = reactive_kvarh * penalty_rate`,
-          reactiveComp.rule_id || `RULE_${reactiveComp.component_code}`,
-          "all",
+          comp.component_code,
+          comp.component_name,
+          "%",
+          surchargePct,
+          new Decimal(1),
+          `Power factor surcharge: ${surchargePct.toString()}% penalty for PF ${effectivePf.toString()} < ${threshold.toString()}`,
+          `amount = billing_subtotal * ((${threshold.toString()} - pf) / ${threshold.toString()})`,
+          comp.rule_id || `RULE_${comp.component_code}`,
+          season,
         );
+      } else if (method === "EXCESS_QUOTA_PERCENTAGE") {
+        const quotaPct = rConfig?.free_quota_percentage ?? new Decimal("30");
+        const freeQuota = input.active_energy_kwh.mul(quotaPct).div(100);
+        const excess = (input.reactive_energy_kvarh ?? new Decimal(0)).sub(freeQuota);
+        if (excess.gt(0)) {
+          addItem(
+            comp.component_code,
+            comp.component_name,
+            comp.unit_of_measure,
+            comp.rate_value,
+            excess,
+            `Excess reactive energy above ${quotaPct.toString()}% free quota (${freeQuota.toString()} kVArh)`,
+            `amount = (reactive_kvarh - (kwh * ${quotaPct.toString()}%)) * rate`,
+            comp.rule_id || `RULE_${comp.component_code}`,
+            season,
+          );
+        }
       }
     }
 
@@ -693,7 +840,6 @@ export class DeterministicEngine {
       (c) => c.component_type === "DISCOUNT_OR_CREDIT",
     );
     for (const comp of discountComponents) {
-      // Negative adjustment amount
       const creditRate = comp.rate_value.isPositive() ? comp.rate_value.neg() : comp.rate_value;
       addItem(
         comp.component_code,
@@ -734,11 +880,67 @@ export class DeterministicEngine {
       subtotalExVat = minChargeComp.rate_value;
     }
 
-    // Calculate VAT (respecting vat_treatment)
-    const vatRate =
-      tariffVersion.header.vat_treatment === "zero_rated" ? new Decimal(0) : this.VAT_RATE;
-    const vatAmount = subtotalExVat.mul(vatRate).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    // 8. VAT and Tax Treatment (Requirement 16)
+    // Resolve applicable tax rule by billing effective date without hardcoded rate assumptions
+    const availableTaxRules =
+      input.tax_rules_override ||
+      tariffVersion.tax_rules ||
+      SOUTH_AFRICAN_VAT_RULES;
+
+    const activeTaxRule =
+      availableTaxRules.find((rule) => {
+        const meetsFrom = !rule.effective_from || input.billing_start >= rule.effective_from;
+        const meetsTo = !rule.effective_to || input.billing_start <= rule.effective_to;
+        return meetsFrom && meetsTo;
+      }) || availableTaxRules[availableTaxRules.length - 1];
+
+    let resolvedVatRate = activeTaxRule.rate;
+    if (tariffVersion.header.vat_treatment === "zero_rated") {
+      resolvedVatRate = new Decimal(0);
+    } else if (tariffVersion.header.vat_treatment === "exempt") {
+      resolvedVatRate = new Decimal(0);
+    }
+
+    // Keep tax calculation strictly separate from energy quantity calculations
+    let subtotalTaxable = new Decimal(0);
+    let subtotalZeroRated = new Decimal(0);
+    let subtotalExempt = new Decimal(0);
+
+    for (const item of items) {
+      const compRule = (tariffVersion.components || []).find(
+        (c) => c.component_code === item.component_code || item.component_code.startsWith(c.component_code),
+      );
+      const compTaxStatus = compRule?.tax_status || (
+        tariffVersion.header.vat_treatment === "zero_rated"
+          ? "ZERO_RATED"
+          : tariffVersion.header.vat_treatment === "exempt"
+          ? "EXEMPT"
+          : "TAXABLE"
+      );
+
+      if (compTaxStatus === "ZERO_RATED") {
+        subtotalZeroRated = subtotalZeroRated.add(item.amount_zar);
+      } else if (compTaxStatus === "EXEMPT") {
+        subtotalExempt = subtotalExempt.add(item.amount_zar);
+      } else {
+        subtotalTaxable = subtotalTaxable.add(item.amount_zar);
+      }
+    }
+
+    const vatAmount = subtotalTaxable.mul(resolvedVatRate).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
     const totalIncVat = subtotalExVat.add(vatAmount);
+
+    const taxBreakdown: TaxCalculationBreakdown = {
+      tax_rule_id: activeTaxRule.rule_id,
+      tax_name: activeTaxRule.tax_name,
+      vat_rate: resolvedVatRate,
+      subtotal_taxable_ex_vat: subtotalTaxable,
+      subtotal_zero_rated_ex_vat: subtotalZeroRated,
+      subtotal_exempt_ex_vat: subtotalExempt,
+      vat_amount: vatAmount,
+      effective_date: input.billing_start,
+      is_historical_rate: resolvedVatRate.eq(new Decimal("0.14")),
+    };
 
     return {
       tariff_code: tariffVersion.header.tariff_code,
@@ -752,6 +954,7 @@ export class DeterministicEngine {
       subtotal_ex_vat: subtotalExVat,
       vat_amount: vatAmount,
       total_inc_vat: totalIncVat,
+      tax_breakdown: taxBreakdown,
       audit_trace: auditTrace,
     };
   }

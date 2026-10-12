@@ -265,6 +265,68 @@ export interface TariffFixedChargeConfig {
   deduplication_key?: string; // unique key to prevent duplicate application across meters/invoices
 }
 
+export type ReactiveCalculationMethod =
+  | "EXCESS_KVARH_ABOVE_PF_THRESHOLD"
+  | "DIRECT_KVARH_RATE"
+  | "POWER_FACTOR_SURCHARGE_PERCENTAGE"
+  | "EXCESS_QUOTA_PERCENTAGE";
+
+export interface TariffReactiveConfig {
+  calculation_method: ReactiveCalculationMethod;
+  pf_threshold: Decimal; // e.g. 0.95 or 0.96
+  free_quota_percentage?: Decimal; // e.g. 30%
+  applicable_season?: SeasonType | "all"; // Eskom: high demand season only, or all seasons
+  applicable_tou_period?: "peak_and_standard" | "all" | "peak"; // Eskom: only peak & standard periods in high season
+  unit_of_measure: "R/kVARh" | "%" | "c/kVARh" | string;
+  rate_value: Decimal; // e.g. R 0.1450 / kVArh
+  surcharge_target_components?: string[];
+  allowance_tan_phi?: Decimal; // explicit quota factor tan(phi), e.g. 0.3287 for 0.95 PF
+}
+
+export type TaxTreatmentType = "TAXABLE" | "ZERO_RATED" | "EXEMPT";
+
+export interface TariffTaxRule {
+  rule_id: string;
+  jurisdiction: string; // e.g. "ZA"
+  tax_name: string; // e.g. "Value Added Tax (VAT)"
+  rate: Decimal; // e.g. 0.15 (15%) or 0.14 (14%)
+  effective_from: string; // YYYY-MM-DD
+  effective_to?: string; // YYYY-MM-DD
+  description?: string;
+}
+
+export const SOUTH_AFRICAN_VAT_RULES: TariffTaxRule[] = [
+  {
+    rule_id: "VAT_ZA_HISTORICAL_14",
+    jurisdiction: "ZA",
+    tax_name: "VAT 14%",
+    rate: new Decimal("0.14"),
+    effective_from: "1993-04-07",
+    effective_to: "2018-03-31",
+    description: "Standard South African VAT rate (14%) applicable before 1 April 2018",
+  },
+  {
+    rule_id: "VAT_ZA_CURRENT_15",
+    jurisdiction: "ZA",
+    tax_name: "VAT 15%",
+    rate: new Decimal("0.15"),
+    effective_from: "2018-04-01",
+    description: "Standard South African VAT rate (15%) gazetted effective 1 April 2018 onwards",
+  },
+];
+
+export interface TaxCalculationBreakdown {
+  tax_rule_id: string;
+  tax_name: string;
+  vat_rate: Decimal;
+  subtotal_taxable_ex_vat: Decimal;
+  subtotal_zero_rated_ex_vat: Decimal;
+  subtotal_exempt_ex_vat: Decimal;
+  vat_amount: Decimal;
+  effective_date: string;
+  is_historical_rate: boolean;
+}
+
 export interface TariffComponentRule {
   component_code: string;
   component_name: string;
@@ -308,6 +370,8 @@ export interface TariffComponentRule {
   tier_config?: TariffTierConfig; // Requirement 12
   demand_config?: TariffDemandConfig; // Requirement 13
   fixed_charge_config?: TariffFixedChargeConfig; // Requirement 14
+  reactive_config?: TariffReactiveConfig; // Requirement 15
+  tax_status?: TaxTreatmentType; // Requirement 16
 }
 
 export interface TariffVersionDefinition {
@@ -324,6 +388,7 @@ export interface TariffVersionDefinition {
   pf_threshold: Decimal; // 0.95
   nmd_ratchet_multiplier: Decimal; // 2.0x for excess demand
   minimum_nmd_kva: Decimal; // 50 kVA
+  tax_rules?: TariffTaxRule[]; // Requirement 16
 }
 
 export interface CalculationAuditStep {
@@ -365,11 +430,16 @@ export interface DeterministicCalculationInput {
   contracted_capacity_kva?: Decimal; // Requirement 13
   contracted_capacity_kw?: Decimal; // Requirement 13
   active_energy_kwh: Decimal;
+  apparent_energy_kvah?: Decimal; // Requirement 15
   peak_kwh: Decimal;
   standard_kwh: Decimal;
   off_peak_kwh: Decimal;
   reactive_energy_kvarh: Decimal;
+  reactive_energy_peak_kvarh?: Decimal; // Requirement 15
+  reactive_energy_standard_kvarh?: Decimal; // Requirement 15
+  reactive_energy_off_peak_kvarh?: Decimal; // Requirement 15
   power_factor: Decimal;
+  tax_rules_override?: TariffTaxRule[]; // Requirement 16
 }
 
 export interface UnresolvedCalculationItem {
@@ -399,10 +469,11 @@ export interface TariffCalculationResult {
   billing_days: number;
   season: SeasonType;
   items: TariffCalculationItem[];
-  unresolved_items?: UnresolvedCalculationItem[]; // Requirement 13
+  unresolved_items?: UnresolvedCalculationItem[]; // Requirement 13 & 15
   subtotal_ex_vat: Decimal;
   vat_amount: Decimal;
   total_inc_vat: Decimal;
+  tax_breakdown?: TaxCalculationBreakdown; // Requirement 16
   audit_trace: CalculationAuditStep[];
 }
 
