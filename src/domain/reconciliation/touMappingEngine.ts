@@ -168,11 +168,10 @@ export class TouMappingEngine {
       calendarId?: string;
       timezone?: string;
       intervalAlignment?: "START_OF_INTERVAL" | "END_OF_INTERVAL";
-    } = {}
+    } = {},
   ): TariffPeriodDefinition {
     const highMonths = options.highSeasonMonths ?? [6, 7, 8]; // Gazetted NERSA winter months (Jun, Jul, Aug)
-    const lowMonths =
-      options.lowSeasonMonths ?? [1, 2, 3, 4, 5, 9, 10, 11, 12]; // Gazetted NERSA summer months
+    const lowMonths = options.lowSeasonMonths ?? [1, 2, 3, 4, 5, 9, 10, 11, 12]; // Gazetted NERSA summer months
 
     const seasons: SeasonDefinition[] = tariffDef.tou_schedule.map((seasonSchedule) => {
       const isHigh = seasonSchedule.season.toLowerCase() === "high";
@@ -224,7 +223,7 @@ export class TouMappingEngine {
   public static determineSeason(
     month: number,
     day: number,
-    seasons: SeasonDefinition[]
+    seasons: SeasonDefinition[],
   ): SeasonDefinition | null {
     if (!seasons || seasons.length === 0) return null;
 
@@ -270,7 +269,7 @@ export class TouMappingEngine {
     dayOfWeek: number,
     epochMs: number,
     timezone: string,
-    holidayList: PublicHolidayDefinition[]
+    holidayList: PublicHolidayDefinition[],
   ): { isHoliday: boolean; holidayRule?: PublicHolidayDefinition } {
     if (!holidayList || holidayList.length === 0) {
       return { isHoliday: false };
@@ -289,7 +288,7 @@ export class TouMappingEngine {
       const yesterdayNorm = TimezoneNormalizationEngine.normalizeTimestamp(yesterdayMs, timezone);
       if (yesterdayNorm.dayOfWeek === 0) {
         const yesterdayHoliday = holidayList.find(
-          (h) => h.date === yesterdayNorm.localDate && h.substitute_observed_mondays !== false
+          (h) => h.date === yesterdayNorm.localDate && h.substitute_observed_mondays !== false,
         );
         if (yesterdayHoliday) {
           return {
@@ -317,7 +316,7 @@ export class TouMappingEngine {
    */
   public static mapTimestamp(
     timestamp: string | number | Date,
-    tariffPeriodDef: TariffPeriodDefinition
+    tariffPeriodDef: TariffPeriodDefinition,
   ): TouMappingAudit {
     const tz = tariffPeriodDef.timezone || this.DEFAULT_TIMEZONE;
     const defaultPeriod = tariffPeriodDef.default_period || this.DEFAULT_FALLBACK_PERIOD;
@@ -338,9 +337,7 @@ export class TouMappingEngine {
     // Alignment adjustment: If interval timestamp represents END_OF_INTERVAL (e.g. 06:00 is end of 05:30-06:00 block),
     // subtract 1ms to evaluate the wall-clock window of the consumption block.
     const evaluationMs =
-      tariffPeriodDef.interval_alignment === "END_OF_INTERVAL"
-        ? targetTimeMs - 1
-        : targetTimeMs;
+      tariffPeriodDef.interval_alignment === "END_OF_INTERVAL" ? targetTimeMs - 1 : targetTimeMs;
 
     const norm = TimezoneNormalizationEngine.normalizeTimestamp(evaluationMs, tz);
     const month = norm.localMonth;
@@ -359,7 +356,7 @@ export class TouMappingEngine {
       dayOfWeek,
       evaluationMs,
       tz,
-      tariffPeriodDef.public_holidays
+      tariffPeriodDef.public_holidays,
     );
 
     let effectiveDayType: DayType;
@@ -491,7 +488,7 @@ export class TouMappingEngine {
    */
   public static mapIntervals(
     intervals: any[],
-    tariffPeriodDef: TariffPeriodDefinition
+    tariffPeriodDef: TariffPeriodDefinition,
   ): MappedTouIntervalRecord[] {
     return intervals.map((rec) => {
       const ts = rec.timestamp ?? rec.timestampUtc ?? rec.timestampLocal;
@@ -540,7 +537,7 @@ export class TouMappingEngine {
    */
   public static aggregateIntervalsByTou(
     intervals: any[],
-    tariffPeriodDef: TariffPeriodDefinition
+    tariffPeriodDef: TariffPeriodDefinition,
   ): TouConsumptionSummary {
     const mapped = this.mapIntervals(intervals, tariffPeriodDef);
 

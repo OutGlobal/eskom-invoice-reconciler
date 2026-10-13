@@ -158,17 +158,26 @@ export class ReconciliationStatusResolver {
   public static deriveStatus(context: StatusDerivationContext): StatusDerivationResult {
     // 1. Check early lifecycle phases
     if (context.lifecycle_phase === "PENDING") {
-      return this.buildResult("PENDING", "Reconciliation has not started yet; queued or pending inputs.");
+      return this.buildResult(
+        "PENDING",
+        "Reconciliation has not started yet; queued or pending inputs.",
+      );
     }
     if (context.lifecycle_phase === "PROCESSING") {
       return this.buildResult("PROCESSING", "Reconciliation pipeline is actively processing.");
     }
 
     // 2. Check for fatal execution errors or unrecoverable conditions
-    if (context.fatal_error || context.lifecycle_phase === "FAILED" || context.has_tariff_unavailable) {
-      const msg = typeof context.fatal_error === "object" && context.fatal_error !== null
-        ? (context.fatal_error as Error).message
-        : context.fatal_error || "Reconciliation encountered an unrecoverable failure or missing tariff.";
+    if (
+      context.fatal_error ||
+      context.lifecycle_phase === "FAILED" ||
+      context.has_tariff_unavailable
+    ) {
+      const msg =
+        typeof context.fatal_error === "object" && context.fatal_error !== null
+          ? (context.fatal_error as Error).message
+          : context.fatal_error ||
+            "Reconciliation encountered an unrecoverable failure or missing tariff.";
       return this.buildResult("FAILED", `Reconciliation failed: ${msg}`);
     }
 
@@ -185,9 +194,10 @@ export class ReconciliationStatusResolver {
     let coverageNum: number | null = null;
     if (context.coverage_percentage !== undefined && context.coverage_percentage !== null) {
       try {
-        coverageNum = context.coverage_percentage instanceof Decimal
-          ? context.coverage_percentage.toNumber()
-          : Number(context.coverage_percentage);
+        coverageNum =
+          context.coverage_percentage instanceof Decimal
+            ? context.coverage_percentage.toNumber()
+            : Number(context.coverage_percentage);
       } catch {
         coverageNum = null;
       }
@@ -214,7 +224,9 @@ export class ReconciliationStatusResolver {
       context.all_components_within_tolerance === false ||
       activeExceptions.some(
         (e) =>
-          (e.code === "ENERGY_VARIANCE" || e.code === "DEMAND_VARIANCE" || e.code === "CHARGE_VARIANCE") &&
+          (e.code === "ENERGY_VARIANCE" ||
+            e.code === "DEMAND_VARIANCE" ||
+            e.code === "CHARGE_VARIANCE") &&
           (e.severity === "HIGH" || e.severity === "CRITICAL"),
       );
 
@@ -233,17 +245,19 @@ export class ReconciliationStatusResolver {
       const reason = hasSevereVariance
         ? "Material variance outside permissible tolerance detected"
         : `${highCount} high-severity exception(s) detected`;
-      return this.buildResult(
-        "REVIEW_REQUIRED",
-        `Review required: ${reason}.`,
-        { isIncompleteAmr, activeExceptions, criticalCount, highCount },
-      );
+      return this.buildResult("REVIEW_REQUIRED", `Review required: ${reason}.`, {
+        isIncompleteAmr,
+        activeExceptions,
+        criticalCount,
+        highCount,
+      });
     }
 
     // 6. ENFORCE REQUIREMENT 25 INVARIANT:
     // A completed reconciliation with incomplete AMR data must NOT be represented as a clean successful reconciliation!
     if (isIncompleteAmr) {
-      const covDesc = coverageNum !== null ? ` (telemetry coverage: ${coverageNum.toFixed(2)}%)` : "";
+      const covDesc =
+        coverageNum !== null ? ` (telemetry coverage: ${coverageNum.toFixed(2)}%)` : "";
       return this.buildResult(
         "COMPLETED_WITH_EXCEPTIONS",
         `Completed with exceptions: AMR interval telemetry is incomplete${covDesc}. Cannot be certified as a clean reconciliation.`,

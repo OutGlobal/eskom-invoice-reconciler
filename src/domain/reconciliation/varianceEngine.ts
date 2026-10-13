@@ -82,7 +82,9 @@ export class VarianceEngine {
     try {
       return new Decimal(String(value).trim());
     } catch {
-      throw new Error(`VarianceEngine: ${field} is not a valid decimal (received '${String(value)}').`);
+      throw new Error(
+        `VarianceEngine: ${field} is not a valid decimal (received '${String(value)}').`,
+      );
     }
   }
 
@@ -153,7 +155,9 @@ export class VarianceEngine {
         ? this.toDecimal(tolerance.percentage, "tolerance.percentage").abs()
         : null;
 
-    const withinAbs = absTol ? variance.absolute_variance_magnitude.lessThanOrEqualTo(absTol) : null;
+    const withinAbs = absTol
+      ? variance.absolute_variance_magnitude.lessThanOrEqualTo(absTol)
+      : null;
     const withinPct =
       pctTol && variance.variance_percentage !== null
         ? variance.variance_percentage.abs().lessThanOrEqualTo(pctTol)
