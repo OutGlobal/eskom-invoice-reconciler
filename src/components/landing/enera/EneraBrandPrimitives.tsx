@@ -29,13 +29,13 @@ export function EneraBrandMark({
   const widthClasses = { sm: "w-28", md: "w-40", lg: "w-56" }[size];
 
   return (
-    <div className={`inline-flex flex-col gap-2 ${className}`}>
+    <div className={`inline-flex flex-col gap-1.5 ${className}`}>
       <img
         src="/images/enera-ai-logo.png"
         alt="ENERA AI"
         width={1585}
         height={310}
-        className={`${widthClasses} h-auto object-contain rounded bg-[#030712] p-1`}
+        className={`${widthClasses} h-auto object-contain`}
         draggable={false}
       />
       {showDescriptor && (
@@ -44,6 +44,29 @@ export function EneraBrandMark({
         </span>
       )}
     </div>
+  );
+}
+
+export interface EneraBrandMarkIconProps {
+  size?: "sm" | "md" | "lg";
+  className?: string;
+}
+
+export function EneraBrandMarkIcon({
+  size = "md",
+  className = "",
+}: EneraBrandMarkIconProps) {
+  const sizeClasses = { sm: "h-6 w-6", md: "h-8 w-8", lg: "h-10 w-10" }[size];
+
+  return (
+    <img
+      src="/images/enera-ai-mark.png"
+      alt="ENERA AI"
+      width={375}
+      height={310}
+      className={`${sizeClasses} shrink-0 object-contain ${className}`}
+      draggable={false}
+    />
   );
 }
 

@@ -108,7 +108,8 @@ export function AppSidebar() {
               alt="ENERA AI"
               width={375}
               height={310}
-              className="h-8 w-8 shrink-0 object-contain rounded bg-[#030712]"
+              className="h-8 w-8 shrink-0 object-contain"
+              draggable={false}
             />
             {!collapsed && (
               <div className="min-w-0 flex-1">

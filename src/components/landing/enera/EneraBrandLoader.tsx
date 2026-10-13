@@ -6,20 +6,23 @@ export interface EneraBrandLoaderProps {
 }
 
 export function EneraBrandLoader({ onComplete, forceShow = false }: EneraBrandLoaderProps) {
-  const [phase, setPhase] = useState<"loading" | "complete" | "exited">("loading");
+  const [phase, setPhase] = useState<"loading" | "complete" | "exited">("exited");
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("INITIALIZING DETERMINISTIC ENGINE...");
 
   useEffect(() => {
-    // Check session storage so internal page transitions do not repeatedly block
-    if (typeof window !== "undefined" && !forceShow) {
+    // Only run on client
+    if (typeof window === "undefined") return;
+
+    if (!forceShow) {
       const alreadyShown = sessionStorage.getItem("enera_intro_loaded");
       if (alreadyShown) {
-        setPhase("exited");
         if (onComplete) onComplete();
         return;
       }
     }
+
+    setPhase("loading");
 
     const startTime = Date.now();
     const duration = 1600; // 1.6 seconds optimal cinematic pace
