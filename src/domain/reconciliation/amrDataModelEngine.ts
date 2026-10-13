@@ -22,20 +22,11 @@ import {
   UnitConversionRecord,
 } from "../meter/unitNormalisationEngine";
 
-export {
-  MeterReadingCalculationEngine,
-  UnitNormalisationEngine,
-};
-export type {
-  CumulativeMeterReadingInput,
-  SupportedUnit,
-  UnitConversionRecord,
-};
+export { MeterReadingCalculationEngine, UnitNormalisationEngine };
+export type { CumulativeMeterReadingInput, SupportedUnit, UnitConversionRecord };
 
 export type AmrDataModelType =
-  | "INTERVAL_DATA"
-  | "CUMULATIVE_METER_READINGS"
-  | "HYBRID_MIXED_STREAM";
+  "INTERVAL_DATA" | "CUMULATIVE_METER_READINGS" | "HYBRID_MIXED_STREAM";
 
 export type CumulativeRegisterType =
   | "TOTAL_ACTIVE_IMPORT_KWH"
@@ -260,11 +251,7 @@ export class AmrDataModelEngine {
         fieldSignatures.hasKvar = true;
         intervalFieldOccurrenceCount++;
       }
-      if (
-        rec.power_factor !== undefined ||
-        rec.powerFactor !== undefined ||
-        rec.pf !== undefined
-      ) {
+      if (rec.power_factor !== undefined || rec.powerFactor !== undefined || rec.pf !== undefined) {
         fieldSignatures.hasPowerFactor = true;
         intervalFieldOccurrenceCount++;
       }
@@ -289,7 +276,8 @@ export class AmrDataModelEngine {
         fieldSignatures,
         isCumulativeMonotonic: true,
         sampleAverageKwhPerRecord: sampleValues[0] ?? new Decimal(0),
-        diagnostic: "Explicit cumulative meter_reading field detected. Must NOT be treated as interval consumption.",
+        diagnostic:
+          "Explicit cumulative meter_reading field detected. Must NOT be treated as interval consumption.",
       };
     }
 
@@ -306,7 +294,8 @@ export class AmrDataModelEngine {
         fieldSignatures,
         isCumulativeMonotonic: false,
         sampleAverageKwhPerRecord: sampleValues[0] ?? new Decimal(0),
-        diagnostic: "Discrete electrical interval parameters (kW, kVA, kVArh, kVAr, power_factor) present.",
+        diagnostic:
+          "Discrete electrical interval parameters (kW, kVA, kVArh, kVAr, power_factor) present.",
       };
     }
 
@@ -346,7 +335,7 @@ export class AmrDataModelEngine {
     return {
       detectedModel: "INTERVAL_DATA",
       recordCount: records.length,
-      confidence: 0.90,
+      confidence: 0.9,
       reasons,
       fieldSignatures,
       isCumulativeMonotonic: false,
@@ -394,7 +383,8 @@ export class AmrDataModelEngine {
       const kwh = this.extractDecimal(rec, ["kWh", "kwh", "active_energy"]) ?? new Decimal(0);
       let kw = this.extractDecimal(rec, ["kW", "kw", "active_power"]);
       let kva = this.extractDecimal(rec, ["kVA", "kva", "apparent_power"]);
-      const kvarh = this.extractDecimal(rec, ["kVArh", "kvarh", "reactive_energy"]) ?? new Decimal(0);
+      const kvarh =
+        this.extractDecimal(rec, ["kVArh", "kvarh", "reactive_energy"]) ?? new Decimal(0);
       let kvar = this.extractDecimal(rec, ["kVAr", "kvar", "reactive_power"]);
       let pf = this.extractDecimal(rec, ["power_factor", "powerFactor", "pf"]);
 

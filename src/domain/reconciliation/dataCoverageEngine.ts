@@ -20,9 +20,7 @@
 import Decimal from "decimal.js-light";
 
 export type ResolutionDetectionMethod =
-  | "SPECIFIED_IN_SOURCE"
-  | "INFERRED_FROM_DATASET_MODAL"
-  | "FALLBACK_DEFAULT_30MIN";
+  "SPECIFIED_IN_SOURCE" | "INFERRED_FROM_DATASET_MODAL" | "FALLBACK_DEFAULT_30MIN";
 
 export interface IntervalResolutionConfig {
   intervalMinutes: number;
@@ -371,7 +369,7 @@ export class DataCoverageEngine {
       actualIntervals >= expectedIntervals &&
       coveragePercentage.gte(new Decimal("99.9"));
 
-    let status: "COMPLETE_COVERAGE" | "INCOMPLETE_METER_DATA" = isComplete
+    const status: "COMPLETE_COVERAGE" | "INCOMPLETE_METER_DATA" = isComplete
       ? "COMPLETE_COVERAGE"
       : "INCOMPLETE_METER_DATA";
 
@@ -411,7 +409,9 @@ export class DataCoverageEngine {
       gapAnalysis: {
         hasBoundaryUnderflow,
         hasBoundaryOverflow,
-        hasInternalGaps: gaps.some((g) => g.gapStartDate !== invoiceStartDate && g.gapEndDate !== invoiceEndDate),
+        hasInternalGaps: gaps.some(
+          (g) => g.gapStartDate !== invoiceStartDate && g.gapEndDate !== invoiceEndDate,
+        ),
         gaps,
       },
       diagnosticMessage,
