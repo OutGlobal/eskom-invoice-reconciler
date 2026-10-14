@@ -31,6 +31,14 @@ Only explain at a high, conceptual level:
 - security approach, data handling, evidence, auditability
 - never provide low-level code snippets, parse logic, or internal pipelines in public content.
 
+# Technical Rules
+
+- Vite config: do not set `vite.ssr.noExternal: true` or alias `lucide-react` to its CJS build. With the current framework/Vite 8 module runner this crashes dev SSR with "module is not defined"/"require is not defined"; use the standard ESM entries. Production server bundling stays governed by `nitro.config.ts` (`noExternals: true`).
+- Duplicate settings across `vite.config.ts` and `nitro.config.ts` fail the type check when the framework updates; keep nitro bundling options only in `nitro.config.ts`.
+- Environment values: only non-secret defaults live in `.env.local` (gitignored, synced from `.env.example`); credentials are never written to env files — they are managed via Lovable Project Settings → Secrets/Environment Variables.
+
+---
+
 ### LEVEL 3 — PRIVATE (Strict Zero-Exposure Embargo)
 
 Never expose publicly on any website page, public route, demo interface, DOM attribute, or client bundle:
