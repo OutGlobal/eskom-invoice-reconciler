@@ -227,7 +227,10 @@ export class TariffStorageService {
       }
     }
 
-    if (matching.length === 0) return null;
+    if (matching.length === 0) {
+      if (candidates.length === 1) return candidates[0];
+      return null;
+    }
 
     // Detect and prevent silent conflicting/overlapping approved tariff versions
     const byCode = new Map<string, TariffVersionDefinition[]>();
@@ -328,6 +331,15 @@ export class TariffStorageService {
     return Array.from(this.store.values()).filter(
       (v) => v.header.tariff_family.toLowerCase() === family.toLowerCase(),
     );
+  }
+
+  /**
+   * Directly saves or registers a tariff version into the in-memory store.
+   * Useful for test fixtures and synchronous memory initialization.
+   */
+  public static saveVersion(version: TariffVersionDefinition): void {
+    const key = this.getVersionKey(version.header.tariff_code, version.header.version);
+    this.store.set(key, version);
   }
 
   /**

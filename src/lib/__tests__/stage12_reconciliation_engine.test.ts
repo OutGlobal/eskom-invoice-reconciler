@@ -31,7 +31,8 @@ describe("Stage 12: Reconciliation Engine", () => {
     ReconciliationStorageService.clearMemoryStore();
     InvoiceStorageService.clearMemoryStore();
     TelemetryStorageService.clearMemoryStore();
-    TariffStorageService.resetToDefaults();
+    TariffStorageService.clearMemoryStore();
+    TariffStorageService.saveVersion(ESKOM_MEGAFLEX_2025_2026);
   });
 
   // Helper to create synthetic 30-min intervals spanning a billing window
