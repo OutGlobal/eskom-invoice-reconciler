@@ -7,6 +7,8 @@ import {
   type DomainConceptName,
 } from "../../domain/database/authoritativeSchemaRegistry";
 
+import { InvoiceStorageService } from "../../domain/invoice/invoiceStorageService";
+
 describe("Stage 3 — Database Source of Truth Tests", () => {
   it("Scenario 1: All 25 domain concepts are mapped with zero redundant duplicate storage", async () => {
     const requiredDomainConcepts: DomainConceptName[] = [
@@ -68,6 +70,19 @@ describe("Stage 3 — Database Source of Truth Tests", () => {
   });
 
   it("Scenario 2: Dashboard Service executes database query as authoritative source of truth", async () => {
+    // Seed authoritative invoice record so database query evaluates populated state
+    InvoiceStorageService.recordInvoiceMemory("INV-TRUTH-001", {
+      id: "INV-TRUTH-001",
+      invoice_number: "INV-TRUTH-001",
+      account_number: "ACC-SOURCE-OF-TRUTH",
+      billing_start: "2026-03-01",
+      billing_end: "2026-03-31",
+      invoiced_total: 920000,
+      reconciled_total: 920000,
+      total_kwh: 500000,
+      status: "validated",
+    });
+
     // When records exist in the database, getAggregatedDashboardData() returns live database aggregates
     const liveDbResult = await DashboardService.getAggregatedDashboardData({
       source: "database",

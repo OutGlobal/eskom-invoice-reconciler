@@ -73,7 +73,16 @@ describe("Stage 8 — PDF / Invoice Ingestion Suite", () => {
     const adapter = new PdfInvoiceAdapter();
     expect(adapter.canHandle("pdf", "application/pdf")).toBe(true);
 
-    const pdfContent = "%PDF-1.7 Benchmark Impala Mine Sample Impala_March_2026.pdf\n%%EOF";
+    const pdfContent = `%PDF-1.7
+Account Number: 7856504676
+Invoice Number: 785101497007
+Customer: Impala Plats Rustenburg Mine
+Billing Period: 2026-03-01 to 2026-03-31
+Invoice Date: 2026-04-01
+Tariff: Megaflex
+TOTAL INVOICE AMOUNT: R 97009239.11
+Total Due: R 97009239.11
+%%EOF`;
     const bytes = new TextEncoder().encode(pdfContent);
     const file = new File([bytes], "Impala_March_2026.pdf", { type: "application/pdf" });
 

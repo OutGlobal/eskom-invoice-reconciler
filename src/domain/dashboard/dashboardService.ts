@@ -358,6 +358,26 @@ export class DashboardService {
         ) {
           continue;
         }
+        const invAccount = inv.account_number || inv.accountNumber;
+        if (filters.accountNumber && invAccount && invAccount !== filters.accountNumber) {
+          continue;
+        }
+        const invSite = inv.site_id || inv.siteId;
+        if (filters.siteId && invSite && invSite !== filters.siteId) {
+          continue;
+        }
+        const invCustomer = inv.customer_id || inv.customerId;
+        if (filters.customerId && invCustomer && invCustomer !== filters.customerId) {
+          continue;
+        }
+        const invStart = inv.billing_start || inv.billingStart;
+        if (filters.startDate && invStart && invStart < filters.startDate) {
+          continue;
+        }
+        const invEnd = inv.billing_end || inv.billingEnd;
+        if (filters.endDate && invEnd && invEnd > filters.endDate) {
+          continue;
+        }
         const invNum = inv.invoice_number || inv.invoiceNumber || inv.id;
         if (invNum && !invoiceMap.has(invNum)) {
           invoiceMap.set(invNum, {
