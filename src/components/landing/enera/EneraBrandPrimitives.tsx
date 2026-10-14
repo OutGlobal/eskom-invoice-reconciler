@@ -231,3 +231,39 @@ export function EngineFlowConnector({
     </div>
   );
 }
+
+export interface EneraSectionHeaderProps {
+  badge?: string;
+  title: string;
+  description?: string;
+  centered?: boolean;
+  className?: string;
+}
+
+export function EneraSectionHeader({
+  badge,
+  title,
+  description,
+  centered = false,
+  className = "",
+}: EneraSectionHeaderProps) {
+  return (
+    <div className={`mb-12 ${centered ? "text-center max-w-3xl mx-auto" : "max-w-2xl"} ${className}`}>
+      {badge && (
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs font-mono text-cyan-300 font-medium mb-4 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+          <span>{badge}</span>
+        </div>
+      )}
+      <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-4">
+        {title}
+      </h2>
+      {description && (
+        <p className="text-base sm:text-lg text-slate-400 leading-relaxed font-sans">
+          {description}
+        </p>
+      )}
+    </div>
+  );
+}
+
