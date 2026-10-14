@@ -23,6 +23,7 @@ import { DeterministicReconciliationEngine } from "@/domain/reconciliation/recon
 import { ReconciliationStorageService } from "@/domain/reconciliation/reconciliationStorageService";
 import { InvoiceStorageService } from "@/domain/invoice/invoiceStorageService";
 import { TelemetryStorageService } from "@/domain/telemetry/telemetryStorageService";
+import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
 import { ESKOM_MEGAFLEX_2025_2026 } from "@/domain/tariff/tariffFixtures";
 
 describe("Stage 12: Reconciliation Engine", () => {
@@ -30,6 +31,7 @@ describe("Stage 12: Reconciliation Engine", () => {
     ReconciliationStorageService.clearMemoryStore();
     InvoiceStorageService.clearMemoryStore();
     TelemetryStorageService.clearMemoryStore();
+    TariffStorageService.resetToDefaults();
   });
 
   // Helper to create synthetic 30-min intervals spanning a billing window

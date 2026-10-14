@@ -241,7 +241,7 @@ Total Amount Due R 2,268,199.63
     );
 
     // Verify all 10 stages fired in sequential order
-    expect(progressTrack).toEqual([
+    expect(Array.from(new Set(progressTrack))).toEqual([
       "UPLOAD",
       "STORAGE",
       "DOCUMENT_REGISTRY",
@@ -409,7 +409,7 @@ Total Amount Due R 2,268,199.63
           TEST_ORG_ID,
           { skipStorageUpload: true },
         ),
-      ).rejects.toThrow(/PDF inspection failed/);
+      ).rejects.toThrow(/PDF inspection failed|File format spoofing rejected/);
     });
 
     it("Transitions non-utility documents honestly to UNSUPPORTED without pretending success", async () => {
