@@ -18,13 +18,6 @@ export default defineConfig({
     resolve: {
       alias: [
         { find: /^tslib$/, replacement: path.resolve(__dirname, "src/lib/tslib-shim.ts") },
-        {
-          find: "lucide-react",
-          replacement: path.resolve(
-            __dirname,
-            "node_modules/lucide-react/dist/cjs/lucide-react.js",
-          ),
-        },
       ],
     },
   },
