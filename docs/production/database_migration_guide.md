@@ -13,7 +13,7 @@
 ### Step 1: Verify Supabase Database Connectivity
 
 ```bash
-npx supabase db remote commit --project-ref bramhseicmakyihvnvpo
+npx supabase db remote commit --project-ref "$PROJECT_REF"
 ```
 
 ### Step 2: Apply SQL Migrations in Order
@@ -22,7 +22,7 @@ Execute the migration scripts located in `supabase/migrations/`:
 
 ```bash
 # 1. Core Schema Migration
-npx supabase db push --project-ref bramhseicmakyihvnvpo
+npx supabase db push --project-ref "$PROJECT_REF"
 ```
 
 Or apply raw SQL scripts manually via Supabase SQL Editor:
