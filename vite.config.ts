@@ -18,6 +18,7 @@ export default defineConfig({
     noExternals: true,
   },
   vite: {
+    envPrefix: ["VITE_", "NEXT_PUBLIC_"],
     ssr: {
       noExternal: true,
     },

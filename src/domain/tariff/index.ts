@@ -21,3 +21,5 @@ export * from "./tariffImportPipeline";
 export * from "./roundingPolicyEngine";
 export * from "./tariffUnitNormalisationEngine";
 export * from "./tariffMatchingEngine";
+export * from "./tariffMultiTenancyGuard";
+export * from "../reconciliation/calculationReproducibilityEngine";

@@ -18,7 +18,7 @@ export type CustomerClass =
   | "commercial"
   | "industrial"
   | "residential";
-export type TariffStatus = "active" | "superseded" | "draft" | "archived";
+export type TariffStatus = "active" | "superseded" | "draft" | "archived" | "approved";
 export type TariffApprovalStatus = "draft" | "pending_approval" | "approved" | "rejected";
 export type TariffFamilyType =
   | "megaflex"
@@ -130,6 +130,8 @@ export interface TariffScheduleHeader {
   version: string; // e.g. '2023.1', '2024.1', '2025.1', '2026.1'
   effective_date: string; // YYYY-MM-DD
   expiry_date?: string; // YYYY-MM-DD
+  effective_from?: string; // Alias for effective_date
+  effective_to?: string; // Alias for expiry_date
   season: SeasonType;
   voltage_level: VoltageCategory;
   customer_class: CustomerClass;
@@ -140,7 +142,8 @@ export interface TariffScheduleHeader {
   approval_notes?: string;
   extraction_confidence?: number;
   extracted_from_document?: string;
-  vat_treatment: "standard_15" | "zero_rated";
+  vat_treatment: "standard_15" | "zero_rated" | "exempt";
+  vat_rate?: string | number | Decimal;
   source_document: string; // e.g. 'NERSA Tariff Schedule Gazette 2025/26'
   source_hash: string; // SHA-256 fingerprint of source gazette
   is_locked?: boolean; // When true, rates cannot be mutated in place
@@ -800,5 +803,185 @@ export interface TariffFunctionalityClassification {
   reproducibility_guaranteed: boolean;
   supported_validity_periods: string[];
   findings_summary: string[];
+}
+
+/**
+ * ============================================================================
+ * REQUIREMENTS 22, 23 & 24: CALCULATION REPRODUCIBILITY, DATA INTEGRITY & RLS
+ * ============================================================================
+ */
+
+export interface TariffApplicabilityRule {
+  id?: string;
+  tariff_version_id: string;
+  voltage_level?: string;
+  customer_class?: string;
+  supply_type?: string;
+  min_demand_kva?: number | Decimal;
+  max_demand_kva?: number | Decimal;
+  geographic_territory?: string;
+  eligibility_criteria?: Record<string, any>;
+  is_active?: boolean;
+}
+
+export interface TariffDemandBand {
+  id?: string;
+  tariff_version_id: string;
+  band_code: string;
+  band_name: string;
+  band_lower_kva: number | Decimal;
+  band_upper_kva?: number | Decimal;
+  rate_value: number | Decimal;
+  unit_of_measure: string;
+  excess_demand_penalty_rate?: number | Decimal;
+  min_demand_charge?: number | Decimal;
+}
+
+export interface TariffTaxRuleRecord {
+  id?: string;
+  tariff_version_id?: string;
+  tax_rule_code: string;
+  tax_name: string;
+  vat_rate: number | Decimal;
+  taxable_base: string;
+  exempt_components: string[];
+  effective_from: string;
+  effective_to?: string;
+  rounding_method: RoundingMethod;
+}
+
+export interface TariffRoundingRuleRecord {
+  id?: string;
+  tariff_version_id?: string;
+  policy_id: string;
+  policy_name: string;
+  rate_precision: number;
+  rate_rounding_method: RoundingMethod;
+  quantity_precision: number;
+  quantity_rounding_method: RoundingMethod;
+  charge_line_precision: number;
+  charge_line_rounding_method: RoundingMethod;
+  tax_precision: number;
+  tax_rounding_method: RoundingMethod;
+  final_total_precision: number;
+  final_total_rounding_method: RoundingMethod;
+}
+
+export interface TariffValidationResultRecord {
+  id?: string;
+  tariff_version_id: string;
+  validation_status: "passed" | "failed" | "warning";
+  validation_score: number;
+  rule_integrity_checks: Record<string, boolean>;
+  mathematical_consistency_checks: Record<string, boolean>;
+  validation_errors: string[];
+  validated_by: string;
+  validated_at: string;
+}
+
+export interface TariffApprovalHistoryRecord {
+  id?: string;
+  tariff_version_id: string;
+  status: "pending" | "approved" | "rejected";
+  reviewed_by?: string;
+  review_notes: string;
+  validation_result_id?: string;
+  reviewed_at: string;
+}
+
+export interface TariffImportRunRecord {
+  id?: string;
+  organisation_id?: string;
+  source_file_id?: string;
+  tariff_version_id?: string;
+  import_status: "queued" | "parsing" | "validating" | "completed" | "failed";
+  source_hash_sha256: string;
+  components_extracted: number;
+  rates_extracted: number;
+  error_log?: string[];
+  started_at: string;
+  completed_at?: string;
+}
+
+export interface CalculationLineItemRecord {
+  id?: string;
+  calculation_run_id: string;
+  line_number: number;
+  charge_type: string;
+  charge_name: string;
+  quantity: Decimal | number;
+  quantity_unit: string;
+  rate_applied: Decimal | number;
+  rate_unit: string;
+  amount_zar: Decimal | number;
+  rule_id: string;
+  calculation_method: string;
+  rounding_method: string;
+  source_evidence: Record<string, any>;
+  trace: Record<string, any>;
+  created_at?: string;
+}
+
+export interface CalculationRunRecord {
+  id: string;
+  run_id: string;
+  organisation_id: string;
+  version: number;
+  parent_run_id?: string;
+  recalculation_reason?: string;
+  invoice_record_id?: string;
+  meter_id?: string;
+  tariff_version_id?: string;
+  tariff_code: string;
+  tariff_version: string;
+  tariff_rule_version: string;
+  tax_rule_version: string;
+  meter_config_version: string;
+  billing_period_start: string;
+  billing_period_end: string;
+  calculation_engine_version: string;
+  rounding_policy_id: string;
+  input_data_references: Record<string, any>;
+  selected_assumptions: Record<string, any>;
+  result_summary: Record<string, any>;
+  total_expected_zar: Decimal | number;
+  total_invoiced_zar?: Decimal | number;
+  variance_zar?: Decimal | number;
+  exceptions: Array<{ code: string; message: string; severity?: string }>;
+  status: "completed" | "superseded" | "disputed" | "flagged_for_review" | "failed";
+  is_immutable: boolean;
+  reproducibility_checksum: string;
+  executed_at: string;
+  executed_by?: string;
+  line_items?: CalculationLineItemRecord[];
+}
+
+export interface RecalculationWorkflowRequest {
+  originalRunId: string;
+  recalculationReason?: string;
+  reasonForRecalculation?: string;
+  newCalculationEngineVersion?: string;
+  newTariffVersionId?: string;
+  newTariffRuleVersion?: string;
+  newTaxRuleVersion?: string;
+  newRoundingPolicyId?: string;
+  newSelectedAssumptions?: Record<string, any>;
+  recalculatedLineItems?: any[];
+  newTotalInvoicedZar?: Decimal | number;
+  requestedBy?: string;
+  userId?: string;
+}
+
+export interface RecalculationWorkflowResult {
+  previousRun: CalculationRunRecord;
+  newRun: CalculationRunRecord;
+  previousRunId: string;
+  newRunId: string;
+  previousVersion: number;
+  newVersion: number;
+  varianceDeltaZar: string;
+  hasVariance: boolean;
+  varianceZar: Decimal;
+  notes: string[];
 }
 
