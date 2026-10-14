@@ -15,9 +15,6 @@ export default defineConfig({
   },
   vite: {
     envPrefix: ["VITE_", "NEXT_PUBLIC_"],
-    ssr: {
-      noExternal: true,
-    },
     resolve: {
       alias: [
         { find: /^tslib$/, replacement: path.resolve(__dirname, "src/lib/tslib-shim.ts") },
