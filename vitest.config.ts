@@ -6,6 +6,8 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: [
+      "src/lib/__tests__/calculation_versioning_and_multitenancy.test.ts",
+      "src/lib/__tests__/charge_calculation_interface_and_trace.test.ts",
       "src/lib/__tests__/tariff_matching_units_and_rounding.test.ts",
       "src/lib/__tests__/reactive_and_tax_treatment.test.ts",
       "src/lib/__tests__/demand_and_fixed_charges.test.ts",
