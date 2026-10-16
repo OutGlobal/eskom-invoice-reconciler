@@ -29,7 +29,8 @@ Or apply raw SQL scripts manually via Supabase SQL Editor:
 
 1. `supabase/migrations/20260904000000_enterprise_core_schema.sql`
 2. `supabase/migrations/20260904020000_enterprise_ingestion_pipeline.sql`
-3. `security/lockdown-rls-authenticated-only.sql`
+3. `supabase/migrations/20261015000000_fix_reconciliation_runs_authoritative_schema.sql` (Authoritative Reconciliation Engine Columns & Tolerances)
+4. `security/lockdown-rls-authenticated-only.sql`
 
 ### Step 3: Verify Migration Integrity
 

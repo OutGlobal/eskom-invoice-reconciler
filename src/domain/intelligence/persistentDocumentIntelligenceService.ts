@@ -318,15 +318,40 @@ export class PersistentDocumentIntelligenceService {
 
       while ((streamMatch = streamRegex.exec(decoded)) !== null) {
         const streamBody = streamMatch[1];
-        // Match PDF text operators: (Text) Tj or [(Text)] TJ
+        // Match PDF text operators: (Text) Tj, T*, ' or [(Text)] TJ
         const tjRegex = /\(([^)]+)\)\s*(?:Tj|T\*|')/g;
         let tjMatch: RegExpExecArray | null;
         let streamText = "";
         while ((tjMatch = tjRegex.exec(streamBody)) !== null) {
           streamText += tjMatch[1] + "\n";
         }
+        const tjArrayRegex = /\[([\s\S]*?)\]\s*TJ/gi;
+        let arrayMatch: RegExpExecArray | null;
+        while ((arrayMatch = tjArrayRegex.exec(streamBody)) !== null) {
+          const subStrings = arrayMatch[1].match(/\((?:[^)\\]|\\.)*\)/g);
+          if (subStrings) {
+            for (const s of subStrings) {
+              streamText += s.slice(1, -1) + " ";
+            }
+            streamText += "\n";
+          }
+        }
         if (streamText.length > 0) {
           currentStreamsText += streamText + "\n";
+        }
+      }
+
+      // Check for uncompressed BT ... ET text blocks in case streams were omitted
+      if (currentStreamsText.trim().length === 0) {
+        const btRegex = /BT[\r\n]+([\s\S]*?)[\r\n]+ET/gi;
+        let btMatch: RegExpExecArray | null;
+        const tjRegex = /\(([^)]+)\)\s*(?:Tj|T\*|')/g;
+        while ((btMatch = btRegex.exec(decoded)) !== null) {
+          const btBody = btMatch[1];
+          let tjMatch: RegExpExecArray | null;
+          while ((tjMatch = tjRegex.exec(btBody)) !== null) {
+            currentStreamsText += tjMatch[1] + "\n";
+          }
         }
       }
 
@@ -345,13 +370,6 @@ export class PersistentDocumentIntelligenceService {
         return {
           fullText: unescapedStream + "\n" + sanitized,
           pageTexts: pageTexts.length > 0 ? pageTexts : [unescapedStream],
-        };
-      } else if (sanitized.trim().length > 0) {
-        // Fallback to sanitized binary/ASCII text
-        const pages = sanitized.includes("\f") ? sanitized.split("\f") : [sanitized];
-        return {
-          fullText: sanitized,
-          pageTexts: pages,
         };
       } else {
         // PDF has no embedded text operators (e.g. Scanned Raster PDF)

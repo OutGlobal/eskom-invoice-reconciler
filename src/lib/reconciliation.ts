@@ -1,7 +1,28 @@
+/**
+ * @file reconciliation.ts
+ * @deprecated [ARCHITECTURAL CONSOLIDATION - DEF-03]
+ * This module contains legacy prototype reconciliation and billing utilities from early milestones.
+ *
+ * All authoritative enterprise calculation, deterministic reconciliation, billing determinant
+ * reconstruction, vector power factor analysis, and variance auditing logic has been consolidated
+ * into the enterprise domain subsystem under `src/domain/reconciliation/`:
+ *
+ * - {@link DeterministicReconciliationEngine} (`src/domain/reconciliation/reconciliationEngine.ts`)
+ * - {@link DeterministicPricingEngine} (`src/domain/reconciliation/pricingEngine.ts`)
+ * - {@link DeterministicDiscrepancyEngine} (`src/domain/reconciliation/discrepancyEngine.ts`)
+ * - {@link DeterministicCalendarEngine} (`src/domain/calendar/calendarEngine.ts`)
+ * - {@link ReconciliationStorageService} (`src/domain/reconciliation/reconciliationStorageService.ts`)
+ *
+ * NOTE: Do NOT add new business logic to this file. New services, routes, and components must
+ * import from `@/domain/reconciliation` or `@/services`. Existing utility functions here are
+ * maintained strictly for backward compatibility with lightweight prototype UI callers.
+ */
+
 import { type TouPeriod, getSeason, TARIFF } from "./tariff";
 import type { Measurement } from "./parseMeter";
 import type { TariffData } from "./store";
 
+/** @deprecated Use `src/domain/reconciliation/` instead. */
 export interface NmdExceedanceEvent {
   ts: Date;
   kVA: number;
@@ -11,6 +32,7 @@ export interface NmdExceedanceEvent {
   tou: TouPeriod;
 }
 
+/** @deprecated Use `AuthoritativeReconciliationResult` from `src/domain/reconciliation/types` instead. */
 export interface Totals {
   peakKWh: number;
   standardKWh: number;
@@ -25,6 +47,11 @@ export interface Totals {
   nmdExceedances: NmdExceedanceEvent[];
 }
 
+/**
+ * @deprecated [DEF-03] Legacy prototype interval aggregator.
+ * For authoritative deterministic reconciliation, use `DeterministicReconciliationEngine.reconcile()`
+ * from `src/domain/reconciliation/reconciliationEngine.ts`.
+ */
 export function computeTotals(rows: Measurement[], nmd = 0): Totals {
   const t: Totals = {
     peakKWh: 0,
@@ -89,6 +116,7 @@ export function computeTotals(rows: Measurement[], nmd = 0): Totals {
   return t;
 }
 
+/** @deprecated Use `CalculatedChargeLineItem` from `src/domain/tariff/tariffInterface` instead. */
 export interface Charge {
   label: string;
   basis: string;
@@ -100,6 +128,11 @@ export interface Charge {
   group: "fixed" | "energy" | "additional" | "demand" | "tax";
 }
 
+/**
+ * @deprecated [DEF-03] Legacy prototype tariff calculation.
+ * For authoritative gazetted rates, use `DeterministicPricingEngine` or `ProductionTariffEngine`
+ * from `src/domain/reconciliation/pricingEngine.ts` and `src/domain/tariff/`.
+ */
 export function computeCharges(
   totals: Totals,
   nmd: number,
@@ -325,6 +358,7 @@ export function computeCharges(
   ];
 }
 
+/** @deprecated Use `DeterminantComparison` from `src/domain/reconciliation/types` instead. */
 export interface StandardReconciliationRow {
   charge: string;
   calculated: number;
@@ -337,6 +371,11 @@ export interface StandardReconciliationRow {
   reason?: string;
 }
 
+/**
+ * @deprecated [DEF-03] Legacy prototype comparison table builder.
+ * For authoritative variance determination and compliance audit, use `DeterministicDiscrepancyEngine`
+ * and `DeterministicReconciliationEngine` from `src/domain/reconciliation/`.
+ */
 export function buildStandardReconciliationTable(
   invoiceLines: Record<string, number>,
   calculatedCharges: Charge[],

@@ -18,6 +18,7 @@ export default defineConfig({
     resolve: {
       alias: [
         { find: /^tslib$/, replacement: path.resolve(__dirname, "src/lib/tslib-shim.ts") },
+        { find: /^html2canvas$/, replacement: path.resolve(__dirname, "src/lib/html2canvas-shim.ts") },
       ],
     },
   },

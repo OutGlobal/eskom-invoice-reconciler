@@ -14,7 +14,8 @@
     "test:all": "tsx src/lib/__tests__/run-tests.ts",
     "test:vitest": "vitest run",
     "lint": "eslint src/",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "postinstall": "node scripts/ensure-lightningcss.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
