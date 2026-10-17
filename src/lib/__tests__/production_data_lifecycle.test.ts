@@ -17,11 +17,27 @@ vi.mock("@/integrations/supabase/client", () => {
   });
 
   return {
+    isSupabaseConfigured: false,
     supabase: {
       from: vi.fn(() => ({
         insert: insertMock,
         upsert: upsertMock,
         select: selectMock,
+      })),
+    },
+  };
+});
+
+vi.mock("@/lib/supabase", () => {
+  return {
+    isSupabaseConfigured: false,
+    supabase: {
+      from: vi.fn(() => ({
+        insert: vi.fn().mockResolvedValue({ error: null }),
+        upsert: vi.fn().mockResolvedValue({ error: null }),
+        select: vi.fn().mockReturnValue({
+          order: vi.fn().mockResolvedValue({ data: [], error: null }),
+        }),
       })),
     },
   };

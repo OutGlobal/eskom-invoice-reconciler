@@ -14,7 +14,7 @@
  * 4. Deterministic reconciliation engine static interface exposure.
  */
 
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import assert from "node:assert";
 import Decimal from "decimal.js-light";
 import {
@@ -251,6 +251,12 @@ export async function runTariffCleanInterfaceTests() {
   return true;
 }
 
+describe("Clean Tariff Interface Architecture", () => {
+  it("executes all 8 clean tariff interface tests successfully", async () => {
+    await runTariffCleanInterfaceTests();
+  });
+});
+
 // Self-executing runner
 if (process.argv[1]?.endsWith("tariff_clean_interface.test.ts")) {
   runTariffCleanInterfaceTests()
@@ -260,3 +266,4 @@ if (process.argv[1]?.endsWith("tariff_clean_interface.test.ts")) {
       process.exit(1);
     });
 }
+

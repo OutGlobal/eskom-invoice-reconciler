@@ -347,7 +347,8 @@ export class LayeredExtractor {
     const total_invoice_amount = extractRegexField<number>(
       "total_invoice_amount",
       [
-        /(?:total\s*(?:invoice\s*)?(?:amount|due|payable|incl\s*vat)|amount\s*due)[\s:]*R?\s*([0-9]+(?:\.[0-9]+)?)/i,
+        /\b(?:total\s*(?:invoice\s*)?(?:amount|due|payable|incl\s*vat|zar)|total\s*invoice|amount\s*due)[\s:]*(?:ZAR|R)?\s*([0-9]+(?:\.[0-9]+)?)/i,
+        /\btotal[\s:]*(?:ZAR|R)\s*([0-9]+(?:\.[0-9]+)?)/i,
       ],
       "ZAR",
       "number",

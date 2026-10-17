@@ -18,7 +18,7 @@
  *       "A completed reconciliation with incomplete AMR data must NOT be represented as a clean successful reconciliation."
  */
 
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import assert from "node:assert/strict";
 import Decimal from "decimal.js-light";
 

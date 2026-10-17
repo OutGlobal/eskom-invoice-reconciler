@@ -109,6 +109,9 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
           const invNo = String(layeredDoc.invoice_number.value || "");
           const custName = String(layeredDoc.customer_name.value || "");
           const accMatch = rawAscii.match(/\b(785\d{7,9}|\d{10,12})\b/);
+          const totalMatch = rawAscii.match(
+            /(?:total\s*(?:invoice\s*)?(?:amount|due|payable|incl\s*vat)?|amount\s*due)[\s:]*(?:ZAR|R)?\s*([0-9]+(?:\.[0-9]+)?)/i,
+          );
 
           if (acc || invNo || custName || accMatch) {
             pdfRes = {
@@ -127,7 +130,9 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
                 standardKwh: Number(layeredDoc.standard_kwh?.value || 0),
                 offPeakKwh: Number(layeredDoc.off_peak_kwh?.value || 0),
                 maximumDemandKva: Number(layeredDoc.maximum_demand?.value || 0),
-                totalInvoice: Number(layeredDoc.total_invoice_amount?.value || 0),
+                totalInvoice: Number(
+                  layeredDoc.total_invoice_amount?.value || (totalMatch ? totalMatch[1] : 0),
+                ),
                 vat: Number(layeredDoc.vat_amount?.value || 0),
               },
               chargeLines: {},
@@ -225,14 +230,14 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
       closingReading,
       notifiedMaximumDemand: parseOptionalNumber(inv?.nmd),
       billedMaximumDemand: parseOptionalNumber(
-        inv?.maxDemandKVA ?? inv?.simMaxDemand ?? inv?.demandReading,
+        inv?.maximumDemandKva ?? inv?.maxDemandKVA ?? inv?.simMaxDemand ?? inv?.demandReading,
       ),
       utilisedCapacity: parseOptionalNumber(inv?.utilisedCapacity),
-      peakKwh: parseOptionalNumber(inv?.peakKWh),
-      standardKwh: parseOptionalNumber(inv?.standardKWh),
-      offPeakKwh: parseOptionalNumber(inv?.offPeakKWh),
-      totalKwh: parseOptionalNumber(inv?.totalKWh),
-      kva: parseOptionalNumber(inv?.maxDemandKVA ?? inv?.simMaxDemand),
+      peakKwh: parseOptionalNumber(inv?.peakKwh ?? inv?.peakKWh),
+      standardKwh: parseOptionalNumber(inv?.standardKwh ?? inv?.standardKWh),
+      offPeakKwh: parseOptionalNumber(inv?.offPeakKwh ?? inv?.offPeakKWh),
+      totalKwh: parseOptionalNumber(inv?.totalKwh ?? inv?.totalKWh),
+      kva: parseOptionalNumber(inv?.maximumDemandKva ?? inv?.maxDemandKVA ?? inv?.simMaxDemand),
       kvarh: parseOptionalNumber(inv?.reactiveTotal ?? inv?.reactive ?? inv?.reactivePeak),
       powerFactor: parseOptionalNumber(inv?.powerFactor ?? inv?.loadFactor),
       energyCharges:
@@ -264,12 +269,13 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
             (parseOptionalNumber(inv.electrification) ?? 0)
           : parseOptionalNumber(inv?.subsidies),
       vat: parseOptionalNumber(inv?.vat),
-      totalInvoice: parseOptionalNumber(inv?.invoiceTotal ?? inv?.totalInclVat) ?? 0,
+      totalInvoice:
+        parseOptionalNumber(inv?.totalInvoice ?? inv?.invoiceTotal ?? inv?.totalInclVat) ?? 0,
       previousBalance: parseOptionalNumber(inv?.previousBalance),
       payments: parseOptionalNumber(inv?.payments),
       adjustments: parseOptionalNumber(inv?.adjustments),
       credits: parseOptionalNumber(inv?.credits),
-      debits: parseOptionalNumber(inv?.debits ?? inv?.invoiceTotal),
+      debits: parseOptionalNumber(inv?.debits ?? inv?.totalInvoice ?? inv?.invoiceTotal),
       lineItems,
     };
 

@@ -126,12 +126,19 @@ export function EneraProductInterfacePreviewSection() {
       <div className="absolute bottom-10 right-10 w-[450px] h-[280px] bg-emerald-500/5 blur-[100px] pointer-events-none rounded-full" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-        <EneraSectionHeader
-          badge="Product Interface"
-          title="Engineered for Financial Rigour"
-          description="High-density, deterministic financial intelligence workbench designed specifically for commercial energy managers and audit teams."
-          centered
-        />
+        {/* Section Header */}
+        <div className="mb-12 text-center max-w-3xl mx-auto">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs font-mono text-cyan-300 font-medium mb-4 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            <span>Product Interface</span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-4">
+            SEE THE SIGNAL BEHIND THE NUMBER.
+          </h2>
+          <p className="text-base sm:text-lg text-slate-400 leading-relaxed font-sans">
+            High-density, deterministic financial intelligence workbench designed specifically for commercial energy managers and audit teams.
+          </p>
+        </div>
 
         {/* Accessible Tab Navigation */}
         <div
@@ -199,10 +206,19 @@ export function EneraProductInterfacePreviewSection() {
               <p className="mt-2 text-sm text-slate-400 max-w-2xl leading-relaxed">
                 {currentTab.description}
               </p>
+              <div className="mt-3 flex items-center gap-2 text-[11px] font-mono text-slate-400">
+                <Info className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+                <span>Simulated enterprise environment with synthetic demonstration data</span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
-              <span className="text-xs font-mono text-slate-400">STATE:</span>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700 text-[11px] font-mono">
+                SANS 474 Interval Certified
+              </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700 text-[11px] font-mono">
+                NERSA Sched 2 / Megaflex
+              </span>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-mono">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Clean Match Engine
@@ -255,7 +271,7 @@ export function EneraProductInterfacePreviewSection() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 min-[380px]:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="p-5 rounded-lg bg-slate-900/60 border border-white/5">
                     <span className="text-xs font-mono text-slate-400 block mb-1">
                       BILLED INVOICE TOTAL
@@ -287,6 +303,16 @@ export function EneraProductInterfacePreviewSection() {
                     </span>
                     <span className="text-xs text-emerald-400/80 mt-1 block">
                       16-June Public Holiday Peak misclassification
+                    </span>
+                  </div>
+
+                  <div className="p-5 rounded-lg bg-slate-900/60 border border-white/5">
+                    <span className="text-xs font-mono text-slate-400 block mb-1">
+                      TELEMETRY INTERVALS
+                    </span>
+                    <span className="text-2xl font-bold font-mono text-white">1,488 / 1,488</span>
+                    <span className="text-xs text-cyan-400 mt-1 block">
+                      100% SANS 474 Verified
                     </span>
                   </div>
                 </div>
@@ -465,6 +491,22 @@ export function EneraProductInterfacePreviewSection() {
                       );
                     })}
                   </div>
+
+                  {/* Summary Metric Boxes */}
+                  <div className="mt-6 pt-4 border-t border-white/5 grid grid-cols-1 min-[420px]:grid-cols-3 gap-3 text-xs font-mono">
+                    <div className="p-3 rounded-lg bg-slate-900/40 border border-white/5">
+                      <span className="text-slate-400 block text-[10px]">PEAK RATIO</span>
+                      <span className="text-white font-bold">24.0%</span>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-900/40 border border-white/5">
+                      <span className="text-slate-400 block text-[10px]">STANDARD RATIO</span>
+                      <span className="text-white font-bold">48.5%</span>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-900/40 border border-white/5">
+                      <span className="text-slate-400 block text-[10px]">OFF-PEAK BASE</span>
+                      <span className="text-white font-bold">27.5%</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -476,19 +518,43 @@ export function EneraProductInterfacePreviewSection() {
                   <div className="p-4 rounded-lg bg-slate-900/60 border border-white/5 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-mono text-cyan-400 uppercase">
-                        Maximum Demand Threshold
+                        Holiday Determinant Audit
                       </span>
-                      <span className="enera-anomaly-radar px-2 py-0.5 rounded text-[10px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                      <span className="enera-anomaly-radar px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold">
                         CRITICAL EXCEPTION
                       </span>
                     </div>
-                    <div className="text-sm font-semibold text-white">
-                      Flagged: +250 kVA Overstated
-                    </div>
+                    <h3 className="text-sm font-bold text-white">
+                      Statutory Public Holiday Billed as Weekday Peak
+                    </h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      Utility invoice registered 2,100 kVA billed maximum demand, while verified meter
-                      interval integration peaked at 1,850 kVA on 04 June 18:30 SAST.
+                      Youth Day (16 June) was billed at High-Season Peak weekday rates instead of statutory Sunday Off-Peak schedule under NERSA Schedule 2 rules.
                     </p>
+                    <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs font-mono">
+                      <span className="text-slate-500">Unearned Tariff Charge</span>
+                      <span className="text-amber-400 font-bold">+R 24,180.00</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-slate-900/60 border border-white/5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono text-cyan-400 uppercase">
+                        Maximum Demand Threshold
+                      </span>
+                      <span className="enera-anomaly-radar px-2 py-0.5 rounded text-[10px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold">
+                        WARNING
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-white">
+                      Maximum Demand Ratchet Overstatement
+                    </h3>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Utility registered 2,100 kVA billed demand, while verified meter interval integration peaked at 1,850 kVA on 04 June 18:30 SAST.
+                    </p>
+                    <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs font-mono">
+                      <span className="text-slate-500">Flagged: +250 kVA Overstated</span>
+                      <span className="text-amber-400 font-bold">+R 14,166.00</span>
+                    </div>
                   </div>
 
                   <div className="p-4 rounded-lg bg-slate-900/60 border border-white/5 space-y-3">
@@ -496,17 +562,41 @@ export function EneraProductInterfacePreviewSection() {
                       <span className="text-xs font-mono text-cyan-400 uppercase">
                         Power Factor Surcharge
                       </span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        NORMALIZED
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                        VERIFIED
                       </span>
                     </div>
-                    <div className="text-sm font-semibold text-white">
-                      Lagging PF 0.94 within Permissible Envelope
-                    </div>
+                    <h3 className="text-sm font-bold text-white">
+                      Power Factor Boundary Compliant
+                    </h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      Reactive determinant was verified at 0.94 power factor, well above the 0.85
-                      penalty boundary. Zero penalty surcharge applicable.
+                      Reactive determinant was verified at 0.94 power factor, well above the 0.85 penalty boundary. Zero penalty surcharge applicable.
                     </p>
+                    <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs font-mono">
+                      <span className="text-slate-500">Exempt from Penalty</span>
+                      <span className="text-emerald-400 font-bold">+R 27,800.00</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-slate-900/60 border border-white/5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider block">
+                        EXECUTIVE RECONCILIATION DOSSIER
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-bold">
+                        DISPUTE READY
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-white font-sans">
+                      Apex Precision Manufacturing — August 2026 Audit Pack
+                    </h3>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      SANS 474 certified 30-minute interval telemetry export matching NERSA Sched 2 / Megaflex revenue billing standards.
+                    </p>
+                    <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs font-mono">
+                      <span className="text-slate-500">Isolated Credit Claim</span>
+                      <span className="text-amber-400 font-bold">R 53,380.00</span>
+                    </div>
                   </div>
                 </div>
               </div>

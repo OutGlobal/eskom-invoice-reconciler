@@ -5,7 +5,7 @@
  * and Requirement 27 (Calculation Engine Versioning & Immutability).
  */
 
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import assert from "node:assert/strict";
 import Decimal from "decimal.js-light";
 

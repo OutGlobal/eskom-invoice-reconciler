@@ -74,12 +74,19 @@ export function EneraCopilotSection() {
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[650px] h-[300px] bg-cyan-600/5 blur-[120px] pointer-events-none rounded-full" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-        <EneraSectionHeader
-          badge="Audit Intelligence"
-          title="Autonomous Verification Engine"
-          description="Continuous telemetry streaming directly into deterministic tariff logic, transforming raw interval pulses into verified financial recoveries."
-          centered
-        />
+        {/* Section Header */}
+        <div className="mb-12 text-center max-w-3xl mx-auto">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs font-mono text-cyan-300 font-medium mb-4 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            <span>Audit Intelligence</span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-4">
+            SEE THE FINANCIAL SIGNAL.
+          </h2>
+          <p className="text-base sm:text-lg text-slate-400 leading-relaxed font-sans">
+            Continuous telemetry streaming directly into deterministic tariff logic, transforming raw interval pulses into verified financial recoveries.
+          </p>
+        </div>
 
         {/* Section Workflow Visual: TELEMETRY STREAM TO FINANCIAL METRIC RESOLUTION */}
         <div className="mt-12 rounded-xl border border-white/10 bg-[#070c18]/90 backdrop-blur-md shadow-2xl overflow-hidden p-6 sm:p-8">
@@ -96,7 +103,7 @@ export function EneraCopilotSection() {
           <div
             role="tablist"
             aria-label="Copilot Audit Scenarios"
-            className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8"
+            className="grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 gap-3 mb-8"
           >
             {SCENARIOS.map((scenario) => {
               const isSelected = scenario.id === activeStageId;
@@ -218,10 +225,16 @@ export function EneraCopilotSection() {
               </div>
             </div>
 
-            {/* Context Explanation */}
-            <div className="p-4 rounded-lg bg-slate-900/40 border border-white/5 text-xs text-slate-400 leading-relaxed font-sans">
-              <span className="text-slate-300 font-medium mr-1.5">Deterministic Audit Lineage:</span>
-              {currentScenario.explanation}
+            {/* Context Explanation & Balance Sheet Governance */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg bg-slate-900/40 border border-white/5 text-xs text-slate-400 leading-relaxed font-sans">
+                <span className="text-slate-300 font-medium mr-1.5">Deterministic Audit Lineage:</span>
+                {currentScenario.explanation}
+              </div>
+              <div className="p-4 rounded-lg bg-slate-900/40 border border-white/5 text-xs text-slate-400 leading-relaxed font-sans">
+                <span className="text-slate-300 font-medium mr-1.5">Balance Sheet Governance:</span>
+                Statutory audit trail guaranteed with immutable sha256 evidence record.
+              </div>
             </div>
           </div>
 

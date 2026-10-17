@@ -14,7 +14,7 @@
  *     - Record the tolerance used for every reconciliation
  */
 
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import assert from "node:assert/strict";
 import Decimal from "decimal.js-light";
 

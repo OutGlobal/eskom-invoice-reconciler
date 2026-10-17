@@ -43,12 +43,14 @@ import { PersistentDocumentIntelligenceService } from "@/domain/intelligence/per
  * Stage 16: Automatically restores document intelligence processing state on page refresh or login.
  */
 export function useBootstrapMeter() {
+  if (typeof window === "undefined") return;
   useEffect(() => {
     PersistentDocumentIntelligenceService.rehydrateOnSessionStart().catch((err) => {
       console.warn("Bootstrap meter persistent rehydration notice:", err);
     });
   }, []);
 }
+
 
 /** Returns filtered rows + derived totals/charges based on billing period. */
 export function useDerived() {

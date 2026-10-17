@@ -48,8 +48,8 @@ import { LocalWorkspaceStore } from "@/lib/localWorkspaceStore";
 export class SecureIngestionGateway {
   private static processedHashes: Map<string, IngestionGatewayResult> = new Map();
   private static adapters: ILayoutAdapter[] = [
-    new ScannedInvoiceOcrAdapter(),
     new PdfInvoiceAdapter(),
+    new ScannedInvoiceOcrAdapter(),
     new AmrCsvAdapter(),
     new AmrXlsxAdapter(),
     new TelemetryXmlAdapter(),
@@ -489,11 +489,17 @@ export class SecureIngestionGateway {
 
     const isTariffPdf =
       resolvedFileType === "TARIFF_DOCUMENT" && mimeResult.fileExtension.toLowerCase() === "pdf";
+    const isScannedPdf =
+      mimeResult.fileExtension.toLowerCase() === "pdf" &&
+      (mimeResult.isScannedPdf ||
+        (pdfInspection?.appearsScanned && pdfInspection?.isOcrLikelyRequired));
     const adapter: ILayoutAdapter = isTariffPdf
       ? new TariffPdfAdapter()
-      : this.adapters.find((a) =>
-          a.canHandle(mimeResult.fileExtension, mimeResult.detectedMimeType),
-        ) || this.adapters[0];
+      : isScannedPdf
+        ? new ScannedInvoiceOcrAdapter()
+        : this.adapters.find((a) =>
+            a.canHandle(mimeResult.fileExtension, mimeResult.detectedMimeType),
+          ) || this.adapters[0];
     const fileObj =
       file instanceof File
         ? file

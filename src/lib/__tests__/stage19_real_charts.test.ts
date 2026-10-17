@@ -26,6 +26,7 @@ import type { ChartQueryStoreData } from "@/domain/charts/types";
 // Mock Supabase
 vi.mock("@/lib/supabase", () => {
   return {
+    isSupabaseConfigured: false,
     supabase: {
       from: vi.fn((table: string) => {
         if (table === "invoice_records") {

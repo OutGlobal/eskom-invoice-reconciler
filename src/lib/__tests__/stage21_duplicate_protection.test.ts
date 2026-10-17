@@ -31,6 +31,29 @@ import path from "node:path";
 // Mock Supabase
 vi.mock("@/lib/supabase", () => {
   return {
+    isSupabaseConfigured: false,
+    supabase: {
+      from: vi.fn(() => ({
+        select: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockReturnThis(),
+        update: vi.fn().mockReturnThis(),
+        upsert: vi.fn().mockResolvedValue({ error: null }),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: [], error: null }),
+        limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+      })),
+      channel: vi.fn(() => ({
+        on: vi.fn().mockReturnThis(),
+        subscribe: vi.fn((cb) => cb("SUBSCRIBED")),
+      })),
+      removeChannel: vi.fn(),
+    },
+  };
+});
+
+vi.mock("@/integrations/supabase/client", () => {
+  return {
+    isSupabaseConfigured: false,
     supabase: {
       from: vi.fn(() => ({
         select: vi.fn().mockReturnThis(),

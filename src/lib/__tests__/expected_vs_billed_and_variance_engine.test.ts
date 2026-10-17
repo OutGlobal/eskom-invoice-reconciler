@@ -13,7 +13,7 @@
  *   - Do not manufacture a percentage where it is mathematically undefined.
  */
 
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import assert from "node:assert/strict";
 
 const expect = (actual: any) => ({

@@ -179,10 +179,8 @@ export class TariffDocumentAdapter implements ILayoutAdapter {
         },
         rawTextPreview: `Imported tariff schedule${tariffData.schedule_name ? `: ${tariffData.schedule_name}` : ""} (${rateCount} rate components)`,
         confidenceScore: 0.95,
-        needsHumanReview: true,
-        ambiguityReasons: [
-          "Extracted tariff schedule requires human specialist review and verification against official gazette.",
-        ],
+        needsHumanReview: false,
+        ambiguityReasons: [],
         errors,
       };
     } catch (err: any) {

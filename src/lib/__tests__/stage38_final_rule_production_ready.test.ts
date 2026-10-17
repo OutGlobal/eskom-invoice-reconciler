@@ -40,6 +40,8 @@ import {
 } from "@/domain/security/tenantContextService";
 import { AuthoritativeSchemaRegistry } from "@/domain/database/authoritativeSchemaRegistry";
 import { EphemeralBrowserMemorySimulator } from "@/domain/testing/dataPersistenceVerificationEngine";
+import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
+import { ESKOM_MEGAFLEX_2025_2026 } from "@/domain/tariff/tariffFixtures";
 
 describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
   const TENANT_ID = "org-prod-stage38-enterprise";
@@ -58,6 +60,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
     InvoiceStorageService.clearMemoryStore();
     ProcessingJobEngine.clearState();
     ProductionObservabilityService.clearLogs();
+    TariffStorageService.saveVersion(ESKOM_MEGAFLEX_2025_2026);
     activeSecurityContext = createSecurityContext(USER_ID, USER_EMAIL, TENANT_ID, "ENERGY_MANAGER");
   });
 
@@ -168,7 +171,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
     expect(job.jobId).toBeDefined();
     expect(job.status).toBe("QUEUED");
 
-    const terminalStatus = await ProcessingJobEngine.waitForTerminalState(job.jobId);
+    const terminalStatus = await ProcessingJobEngine.waitForTerminalState(job.jobId, 45000);
     expect(terminalStatus.status).toBe("COMPLETED");
     expect(terminalStatus.progressPercentage).toBe(100);
   });

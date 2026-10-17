@@ -95,15 +95,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ENERA AI | Energy Financial Intelligence" },
+      { title: "ENERA | Energy Financial Intelligence" },
       {
         name: "description",
         content:
           "ENERA transforms complex energy and billing information into clear, actionable intelligence for better financial and operational decisions.",
       },
-      { property: "og:site_name", content: "ENERA AI" },
+      { property: "og:site_name", content: "ENERA" },
       { property: "og:url", content: "https://enera-ai.com" },
-      { property: "og:title", content: "ENERA AI | Energy Financial Intelligence" },
+      { property: "og:title", content: "ENERA | Energy Financial Intelligence" },
       {
         property: "og:description",
         content:
@@ -111,7 +111,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "ENERA AI | Energy Financial Intelligence" },
+      { name: "twitter:title", content: "ENERA | Energy Financial Intelligence" },
       {
         name: "twitter:description",
         content:
