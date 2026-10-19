@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { identityFromVerifiedUser } from "@/domain/security/verifiedIdentity";
 
@@ -98,6 +98,7 @@ const SOURCE_TABS: { label: string; value: string; icon: any }[] = [
 ];
 
 export function SecureUploadGateway() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const workspaceRows = useApp((state) => state.rows);
   const partialTotals = useMemo(
     () =>
@@ -972,16 +973,24 @@ export function SecureUploadGateway() {
               : "border-border/60 hover:border-border hover:bg-card/40"
           }`}
           onClick={() => {
-            const input = document.createElement("input");
-            input.type = "file";
-            input.multiple = true;
-            input.accept = ".pdf,.csv,.xlsx,.xls,.xml,.log,.txt,.tsv,.json";
-            input.onchange = (e: any) => {
-              if (e.target.files) handleFiles(e.target.files);
-            };
-            input.click();
+            fileInputRef.current?.click();
           }}
         >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".pdf,.csv,.xlsx,.xls,.xml,.log,.txt,.tsv,.json"
+            className="hidden sr-only"
+            tabIndex={-1}
+            aria-hidden="true"
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                handleFiles(e.target.files);
+                e.target.value = "";
+              }
+            }}
+          />
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3">
             <Upload className="w-6 h-6" />
           </div>
@@ -992,6 +1001,17 @@ export function SecureUploadGateway() {
             Automatic end-to-end reconciliation: Upload your invoice (PDF) and AMR interval data
             (CSV/Excel) simultaneously for automated 8-stage processing with zero extra clicks.
           </p>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              fileInputRef.current?.click();
+            }}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          >
+            <FolderOpen className="w-4 h-4" />
+            <span>Browse Files from Device</span>
+          </button>
           <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-[11px] text-muted-foreground">
             <span className="px-2 py-0.5 rounded border border-border/60 bg-muted/30">
               .pdf (Invoices)

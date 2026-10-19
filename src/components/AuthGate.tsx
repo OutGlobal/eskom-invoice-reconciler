@@ -383,6 +383,40 @@ export function SignInScreen() {
           </div>
         )}
 
+        {/* Mode Selector Tabs */}
+        <div className="grid grid-cols-2 p-1 rounded-lg bg-secondary/60 border border-border">
+          <button
+            type="button"
+            onClick={() => {
+              setMode("signin");
+              setAuthError(null);
+              setNotice(null);
+            }}
+            className={`py-1.5 text-xs font-semibold rounded-md transition ${
+              mode === "signin"
+                ? "bg-primary text-primary-foreground shadow"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMode("signup");
+              setAuthError(null);
+              setNotice(null);
+            }}
+            className={`py-1.5 text-xs font-semibold rounded-md transition ${
+              mode === "signup"
+                ? "bg-primary text-primary-foreground shadow"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Create account
+          </button>
+        </div>
+
         <form onSubmit={handleAuth} className="space-y-3">
           <div>
             <label className="block text-[11px] text-muted-foreground mb-1 font-medium">
