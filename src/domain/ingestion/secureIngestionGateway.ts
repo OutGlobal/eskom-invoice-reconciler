@@ -489,13 +489,15 @@ export class SecureIngestionGateway {
 
     const isTariffPdf =
       resolvedFileType === "TARIFF_DOCUMENT" && mimeResult.fileExtension.toLowerCase() === "pdf";
-    const isScannedPdf =
-      mimeResult.fileExtension.toLowerCase() === "pdf" &&
-      (mimeResult.isScannedPdf ||
-        (pdfInspection?.appearsScanned && pdfInspection?.isOcrLikelyRequired));
+    const isRasterImage = ["png", "jpg", "jpeg", "tif", "tiff", "webp", "bmp"].includes(
+      mimeResult.fileExtension.toLowerCase(),
+    );
+    // For PDF invoices, always prioritize PdfInvoiceAdapter: it directly extracts embedded digital text
+    // with 5.5px vertical clustering and seamlessly falls back to HybridDocumentProcessor (OCR) if needed.
+    // ScannedInvoiceOcrAdapter is reserved for raster image uploads.
     const adapter: ILayoutAdapter = isTariffPdf
       ? new TariffPdfAdapter()
-      : isScannedPdf
+      : isRasterImage
         ? new ScannedInvoiceOcrAdapter()
         : this.adapters.find((a) =>
             a.canHandle(mimeResult.fileExtension, mimeResult.detectedMimeType),
@@ -619,35 +621,119 @@ export class SecureIngestionGateway {
       addLog("NORMALIZED", "info", "Registered uploaded tariff version for reconciliation");
     }
 
-    const extractedAccountNumber = extractRes.extractedFields?.accountNumber?.trim() || "";
+    let extractedCustomerName = extractRes.extractedFields?.customerName?.trim() || "";
+    let extractedAccountNumber = extractRes.extractedFields?.accountNumber?.trim() || "";
     const extractedMeterNumber = extractRes.extractedFields?.meterNumber?.trim() || "";
-    const linkedCustomer = extractedAccountNumber
-      ? {
-          accountNumber: extractedAccountNumber,
-          customerName: extractRes.extractedFields?.customerName?.trim() || extractedAccountNumber,
-          meterNumber: extractedMeterNumber,
-          address: "",
-          nmd: Number(extractRes.extractedFields?.notifiedMaximumDemand || 0),
-          updatedAt: new Date().toISOString(),
-        }
-      : extractedMeterNumber
-        ? await LocalWorkspaceStore.findCustomerByMeter(extractedMeterNumber)
-        : null;
 
-    if (linkedCustomer) {
-      await LocalWorkspaceStore.saveCustomer(linkedCustomer);
-      uploadRecord = await UploadStorageService.updateUploadStatus(
-        documentId,
-        {
-          metadata: {
-            accountNumber: linkedCustomer.accountNumber,
-            customerName: linkedCustomer.customerName,
-            meterNumber: extractedMeterNumber || linkedCustomer.meterNumber,
-            billingPeriod: extractRes.extractedFields?.billingPeriod || "",
-          },
+    // 1. Infer customer name from filename if absent in extracted fields
+    if (!extractedCustomerName) {
+      const filenameCustomer = sanitizedFilename
+        .replace(/\.[^/.]+$/, "")
+        .replace(/[-_]/g, " ")
+        .replace(
+          /\b(eskom|feb|jan|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|invoice|statement|bill|telemetry|\d{4})\b/gi,
+          "",
+        )
+        .replace(/\s+/g, " ")
+        .trim();
+      if (filenameCustomer.length >= 3) {
+        extractedCustomerName = filenameCustomer;
+      }
+    }
+
+    // 2. Resolve or auto-generate customer account number with progressive fallbacks
+    if (!extractedAccountNumber) {
+      if (extractedMeterNumber) {
+        const byMeter = await LocalWorkspaceStore.findCustomerByMeter(extractedMeterNumber);
+        if (byMeter?.accountNumber) {
+          extractedAccountNumber = byMeter.accountNumber;
+          if (!extractedCustomerName && byMeter.customerName) {
+            extractedCustomerName = byMeter.customerName;
+          }
+        }
+      }
+      if (!extractedAccountNumber && extractedCustomerName) {
+        const byName = await LocalWorkspaceStore.findCustomerByName(extractedCustomerName);
+        if (byName?.accountNumber) {
+          extractedAccountNumber = byName.accountNumber;
+        }
+      }
+      if (!extractedAccountNumber) {
+        const rawAcc = extractRes.rawTextPreview?.match(/\b(785\d{7,9}|\d{10})\b/)?.[1];
+        if (rawAcc) {
+          extractedAccountNumber = rawAcc;
+        }
+      }
+      if (!extractedAccountNumber) {
+        const nameSlug = (extractedCustomerName || sanitizedFilename)
+          .replace(/[^a-zA-Z0-9]/g, "")
+          .toUpperCase()
+          .slice(0, 10);
+        extractedAccountNumber = `ACC-${nameSlug || documentId.substring(0, 8).toUpperCase()}`;
+      }
+    }
+
+    // 3. Ensure extractedFields reflect resolved customer identity
+    if (extractRes.extractedFields) {
+      extractRes.extractedFields.accountNumber = extractedAccountNumber;
+      extractRes.extractedFields.customerName = extractedCustomerName || extractedAccountNumber;
+    }
+
+    // 4. Auto-create and persist the customer account in LocalWorkspaceStore
+    const linkedCustomer = {
+      accountNumber: extractedAccountNumber,
+      customerName: extractedCustomerName || extractedAccountNumber,
+      meterNumber: extractedMeterNumber || "",
+      address: "",
+      nmd: Number(extractRes.extractedFields?.notifiedMaximumDemand || 0),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await LocalWorkspaceStore.saveCustomer(linkedCustomer);
+    uploadRecord = await UploadStorageService.updateUploadStatus(
+      documentId,
+      {
+        metadata: {
+          accountNumber: linkedCustomer.accountNumber,
+          customerName: linkedCustomer.customerName,
+          meterNumber: extractedMeterNumber || linkedCustomer.meterNumber,
+          billingPeriod: extractRes.extractedFields?.billingPeriod || "",
+          associationStatus: "LINKED",
         },
-        context,
-      );
+      },
+      context,
+    );
+
+    // 5. Retroactively link existing unassigned uploads (e.g. meter export files) for this customer
+    try {
+      const existingUploads = await LocalWorkspaceStore.listUploads();
+      for (const up of existingUploads) {
+        if (
+          up.id !== documentId &&
+          (!up.metadata?.accountNumber || up.metadata.associationStatus === "UNASSIGNED")
+        ) {
+          const meterMatch = extractedMeterNumber && up.metadata?.meterNumber === extractedMeterNumber;
+          const nameMatch =
+            extractedCustomerName &&
+            up.filename.toLowerCase().includes(extractedCustomerName.toLowerCase().slice(0, 6));
+          if (meterMatch || nameMatch) {
+            await UploadStorageService.updateUploadStatus(
+              up.id,
+              {
+                metadata: {
+                  ...up.metadata,
+                  accountNumber: linkedCustomer.accountNumber,
+                  customerName: linkedCustomer.customerName,
+                  associationStatus: "LINKED",
+                },
+              },
+              context,
+            );
+          }
+        }
+      }
+    } catch {
+      // Non-blocking retroactive link ignore
     }
 
     // Reflect normalized invoice/telemetry into database

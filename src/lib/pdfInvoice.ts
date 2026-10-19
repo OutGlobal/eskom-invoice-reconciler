@@ -1021,10 +1021,16 @@ function extractCustomer(lines: TextLine[]) {
   for (const l of lines) {
     const labeled = l.text.match(/(?:customer|client|consumer|billed\s*to|account\s*name)\s*[:=]\s*([A-Za-z0-9 &.,'()-]{3,60})/i);
     if (labeled && !/eskom|vat|tax\s*invoice/i.test(labeled[1])) {
+      const clean = labeled[1]
+        .replace(/\s*(?:Tj|TJ|ET|BT)\b/g, "")
+        .replace(/[)\]]+$/, "")
+        .replace(/^[(\[]+/, "")
+        .replace(/\s+/g, " ")
+        .trim();
       return {
-        name: labeled[1].replace(/\s+/g, " ").trim(),
+        name: clean,
         address: "",
-        raw: labeled[1].trim(),
+        raw: clean,
         confidence: l.confidence || 95,
       };
     }

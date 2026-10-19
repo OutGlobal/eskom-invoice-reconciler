@@ -280,6 +280,19 @@ export class UploadStorageService {
   ): Promise<UploadRecord | null> {
     let record = this.memoryStore.get(uploadId) || null;
 
+    if (!record) {
+      try {
+        const localRecords = await LocalWorkspaceStore.listUploads();
+        const local = localRecords.find((r) => r.id === uploadId);
+        if (local) {
+          record = local;
+          this.memoryStore.set(uploadId, record);
+        }
+      } catch {
+        // Local store fallback ignore
+      }
+    }
+
     try {
       const { data, error } = (await this.withTimeout(
         supabase.from("uploads").select("*").eq("id", uploadId).single(),

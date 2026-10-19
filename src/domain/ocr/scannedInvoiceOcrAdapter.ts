@@ -108,8 +108,47 @@ export class ScannedInvoiceOcrAdapter implements ILayoutAdapter {
         })),
       };
 
-      const normalizedConfidence = Number((ocrResult.overallConfidence / 100).toFixed(4));
-      const needsReview = ocrResult.reviewRequired || normalizedConfidence < 0.85;
+      let normalizedConfidence = Number((ocrResult.overallConfidence / 100).toFixed(4));
+      let needsReview = ocrResult.reviewRequired || normalizedConfidence < 0.85;
+      let reviewReasons = ocrResult.reviewReasons;
+
+      // Bidirectional Fallback: If OCR confidence degraded (<85%) or determinants are missing,
+      // attempt digital vector text extraction before flagging for human review.
+      if (
+        (needsReview || !extractedFields.accountNumber || extractedFields.totalInvoice <= 0) &&
+        (file.name.toLowerCase().endsWith(".pdf") || (file.type && file.type.includes("pdf")))
+      ) {
+        try {
+          const { extractInvoiceFromPdf } = await import("@/lib/pdfInvoice");
+          const digRes = await extractInvoiceFromPdf(file);
+          if (digRes?.invoice && (digRes.invoice.accountNumber || digRes.invoice.invoiceTotal > 0)) {
+            const inv = digRes.invoice;
+            if (inv.accountNumber) extractedFields.accountNumber = inv.accountNumber;
+            if (inv.customerName) extractedFields.customerName = inv.customerName;
+            if (inv.meterNumber) {
+              extractedFields.meterNumber = inv.meterNumber;
+              extractedFields.meterSerial = inv.meterNumber;
+            }
+            if (inv.invoiceTotal) extractedFields.totalInvoice = inv.invoiceTotal;
+            if (inv.tariffName) extractedFields.tariff = inv.tariffName;
+            if (inv.billingPeriod) extractedFields.billingPeriod = inv.billingPeriod;
+            if (inv.billingPeriodStart) extractedFields.billingStart = inv.billingPeriodStart;
+            if (inv.billingPeriodEnd) extractedFields.billingEnd = inv.billingPeriodEnd;
+            if (inv.totalKWh != null) extractedFields.totalKwh = inv.totalKWh;
+            if (inv.peakKWh != null) extractedFields.peakKwh = inv.peakKWh;
+            if (inv.standardKWh != null) extractedFields.standardKwh = inv.standardKWh;
+            if (inv.offPeakKWh != null) extractedFields.offPeakKwh = inv.offPeakKWh;
+            if (inv.maxDemandKVA != null) extractedFields.billedMaximumDemand = inv.maxDemandKVA;
+            if (inv.vat != null) extractedFields.vat = inv.vat;
+
+            normalizedConfidence = 0.95;
+            needsReview = false;
+            reviewReasons = [];
+          }
+        } catch {
+          // Digital fallback ignore
+        }
+      }
 
       return {
         success: true,
@@ -118,10 +157,64 @@ export class ScannedInvoiceOcrAdapter implements ILayoutAdapter {
         rawTextPreview: ocrResult.rawFullText.slice(0, 1000),
         confidenceScore: normalizedConfidence,
         needsHumanReview: needsReview,
-        ambiguityReasons: ocrResult.reviewReasons,
+        ambiguityReasons: reviewReasons,
         errors: [],
       };
     } catch (err: any) {
+      // Fallback to digital extraction if available before failing
+      if (file.name.toLowerCase().endsWith(".pdf") || (file.type && file.type.includes("pdf"))) {
+        try {
+          const { extractInvoiceFromPdf } = await import("@/lib/pdfInvoice");
+          const digRes = await extractInvoiceFromPdf(file);
+          if (digRes?.invoice && (digRes.invoice.accountNumber || digRes.invoice.invoiceTotal > 0)) {
+            const inv = digRes.invoice;
+            const extractedFields: ExtractedInvoiceFields = {
+              accountNumber: inv.accountNumber || "",
+              customerName: inv.customerName || "",
+              pod: inv.meterNumber || "",
+              premiseId: "",
+              meterNumber: inv.meterNumber || "",
+              meterSerial: inv.meterNumber || "",
+              billingPeriod: inv.billingPeriod || "",
+              billingStart: inv.billingPeriodStart || "",
+              billingEnd: inv.billingPeriodEnd || "",
+              invoiceDate: inv.billingDate || new Date().toISOString().substring(0, 10),
+              dueDate: inv.dueDate || "",
+              tariff: inv.tariffName || "Megaflex",
+              voltage: inv.voltage || "",
+              totalKwh: inv.totalKWh ?? null,
+              peakKwh: inv.peakKWh ?? null,
+              standardKwh: inv.standardKWh ?? null,
+              offPeakKwh: inv.offPeakKWh ?? null,
+              billedMaximumDemand: inv.maxDemandKVA ?? null,
+              totalInvoice: inv.invoiceTotal ?? 0,
+              vat: inv.vat ?? null,
+              lineItems: (digRes.lineItems || []).map((li, idx) => ({
+                lineItemNumber: idx + 1,
+                chargeLabel: li.chargeLabel || li.label || "Line Item",
+                invoicedAmount: li.amount ?? 0,
+                rate: li.rate ?? null,
+                quantity: li.quantity ?? null,
+                chargeCode: li.chargeCode || null,
+              })),
+            };
+
+            return {
+              success: true,
+              documentType: "INVOICE_PDF",
+              extractedFields,
+              rawTextPreview: digRes.rawText.slice(0, 1000),
+              confidenceScore: 0.95,
+              needsHumanReview: false,
+              ambiguityReasons: [],
+              errors: [],
+            };
+          }
+        } catch {
+          // Fall through to error
+        }
+      }
+
       return {
         success: false,
         documentType: "INVOICE_PDF",

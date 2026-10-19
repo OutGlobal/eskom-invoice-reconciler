@@ -270,7 +270,13 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
           : parseOptionalNumber(inv?.subsidies),
       vat: parseOptionalNumber(inv?.vat),
       totalInvoice:
-        parseOptionalNumber(inv?.totalInvoice ?? inv?.invoiceTotal ?? inv?.totalInclVat) ?? 0,
+        parseOptionalNumber(
+          inv?.totalInvoice ??
+            inv?.invoiceTotal ??
+            inv?.totalInclVat ??
+            pdfRes?.chargeLines?.totalInvoice ??
+            pdfRes?.chargeLines?.totalInclVat,
+        ) ?? 0,
       previousBalance: parseOptionalNumber(inv?.previousBalance),
       payments: parseOptionalNumber(inv?.payments),
       adjustments: parseOptionalNumber(inv?.adjustments),
@@ -278,6 +284,38 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
       debits: parseOptionalNumber(inv?.debits ?? inv?.totalInvoice ?? inv?.invoiceTotal),
       lineItems,
     };
+
+    // Customer Name Fallback from Filename (e.g. "Millennium 33kV Eskom Feb 2026.pdf" -> "Millennium 33kV")
+    if (!extractedFields.customerName) {
+      const cleanName = file.name
+        .replace(/\.[^/.]+$/, "")
+        .replace(/[-_]/g, " ")
+        .replace(/\b(eskom|feb|jan|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|invoice|statement|bill|telemetry|\d{4})\b/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (cleanName.length >= 3) {
+        extractedFields.customerName = cleanName;
+      }
+    }
+
+    // Account Number Fallback from raw text
+    if (!extractedFields.accountNumber) {
+      const fullText = pdfRes?.rawText || "";
+      const accMatch =
+        fullText.match(/account\s*(?:no|number|num)?[:.\s#]*([0-9]{8,12})\b/i) ||
+        fullText.match(/\b(785\d{7,9}|\d{10})\b/);
+      if (accMatch) {
+        extractedFields.accountNumber = accMatch[1];
+      }
+    }
+
+    // Invoice Total Fallback from line items if direct total was missing
+    if ((!extractedFields.totalInvoice || extractedFields.totalInvoice <= 0) && lineItems.length > 0) {
+      const lineSum = lineItems.reduce((acc, li) => acc + (li.invoicedAmount || 0), 0);
+      if (lineSum > 0) {
+        extractedFields.totalInvoice = Math.round((lineSum + (extractedFields.vat || 0)) * 100) / 100;
+      }
+    }
 
     // Explicitly track missing fields (never silently treated as zero)
     const missingFields: string[] = [];

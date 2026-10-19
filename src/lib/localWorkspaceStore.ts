@@ -196,6 +196,27 @@ export class LocalWorkspaceStore {
     );
   }
 
+  static async findCustomerByAccount(accountNumber: string): Promise<SavedCustomerAccount | null> {
+    if (!accountNumber) return null;
+    const normalized = accountNumber.trim().toLowerCase();
+    const customers = await this.listCustomers();
+    return (
+      customers.find((customer) => customer.accountNumber.trim().toLowerCase() === normalized) || null
+    );
+  }
+
+  static async findCustomerByName(customerName: string): Promise<SavedCustomerAccount | null> {
+    if (!customerName) return null;
+    const normalized = customerName.trim().toLowerCase();
+    const customers = await this.listCustomers();
+    return (
+      customers.find((customer) => {
+        const cName = customer.customerName.trim().toLowerCase();
+        return cName === normalized || cName.includes(normalized) || normalized.includes(cName);
+      }) || null
+    );
+  }
+
   static async saveDataset(invoice: InvoiceData | null, rows: Measurement[]): Promise<void> {
     const dataset: SavedDataset = {
       key: "active",

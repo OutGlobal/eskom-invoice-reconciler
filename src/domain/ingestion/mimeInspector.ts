@@ -88,9 +88,20 @@ export class MimeInspector {
    * Check if PDF lacks text stream markers (scanned document)
    */
   public static detectIfScannedPdf(bytes: Uint8Array): boolean {
-    const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, 4096));
-    const hasImage = text.includes("/Image") || text.includes("/XObject");
-    const hasFont = text.includes("/Font");
-    return hasImage && !hasFont;
+    // Inspect up to 512KB of the PDF document
+    const sliceLen = Math.min(bytes.length, 524288);
+    const text = new TextDecoder("latin1").decode(bytes.slice(0, sliceLen));
+
+    // If document declares font dictionaries, base fonts, or text streams, it is NOT a scanned raster image
+    const hasFont = /\/Font\b|\/Type\s*\/Font\b|\/BaseFont\b|\/FontDescriptor\b|\/ToUnicode\b/i.test(text);
+    if (hasFont) return false;
+
+    const hasTextStream = /\b(?:BT\b[\s\S]*?\bET\b|Tj|TJ)\b/.test(text);
+    if (hasTextStream) return false;
+
+    // Document is scanned only if it contains raster image markers without font/text layers
+    const hasImage = /\/Subtype\s*\/Image\b|\/Image\b|\/XObject\b/i.test(text);
+    return hasImage;
   }
 }
+
