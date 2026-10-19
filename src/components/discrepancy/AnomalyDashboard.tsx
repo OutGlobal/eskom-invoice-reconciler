@@ -47,9 +47,14 @@ export const AnomalyDashboard: React.FC = () => {
   useEffect(() => {
     async function load() {
       setIsLoading(true);
-      const data = await DiscrepancyStorageService.getDiscrepancies();
-      setRecords(data);
-      setIsLoading(false);
+      try {
+        const data = await DiscrepancyStorageService.getDiscrepancies();
+        setRecords(data);
+      } catch (err) {
+        console.warn("Discrepancies load notice:", err);
+      } finally {
+        setIsLoading(false);
+      }
     }
     load();
   }, []);

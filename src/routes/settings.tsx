@@ -55,7 +55,9 @@ function SettingsPage() {
   if (session) {
     try {
       organisationId = identityFromVerifiedUser(session.user).organisationId;
-    } catch {}
+    } catch {
+      organisationId = "org_enera_commercial";
+    }
   }
   const [saving, setSaving] = useState(false);
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);

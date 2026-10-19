@@ -84,6 +84,9 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
         }
         setIsLoading(false);
       }
+    }).catch((err) => {
+      console.warn("Invoice records query notice:", err);
+      if (isMounted) setIsLoading(false);
     });
 
     return () => {

@@ -45,14 +45,18 @@ export function CalendarPage() {
   useEffect(() => {
     async function load() {
       setIsLoading(true);
-      const [data, uploadedTariffs] = await Promise.all([
-        CalendarStorageService.getHolidays(),
-        TariffStorageService.getAllVersions(),
-      ]);
-      setHolidays(data);
-      setTariffVersions(uploadedTariffs);
-
-      setIsLoading(false);
+      try {
+        const [data, uploadedTariffs] = await Promise.all([
+          CalendarStorageService.getHolidays(),
+          TariffStorageService.getAllVersions(),
+        ]);
+        setHolidays(data);
+        setTariffVersions(uploadedTariffs);
+      } catch (err) {
+        console.warn("Calendar load notice:", err);
+      } finally {
+        setIsLoading(false);
+      }
     }
     load();
   }, []);

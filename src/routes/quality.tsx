@@ -50,9 +50,14 @@ function QualityPage() {
   useEffect(() => {
     async function load() {
       setIsLoading(true);
-      const data = await QualityStorageService.getIssues();
-      setIssues(data);
-      setIsLoading(false);
+      try {
+        const data = await QualityStorageService.getIssues();
+        setIssues(data);
+      } catch (err) {
+        console.warn("Quality issues load notice:", err);
+      } finally {
+        setIsLoading(false);
+      }
     }
     load();
   }, []);

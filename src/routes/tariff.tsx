@@ -52,18 +52,23 @@ function TariffPage() {
   useEffect(() => {
     async function loadTariffs() {
       setIsLoading(true);
-      const allVersions = await TariffStorageService.getAllVersions();
-      setVersions(allVersions);
+      try {
+        const allVersions = await TariffStorageService.getAllVersions();
+        setVersions(allVersions);
 
-      // Select first matching version for default family
-      const matching =
-        allVersions.find((v) => v.header.tariff_family === selectedFamily) || allVersions[0];
-      if (matching) {
-        setSelectedVersionId(`${matching.header.tariff_code}_${matching.header.version}`);
-        setActiveVersion(matching);
-        setValidationResult(TariffValidationEngine.validateVersion(matching));
+        // Select first matching version for default family
+        const matching =
+          allVersions.find((v) => v.header.tariff_family === selectedFamily) || allVersions[0];
+        if (matching) {
+          setSelectedVersionId(`${matching.header.tariff_code}_${matching.header.version}`);
+          setActiveVersion(matching);
+          setValidationResult(TariffValidationEngine.validateVersion(matching));
+        }
+      } catch (err) {
+        console.warn("Tariff versions load notice:", err);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     }
     loadTariffs();
   }, []);
