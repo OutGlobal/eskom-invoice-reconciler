@@ -956,7 +956,8 @@ export function SecureUploadGateway() {
           </div>
         </div>
 
-        <div
+        <label
+          htmlFor="secure-file-upload-input"
           onDragOver={(e) => {
             e.preventDefault();
             setDragActive(true);
@@ -972,16 +973,14 @@ export function SecureUploadGateway() {
               ? "border-primary bg-primary/5 scale-[1.005]"
               : "border-border/60 hover:border-border hover:bg-card/40"
           }`}
-          onClick={() => {
-            fileInputRef.current?.click();
-          }}
         >
           <input
+            id="secure-file-upload-input"
             ref={fileInputRef}
             type="file"
             multiple
             accept=".pdf,.csv,.xlsx,.xls,.xml,.log,.txt,.tsv,.json"
-            className="hidden sr-only"
+            className="sr-only"
             tabIndex={-1}
             aria-hidden="true"
             onChange={(e) => {
@@ -1001,17 +1000,12 @@ export function SecureUploadGateway() {
             Automatic end-to-end reconciliation: Upload your invoice (PDF) and AMR interval data
             (CSV/Excel) simultaneously for automated 8-stage processing with zero extra clicks.
           </p>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              fileInputRef.current?.click();
-            }}
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          <span
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow transition hover:bg-primary/90 pointer-events-none"
           >
             <FolderOpen className="w-4 h-4" />
             <span>Browse Files from Device</span>
-          </button>
+          </span>
           <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-[11px] text-muted-foreground">
             <span className="px-2 py-0.5 rounded border border-border/60 bg-muted/30">
               .pdf (Invoices)
@@ -1032,7 +1026,7 @@ export function SecureUploadGateway() {
               .json (Tariffs)
             </span>
           </div>
-        </div>
+        </label>
 
         {/* Automated End-to-End Processing Stepper (Stage 15) */}
         {(automatedPipelineRunning || automatedStage) && (

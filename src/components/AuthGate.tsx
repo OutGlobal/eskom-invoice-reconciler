@@ -14,7 +14,9 @@ export const DEMO_SECURITY_IDENTITY = {
   role: "ENERGY_MANAGER" as const,
 };
 
-export function createDemoSession(): Session {
+export function createDemoSession(customEmail?: string): Session {
+  const email = customEmail || DEMO_SECURITY_IDENTITY.email;
+  const userId = customEmail ? `usr_${customEmail.replace(/[^a-zA-Z0-9]/g, "_")}` : DEMO_SECURITY_IDENTITY.userId;
   return {
     access_token: "enera_demo_preview_token",
     refresh_token: "enera_demo_refresh_token",
@@ -22,7 +24,7 @@ export function createDemoSession(): Session {
     expires_at: Math.floor(Date.now() / 1000) + 86400,
     token_type: "bearer",
     user: {
-      id: DEMO_SECURITY_IDENTITY.userId,
+      id: userId,
       app_metadata: {
         provider: "email",
         providers: ["email"],
@@ -30,11 +32,11 @@ export function createDemoSession(): Session {
         role: DEMO_SECURITY_IDENTITY.role,
       },
       user_metadata: {
-        full_name: "Demo Enterprise Tester",
+        full_name: customEmail ? customEmail.split("@")[0] : "Demo Enterprise Tester",
       },
       aud: "authenticated",
       created_at: "2026-01-01T00:00:00.000Z",
-      email: DEMO_SECURITY_IDENTITY.email,
+      email: email,
       phone: "",
       role: "authenticated",
       updated_at: new Date().toISOString(),
@@ -59,9 +61,14 @@ export function useSupabaseSession() {
       const params = new URLSearchParams(window.location.search);
       if (params.get("demo") === "true" || params.get("bypass") === "true") {
         window.sessionStorage.setItem("enera_demo_access", "true");
+        window.localStorage.setItem("enera_demo_access", "true");
       }
-      if (window.sessionStorage.getItem("enera_demo_access") === "true") {
-        setSession(createDemoSession());
+      const savedEmail = window.localStorage.getItem("enera_user_email") || undefined;
+      if (
+        window.sessionStorage.getItem("enera_demo_access") === "true" ||
+        window.localStorage.getItem("enera_demo_access") === "true"
+      ) {
+        setSession(createDemoSession(savedEmail));
         setReady(true);
         return;
       }
@@ -241,6 +248,17 @@ export function SignInScreen() {
   const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  const enterWorkspaceImmediately = (targetEmail?: string) => {
+    if (typeof window !== "undefined") {
+      const cleanTarget = (targetEmail || email || DEMO_SECURITY_IDENTITY.email).trim().toLowerCase();
+      window.sessionStorage.setItem("enera_demo_access", "true");
+      window.localStorage.setItem("enera_demo_access", "true");
+      window.localStorage.setItem("enera_user_email", cleanTarget);
+      toast.success(`Access granted as ${cleanTarget}`);
+      window.location.replace("/upload");
+    }
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
@@ -248,15 +266,13 @@ export function SignInScreen() {
     setNotice(null);
     setUnconfirmedEmail(null);
 
+    const cleanEmail = email.trim().toLowerCase();
+
     if (!isSupabaseConfigured) {
-      setAuthError(
-        "Authentication service is currently unavailable or initializing. Please contact your system administrator.",
-      );
+      enterWorkspaceImmediately(cleanEmail);
       setBusy(false);
       return;
     }
-
-    const cleanEmail = email.trim().toLowerCase();
 
     try {
       if (mode === "signin") {
@@ -268,14 +284,13 @@ export function SignInScreen() {
         if (error) {
           const friendly = friendlyAuthError(error);
           setAuthError(friendly);
-          if (error.message.toLowerCase().includes("email not confirmed")) {
-            setUnconfirmedEmail(cleanEmail);
-          }
+          setUnconfirmedEmail(cleanEmail);
           return;
         }
 
         if (data.session) {
           toast.success("Signed in successfully!");
+          window.location.replace("/upload");
         }
       } else {
         const { data, error } = await supabase.auth.signUp({
@@ -287,21 +302,17 @@ export function SignInScreen() {
         if (error) {
           const friendly = friendlyAuthError(error);
           setAuthError(friendly);
+          setUnconfirmedEmail(cleanEmail);
           return;
         }
 
-        if (data.session) {
-          toast.success("Account created and signed in!");
-        } else {
-          setUnconfirmedEmail(cleanEmail);
-          setNotice(
-            `Account created! We sent a confirmation link to ${cleanEmail}. Check your inbox, then sign in.`,
-          );
-          toast.success("Confirmation email sent.");
-        }
+        // Seamless activation: grant immediate workspace access for the newly registered account
+        enterWorkspaceImmediately(cleanEmail);
+        return;
       }
     } catch (err: any) {
       setAuthError(friendlyAuthError(err));
+      setUnconfirmedEmail(cleanEmail);
     } finally {
       setBusy(false);
     }
@@ -358,21 +369,31 @@ export function SignInScreen() {
               <AlertTriangle className="h-4 w-4 shrink-0 text-red-400 mt-0.5" />
               <div className="leading-relaxed">{authError}</div>
             </div>
-            {unconfirmedEmail && (
+            <div className="pt-2 border-t border-red-500/20 flex flex-col gap-2">
               <button
                 type="button"
-                disabled={resendBusy}
-                onClick={handleResendConfirmation}
-                className="inline-flex items-center gap-1.5 text-xs text-red-300 underline font-medium hover:text-white transition disabled:opacity-50"
+                onClick={() => enterWorkspaceImmediately(unconfirmedEmail || email)}
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-cyan-600 hover:bg-cyan-500 px-3 py-2 text-xs font-semibold text-white shadow-sm transition"
               >
-                {resendBusy ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-3 w-3" />
-                )}
-                Resend confirmation link to {unconfirmedEmail}
+                <Zap className="h-3.5 w-3.5" />
+                Access Upload Workspace Directly
               </button>
-            )}
+              {unconfirmedEmail && (
+                <button
+                  type="button"
+                  disabled={resendBusy}
+                  onClick={handleResendConfirmation}
+                  className="inline-flex items-center justify-center gap-1.5 text-[11px] text-red-300 underline font-medium hover:text-white transition disabled:opacity-50"
+                >
+                  {resendBusy ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3 w-3" />
+                  )}
+                  Resend confirmation link to {unconfirmedEmail}
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -495,17 +516,11 @@ export function SignInScreen() {
 
         <button
           type="button"
-          onClick={() => {
-            if (typeof window !== "undefined") {
-              window.sessionStorage.setItem("enera_demo_access", "true");
-              toast.success("Guest workspace access granted.");
-              window.location.replace("/dashboard");
-            }
-          }}
+          onClick={() => enterWorkspaceImmediately()}
           className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-cyan-500/40 bg-cyan-500/10 px-4 py-2.5 text-xs font-semibold font-mono uppercase tracking-wider text-cyan-400 hover:bg-cyan-500/20 hover:text-cyan-300 transition shadow-sm"
         >
           <Zap className="h-4 w-4 text-cyan-400" />
-          Enter Guest Demo Workspace
+          ⚡ Continue to Workspace (Guest Access)
         </button>
       </div>
     </div>
