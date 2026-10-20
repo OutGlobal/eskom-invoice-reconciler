@@ -130,5 +130,90 @@ export function generateExcelDisputePackWorkbook(data: DisputePackDocumentData):
   wsAudit["!cols"] = [{ wch: 35 }, { wch: 20 }, { wch: 68 }, { wch: 24 }];
   XLSX.utils.book_append_sheet(wb, wsAudit, "Audit & SHA-256 Lineage");
 
+  // OPTIONAL MULTI-PERIOD SHEETS (for multi-month statistical workbooks)
+  if (Array.isArray(data.monthlyPeriods) && data.monthlyPeriods.length > 0) {
+    for (const p of data.monthlyPeriods) {
+      const sheetTitle = (p.sheetName || "Period").substring(0, 31);
+      const periodRows = [
+        [`ESKOM TOU BILLING DETERMINANTS & RECONCILIATION — ${p.sheetName || "MONTHLY PERIOD"}`],
+        ["Customer Name", p.customerName || data.customerInfo.customerName],
+        ["Account Number", p.accountNumber || data.customerInfo.accountNumber],
+        ["Billing Period", p.billingPeriod || `${p.billingStart} to ${p.billingEnd}`],
+        ["Tariff & Voltage", `${p.tariff || "Megaflex"} @ ${p.voltage || "33kV"}`],
+        ["Feeders", Array.isArray(p.feeders) ? p.feeders.join(", ") : "N/A"],
+        [],
+        ["1. ACTIVE ENERGY DETERMINANTS", "Peak", "Standard", "Off-Peak", "Total kWh", "Source Lineage"],
+        [
+          "Active Energy [kWh]",
+          p.activeEnergy?.peakKwh ?? 0,
+          p.activeEnergy?.standardKwh ?? 0,
+          p.activeEnergy?.offPeakKwh ?? 0,
+          p.activeEnergy?.totalKwh ?? 0,
+          p.activeEnergy?.lineage?.total || "Workbook Extraction",
+        ],
+        [],
+        ["2. REACTIVE ENERGY & EXCESS VARS", "Peak", "Standard", "Off-Peak", "Total kVarh", "Source Lineage"],
+        [
+          "Reactive Energy [kVarh]",
+          p.reactiveEnergy?.peakKvarh ?? 0,
+          p.reactiveEnergy?.standardKvarh ?? 0,
+          p.reactiveEnergy?.offPeakKvarh ?? 0,
+          p.reactiveEnergy?.totalKvarh ?? 0,
+          p.reactiveEnergy?.lineage?.total || "Workbook Extraction",
+        ],
+        [
+          "Excess Vars [kVarh]",
+          p.excessVars?.peakKvarh ?? 0,
+          p.excessVars?.standardKvarh ?? 0,
+          p.excessVars?.offPeakKvarh ?? 0,
+          p.excessVars?.totalKvarh ?? 0,
+          p.excessVars?.lineage?.total || "Workbook Extraction",
+        ],
+        [],
+        ["3. MAXIMUM DEMAND (Strict Aggregation Rule: MAX across TOU periods, NEVER the sum)", "Peak", "Standard", "Off-Peak", "Billed Maximum", "Occurrence Dates"],
+        [
+          "Max Demand [kW]",
+          p.maxDemandKw?.peakKw ?? 0,
+          p.maxDemandKw?.standardKw ?? 0,
+          p.maxDemandKw?.offpeakKw ?? 0,
+          p.maxDemandKw?.total ?? 0,
+          `Pk: ${p.maxDemandKw?.peakDate || "-"}, Std: ${p.maxDemandKw?.standardDate || "-"}`,
+        ],
+        [
+          "Max Demand [kVA]",
+          p.maxDemandKva?.peakKva ?? 0,
+          p.maxDemandKva?.standardKva ?? 0,
+          p.maxDemandKva?.offPeakKva ?? p.maxDemandKva?.offpeakKva ?? 0,
+          p.maxDemandKva?.total ?? 0,
+          `Pk: ${p.maxDemandKva?.peakDate || "-"}, Std: ${p.maxDemandKva?.standardDate || "-"}`,
+        ],
+        [],
+        ["4. CHARGE RECONSTRUCTION (ZAR)", "Rate Applied", "Billed Determinant", "Charge Amount (ZAR)"],
+        ["Peak Energy Charge", "c/kWh", p.activeEnergy?.peakKwh ?? 0, p.charges?.peakEnergy ?? 0],
+        ["Standard Energy Charge", "c/kWh", p.activeEnergy?.standardKwh ?? 0, p.charges?.standardEnergy ?? 0],
+        ["Off-Peak Energy Charge", "c/kWh", p.activeEnergy?.offPeakKwh ?? 0, p.charges?.offPeakEnergy ?? 0],
+        ["Network Demand Charge", "R/kVA", p.maxDemandKva?.total ?? 0, p.charges?.networkDemand ?? 0],
+        ["Transmission Network Charge", "R/kVA", p.maxDemandKva?.total ?? 0, p.charges?.transmissionNetwork ?? 0],
+        ["Distribution Network Capacity", "R/kVA", p.maxDemandKva?.total ?? 0, p.charges?.networkCapacity ?? 0],
+        ["Generation Capacity Charge", "R/kVA", p.maxDemandKva?.total ?? 0, p.charges?.generationCapacity ?? 0],
+        ["Ancillary Service Charge", "c/kWh", p.activeEnergy?.totalKwh ?? 0, p.charges?.ancillaryService ?? 0],
+        ["Legacy Charge", "c/kWh", p.activeEnergy?.totalKwh ?? 0, p.charges?.legacy ?? 0],
+        ["Affordability Subsidy", "c/kWh", p.activeEnergy?.totalKwh ?? 0, p.charges?.affordabilitySubsidy ?? 0],
+        ["Electrification Subsidy", "c/kWh", p.activeEnergy?.totalKwh ?? 0, p.charges?.electrificationSubsidy ?? 0],
+        ["Service & Admin Charges", "R/day", p.daysInPeriod ?? 30, (p.charges?.serviceCharge || 0) + (p.charges?.administrationCharge || 0)],
+        ["Excess Reactive Charges", "c/kVarh", p.excessVars?.totalKvarh ?? 0, p.charges?.excessReactive ?? 0],
+        ["Fixed Connection Charges", "lot", 1, p.charges?.connectionCharges ?? 0],
+        [],
+        ["SUBTOTAL (EXCL. VAT)", "", "", p.charges?.subtotalBeforeVat ?? 0],
+        ["VALUE ADDED TAX (15%)", "", "", p.charges?.vatAmount ?? 0],
+        ["TOTAL INVOICE AMOUNT DUE (ZAR)", "", "", p.charges?.totalInvoiceAmount ?? 0],
+      ];
+
+      const wsPeriod = XLSX.utils.aoa_to_sheet(periodRows);
+      wsPeriod["!cols"] = [{ wch: 35 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 35 }];
+      XLSX.utils.book_append_sheet(wb, wsPeriod, sheetTitle);
+    }
+  }
+
   return wb;
 }

@@ -98,6 +98,15 @@ export type AutomatedPipelineProgressCallback = (
   ambiguityReport?: AmbiguityReport,
 ) => void;
 
+export interface MonthlyReconciliationDetail {
+  periodName: string;
+  billingStart: string;
+  billingEnd: string;
+  extractedInvoice: any;
+  reconciliation: AuthoritativeReconciliationPayload;
+  discrepancyAnalysis: DiscrepancyAnalysisSummary;
+}
+
 /**
  * End-to-End Automated Pipeline Output Result
  */
@@ -111,8 +120,10 @@ export interface AutomatedPipelineResult {
   normalizedDeterminants?: any;
   reconciliation?: AuthoritativeReconciliationPayload;
   discrepancyAnalysis?: DiscrepancyAnalysisSummary;
+  monthlyReconciliations?: MonthlyReconciliationDetail[];
   ambiguityReport?: AmbiguityReport;
   startedAt: string;
   completedAt?: string;
   error?: string;
 }
+

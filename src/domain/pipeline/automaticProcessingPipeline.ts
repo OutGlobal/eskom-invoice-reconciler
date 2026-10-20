@@ -14,12 +14,16 @@ import { DeterministicDiagnosticsEngine } from "../discrepancy/deterministicDiag
 import { EnergyDataNormalizationEngine } from "../telemetry/energyDataNormalizationEngine";
 import { TariffStorageService } from "../tariff/tariffStorageService";
 import { ALL_PRODUCTION_TARIFF_FIXTURES, ESKOM_MEGAFLEX_2025_2026 } from "../tariff/tariffFixtures";
+import { InvoiceStorageService } from "../invoice/invoiceStorageService";
+import { ReconciliationStorageService } from "../reconciliation/reconciliationStorageService";
+import { periodToInvoiceData } from "../reconciliation/autoReconciliationRunner";
 import type {
   AutomatedPipelineInput,
   AutomatedPipelineResult,
   AutomatedPipelineProgressCallback,
   AutomatedPipelineStage,
   AmbiguityReport,
+  MonthlyReconciliationDetail,
 } from "./types";
 import type { IngestionGatewayResult } from "../ingestion/types";
 import type { AuthoritativeReconciliationInput } from "../reconciliation/reconciliationEngine";
@@ -320,6 +324,30 @@ export class AutomaticProcessingPipeline {
 
       const reconPayload = DeterministicReconciliationEngine.reconcile(reconInput);
 
+      // Save primary invoice and reconciliation run into storage
+      await InvoiceStorageService.saveInvoiceRecord({
+        id: reconInput.invoice_id,
+        invoiceNumber: reconInput.invoice_number,
+        accountNumber: extractedInvoice.accountNumber,
+        customerName: extractedInvoice.customerName,
+        billingPeriod: extractedInvoice.billingPeriod,
+        billingStart: extractedInvoice.billingStart,
+        billingEnd: extractedInvoice.billingEnd,
+        totalKwh: extractedInvoice.totalKwh,
+        maxDemandKva: extractedInvoice.billedMaximumDemand,
+        totalAmount: extractedInvoice.totalInvoice,
+        tariffName: extractedInvoice.tariff,
+        sourceFileName: input.invoiceFile.name,
+        parentBatchRunId: runId,
+        organisation_id: tenantId,
+      });
+
+      await ReconciliationStorageService.saveRun(reconPayload, {
+        userId,
+        organisationId: tenantId,
+        role: "ADMIN",
+      });
+
       // =========================================================================
       // STAGE 7: ANALYSING
       // =========================================================================
@@ -332,6 +360,121 @@ export class AutomaticProcessingPipeline {
       };
 
       const discrepancySummary = DeterministicDiagnosticsEngine.diagnose(diagnosticInput);
+
+      // Multi-Period Processing: Reconcile, diagnose, and persist each monthly sheet if present
+      const monthlyReconciliations: MonthlyReconciliationDetail[] = [];
+      if (Array.isArray(extractedInvoice.monthlyPeriods) && extractedInvoice.monthlyPeriods.length > 0) {
+        for (const period of extractedInvoice.monthlyPeriods) {
+          const pInvoice = periodToInvoiceData(period);
+          const pStart = period.billingStart ? new Date(period.billingStart).getTime() : 0;
+          const pEnd = period.billingEnd ? new Date(period.billingEnd).getTime() + 86400000 : Infinity;
+
+          const pIntervals = canonicalIntervals.filter((r: any) => {
+            const t = r.ts ? new Date(r.ts).getTime() : 0;
+            return t >= pStart && t <= pEnd;
+          });
+          const activePIntervals = pIntervals.length > 0 ? pIntervals : canonicalIntervals;
+
+          const pPeak = activePIntervals.reduce((s: number, r: any) => s + (r.peak_kwh || 0), 0);
+          const pStd = activePIntervals.reduce((s: number, r: any) => s + (r.standard_kwh || 0), 0);
+          const pOff = activePIntervals.reduce((s: number, r: any) => s + (r.off_peak_kwh || 0), 0);
+          const pTot = activePIntervals.reduce((s: number, r: any) => s + (r.kwh || 0), 0);
+          const pMaxKva = activePIntervals.reduce((m: number, r: any) => Math.max(m, r.kva || 0), 0);
+          const pTotKvarh = activePIntervals.reduce((s: number, r: any) => s + (r.kvarh || 0), 0);
+          const pPf =
+            activePIntervals.length > 0
+              ? activePIntervals.reduce((s: number, r: any) => s + (r.power_factor || 1), 0) /
+                activePIntervals.length
+              : 0.98;
+
+          const pReconInput: AuthoritativeReconciliationInput = {
+            tenant_id: tenantId,
+            invoice_id: pInvoice.invoiceNumber || `INV-${runId}-${period.sheetName}`,
+            invoice_number: pInvoice.invoiceNumber || `INV-${runId}-${period.sheetName}`,
+            account_number: pInvoice.accountNumber || extractedInvoice.accountNumber || "",
+            billing_start: period.billingStart,
+            billing_end: period.billingEnd,
+            tariff_version: tariffVersion,
+
+            billed_peak_kwh: new Decimal(pInvoice.peakKWh?.toString() || "0"),
+            billed_standard_kwh: new Decimal(pInvoice.standardKWh?.toString() || "0"),
+            billed_off_peak_kwh: new Decimal(pInvoice.offPeakKWh?.toString() || "0"),
+            billed_total_kwh: new Decimal(pInvoice.totalKWh?.toString() || "0"),
+            billed_maximum_demand_kva: new Decimal(pInvoice.maxDemandKVA?.toString() || "0"),
+            billed_ratcheted_demand_kva: new Decimal(pInvoice.maxDemandKVA?.toString() || "0"),
+            billed_reactive_energy_kvarh: new Decimal(pInvoice.reactive?.toString() || "0"),
+            billed_energy_charges_zar: new Decimal(
+              (
+                (pInvoice.peakEnergyCharge || 0) +
+                (pInvoice.standardEnergyCharge || 0) +
+                (pInvoice.offPeakEnergyCharge || 0)
+              ).toString(),
+            ),
+            billed_demand_charges_zar: new Decimal(pInvoice.networkDemandCharge?.toString() || "0"),
+            billed_network_charges_zar: new Decimal(
+              (
+                (pInvoice.transmissionNetworkCharge || 0) + (pInvoice.networkCapacityCharge || 0)
+              ).toString(),
+            ),
+            billed_service_charges_zar: new Decimal(pInvoice.serviceCharge?.toString() || "0"),
+            billed_ancillary_charges_zar: new Decimal(pInvoice.ancillary?.toString() || "0"),
+            billed_vat_zar: new Decimal(pInvoice.vat?.toString() || "0"),
+            billed_total_invoice_zar: new Decimal(pInvoice.totalInclVat?.toString() || "0"),
+
+            calc_peak_kwh: new Decimal(pPeak.toString()),
+            calc_standard_kwh: new Decimal(pStd.toString()),
+            calc_off_peak_kwh: new Decimal(pOff.toString()),
+            calc_total_kwh: new Decimal(pTot.toString()),
+            calc_maximum_demand_kva: new Decimal(pMaxKva.toString()),
+            calc_reactive_energy_kvarh: new Decimal(pTotKvarh.toString()),
+            calc_power_factor: new Decimal(pPf.toString()),
+          };
+
+          const pReconPayload = DeterministicReconciliationEngine.reconcile(pReconInput);
+          const pDiag = DeterministicDiagnosticsEngine.diagnose({
+            reconciliationRun: pReconPayload,
+            telemetryRecords: activePIntervals,
+            extractedInvoice: pInvoice,
+          });
+
+          // Persist child period invoice and reconciliation record
+          await InvoiceStorageService.saveInvoiceRecord({
+            id: pInvoice.invoiceNumber,
+            invoiceNumber: pInvoice.invoiceNumber,
+            accountNumber: pInvoice.accountNumber,
+            customerName: pInvoice.customerName,
+            billingPeriod: pInvoice.billingPeriod,
+            billingStart: pInvoice.billingPeriodStart,
+            billingEnd: pInvoice.billingPeriodEnd,
+            totalKwh: pInvoice.totalKWh,
+            peakKwh: pInvoice.peakKWh,
+            standardKwh: pInvoice.standardKWh,
+            offPeakKwh: pInvoice.offPeakKWh,
+            maxDemandKva: pInvoice.maxDemandKVA,
+            totalAmount: pInvoice.totalInclVat,
+            tariffName: pInvoice.tariffName,
+            sourceFileName: input.invoiceFile.name,
+            sheetName: period.sheetName,
+            parentBatchRunId: runId,
+            organisation_id: tenantId,
+          });
+
+          await ReconciliationStorageService.saveRun(pReconPayload, {
+            userId,
+            organisationId: tenantId,
+            role: "ADMIN",
+          });
+
+          monthlyReconciliations.push({
+            periodName: period.sheetName,
+            billingStart: period.billingStart,
+            billingEnd: period.billingEnd,
+            extractedInvoice: pInvoice,
+            reconciliation: pReconPayload,
+            discrepancyAnalysis: pDiag,
+          });
+        }
+      }
 
       // =========================================================================
       // STAGE 8: COMPLETE
@@ -348,6 +491,7 @@ export class AutomaticProcessingPipeline {
         normalizedDeterminants: normalizedSummary,
         reconciliation: reconPayload,
         discrepancyAnalysis: discrepancySummary,
+        monthlyReconciliations: monthlyReconciliations.length > 0 ? monthlyReconciliations : undefined,
         startedAt,
         completedAt: new Date().toISOString(),
       };

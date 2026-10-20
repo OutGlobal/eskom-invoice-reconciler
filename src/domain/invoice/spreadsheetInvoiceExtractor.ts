@@ -242,13 +242,14 @@ export class SpreadsheetInvoiceExtractor {
         const wb = XLSX.read(contentOrBuffer, { type: "buffer", cellDates: false });
         const isTouWorkbook = wb.SheetNames.some((sheetName) => {
           const sheet = wb.Sheets[sheetName];
-          const sample: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, sheetRows: 30 });
+          const sample: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, sheetRows: 100 });
           const text = sample.map((r) => r.join(" ")).join("\n").toLowerCase();
           return (
-            text.includes("statistical tou report") ||
+            text.includes("statistical tou") ||
             text.includes("active energy [kwh]") ||
-            text.includes("time of use report") ||
-            text.includes("excess vars [kvarh]")
+            text.includes("active energy") ||
+            text.includes("time of use") ||
+            text.includes("excess vars")
           );
         });
 
@@ -705,23 +706,81 @@ export class SpreadsheetInvoiceExtractor {
 
         const parseTableBlock = (headerPattern: RegExp) => {
           if (row.some((cell) => headerPattern.test(String(cell)))) {
-            const dataRow = rows[r + 2] || [];
-            const dateRow = rows[r + 3] || [];
-            const rowIdx = r + 3; // 1-based Excel row
+            // Find column positions of Peak, Standard, Off-Peak, Total
+            let colPeak = -1;
+            let colStd = -1;
+            let colOffPeak = -1;
+            let colTotal = -1;
+
+            const scanForHeaders = (hRow: any[]) => {
+              if (!hRow) return;
+              for (let c = 0; c < hRow.length; c++) {
+                const s = String(hRow[c] || "").trim().toLowerCase();
+                if (/^peak$/i.test(s) && colPeak === -1) colPeak = c;
+                else if (/^(standard|std)$/i.test(s) && colStd === -1) colStd = c;
+                else if (/^off[- ]?peak$/i.test(s) && colOffPeak === -1) colOffPeak = c;
+                else if (/^total(?: [a-z0-9]+)?$/i.test(s) && colTotal === -1) colTotal = c;
+              }
+            };
+
+            scanForHeaders(row);
+            if (colPeak === -1 && rows[r + 1]) scanForHeaders(rows[r + 1]);
+
+            // Fall back to standard reference workbook column layout if not explicitly labeled
+            if (colPeak === -1) colPeak = 2;
+            if (colStd === -1) colStd = 3;
+            if (colOffPeak === -1) colOffPeak = 4;
+            if (colTotal === -1) colTotal = 5;
+
+            // Search next 4 rows for numeric data in the identified columns
+            let dataRow: any[] = [];
+            let dateRow: any[] = [];
+            let rowOffset = 2;
+            for (let offset = 1; offset <= 4; offset++) {
+              const candidate = rows[r + offset];
+              if (!candidate) continue;
+              const hasNumeric = [colPeak, colStd, colOffPeak, colTotal].some((c) => {
+                if (c < 0 || c >= candidate.length) return false;
+                const n = parseCleanNumber(candidate[c]);
+                return n !== null && n > 0;
+              });
+              if (hasNumeric) {
+                dataRow = candidate;
+                dateRow = rows[r + offset + 1] || [];
+                rowOffset = offset;
+                break;
+              }
+            }
+
+            if (!dataRow.length) {
+              dataRow = rows[r + 2] || [];
+              dateRow = rows[r + 3] || [];
+            }
+
+            const rowIdx = r + rowOffset + 1; // 1-based Excel row
+            const colToLetter = (c: number) => {
+              if (c < 26) return String.fromCharCode(65 + c);
+              return "A" + String.fromCharCode(65 + (c - 26));
+            };
+
+            const peakVal = parseCleanNumber(dataRow[colPeak]) ?? 0;
+            const stdVal = parseCleanNumber(dataRow[colStd]) ?? 0;
+            const offPeakVal = parseCleanNumber(dataRow[colOffPeak]) ?? 0;
+            const totalVal = parseCleanNumber(dataRow[colTotal]) ?? (peakVal + stdVal + offPeakVal);
 
             return {
-              peak: parseCleanNumber(dataRow[2]) ?? 0,
-              standard: parseCleanNumber(dataRow[3]) ?? 0,
-              offpeak: parseCleanNumber(dataRow[4]) ?? 0,
-              total: parseCleanNumber(dataRow[5]) ?? 0,
-              peakDate: parseTouDateTime(dateRow[2]),
-              standardDate: parseTouDateTime(dateRow[3]),
-              offpeakDate: parseTouDateTime(dateRow[4]),
+              peak: peakVal,
+              standard: stdVal,
+              offpeak: offPeakVal,
+              total: totalVal,
+              peakDate: parseTouDateTime(dateRow[colPeak]),
+              standardDate: parseTouDateTime(dateRow[colStd]),
+              offpeakDate: parseTouDateTime(dateRow[colOffPeak]),
               lineage: {
-                peak: `${sheetName}!C${rowIdx}`,
-                standard: `${sheetName}!D${rowIdx}`,
-                offpeak: `${sheetName}!E${rowIdx}`,
-                total: `${sheetName}!F${rowIdx}`,
+                peak: `${sheetName}!${colToLetter(colPeak)}${rowIdx}`,
+                standard: `${sheetName}!${colToLetter(colStd)}${rowIdx}`,
+                offpeak: `${sheetName}!${colToLetter(colOffPeak)}${rowIdx}`,
+                total: `${sheetName}!${colToLetter(colTotal)}${rowIdx}`,
               },
             };
           }

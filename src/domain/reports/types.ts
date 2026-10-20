@@ -256,4 +256,7 @@ export interface DisputePackDocumentData {
     approvalDate?: string;
     comments?: string;
   };
+
+  // 30. Optional Multi-Period Breakdown for Statistical Workbooks
+  monthlyPeriods?: any[];
 }
