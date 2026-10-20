@@ -786,7 +786,11 @@ export class SecureIngestionGateway {
       });
 
       // 4. Persist extracted invoice to invoice_records (Stage 8 Canonical Pipeline)
-      if (extractRes.extractedFields && extractRes.documentType === "INVOICE_PDF") {
+      if (
+        extractRes.extractedFields &&
+        (extractRes.documentType === "INVOICE_PDF" ||
+          (extractRes.documentType as string).includes("INVOICE"))
+      ) {
         const fields = extractRes.extractedFields;
         if (!fields.accountNumber) {
           fields.accountNumber = `ACC-${documentId.substring(0, 8)}`;

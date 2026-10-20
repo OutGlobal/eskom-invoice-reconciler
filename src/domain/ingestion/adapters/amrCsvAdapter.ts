@@ -3,6 +3,7 @@
  */
 
 import { AmrIntervalIngestionEngine } from "../../telemetry/amrIntervalIngestionEngine";
+import { SpreadsheetInvoiceExtractor } from "../../invoice/spreadsheetInvoiceExtractor";
 import type { AdapterExtractionResult, ILayoutAdapter } from "./baseAdapter";
 import type { IngestionErrorRecord } from "../types";
 
@@ -22,11 +23,33 @@ export class AmrCsvAdapter implements ILayoutAdapter {
     const ambiguityReasons: string[] = [];
 
     try {
+      // 1. Proactive Invoice / Billing Summary check
+      if (SpreadsheetInvoiceExtractor.isLikelyBillingSummary(file.name, bytes)) {
+        const invoiceRes = await SpreadsheetInvoiceExtractor.extract(file.name, bytes, jobId);
+        if (invoiceRes.success && invoiceRes.extractedFields) {
+          return invoiceRes;
+        }
+      }
+
+      // 2. Interval Stream Telemetry processing
       const res = AmrIntervalIngestionEngine.processIntervalStream(file.name, bytes, {
         sourceFileId: jobId,
       });
 
       if (!res.success || res.errors.length > 0) {
+        // 3. Fallback: Check if this CSV file is a billing summary before failing
+        const fallbackInvoice = await SpreadsheetInvoiceExtractor.extract(file.name, bytes, jobId);
+        if (
+          fallbackInvoice.success &&
+          fallbackInvoice.extractedFields &&
+          (fallbackInvoice.extractedFields.accountNumber ||
+            fallbackInvoice.extractedFields.totalInvoice > 0 ||
+            (fallbackInvoice.extractedFields.lineItems &&
+              fallbackInvoice.extractedFields.lineItems.length > 0))
+        ) {
+          return fallbackInvoice;
+        }
+
         for (const err of res.errors) {
           errors.push({
             id: `ERR-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,

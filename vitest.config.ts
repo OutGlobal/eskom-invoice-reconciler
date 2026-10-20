@@ -103,6 +103,7 @@ export default defineConfig({
       "src/lib/__tests__/reconciliation_auditability_and_versioning.test.ts",
       "src/lib/__tests__/variance_status_and_tolerance_model.test.ts",
       "src/lib/__tests__/reconciliation_exceptions_and_status.test.ts",
+      "src/lib/__tests__/multi_format_ingestion.test.ts",
     ],
     testTimeout: 60000,
     fileParallelism: false,

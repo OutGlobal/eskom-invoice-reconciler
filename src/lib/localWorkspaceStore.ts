@@ -345,4 +345,21 @@ export class LocalWorkspaceStore {
   static async get<T>(key: string): Promise<T | null> {
     return (getMemoryStore("key_value").get(key) as T) ?? null;
   }
+
+  static async clearAll(): Promise<void> {
+    memoryFallback.clear();
+    if (available()) {
+      try {
+        const db = await openDb();
+        const tx = db.transaction([UPLOADS, CUSTOMERS, DATASETS, TARIFFS, PAGES], "readwrite");
+        tx.objectStore(UPLOADS).clear();
+        tx.objectStore(CUSTOMERS).clear();
+        tx.objectStore(DATASETS).clear();
+        tx.objectStore(TARIFFS).clear();
+        tx.objectStore(PAGES).clear();
+      } catch {
+        // Ignore fallback
+      }
+    }
+  }
 }

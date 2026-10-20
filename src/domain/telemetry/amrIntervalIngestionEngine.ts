@@ -121,7 +121,9 @@ export class AmrIntervalIngestionEngine {
     const hasEnergyFields =
       Boolean(detectedHeaders.activePowerColumn) ||
       Boolean(detectedHeaders.activeEnergyColumn) ||
-      Boolean(detectedHeaders.cumulativeRegisterColumn);
+      Boolean(detectedHeaders.apparentPowerColumn) ||
+      Boolean(detectedHeaders.cumulativeRegisterColumn) ||
+      Boolean(detectedHeaders.reactiveEnergyColumn);
 
     if (!hasEnergyFields) {
       errors.push(
@@ -324,6 +326,13 @@ export class AmrIntervalIngestionEngine {
             activeEnergyKwh *= 1000;
           }
           activePowerKw = activeEnergyKwh * (60 / detectedDurationMinutes);
+        } else if (current.rawKva !== undefined && !isNaN(current.rawKva)) {
+          const pf =
+            current.rawPf !== undefined && !isNaN(current.rawPf) && current.rawPf > 0
+              ? current.rawPf
+              : 0.96;
+          activePowerKw = current.rawKva * pf;
+          activeEnergyKwh = activePowerKw * (detectedDurationMinutes / 60);
         }
       }
 
@@ -821,8 +830,17 @@ export class AmrIntervalIngestionEngine {
               rowStr.includes("power") ||
               rowStr.includes("energy") ||
               rowStr.includes("meter") ||
-              rowStr.includes("dial");
-            return hasTime && hasMetric;
+              rowStr.includes("dial") ||
+              rowStr.includes("consumption") ||
+              rowStr.includes("usage") ||
+              rowStr.includes("reading") ||
+              rowStr.includes("unit") ||
+              rowStr.includes("demand") ||
+              rowStr.includes("import") ||
+              rowStr.includes("value") ||
+              rowStr.includes("channel") ||
+              rowStr.includes("qty");
+            return hasTime && (hasMetric || row.length >= 2);
           });
 
           if (hasTelemetry) {
@@ -861,7 +879,7 @@ export class AmrIntervalIngestionEngine {
         let headerRowIndex = 0;
         const preambleLines: string[] = [];
 
-        for (let i = 0; i < Math.min(25, rawMatrix.length); i++) {
+        for (let i = 0; i < Math.min(50, rawMatrix.length); i++) {
           const rowStrings = rawMatrix[i].map((c) => String(c).trim().toLowerCase());
           const hasTime = rowStrings.some(
             (c) => c.includes("date") || c.includes("time") || c.includes("timestamp"),
@@ -875,10 +893,19 @@ export class AmrIntervalIngestionEngine {
               c.includes("power") ||
               c.includes("energy") ||
               c.includes("meter") ||
-              c.includes("dial"),
+              c.includes("dial") ||
+              c.includes("consumption") ||
+              c.includes("usage") ||
+              c.includes("reading") ||
+              c.includes("unit") ||
+              c.includes("demand") ||
+              c.includes("import") ||
+              c.includes("value") ||
+              c.includes("channel") ||
+              c.includes("qty"),
           );
 
-          if (hasTime && hasMetric) {
+          if (hasTime && (hasMetric || rowStrings.length >= 2)) {
             headerRowIndex = i;
             break;
           }
@@ -984,7 +1011,7 @@ export class AmrIntervalIngestionEngine {
     let headerRowIndex = 0;
     const preambleLines: string[] = [];
 
-    for (let i = 0; i < Math.min(25, allLines.length); i++) {
+    for (let i = 0; i < Math.min(50, allLines.length); i++) {
       const lower = allLines[i].toLowerCase();
       const hasTime =
         lower.includes("date") ||
@@ -1000,7 +1027,16 @@ export class AmrIntervalIngestionEngine {
         lower.includes("energy") ||
         lower.includes("meter") ||
         lower.includes("cumulative") ||
-        lower.includes("dial");
+        lower.includes("dial") ||
+        lower.includes("consumption") ||
+        lower.includes("usage") ||
+        lower.includes("reading") ||
+        lower.includes("unit") ||
+        lower.includes("demand") ||
+        lower.includes("import") ||
+        lower.includes("value") ||
+        lower.includes("channel") ||
+        lower.includes("qty");
 
       if (hasTime && hasMetric) {
         headerRowIndex = i;
@@ -1145,7 +1181,7 @@ export class AmrIntervalIngestionEngine {
     ]);
 
     // 4. Active Power (kW Demand / MW Demand)
-    const activePowerColumn = findCol([
+    let activePowerColumn = findCol([
       "active power (kw)",
       "active power (mw)",
       "active power import (kw)",
@@ -1159,10 +1195,20 @@ export class AmrIntervalIngestionEngine {
       "demand kw",
       "kw",
       "mw",
+      "total active",
+      "active import",
+      "demand",
+      "power",
+      "load",
+      "kw load",
+      "power (kw)",
+      "kw (import)",
+      "channel 1 (kw)",
+      "ch1 (kw)",
     ]);
 
     // 5. Active Energy (kWh / MWh)
-    const activeEnergyColumn = findCol([
+    let activeEnergyColumn = findCol([
       "active energy (kwh)",
       "active energy",
       "active_power_kwh",
@@ -1175,10 +1221,34 @@ export class AmrIntervalIngestionEngine {
       "kwh import",
       "kwh",
       "mwh",
+      "consumption (kwh)",
+      "consumption kwh",
+      "energy kwh",
+      "total kwh",
+      "kwh total",
+      "consumption",
+      "usage",
+      "usage (kwh)",
+      "units",
+      "units (kwh)",
+      "total consumption",
+      "import (kwh)",
+      "import energy",
+      "active consumption",
+      "channel 1",
+      "channel 1 (kwh)",
+      "ch 1",
+      "ch1",
+      "reading",
+      "value",
+      "data",
+      "quantity",
+      "qty",
+      "val",
     ]);
 
     // 6. Reactive Energy / Power (kVAR / kVARh / MVAR)
-    const reactiveEnergyColumn = findCol([
+    let reactiveEnergyColumn = findCol([
       "reactive power (kvar)",
       "reactive power (mvar)",
       "reactive energy (kvarh)",
@@ -1196,7 +1266,7 @@ export class AmrIntervalIngestionEngine {
     ]);
 
     // 7. Apparent Power (kVA Demand)
-    const apparentPowerColumn = findCol([
+    let apparentPowerColumn = findCol([
       "apparent power (kva)",
       "apparent power",
       "apparent_power_kva",
@@ -1206,6 +1276,9 @@ export class AmrIntervalIngestionEngine {
       "kva total",
       "kva imp",
       "kva",
+      "mva",
+      "apparent",
+      "total kva",
     ]);
 
     // 8. Power Factor
@@ -1225,7 +1298,57 @@ export class AmrIntervalIngestionEngine {
       "dial reading",
       "cumulative",
       "index",
+      "meter reading",
+      "dial",
+      "register",
+      "meter index",
+      "closing reading",
+      "opening reading",
+      "counter",
     ]);
+
+    // 10. Fallback non-time data column detection:
+    // If no energy or power column was identified by standard names, but we have a time/date column,
+    // look for any non-metadata column that can serve as the interval active energy channel
+    if (
+      !activePowerColumn &&
+      !activeEnergyColumn &&
+      !apparentPowerColumn &&
+      !cumulativeRegisterColumn &&
+      (timestampColumn || (dateColumn && timeColumn))
+    ) {
+      const ignoredTokens = [
+        "date",
+        "time",
+        "timestamp",
+        "meter",
+        "serial",
+        "msn",
+        "id",
+        "site",
+        "status",
+        "flag",
+        "quality",
+        "valid",
+        "remark",
+        "note",
+      ];
+      for (const h of headers) {
+        const clean = h.toLowerCase().trim();
+        const isTimeOrMeter =
+          clean === timestampColumn?.toLowerCase() ||
+          clean === dateColumn?.toLowerCase() ||
+          clean === timeColumn?.toLowerCase() ||
+          clean === meterColumn?.toLowerCase() ||
+          ignoredTokens.some(
+            (t) => clean === t || clean.startsWith(t + "_") || clean.endsWith("_" + t),
+          );
+        if (!isTimeOrMeter && clean.length > 0) {
+          activeEnergyColumn = h;
+          break;
+        }
+      }
+    }
 
     return {
       rawHeaders,
