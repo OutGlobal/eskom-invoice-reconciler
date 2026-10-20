@@ -556,6 +556,64 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   return { invoice, chargeLines, lineItems, rawText: fullText.slice(0, 20000) };
 }
 
+/**
+ * Detects whether extracted text is garbled, scrambled, or corrupt font mappings
+ * (commonly produced by multifunction copiers/scanners like Konica Minolta bizhub).
+ */
+export function isGarbledOrScrambledText(text: string): boolean {
+  if (!text || typeof text !== "string") return true;
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return true;
+  const sample = trimmed.slice(0, 10000);
+  const totalChars = sample.length;
+  if (totalChars < 10) return false;
+
+  // 1. Unmapped / Replacement / Private Use Area characters
+  const privateOrReplacementCount = (sample.match(/[\uE000-\uF8FF\uFFF0-\uFFFF\uFFFD\u0000-\u0008\u000B\u000C\u000E-\u001F]/g) || []).length;
+  if (privateOrReplacementCount / totalChars > 0.05) {
+    return true;
+  }
+
+  // 2. High non-ASCII count (> 15% non-printable/extended chars in English invoice)
+  const nonAsciiCount = (sample.match(/[^\x20-\x7E\r\n\t]/g) || []).length;
+  if (nonAsciiCount / totalChars > 0.15) {
+    return true;
+  }
+
+  // 3. Domain keyword presence check for utility invoices
+  const domainKeywords = /\b(eskom|account|invoice|bill|tax|vat|total|energy|kwh|demand|kva|kvarh|charges|tariff|period|meter|subtotal|due|rands?|feeder|megaflex|miniflex|reading|impala)\b/i;
+  const hasDomainKeyword = domainKeywords.test(sample);
+
+  // 4. Character / Symbol soup detection (e.g. bEJ*eG ? / # ~ $ ... or corrupt printer fonts)
+  const nonSpaceChars = sample.replace(/\s+/g, "");
+  if (nonSpaceChars.length >= 8 && !hasDomainKeyword) {
+    const symbolCount = (nonSpaceChars.match(/[^a-zA-Z0-9]/g) || []).length;
+    if (symbolCount / nonSpaceChars.length > 0.35) {
+      return true;
+    }
+  }
+
+  // If text has significant length (> 30 chars) but zero recognizable utility domain words,
+  // check character distribution and punctuation coherence
+  if (totalChars > 30 && !hasDomainKeyword) {
+    const words = sample.split(/\s+/).filter((w) => w.length >= 2);
+    if (words.length >= 3) {
+      // High proportion of words containing symbols or numbers mixed in unusual patterns
+      const symbolOrCorruptWords = words.filter((w) => /[!@#$%^&*()_+=~`[\]{}|\\:;"'<>,.?]/.test(w)).length;
+      if (symbolOrCorruptWords / words.length > 0.3) {
+        return true;
+      }
+      // Check if words lack standard vowel patterns (English/Afrikaans words have vowels: a, e, i, o, u, y)
+      const vowellessWords = words.filter((w) => !/[aeiouyAEIOUY0-9]/.test(w)).length;
+      if (vowellessWords / words.length > 0.4) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 // 5. Document Type Detection & OCR Pipeline
 async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocumentText> {
   if (isImageInvoice(file)) {
@@ -650,8 +708,8 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
   const embeddedText = embeddedLines.map((l) => l.text).join("\n");
 
   // EMBEDDED TEXT FIRST POLICY:
-  // If the PDF has embedded digital text, prefer it directly.
-  if (embeddedLines.length >= 3) {
+  // If the PDF has authentic embedded digital text (not garbled scanner fonts), prefer it directly.
+  if (embeddedLines.length >= 3 && !isGarbledOrScrambledText(embeddedText)) {
     return {
       documentType: "embedded-text",
       lines: embeddedLines,

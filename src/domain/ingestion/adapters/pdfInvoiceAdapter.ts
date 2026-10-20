@@ -7,7 +7,7 @@
  * - Extracts opening/closing meter readings, detailed line items, and unbundled charges
  */
 
-import { extractInvoiceFromPdf } from "@/lib/pdfInvoice";
+import { extractInvoiceFromPdf, isGarbledOrScrambledText } from "@/lib/pdfInvoice";
 import { LayeredExtractor } from "@/domain/invoice/layeredExtractor";
 import type { AdapterExtractionResult, ILayoutAdapter } from "./baseAdapter";
 import type { ExtractedInvoiceFields } from "../types";
@@ -40,8 +40,15 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
       // Fallback layout resolution for scanned or non-standard PDF formats
     }
 
+    const isCustomerNameCorrupt = Boolean(pdfRes?.invoice?.customerName && isGarbledOrScrambledText(pdfRes.invoice.customerName));
+    const isAccountCorrupt = Boolean(pdfRes?.invoice?.accountNumber && isGarbledOrScrambledText(pdfRes.invoice.accountNumber));
+    const isRawTextCorrupt = Boolean(pdfRes?.rawText && isGarbledOrScrambledText(pdfRes.rawText));
+
     const hasInitialFields = Boolean(
       pdfRes?.invoice &&
+      !isCustomerNameCorrupt &&
+      !isAccountCorrupt &&
+      !isRawTextCorrupt &&
       ((pdfRes.invoice.accountNumber && String(pdfRes.invoice.accountNumber).trim().length > 0) ||
         (pdfRes.invoice.customerName && String(pdfRes.invoice.customerName).trim().length > 0) ||
         (pdfRes.invoice.invoiceTotal && Number(pdfRes.invoice.invoiceTotal) > 0) ||

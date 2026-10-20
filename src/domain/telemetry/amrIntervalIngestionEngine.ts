@@ -815,6 +815,8 @@ export class AmrIntervalIngestionEngine {
         let targetSheetName = wb.SheetNames[0];
         let rawMatrix: any[][] = [];
 
+        const telemetrySheets: Array<{ name: string; matrix: any[][] }> = [];
+
         for (const sName of wb.SheetNames) {
           const sheet = wb.Sheets[sName];
           const matrix: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
@@ -844,9 +846,32 @@ export class AmrIntervalIngestionEngine {
           });
 
           if (hasTelemetry) {
-            targetSheetName = sName;
-            rawMatrix = matrix;
-            break;
+            telemetrySheets.push({ name: sName, matrix });
+          }
+        }
+
+        if (telemetrySheets.length > 0) {
+          targetSheetName = telemetrySheets.map((s) => s.name).join(", ");
+          rawMatrix = [...telemetrySheets[0].matrix];
+
+          // If multiple sheets contain interval telemetry (e.g. TrendExport multi-month workbook),
+          // concatenate their interval data rows sequentially
+          for (let sIdx = 1; sIdx < telemetrySheets.length; sIdx++) {
+            const otherMatrix = telemetrySheets[sIdx].matrix;
+            // Locate the header row in the other sheet to skip it
+            let otherHdrIdx = 0;
+            for (let r = 0; r < Math.min(10, otherMatrix.length); r++) {
+              const rStr = otherMatrix[r].map((c) => String(c).toLowerCase()).join(" ");
+              if (rStr.includes("date") || rStr.includes("time")) {
+                otherHdrIdx = r;
+                break;
+              }
+            }
+            for (let r = otherHdrIdx + 1; r < otherMatrix.length; r++) {
+              if (otherMatrix[r] && otherMatrix[r].some((c: any) => c !== "")) {
+                rawMatrix.push(otherMatrix[r]);
+              }
+            }
           }
         }
 

@@ -97,6 +97,7 @@ export interface ExtractedInvoiceFields {
   missingFields?: string[];
   customerId?: string;
   siteId?: string;
+  monthlyPeriods?: any[];
 }
 
 export interface ExtractionPageInfo {

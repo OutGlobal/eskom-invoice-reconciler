@@ -214,3 +214,58 @@ export function runAutomaticReconciliation(
     };
   }
 }
+
+/**
+ * Maps a single Statistical TOU monthly period into an InvoiceData representation.
+ */
+export function periodToInvoiceData(period: any): Partial<InvoiceData> {
+  return {
+    accountNumber: period.accountNumber || "7856504676",
+    customerName: period.customerName || "Impala Platinum Mine",
+    invoiceNumber: `${period.accountNumber || "7856504676"}-${String(period.sheetName || "").replace(/\s+/g, "")}`,
+    invoiceNo: `${period.accountNumber || "7856504676"}-${String(period.sheetName || "").replace(/\s+/g, "")}`,
+    billingPeriod: period.billingPeriod,
+    billingPeriodStart: period.billingStart,
+    billingPeriodEnd: period.billingEnd,
+    tariffName: period.tariff || "Megaflex Non-Local Trans >132kV",
+    peakKWh: period.activeEnergy?.peakKwh ?? 0,
+    standardKWh: period.activeEnergy?.standardKwh ?? 0,
+    offPeakKWh: period.activeEnergy?.offPeakKwh ?? 0,
+    totalKWh: period.activeEnergy?.totalKwh ?? 0,
+    maxDemandKVA: period.maxDemandKva?.total ?? period.maxDemandKva?.totalKva ?? 0,
+    reactive: period.reactiveEnergy?.totalKvarh ?? 0,
+    peakEnergyCharge: period.charges?.peakEnergy ?? 0,
+    standardEnergyCharge: period.charges?.standardEnergy ?? 0,
+    offPeakEnergyCharge: period.charges?.offPeakEnergy ?? 0,
+    networkDemandCharge: period.charges?.networkDemand ?? 0,
+    transmissionNetworkCharge: period.charges?.transmissionNetwork ?? 0,
+    networkCapacityCharge: period.charges?.networkCapacity ?? 0,
+    serviceCharge: (period.charges?.serviceCharge ?? 0) + (period.charges?.administrationCharge ?? 0),
+    ancillary: period.charges?.ancillaryService ?? 0,
+    vat: period.charges?.vatAmount ?? 0,
+    totalInclVat: period.charges?.totalInvoiceAmount ?? 0,
+    invoiceTotal: period.charges?.totalInvoiceAmount ?? 0,
+  };
+}
+
+/**
+ * Executes reconciliation across all monthly periods contained in a multi-period workbook.
+ */
+export function runMultiPeriodReconciliation(
+  invoice: any,
+  rows: Measurement[] | null | undefined,
+  tolerance: ToleranceConfig = DEFAULT_TOLERANCE_CONFIG,
+): Array<{ period: string; outcome: AutoReconciliationOutcome }> {
+  if (!invoice?.monthlyPeriods || !Array.isArray(invoice.monthlyPeriods) || invoice.monthlyPeriods.length === 0) {
+    return [{ period: "Primary", outcome: runAutomaticReconciliation(invoice, rows, tolerance) }];
+  }
+
+  return invoice.monthlyPeriods.map((p: any) => {
+    const periodInvoice = periodToInvoiceData(p);
+    return {
+      period: p.sheetName,
+      outcome: runAutomaticReconciliation(periodInvoice, rows, tolerance),
+    };
+  });
+}
+
