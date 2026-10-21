@@ -35,7 +35,7 @@ import type { DocumentRegistryRecord } from "@/domain/intelligence/types";
 import type { UploadRecord } from "@/domain/upload/types";
 import { PersistentDocumentIntelligenceService } from "@/domain/intelligence/persistentDocumentIntelligenceService";
 
-interface DocumentProcessingViewProps {
+export interface DocumentProcessingViewProps {
   documents?: (
     Partial<DocumentRegistryRecord> | Partial<UploadRecord> | DocumentTreeViewModel | any
   )[];
@@ -554,3 +554,5 @@ export const DocumentProcessingView: React.FC<DocumentProcessingViewProps> = ({
     </div>
   );
 };
+
+export default DocumentProcessingView;

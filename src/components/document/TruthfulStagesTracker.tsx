@@ -5,7 +5,7 @@ import type {
   TruthfulStageExecutionStatus,
 } from "@/domain/intelligence/frontendDocumentTypes";
 
-interface TruthfulStagesTrackerProps {
+export interface TruthfulStagesTrackerProps {
   stages: TruthfulPipelineStage[];
   currentStageId?: string;
   className?: string;
@@ -145,3 +145,5 @@ export const TruthfulStagesTracker: React.FC<TruthfulStagesTrackerProps> = ({
     </div>
   );
 };
+
+export default TruthfulStagesTracker;
