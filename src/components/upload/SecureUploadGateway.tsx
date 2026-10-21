@@ -106,15 +106,14 @@ import {
   runAutomaticReconciliation,
   type AutoReconciliationOutcome,
 } from "@/domain/reconciliation/autoReconciliationRunner";
-import {
-  DocumentHierarchyTree,
-  DocumentUsefulStateBanner,
-  TruthfulStagesTracker,
-  DocumentProcessingView,
-} from "@/components/document";
+import { DocumentHierarchyTree } from "@/components/document/DocumentHierarchyTree";
+import { DocumentUsefulStateBanner } from "@/components/document/DocumentUsefulStateBanner";
+import { TruthfulStagesTracker } from "@/components/document/TruthfulStagesTracker";
+import { DocumentProcessingView } from "@/components/document/DocumentProcessingView";
 import {
   buildDocumentTreeViewModel,
   resolveUsefulDocumentState,
+  type DocumentTreeViewModel,
 } from "@/domain/intelligence/frontendDocumentTypes";
 import { PersistentDocumentIntelligenceService } from "@/domain/intelligence/persistentDocumentIntelligenceService";
 
@@ -1980,12 +1979,12 @@ export function SecureUploadGateway() {
         {recordViewMode === "tree" ? (
           <DocumentProcessingView
             documents={filteredUploads}
-            onDownloadSecureFile={(id, filename) => {
+            onDownloadSecureFile={(id: string, filename: string) => {
               const rec = filteredUploads.find((u) => u.id === id);
               if (rec) handleDownloadSecureFile(rec);
             }}
             onRetryProcessing={handleRetryProcessing}
-            onSelectDocument={(doc) => {
+            onSelectDocument={(doc: DocumentTreeViewModel) => {
               const rec = filteredUploads.find((u) => u.id === doc.documentId);
               if (rec) setSelectedUpload(rec);
             }}
