@@ -121,7 +121,7 @@ export class ScannedInvoiceOcrAdapter implements ILayoutAdapter {
         try {
           const { extractInvoiceFromPdf } = await import("@/lib/pdfInvoice");
           const digRes = await extractInvoiceFromPdf(file);
-          if (digRes?.invoice && (digRes.invoice.accountNumber || digRes.invoice.invoiceTotal > 0)) {
+          if (digRes?.invoice && (digRes.invoice.accountNumber || (digRes.invoice.invoiceTotal ?? 0) > 0)) {
             const inv = digRes.invoice;
             if (inv.accountNumber) extractedFields.accountNumber = inv.accountNumber;
             if (inv.customerName) extractedFields.customerName = inv.customerName;
@@ -166,7 +166,7 @@ export class ScannedInvoiceOcrAdapter implements ILayoutAdapter {
         try {
           const { extractInvoiceFromPdf } = await import("@/lib/pdfInvoice");
           const digRes = await extractInvoiceFromPdf(file);
-          if (digRes?.invoice && (digRes.invoice.accountNumber || digRes.invoice.invoiceTotal > 0)) {
+          if (digRes?.invoice && (digRes.invoice.accountNumber || (digRes.invoice.invoiceTotal ?? 0) > 0)) {
             const inv = digRes.invoice;
             const extractedFields: ExtractedInvoiceFields = {
               accountNumber: inv.accountNumber || "",
@@ -189,13 +189,13 @@ export class ScannedInvoiceOcrAdapter implements ILayoutAdapter {
               billedMaximumDemand: inv.maxDemandKVA ?? null,
               totalInvoice: inv.invoiceTotal ?? 0,
               vat: inv.vat ?? null,
-              lineItems: (digRes.lineItems || []).map((li, idx) => ({
+              lineItems: (digRes.lineItems || []).map((li: any, idx: number) => ({
                 lineItemNumber: idx + 1,
                 chargeLabel: li.chargeLabel || li.label || "Line Item",
                 invoicedAmount: li.amount ?? 0,
                 rate: li.rate ?? null,
                 quantity: li.quantity ?? null,
-                chargeCode: li.chargeCode || null,
+                chargeCode: li.chargeCode || undefined,
               })),
             };
 

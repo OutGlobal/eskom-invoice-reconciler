@@ -242,7 +242,7 @@ export class SpreadsheetInvoiceExtractor {
         const wb = XLSX.read(contentOrBuffer, { type: "buffer", cellDates: false });
         const isTouWorkbook = wb.SheetNames.some((sheetName) => {
           const sheet = wb.Sheets[sheetName];
-          const sample: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, sheetRows: 100 });
+          const sample: any[][] = (XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][]).slice(0, 100);
           const text = sample.map((r) => r.join(" ")).join("\n").toLowerCase();
           return (
             text.includes("statistical tou") ||
@@ -602,7 +602,6 @@ export class SpreadsheetInvoiceExtractor {
       success: true,
       documentType: "INVOICE_PDF",
       extractedFields,
-      lineItems,
       rawTextPreview: `Spreadsheet Billing Summary: Account ${extractedFields.accountNumber}, Customer ${extractedFields.customerName}, Tariff ${tariff}, Total: R ${extractedFields.totalInvoice.toFixed(2)}, Active: ${extractedFields.totalKwh ?? 0} kWh, Peak Demand: ${extractedFields.kva ?? 0} kVA`,
       confidenceScore: 0.95,
       needsHumanReview: false,
@@ -1214,7 +1213,12 @@ export class SpreadsheetInvoiceExtractor {
       adjustments: 0,
       credits: 0,
       debits: 0,
-      lineItems: primary.lineItems,
+      lineItems: primary.lineItems.map((li) => ({
+        ...li,
+        chargeCode: li.chargeCode ?? undefined,
+        rate: li.rate ?? undefined,
+        quantity: li.quantity ?? undefined,
+      })),
       feeders: primary.feeders,
       monthlyPeriods: periods,
       demandOccurrenceDates: {
@@ -1228,7 +1232,6 @@ export class SpreadsheetInvoiceExtractor {
       success: true,
       documentType: "INVOICE_PDF",
       extractedFields,
-      lineItems: primary.lineItems,
       rawTextPreview: `Eskom Statistical TOU Workbook (${periods.length} Monthly Periods: ${periods.map((p) => p.sheetName).join(", ")}): Account ${primary.accountNumber}, Customer ${primary.customerName}, Active ${primary.activeEnergy.totalKwh.toLocaleString()} kWh, Max Demand ${primary.maxDemandKva.total.toLocaleString()} kVA, Calculated Total: R ${primary.charges.totalInvoiceAmount.toLocaleString()}`,
       confidenceScore: 0.98,
       needsHumanReview: false,

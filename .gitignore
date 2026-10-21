@@ -52,4 +52,5 @@ config.json
 projects/
 plugins/
 *.traineddata
+*.xlsx
 

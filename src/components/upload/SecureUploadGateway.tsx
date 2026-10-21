@@ -339,8 +339,8 @@ export function SecureUploadGateway() {
     const store = useApp.getState();
 
     // 1. If invoice fields were extracted, reflect in app store
-    if (res.extractedInvoice && res.fileHeader.fileExtension === "pdf") {
-      if (file instanceof File) {
+    if (res.extractedInvoice) {
+      if (file instanceof File && res.fileHeader?.fileExtension === "pdf") {
         // Stage 16: Guarantee persistent document intelligence database integration
         void PersistentDocumentIntelligenceService.ingestAndProcessDocument({
           file,
@@ -429,7 +429,7 @@ export function SecureUploadGateway() {
 
     // Notify realtime refresh manager for automatic dashboard/charts update
     RealtimeRefreshManager.notifyProcessingComplete({
-      entityType: file.name.toLowerCase().endsWith(".pdf") ? "invoice" : "meter_telemetry",
+      entityType: res.extractedInvoice ? "invoice" : "meter_telemetry",
       timestamp: new Date().toISOString(),
     });
 
@@ -468,7 +468,7 @@ export function SecureUploadGateway() {
       }
       if (res.success) {
         RealtimeRefreshManager.notifyProcessingComplete({
-          entityType: res.fileHeader?.fileExtension === "pdf" ? "invoice" : "meter_telemetry",
+          entityType: res.extractedInvoice ? "invoice" : "meter_telemetry",
           timestamp: new Date().toISOString(),
         });
       }
@@ -769,17 +769,28 @@ export function SecureUploadGateway() {
     if (!files || files.length === 0) return;
     const fileList = Array.from(files);
 
-    // Check for dual intake: Invoice (PDF) + Meter Data (CSV/XLSX/XLS/XML/LOG)
-    const invoiceFile = fileList.find(
-      (f) => f.name.toLowerCase().endsWith(".pdf") || f.type === "application/pdf",
-    );
+    // Check for dual intake: Invoice (PDF or Billing XLSX) + Meter Data (CSV/XLSX/XLS/XML/LOG)
+    const isInvoiceCandidate = (f: File) => {
+      const name = f.name.toLowerCase();
+      return (
+        name.endsWith(".pdf") ||
+        f.type === "application/pdf" ||
+        name.includes("invoice") ||
+        name.includes("billing") ||
+        name.includes("bill") ||
+        name.includes("summary")
+      );
+    };
+
+    const invoiceFile = fileList.find(isInvoiceCandidate);
     const meterFile = fileList.find(
       (f) =>
-        f.name.toLowerCase().endsWith(".csv") ||
-        f.name.toLowerCase().endsWith(".xlsx") ||
-        f.name.toLowerCase().endsWith(".xls") ||
-        f.name.toLowerCase().endsWith(".xml") ||
-        f.name.toLowerCase().endsWith(".log"),
+        f !== invoiceFile &&
+        (f.name.toLowerCase().endsWith(".csv") ||
+          f.name.toLowerCase().endsWith(".xlsx") ||
+          f.name.toLowerCase().endsWith(".xls") ||
+          f.name.toLowerCase().endsWith(".xml") ||
+          f.name.toLowerCase().endsWith(".log")),
     );
 
     // If both files dropped together, trigger the automated pipeline!

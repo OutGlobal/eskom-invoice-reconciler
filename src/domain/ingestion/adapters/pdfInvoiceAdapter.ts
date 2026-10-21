@@ -318,7 +318,7 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
 
     // Invoice Total Fallback from line items if direct total was missing
     if ((!extractedFields.totalInvoice || extractedFields.totalInvoice <= 0) && lineItems.length > 0) {
-      const lineSum = lineItems.reduce((acc, li) => acc + (li.invoicedAmount || 0), 0);
+      const lineSum = lineItems.reduce((acc: number, li: any) => acc + (li.invoicedAmount || 0), 0);
       if (lineSum > 0) {
         extractedFields.totalInvoice = Math.round((lineSum + (extractedFields.vat || 0)) * 100) / 100;
       }

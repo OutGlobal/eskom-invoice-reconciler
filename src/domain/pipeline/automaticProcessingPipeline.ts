@@ -27,6 +27,7 @@ import type {
 } from "./types";
 import type { IngestionGatewayResult } from "../ingestion/types";
 import type { AuthoritativeReconciliationInput } from "../reconciliation/reconciliationEngine";
+import { ROLE_PERMISSIONS_MAP, type UserSecurityContext } from "../security/types";
 
 export class AutomaticProcessingPipeline {
   private static pausedRuns: Map<
@@ -62,10 +63,21 @@ export class AutomaticProcessingPipeline {
       notify("UPLOAD_SUCCESSFUL", 12, "Upload successful: Invoice and Meter datasets received");
 
       // Convert pipeline files to native or mocked File/Blob structures for gateway
-      const invoiceBlob = this.toFileObject(input.invoiceFile, "application/pdf");
+      const isInvoiceXlsx =
+        input.invoiceFile.name.toLowerCase().endsWith(".xlsx") ||
+        input.invoiceFile.name.toLowerCase().endsWith(".xls");
+      const invoiceBlob = this.toFileObject(
+        input.invoiceFile,
+        isInvoiceXlsx
+          ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          : "application/pdf",
+      );
+      const isMeterXlsx =
+        input.meterFile.name.toLowerCase().endsWith(".xlsx") ||
+        input.meterFile.name.toLowerCase().endsWith(".xls");
       const meterBlob = this.toFileObject(
         input.meterFile,
-        input.meterFile.name.endsWith(".xlsx")
+        isMeterXlsx
           ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           : "text/csv",
       );
@@ -342,11 +354,15 @@ export class AutomaticProcessingPipeline {
         organisation_id: tenantId,
       });
 
-      await ReconciliationStorageService.saveRun(reconPayload, {
+      const secContext: UserSecurityContext = {
         userId,
+        email: "admin@eskombalancer.co.za",
         organisationId: tenantId,
-        role: "ADMIN",
-      });
+        role: "ORGANISATION_ADMIN",
+        permissions: ROLE_PERMISSIONS_MAP.ORGANISATION_ADMIN,
+      };
+
+      await ReconciliationStorageService.saveRun(reconPayload, secContext);
 
       // =========================================================================
       // STAGE 7: ANALYSING
@@ -459,11 +475,7 @@ export class AutomaticProcessingPipeline {
             organisation_id: tenantId,
           });
 
-          await ReconciliationStorageService.saveRun(pReconPayload, {
-            userId,
-            organisationId: tenantId,
-            role: "ADMIN",
-          });
+          await ReconciliationStorageService.saveRun(pReconPayload, secContext);
 
           monthlyReconciliations.push({
             periodName: period.sheetName,

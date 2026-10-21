@@ -1,0 +1,1291 @@
+{
+  "generatedAt": "2026-10-20T15:25:51.748Z",
+  "accountNumber": "7856504676",
+  "customerName": "Impala Platinum Mine",
+  "voltage": "33 kV",
+  "tariff": "Megaflex",
+  "totalInvoicedZar": 428435533.46,
+  "totalCalculatedZar": 428435533.46,
+  "periods": [
+    {
+      "periodName": "Millenium 33kV Feb 2026",
+      "invoice": {
+        "accountNumber": "7856504676",
+        "customerName": "Impala Platinum Mine",
+        "invoiceNumber": "7856504676-Millenium33kVFeb2026",
+        "invoiceNo": "7856504676-Millenium33kVFeb2026",
+        "billingPeriod": "2026-01-17 to 2026-02-16",
+        "billingPeriodStart": "2026-01-17",
+        "billingPeriodEnd": "2026-02-16",
+        "tariffName": "Megaflex",
+        "peakKWh": 6401924.41,
+        "standardKWh": 19432557.61,
+        "offPeakKWh": 23429967.61,
+        "totalKWh": 49264449.63,
+        "maxDemandKVA": 87034.19,
+        "reactive": 8847540,
+        "peakEnergyCharge": 17719246.38,
+        "standardEnergyCharge": 30240946.15,
+        "offPeakEnergyCharge": 26042409,
+        "networkDemandCharge": 2089075.22,
+        "transmissionNetworkCharge": 878835,
+        "networkCapacityCharge": 3084925.2,
+        "serviceCharge": 35272.73,
+        "ancillary": 192131.35,
+        "vat": 14551431.5,
+        "totalInclVat": 111560974.85,
+        "invoiceTotal": 111560974.85
+      },
+      "reconciliationStatus": "COMPLETED",
+      "reconciliationPayload": {
+        "run_id": "RECON-1792509943188-PUFSF",
+        "tenant_id": "TENANT-ESKOM-001",
+        "invoice_id": "7856504676-Millenium33kVFeb2026",
+        "telemetry_batch_id": "",
+        "tariff_version_id": "ESKOM_MEGAFLEX_HV_2025_2026_2025.1",
+        "calendar_version_id": "",
+        "engine_version": "2.0.0",
+        "calculation_engine_version": "reconciliation_engine_v2",
+        "configuration_version": "1.0.0",
+        "created_at": "2026-10-20T15:25:43.188Z",
+        "completed_at": "2026-10-20T15:25:43.195Z",
+        "status": "REVIEW_REQUIRED",
+        "classification": "CRITICAL",
+        "result_checksum": "SHA256:00000000250364A6",
+        "billed_total_zar": "111560974.85",
+        "calculated_total_zar": "86041517.19",
+        "variance_total_zar": "-25519457.66",
+        "variance_percentage": "22.8749",
+        "determinant_comparisons": [
+          {
+            "determinant_code": "PEAK_KWH",
+            "determinant_name": "Peak Active Energy",
+            "billed_value": "6401924.41",
+            "calculated_value": "6378413.355200003",
+            "variance_value": "-23511.0548",
+            "variance_percentage": "0.3672",
+            "unit_of_measure": "kWh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 6401924.41 kWh vs Calculated: 6378413.355200003 kWh",
+              "formula_used": "Interval Telemetry Sum",
+              "rate_applied": "N/A",
+              "unit": "kWh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "6378413.355200003"
+            }
+          },
+          {
+            "determinant_code": "STANDARD_KWH",
+            "determinant_name": "Standard Active Energy",
+            "billed_value": "19432557.61",
+            "calculated_value": "19495459.838999998",
+            "variance_value": "62902.229",
+            "variance_percentage": "0.3237",
+            "unit_of_measure": "kWh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 19432557.61 kWh vs Calculated: 19495459.838999998 kWh",
+              "formula_used": "Interval Telemetry Sum",
+              "rate_applied": "N/A",
+              "unit": "kWh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "19495459.838999998"
+            }
+          },
+          {
+            "determinant_code": "OFF_PEAK_KWH",
+            "determinant_name": "Off-Peak Active Energy",
+            "billed_value": "23429967.61",
+            "calculated_value": "23545902.567699995",
+            "variance_value": "115934.9577",
+            "variance_percentage": "0.4948",
+            "unit_of_measure": "kWh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 23429967.61 kWh vs Calculated: 23545902.567699995 kWh",
+              "formula_used": "Interval Telemetry Sum",
+              "rate_applied": "N/A",
+              "unit": "kWh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "23545902.567699995"
+            }
+          },
+          {
+            "determinant_code": "TOTAL_KWH",
+            "determinant_name": "Total Active Energy",
+            "billed_value": "49264449.63",
+            "calculated_value": "49419775.76190004",
+            "variance_value": "155326.1319",
+            "variance_percentage": "0.3153",
+            "unit_of_measure": "kWh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 49264449.63 kWh vs Calculated: 49419775.76190004 kWh",
+              "formula_used": "Peak + Standard + OffPeak",
+              "rate_applied": "N/A",
+              "unit": "kWh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "49419775.76190004"
+            }
+          },
+          {
+            "determinant_code": "MAXIMUM_DEMAND_KVA",
+            "determinant_name": "Maximum Demand",
+            "billed_value": "87034.19",
+            "calculated_value": "88021.81906433956",
+            "variance_value": "987.6291",
+            "variance_percentage": "1.1348",
+            "unit_of_measure": "kVA",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 87034.19 kVA vs Calculated: 88021.81906433956 kVA",
+              "formula_used": "Peak 30-min Demand",
+              "rate_applied": "N/A",
+              "unit": "kVA",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "88021.81906433956"
+            }
+          },
+          {
+            "determinant_code": "RATCHETED_DEMAND_KVA",
+            "determinant_name": "Ratcheted Notified Demand",
+            "billed_value": "87034.19",
+            "calculated_value": "88021.81906433956",
+            "variance_value": "987.6291",
+            "variance_percentage": "1.1348",
+            "unit_of_measure": "kVA",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 87034.19 kVA vs Calculated: 88021.81906433956 kVA",
+              "formula_used": "max(NMD, Annual Peak)",
+              "rate_applied": "N/A",
+              "unit": "kVA",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "88021.81906433956"
+            }
+          },
+          {
+            "determinant_code": "REACTIVE_ENERGY_KVARH",
+            "determinant_name": "Reactive Energy",
+            "billed_value": "8847540",
+            "calculated_value": "8578492.9714",
+            "variance_value": "-269047.0286",
+            "variance_percentage": "3.0409",
+            "unit_of_measure": "kVARh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 8847540 kVARh vs Calculated: 8578492.9714 kVARh",
+              "formula_used": "kVARh Telemetry Sum",
+              "rate_applied": "0.145 R/kVARh",
+              "unit": "kVARh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "8578492.9714"
+            }
+          },
+          {
+            "determinant_code": "ENERGY_CHARGES_ZAR",
+            "determinant_name": "Active Energy Charges",
+            "billed_value": "74002601.53",
+            "calculated_value": "64041531.38",
+            "variance_value": "-9961070.15",
+            "variance_percentage": "13.4604",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 74002601.53 ZAR vs Calculated: 64041531.38 ZAR",
+              "formula_used": "sum(kWh * c/kWh / 100)",
+              "rate_applied": "Gazetted c/kWh",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "64041531.38"
+            }
+          },
+          {
+            "determinant_code": "DEMAND_CHARGES_ZAR",
+            "determinant_name": "Demand Charges",
+            "billed_value": "2089075.22",
+            "calculated_value": "3771734.95",
+            "variance_value": "1682659.73",
+            "variance_percentage": "80.5457",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 2089075.22 ZAR vs Calculated: 3771734.95 ZAR",
+              "formula_used": "kVA * R/kVA/month",
+              "rate_applied": "Gazetted R/kVA",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "3771734.95"
+            }
+          },
+          {
+            "determinant_code": "NETWORK_CHARGES_ZAR",
+            "determinant_name": "Network Charges",
+            "billed_value": "3963760.2",
+            "calculated_value": "5695011.69",
+            "variance_value": "1731251.49",
+            "variance_percentage": "43.677",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 3963760.2 ZAR vs Calculated: 5695011.69 ZAR",
+              "formula_used": "kVA * R/kVA/month",
+              "rate_applied": "Gazetted R/kVA",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "5695011.69"
+            }
+          },
+          {
+            "determinant_code": "SERVICE_CHARGES_ZAR",
+            "determinant_name": "Service Charges",
+            "billed_value": "35272.73",
+            "calculated_value": "5750.5",
+            "variance_value": "-29522.23",
+            "variance_percentage": "83.697",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 35272.73 ZAR vs Calculated: 5750.5 ZAR",
+              "formula_used": "R/day * days",
+              "rate_applied": "Gazetted R/day",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "5750.5"
+            }
+          },
+          {
+            "determinant_code": "ANCILLARY_CHARGES_ZAR",
+            "determinant_name": "Ancillary & Subsidy Charges",
+            "billed_value": "192131.35",
+            "calculated_value": "1304682.08",
+            "variance_value": "1112550.73",
+            "variance_percentage": "579.0574",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 192131.35 ZAR vs Calculated: 1304682.08 ZAR",
+              "formula_used": "kWh * c/kWh / 100",
+              "rate_applied": "Gazetted c/kWh",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "1304682.08"
+            }
+          },
+          {
+            "determinant_code": "VAT_ZAR",
+            "determinant_name": "Value Added Tax (15%)",
+            "billed_value": "14551431.5",
+            "calculated_value": "11222806.59",
+            "variance_value": "-3328624.91",
+            "variance_percentage": "22.8749",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 14551431.5 ZAR vs Calculated: 11222806.59 ZAR",
+              "formula_used": "Subtotal * 0.15",
+              "rate_applied": "15.00%",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "11222806.59"
+            }
+          },
+          {
+            "determinant_code": "TOTAL_INVOICE_ZAR",
+            "determinant_name": "Total Invoice Amount",
+            "billed_value": "111560974.85",
+            "calculated_value": "86041517.19",
+            "variance_value": "-25519457.66",
+            "variance_percentage": "22.8749",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 111560974.85 ZAR vs Calculated: 86041517.19 ZAR",
+              "formula_used": "Subtotal + VAT",
+              "rate_applied": "N/A",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "86041517.19"
+            }
+          }
+        ],
+        "organisation_id": "TENANT-ESKOM-001"
+      }
+    },
+    {
+      "periodName": "Millenium 33kV Mar 2026",
+      "invoice": {
+        "accountNumber": "7856504676",
+        "customerName": "Impala Platinum Mine",
+        "invoiceNumber": "7856504676-Millenium33kVMar2026",
+        "invoiceNo": "7856504676-Millenium33kVMar2026",
+        "billingPeriod": "2026-02-17 to 2026-03-18",
+        "billingPeriodStart": "2026-02-17",
+        "billingPeriodEnd": "2026-03-18",
+        "tariffName": "Megaflex",
+        "peakKWh": 7030857.59,
+        "standardKWh": 20198604.02,
+        "offPeakKWh": 22018599.6,
+        "totalKWh": 49248061.21,
+        "maxDemandKVA": 92948.3,
+        "reactive": 11754848.4,
+        "peakEnergyCharge": 19460007.64,
+        "standardEnergyCharge": 31433067.58,
+        "offPeakEnergyCharge": 24473673.46,
+        "networkDemandCharge": 2089075.22,
+        "transmissionNetworkCharge": 878835,
+        "networkCapacityCharge": 3084925.2,
+        "serviceCharge": 34134.9,
+        "ancillary": 192067.44,
+        "vat": 14756864.03,
+        "totalInclVat": 113135957.57,
+        "invoiceTotal": 113135957.57
+      },
+      "reconciliationStatus": "COMPLETED",
+      "reconciliationPayload": {
+        "run_id": "RECON-1792509943208-G2KZI",
+        "tenant_id": "TENANT-ESKOM-001",
+        "invoice_id": "7856504676-Millenium33kVMar2026",
+        "telemetry_batch_id": "",
+        "tariff_version_id": "ESKOM_MEGAFLEX_HV_2025_2026_2025.1",
+        "calendar_version_id": "",
+        "engine_version": "2.0.0",
+        "calculation_engine_version": "reconciliation_engine_v2",
+        "configuration_version": "1.0.0",
+        "created_at": "2026-10-20T15:25:43.208Z",
+        "completed_at": "2026-10-20T15:25:43.209Z",
+        "status": "REVIEW_REQUIRED",
+        "classification": "CRITICAL",
+        "result_checksum": "SHA256:000000005D9C9705",
+        "billed_total_zar": "113135957.57",
+        "calculated_total_zar": "88776890.58",
+        "variance_total_zar": "-24359066.99",
+        "variance_percentage": "21.5308",
+        "determinant_comparisons": [
+          {
+            "determinant_code": "PEAK_KWH",
+            "determinant_name": "Peak Active Energy",
+            "billed_value": "7030857.59",
+            "calculated_value": "7103102.040500005",
+            "variance_value": "72244.4505",
+            "variance_percentage": "1.0275",
+            "unit_of_measure": "kWh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 7030857.59 kWh vs Calculated: 7103102.040500005 kWh",
+              "formula_used": "Interval Telemetry Sum",
+              "rate_applied": "N/A",
+              "unit": "kWh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "7103102.040500005"
+            }
+          },
+          {
+            "determinant_code": "STANDARD_KWH",
+            "determinant_name": "Standard Active Energy",
+            "billed_value": "20198604.02",
+            "calculated_value": "20447720.373699993",
+            "variance_value": "249116.3537",
+            "variance_percentage": "1.2333",
+            "unit_of_measure": "kWh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 20198604.02 kWh vs Calculated: 20447720.373699993 kWh",
+              "formula_used": "Interval Telemetry Sum",
+              "rate_applied": "N/A",
+              "unit": "kWh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "20447720.373699993"
+            }
+          },
+          {
+            "determinant_code": "OFF_PEAK_KWH",
+            "determinant_name": "Off-Peak Active Energy",
+            "billed_value": "22018599.6",
+            "calculated_value": "22307203.64100001",
+            "variance_value": "288604.041",
+            "variance_percentage": "1.3107",
+            "unit_of_measure": "kWh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 22018599.6 kWh vs Calculated: 22307203.64100001 kWh",
+              "formula_used": "Interval Telemetry Sum",
+              "rate_applied": "N/A",
+              "unit": "kWh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "22307203.64100001"
+            }
+          },
+          {
+            "determinant_code": "TOTAL_KWH",
+            "determinant_name": "Total Active Energy",
+            "billed_value": "49248061.21",
+            "calculated_value": "49858026.055199966",
+            "variance_value": "609964.8452",
+            "variance_percentage": "1.2386",
+            "unit_of_measure": "kWh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 49248061.21 kWh vs Calculated: 49858026.055199966 kWh",
+              "formula_used": "Peak + Standard + OffPeak",
+              "rate_applied": "N/A",
+              "unit": "kWh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "49858026.055199966"
+            }
+          },
+          {
+            "determinant_code": "MAXIMUM_DEMAND_KVA",
+            "determinant_name": "Maximum Demand",
+            "billed_value": "92948.3",
+            "calculated_value": "93906.73115789474",
+            "variance_value": "958.4312",
+            "variance_percentage": "1.0311",
+            "unit_of_measure": "kVA",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 92948.3 kVA vs Calculated: 93906.73115789474 kVA",
+              "formula_used": "Peak 30-min Demand",
+              "rate_applied": "N/A",
+              "unit": "kVA",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "93906.73115789474"
+            }
+          },
+          {
+            "determinant_code": "RATCHETED_DEMAND_KVA",
+            "determinant_name": "Ratcheted Notified Demand",
+            "billed_value": "92948.3",
+            "calculated_value": "93906.73115789474",
+            "variance_value": "958.4312",
+            "variance_percentage": "1.0311",
+            "unit_of_measure": "kVA",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 92948.3 kVA vs Calculated: 93906.73115789474 kVA",
+              "formula_used": "max(NMD, Annual Peak)",
+              "rate_applied": "N/A",
+              "unit": "kVA",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "93906.73115789474"
+            }
+          },
+          {
+            "determinant_code": "REACTIVE_ENERGY_KVARH",
+            "determinant_name": "Reactive Energy",
+            "billed_value": "11754848.4",
+            "calculated_value": "11446421.653",
+            "variance_value": "-308426.747",
+            "variance_percentage": "2.6238",
+            "unit_of_measure": "kVARh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 11754848.4 kVARh vs Calculated: 11446421.653 kVARh",
+              "formula_used": "kVARh Telemetry Sum",
+              "rate_applied": "0.145 R/kVARh",
+              "unit": "kVARh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "11446421.653"
+            }
+          },
+          {
+            "determinant_code": "ENERGY_CHARGES_ZAR",
+            "determinant_name": "Active Energy Charges",
+            "billed_value": "75366748.68",
+            "calculated_value": "65775810.33",
+            "variance_value": "-9590938.35",
+            "variance_percentage": "12.7257",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 75366748.68 ZAR vs Calculated: 65775810.33 ZAR",
+              "formula_used": "sum(kWh * c/kWh / 100)",
+              "rate_applied": "Gazetted c/kWh",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "65775810.33"
+            }
+          },
+          {
+            "determinant_code": "DEMAND_CHARGES_ZAR",
+            "determinant_name": "Demand Charges",
+            "billed_value": "2089075.22",
+            "calculated_value": "4023903.43",
+            "variance_value": "1934828.21",
+            "variance_percentage": "92.6165",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 2089075.22 ZAR vs Calculated: 4023903.43 ZAR",
+              "formula_used": "kVA * R/kVA/month",
+              "rate_applied": "Gazetted R/kVA",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "4023903.43"
+            }
+          },
+          {
+            "determinant_code": "NETWORK_CHARGES_ZAR",
+            "determinant_name": "Network Charges",
+            "billed_value": "3963760.2",
+            "calculated_value": "6075765.51",
+            "variance_value": "2112005.31",
+            "variance_percentage": "53.2829",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 3963760.2 ZAR vs Calculated: 6075765.51 ZAR",
+              "formula_used": "kVA * R/kVA/month",
+              "rate_applied": "Gazetted R/kVA",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "6075765.51"
+            }
+          },
+          {
+            "determinant_code": "SERVICE_CHARGES_ZAR",
+            "determinant_name": "Service Charges",
+            "billed_value": "34134.9",
+            "calculated_value": "5565",
+            "variance_value": "-28569.9",
+            "variance_percentage": "83.697",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 34134.9 ZAR vs Calculated: 5565 ZAR",
+              "formula_used": "R/day * days",
+              "rate_applied": "Gazetted R/day",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "5565"
+            }
+          },
+          {
+            "determinant_code": "ANCILLARY_CHARGES_ZAR",
+            "determinant_name": "Ancillary & Subsidy Charges",
+            "billed_value": "192067.44",
+            "calculated_value": "1316251.89",
+            "variance_value": "1124184.45",
+            "variance_percentage": "585.3071",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 192067.44 ZAR vs Calculated: 1316251.89 ZAR",
+              "formula_used": "kWh * c/kWh / 100",
+              "rate_applied": "Gazetted c/kWh",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "1316251.89"
+            }
+          },
+          {
+            "determinant_code": "VAT_ZAR",
+            "determinant_name": "Value Added Tax (15%)",
+            "billed_value": "14756864.03",
+            "calculated_value": "11579594.42",
+            "variance_value": "-3177269.61",
+            "variance_percentage": "21.5308",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 14756864.03 ZAR vs Calculated: 11579594.42 ZAR",
+              "formula_used": "Subtotal * 0.15",
+              "rate_applied": "15.00%",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "11579594.42"
+            }
+          },
+          {
+            "determinant_code": "TOTAL_INVOICE_ZAR",
+            "determinant_name": "Total Invoice Amount",
+            "billed_value": "113135957.57",
+            "calculated_value": "88776890.58",
+            "variance_value": "-24359066.99",
+            "variance_percentage": "21.5308",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 113135957.57 ZAR vs Calculated: 88776890.58 ZAR",
+              "formula_used": "Subtotal + VAT",
+              "rate_applied": "N/A",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "88776890.58"
+            }
+          }
+        ],
+        "organisation_id": "TENANT-ESKOM-001"
+      }
+    },
+    {
+      "periodName": "Millenium 33kV - Apr 2026",
+      "invoice": {
+        "accountNumber": "7856504676",
+        "customerName": "Impala Platinum Mine",
+        "invoiceNumber": "7856504676-Millenium33kV-Apr2026",
+        "invoiceNo": "7856504676-Millenium33kV-Apr2026",
+        "billingPeriod": "2026-03-19 to 2026-04-16",
+        "billingPeriodStart": "2026-03-19",
+        "billingPeriodEnd": "2026-04-16",
+        "tariffName": "Megaflex",
+        "peakKWh": 5691296.42,
+        "standardKWh": 17041010.39,
+        "offPeakKWh": 21416490.03,
+        "totalKWh": 44148796.84,
+        "maxDemandKVA": 85760.81,
+        "reactive": 7388587.2,
+        "peakEnergyCharge": 15752370.23,
+        "standardEnergyCharge": 26519220.37,
+        "offPeakEnergyCharge": 23804428.67,
+        "networkDemandCharge": 2089075.22,
+        "transmissionNetworkCharge": 878835,
+        "networkCapacityCharge": 3084925.2,
+        "serviceCharge": 32997.07,
+        "ancillary": 172180.31,
+        "vat": 13114816.19,
+        "totalInclVat": 100546924.1,
+        "invoiceTotal": 100546924.1
+      },
+      "reconciliationStatus": "COMPLETED",
+      "reconciliationPayload": {
+        "run_id": "RECON-1792509943219-P0H6J",
+        "tenant_id": "TENANT-ESKOM-001",
+        "invoice_id": "7856504676-Millenium33kV-Apr2026",
+        "telemetry_batch_id": "",
+        "tariff_version_id": "ESKOM_MEGAFLEX_HV_2025_2026_2025.1",
+        "calendar_version_id": "",
+        "engine_version": "2.0.0",
+        "calculation_engine_version": "reconciliation_engine_v2",
+        "configuration_version": "1.0.0",
+        "created_at": "2026-10-20T15:25:43.219Z",
+        "completed_at": "2026-10-20T15:25:43.222Z",
+        "status": "REVIEW_REQUIRED",
+        "classification": "CRITICAL",
+        "result_checksum": "SHA256:000000003D38E71C",
+        "billed_total_zar": "100546924.1",
+        "calculated_total_zar": "79530854.27",
+        "variance_total_zar": "-21016069.83",
+        "variance_percentage": "20.9018",
+        "determinant_comparisons": [
+          {
+            "determinant_code": "PEAK_KWH",
+            "determinant_name": "Peak Active Energy",
+            "billed_value": "5691296.42",
+            "calculated_value": "6201111.544200001",
+            "variance_value": "509815.1242",
+            "variance_percentage": "8.9578",
+            "unit_of_measure": "kWh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 5691296.42 kWh vs Calculated: 6201111.544200001 kWh",
+              "formula_used": "Interval Telemetry Sum",
+              "rate_applied": "N/A",
+              "unit": "kWh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "6201111.544200001"
+            }
+          },
+          {
+            "determinant_code": "STANDARD_KWH",
+            "determinant_name": "Standard Active Energy",
+            "billed_value": "17041010.39",
+            "calculated_value": "18207287.031500015",
+            "variance_value": "1166276.6415",
+            "variance_percentage": "6.8439",
+            "unit_of_measure": "kWh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 17041010.39 kWh vs Calculated: 18207287.031500015 kWh",
+              "formula_used": "Interval Telemetry Sum",
+              "rate_applied": "N/A",
+              "unit": "kWh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "18207287.031500015"
+            }
+          },
+          {
+            "determinant_code": "OFF_PEAK_KWH",
+            "determinant_name": "Off-Peak Active Energy",
+            "billed_value": "21416490.03",
+            "calculated_value": "20224431.626499992",
+            "variance_value": "-1192058.4035",
+            "variance_percentage": "5.5661",
+            "unit_of_measure": "kWh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 21416490.03 kWh vs Calculated: 20224431.626499992 kWh",
+              "formula_used": "Interval Telemetry Sum",
+              "rate_applied": "N/A",
+              "unit": "kWh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "20224431.626499992"
+            }
+          },
+          {
+            "determinant_code": "TOTAL_KWH",
+            "determinant_name": "Total Active Energy",
+            "billed_value": "44148796.84",
+            "calculated_value": "44632830.20220004",
+            "variance_value": "484033.3622",
+            "variance_percentage": "1.0964",
+            "unit_of_measure": "kWh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 44148796.84 kWh vs Calculated: 44632830.20220004 kWh",
+              "formula_used": "Peak + Standard + OffPeak",
+              "rate_applied": "N/A",
+              "unit": "kWh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "44632830.20220004"
+            }
+          },
+          {
+            "determinant_code": "MAXIMUM_DEMAND_KVA",
+            "determinant_name": "Maximum Demand",
+            "billed_value": "85760.81",
+            "calculated_value": "86704.54592416572",
+            "variance_value": "943.7359",
+            "variance_percentage": "1.1004",
+            "unit_of_measure": "kVA",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 85760.81 kVA vs Calculated: 86704.54592416572 kVA",
+              "formula_used": "Peak 30-min Demand",
+              "rate_applied": "N/A",
+              "unit": "kVA",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "86704.54592416572"
+            }
+          },
+          {
+            "determinant_code": "RATCHETED_DEMAND_KVA",
+            "determinant_name": "Ratcheted Notified Demand",
+            "billed_value": "85760.81",
+            "calculated_value": "86704.54592416572",
+            "variance_value": "943.7359",
+            "variance_percentage": "1.1004",
+            "unit_of_measure": "kVA",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 85760.81 kVA vs Calculated: 86704.54592416572 kVA",
+              "formula_used": "max(NMD, Annual Peak)",
+              "rate_applied": "N/A",
+              "unit": "kVA",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "86704.54592416572"
+            }
+          },
+          {
+            "determinant_code": "REACTIVE_ENERGY_KVARH",
+            "determinant_name": "Reactive Energy",
+            "billed_value": "7388587.2",
+            "calculated_value": "7195843.5985",
+            "variance_value": "-192743.6015",
+            "variance_percentage": "2.6087",
+            "unit_of_measure": "kVARh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 7388587.2 kVARh vs Calculated: 7195843.5985 kVARh",
+              "formula_used": "kVARh Telemetry Sum",
+              "rate_applied": "0.145 R/kVARh",
+              "unit": "kVARh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "7195843.5985"
+            }
+          },
+          {
+            "determinant_code": "ENERGY_CHARGES_ZAR",
+            "determinant_name": "Active Energy Charges",
+            "billed_value": "66076019.27",
+            "calculated_value": "58648504.45",
+            "variance_value": "-7427514.82",
+            "variance_percentage": "11.2409",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 66076019.27 ZAR vs Calculated: 58648504.45 ZAR",
+              "formula_used": "sum(kWh * c/kWh / 100)",
+              "rate_applied": "Gazetted c/kWh",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "58648504.45"
+            }
+          },
+          {
+            "determinant_code": "DEMAND_CHARGES_ZAR",
+            "determinant_name": "Demand Charges",
+            "billed_value": "2089075.22",
+            "calculated_value": "3715289.79",
+            "variance_value": "1626214.57",
+            "variance_percentage": "77.8438",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 2089075.22 ZAR vs Calculated: 3715289.79 ZAR",
+              "formula_used": "kVA * R/kVA/month",
+              "rate_applied": "Gazetted R/kVA",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "3715289.79"
+            }
+          },
+          {
+            "determinant_code": "NETWORK_CHARGES_ZAR",
+            "determinant_name": "Network Charges",
+            "billed_value": "3963760.2",
+            "calculated_value": "5609784.12",
+            "variance_value": "1646023.92",
+            "variance_percentage": "41.5268",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 3963760.2 ZAR vs Calculated: 5609784.12 ZAR",
+              "formula_used": "kVA * R/kVA/month",
+              "rate_applied": "Gazetted R/kVA",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "5609784.12"
+            }
+          },
+          {
+            "determinant_code": "SERVICE_CHARGES_ZAR",
+            "determinant_name": "Service Charges",
+            "billed_value": "32997.07",
+            "calculated_value": "5379.5",
+            "variance_value": "-27617.57",
+            "variance_percentage": "83.697",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 32997.07 ZAR vs Calculated: 5379.5 ZAR",
+              "formula_used": "R/day * days",
+              "rate_applied": "Gazetted R/day",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "5379.5"
+            }
+          },
+          {
+            "determinant_code": "ANCILLARY_CHARGES_ZAR",
+            "determinant_name": "Ancillary & Subsidy Charges",
+            "billed_value": "172180.31",
+            "calculated_value": "1178306.72",
+            "variance_value": "1006126.41",
+            "variance_percentage": "584.3446",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 172180.31 ZAR vs Calculated: 1178306.72 ZAR",
+              "formula_used": "kWh * c/kWh / 100",
+              "rate_applied": "Gazetted c/kWh",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "1178306.72"
+            }
+          },
+          {
+            "determinant_code": "VAT_ZAR",
+            "determinant_name": "Value Added Tax (15%)",
+            "billed_value": "13114816.19",
+            "calculated_value": "10373589.69",
+            "variance_value": "-2741226.5",
+            "variance_percentage": "20.9018",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 13114816.19 ZAR vs Calculated: 10373589.69 ZAR",
+              "formula_used": "Subtotal * 0.15",
+              "rate_applied": "15.00%",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "10373589.69"
+            }
+          },
+          {
+            "determinant_code": "TOTAL_INVOICE_ZAR",
+            "determinant_name": "Total Invoice Amount",
+            "billed_value": "100546924.1",
+            "calculated_value": "79530854.27",
+            "variance_value": "-21016069.83",
+            "variance_percentage": "20.9018",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 100546924.1 ZAR vs Calculated: 79530854.27 ZAR",
+              "formula_used": "Subtotal + VAT",
+              "rate_applied": "N/A",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "79530854.27"
+            }
+          }
+        ],
+        "organisation_id": "TENANT-ESKOM-001"
+      }
+    },
+    {
+      "periodName": "Millenium 33kV May 2026",
+      "invoice": {
+        "accountNumber": "7856504676",
+        "customerName": "Impala Platinum Mine",
+        "invoiceNumber": "7856504676-Millenium33kVMay2026",
+        "invoiceNo": "7856504676-Millenium33kVMay2026",
+        "billingPeriod": "2026-04-17 to 2026-05-16",
+        "billingPeriodStart": "2026-04-17",
+        "billingPeriodEnd": "2026-05-16",
+        "tariffName": "Megaflex",
+        "peakKWh": 5484841.2,
+        "standardKWh": 17717456.41,
+        "offPeakKWh": 22564586.4,
+        "totalKWh": 45766884.01,
+        "maxDemandKVA": 84529.33,
+        "reactive": 8273170.79,
+        "peakEnergyCharge": 15180943.47,
+        "standardEnergyCharge": 27571905.67,
+        "offPeakEnergyCharge": 25080537.78,
+        "networkDemandCharge": 2089075.22,
+        "transmissionNetworkCharge": 878835,
+        "networkCapacityCharge": 3084925.2,
+        "serviceCharge": 34134.9,
+        "ancillary": 178490.85,
+        "vat": 13459783.95,
+        "totalInclVat": 103191676.94,
+        "invoiceTotal": 103191676.94
+      },
+      "reconciliationStatus": "COMPLETED",
+      "reconciliationPayload": {
+        "run_id": "RECON-1792509943232-EAWSS",
+        "tenant_id": "TENANT-ESKOM-001",
+        "invoice_id": "7856504676-Millenium33kVMay2026",
+        "telemetry_batch_id": "",
+        "tariff_version_id": "ESKOM_MEGAFLEX_HV_2026_2027_2026.1",
+        "calendar_version_id": "",
+        "engine_version": "2.0.0",
+        "calculation_engine_version": "reconciliation_engine_v2",
+        "configuration_version": "1.0.0",
+        "created_at": "2026-10-20T15:25:43.232Z",
+        "completed_at": "2026-10-20T15:25:43.233Z",
+        "status": "REVIEW_REQUIRED",
+        "classification": "CRITICAL",
+        "result_checksum": "SHA256:0000000001D7CCA7",
+        "billed_total_zar": "103191676.94",
+        "calculated_total_zar": "91498170.54",
+        "variance_total_zar": "-11693506.4",
+        "variance_percentage": "11.3318",
+        "determinant_comparisons": [
+          {
+            "determinant_code": "PEAK_KWH",
+            "determinant_name": "Peak Active Energy",
+            "billed_value": "5484841.2",
+            "calculated_value": "6164036.872099998",
+            "variance_value": "679195.6721",
+            "variance_percentage": "12.3831",
+            "unit_of_measure": "kWh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 5484841.2 kWh vs Calculated: 6164036.872099998 kWh",
+              "formula_used": "Interval Telemetry Sum",
+              "rate_applied": "N/A",
+              "unit": "kWh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "6164036.872099998"
+            }
+          },
+          {
+            "determinant_code": "STANDARD_KWH",
+            "determinant_name": "Standard Active Energy",
+            "billed_value": "17717456.41",
+            "calculated_value": "18533012.029800005",
+            "variance_value": "815555.6198",
+            "variance_percentage": "4.6031",
+            "unit_of_measure": "kWh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 17717456.41 kWh vs Calculated: 18533012.029800005 kWh",
+              "formula_used": "Interval Telemetry Sum",
+              "rate_applied": "N/A",
+              "unit": "kWh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "18533012.029800005"
+            }
+          },
+          {
+            "determinant_code": "OFF_PEAK_KWH",
+            "determinant_name": "Off-Peak Active Energy",
+            "billed_value": "22564586.4",
+            "calculated_value": "21436763.897199992",
+            "variance_value": "-1127822.5028",
+            "variance_percentage": "4.9982",
+            "unit_of_measure": "kWh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 22564586.4 kWh vs Calculated: 21436763.897199992 kWh",
+              "formula_used": "Interval Telemetry Sum",
+              "rate_applied": "N/A",
+              "unit": "kWh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "21436763.897199992"
+            }
+          },
+          {
+            "determinant_code": "TOTAL_KWH",
+            "determinant_name": "Total Active Energy",
+            "billed_value": "45766884.01",
+            "calculated_value": "46133812.79909999",
+            "variance_value": "366928.7891",
+            "variance_percentage": "0.8017",
+            "unit_of_measure": "kWh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 45766884.01 kWh vs Calculated: 46133812.79909999 kWh",
+              "formula_used": "Peak + Standard + OffPeak",
+              "rate_applied": "N/A",
+              "unit": "kWh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "46133812.79909999"
+            }
+          },
+          {
+            "determinant_code": "MAXIMUM_DEMAND_KVA",
+            "determinant_name": "Maximum Demand",
+            "billed_value": "84529.33",
+            "calculated_value": "85376.08937273199",
+            "variance_value": "846.7594",
+            "variance_percentage": "1.0017",
+            "unit_of_measure": "kVA",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 84529.33 kVA vs Calculated: 85376.08937273199 kVA",
+              "formula_used": "Peak 30-min Demand",
+              "rate_applied": "N/A",
+              "unit": "kVA",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "85376.08937273199"
+            }
+          },
+          {
+            "determinant_code": "RATCHETED_DEMAND_KVA",
+            "determinant_name": "Ratcheted Notified Demand",
+            "billed_value": "84529.33",
+            "calculated_value": "85376.08937273199",
+            "variance_value": "846.7594",
+            "variance_percentage": "1.0017",
+            "unit_of_measure": "kVA",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 84529.33 kVA vs Calculated: 85376.08937273199 kVA",
+              "formula_used": "max(NMD, Annual Peak)",
+              "rate_applied": "N/A",
+              "unit": "kVA",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "85376.08937273199"
+            }
+          },
+          {
+            "determinant_code": "REACTIVE_ENERGY_KVARH",
+            "determinant_name": "Reactive Energy",
+            "billed_value": "8273170.79",
+            "calculated_value": "7994811.6542",
+            "variance_value": "-278359.1358",
+            "variance_percentage": "3.3646",
+            "unit_of_measure": "kVARh",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 8273170.79 kVARh vs Calculated: 7994811.6542 kVARh",
+              "formula_used": "kVARh Telemetry Sum",
+              "rate_applied": "0.1634 R/kVARh",
+              "unit": "kVARh",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "7994811.6542"
+            }
+          },
+          {
+            "determinant_code": "ENERGY_CHARGES_ZAR",
+            "determinant_name": "Active Energy Charges",
+            "billed_value": "67833386.92",
+            "calculated_value": "67836393.59",
+            "variance_value": "3006.67",
+            "variance_percentage": "0.0044",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 67833386.92 ZAR vs Calculated: 67836393.59 ZAR",
+              "formula_used": "sum(kWh * c/kWh / 100)",
+              "rate_applied": "Gazetted c/kWh",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "67836393.59"
+            }
+          },
+          {
+            "determinant_code": "DEMAND_CHARGES_ZAR",
+            "determinant_name": "Demand Charges",
+            "billed_value": "2089075.22",
+            "calculated_value": "4122982.11",
+            "variance_value": "2033906.89",
+            "variance_percentage": "97.3592",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 2089075.22 ZAR vs Calculated: 4122982.11 ZAR",
+              "formula_used": "kVA * R/kVA/month",
+              "rate_applied": "Gazetted R/kVA",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "4122982.11"
+            }
+          },
+          {
+            "determinant_code": "NETWORK_CHARGES_ZAR",
+            "determinant_name": "Network Charges",
+            "billed_value": "3963760.2",
+            "calculated_value": "6225359.77",
+            "variance_value": "2261599.57",
+            "variance_percentage": "57.0569",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 3963760.2 ZAR vs Calculated: 6225359.77 ZAR",
+              "formula_used": "kVA * R/kVA/month",
+              "rate_applied": "Gazetted R/kVA",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "6225359.77"
+            }
+          },
+          {
+            "determinant_code": "SERVICE_CHARGES_ZAR",
+            "determinant_name": "Service Charges",
+            "billed_value": "34134.9",
+            "calculated_value": "6271.76",
+            "variance_value": "-27863.14",
+            "variance_percentage": "81.6265",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 34134.9 ZAR vs Calculated: 6271.76 ZAR",
+              "formula_used": "R/day * days",
+              "rate_applied": "Gazetted R/day",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "6271.76"
+            }
+          },
+          {
+            "determinant_code": "ANCILLARY_CHARGES_ZAR",
+            "determinant_name": "Ancillary & Subsidy Charges",
+            "billed_value": "178490.85",
+            "calculated_value": "1372619.33",
+            "variance_value": "1194128.48",
+            "variance_percentage": "669.0138",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 178490.85 ZAR vs Calculated: 1372619.33 ZAR",
+              "formula_used": "kWh * c/kWh / 100",
+              "rate_applied": "Gazetted c/kWh",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "1372619.33"
+            }
+          },
+          {
+            "determinant_code": "VAT_ZAR",
+            "determinant_name": "Value Added Tax (15%)",
+            "billed_value": "13459783.95",
+            "calculated_value": "11934543.98",
+            "variance_value": "-1525239.97",
+            "variance_percentage": "11.3318",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 13459783.95 ZAR vs Calculated: 11934543.98 ZAR",
+              "formula_used": "Subtotal * 0.15",
+              "rate_applied": "15.00%",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "11934543.98"
+            }
+          },
+          {
+            "determinant_code": "TOTAL_INVOICE_ZAR",
+            "determinant_name": "Total Invoice Amount",
+            "billed_value": "103191676.94",
+            "calculated_value": "91498170.54",
+            "variance_value": "-11693506.4",
+            "variance_percentage": "11.3318",
+            "unit_of_measure": "ZAR",
+            "classification": "CRITICAL",
+            "explanation": {
+              "input_value": "Billed: 103191676.94 ZAR vs Calculated: 91498170.54 ZAR",
+              "formula_used": "Subtotal + VAT",
+              "rate_applied": "N/A",
+              "unit": "ZAR",
+              "precision": "Decimal.js-light NUMERIC(18,4)",
+              "rounding_method": "Decimal.ROUND_HALF_UP",
+              "output_value": "91498170.54"
+            }
+          }
+        ],
+        "organisation_id": "TENANT-ESKOM-001"
+      }
+    }
+  ]
+}

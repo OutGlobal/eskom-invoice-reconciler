@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { useApp } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "react-hot-toast";
+import seedData from "@/assets/millennium_33kv_reconciliation_records.json";
 
 export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
   const activeInvoice = useApp((s) => s.invoice);
@@ -13,7 +14,7 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
   const [dbInvoices, setDbInvoices] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Query real uploaded invoices from Supabase
+  // Query real uploaded invoices from Supabase with local seed fallback
   useEffect(() => {
     let isMounted = true;
     setIsLoading(true);
@@ -42,43 +43,72 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
         }
 
         const combined = Array.from(invoiceMap.values());
+
+        // Hydrate from multi-period deterministic seed if remote database is empty/offline
+        if (combined.length === 0 && seedData?.periods) {
+          for (const item of seedData.periods) {
+            const inv = item.invoice;
+            if (inv) {
+              combined.push({
+                ...inv,
+                account_number: inv.accountNumber,
+                customer_name: inv.customerName,
+                meter_number: "7856504226F1, F2, F3",
+                tariff_name: inv.tariffName,
+                voltage: "33 kV",
+                billing_period_name: item.periodName.replace("Millenium 33kV ", "").replace("Millenium 33kV - ", ""),
+                billing_start: inv.billingPeriodStart,
+                billing_end: inv.billingPeriodEnd,
+                peak_kwh: inv.peakKWh,
+                standard_kwh: inv.standardKWh,
+                off_peak_kwh: inv.offPeakKWh,
+                total_kwh: inv.totalKWh,
+                max_demand_kva: inv.maxDemandKVA,
+                invoiced_total: inv.totalInclVat,
+                invoice_number: inv.invoiceNumber,
+              });
+            }
+          }
+        }
+
         if (combined.length > 0) {
           setDbInvoices(combined);
           // If store has no active invoice, select the most recent real uploaded invoice
           if (!useApp.getState().invoice) {
             const latest = combined[0];
             setInvoice({
-              accountNumber: latest.account_number,
-              customerName: latest.customer_name || "Enterprise Client",
-              meterNumber: latest.meter_number || latest.premise_id || "",
-              tariffName: latest.tariff_name || latest.tariff_code || "Megaflex",
-              voltage: "132 kV",
-              nmd: 0,
-              billingPeriod: latest.billing_period_name,
-              billingPeriodStart: latest.billing_start,
-              billingPeriodEnd: latest.billing_end,
-              peakKWh: Number(latest.peak_kwh) || 0,
-              standardKWh: Number(latest.standard_kwh) || 0,
-              offPeakKWh: Number(latest.off_peak_kwh) || 0,
-              totalKWh: Number(latest.total_kwh) || 0,
-              maxDemandKVA: Number(latest.max_demand_kva) || 0,
-              transmissionNetworkCharge: 0,
-              networkCapacityCharge: 0,
-              generationCapacityCharge: 0,
-              networkDemandCharge: 0,
-              ancillary: 0,
-              legacy: 0,
-              affordability: 0,
-              electrification: 0,
-              reactive: 0,
-              peakEnergyCharge: 0,
-              standardEnergyCharge: 0,
-              offPeakEnergyCharge: 0,
-              vat: 0,
-              invoiceTotal: Number(latest.invoiced_total) || 0,
-              totalInclVat: Number(latest.invoiced_total) || 0,
-              invoiceNumber: latest.invoice_number,
-              taxInvoiceNo: latest.invoice_number,
+              accountNumber: latest.account_number || latest.accountNumber,
+              customerName: latest.customer_name || latest.customerName || "Enterprise Client",
+              meterNumber: latest.meter_number || latest.meterNumber || "",
+              tariffName: latest.tariff_name || latest.tariffName || "Megaflex",
+              voltage: latest.voltage || "33 kV",
+              nmd: latest.nmd || 0,
+              billingPeriod: latest.billing_period_name || latest.billingPeriod,
+              billingPeriodStart: latest.billing_start || latest.billingPeriodStart,
+              billingPeriodEnd: latest.billing_end || latest.billingPeriodEnd,
+              peakKWh: Number(latest.peak_kwh || latest.peakKWh) || 0,
+              standardKWh: Number(latest.standard_kwh || latest.standardKWh) || 0,
+              offPeakKWh: Number(latest.off_peak_kwh || latest.offPeakKWh) || 0,
+              totalKWh: Number(latest.total_kwh || latest.totalKWh) || 0,
+              maxDemandKVA: Number(latest.max_demand_kva || latest.maxDemandKVA) || 0,
+              transmissionNetworkCharge: Number(latest.transmissionNetworkCharge) || 0,
+              networkCapacityCharge: Number(latest.networkCapacityCharge) || 0,
+              generationCapacityCharge: Number(latest.generationCapacityCharge) || 0,
+              networkDemandCharge: Number(latest.networkDemandCharge) || 0,
+              ancillary: Number(latest.ancillary) || 0,
+              legacy: Number(latest.legacy) || 0,
+              affordability: Number(latest.affordability) || 0,
+              electrification: Number(latest.electrification) || 0,
+              reactive: Number(latest.reactive) || 0,
+              peakEnergyCharge: Number(latest.peakEnergyCharge) || 0,
+              standardEnergyCharge: Number(latest.standardEnergyCharge) || 0,
+              offPeakEnergyCharge: Number(latest.offPeakEnergyCharge) || 0,
+              serviceCharge: Number(latest.serviceCharge) || 0,
+              vat: Number(latest.vat) || 0,
+              invoiceTotal: Number(latest.invoiced_total || latest.totalInclVat || latest.invoiceTotal) || 0,
+              totalInclVat: Number(latest.invoiced_total || latest.totalInclVat || latest.invoiceTotal) || 0,
+              invoiceNumber: latest.invoice_number || latest.invoiceNumber,
+              taxInvoiceNo: latest.invoice_number || latest.invoiceNumber,
             });
           }
         }
@@ -109,7 +139,7 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
       customerName: inv.customer_name || inv.customerName || "Enterprise Client",
       meterNumber: inv.meter_number || inv.meterNumber || "",
       tariffName: inv.tariff_name || inv.tariffName || "Megaflex",
-      voltage: inv.voltage || "132 kV",
+      voltage: inv.voltage || "33 kV",
       nmd: inv.nmd || 0,
       billingPeriod: inv.billing_period_name || inv.billingPeriod,
       billingPeriodStart: inv.billing_start || inv.billingPeriodStart,
@@ -119,25 +149,26 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
       offPeakKWh: Number(inv.off_peak_kwh || inv.offPeakKWh) || 0,
       totalKWh: Number(inv.total_kwh || inv.totalKWh) || 0,
       maxDemandKVA: Number(inv.max_demand_kva || inv.maxDemandKVA) || 0,
-      transmissionNetworkCharge: 0,
-      networkCapacityCharge: 0,
-      generationCapacityCharge: 0,
-      networkDemandCharge: 0,
-      ancillary: 0,
-      legacy: 0,
-      affordability: 0,
-      electrification: 0,
-      reactive: 0,
-      peakEnergyCharge: 0,
-      standardEnergyCharge: 0,
-      offPeakEnergyCharge: 0,
-      vat: 0,
-      invoiceTotal: Number(inv.invoiced_total || inv.invoiceTotal) || 0,
-      totalInclVat: Number(inv.invoiced_total || inv.invoiceTotal) || 0,
+      transmissionNetworkCharge: Number(inv.transmissionNetworkCharge) || 0,
+      networkCapacityCharge: Number(inv.networkCapacityCharge) || 0,
+      generationCapacityCharge: Number(inv.generationCapacityCharge) || 0,
+      networkDemandCharge: Number(inv.networkDemandCharge) || 0,
+      ancillary: Number(inv.ancillary) || 0,
+      legacy: Number(inv.legacy) || 0,
+      affordability: Number(inv.affordability) || 0,
+      electrification: Number(inv.electrification) || 0,
+      reactive: Number(inv.reactive) || 0,
+      peakEnergyCharge: Number(inv.peakEnergyCharge) || 0,
+      standardEnergyCharge: Number(inv.standardEnergyCharge) || 0,
+      offPeakEnergyCharge: Number(inv.offPeakEnergyCharge) || 0,
+      serviceCharge: Number(inv.serviceCharge) || 0,
+      vat: Number(inv.vat) || 0,
+      invoiceTotal: Number(inv.invoiced_total || inv.totalInclVat || inv.invoiceTotal) || 0,
+      totalInclVat: Number(inv.invoiced_total || inv.totalInclVat || inv.invoiceTotal) || 0,
       invoiceNumber: invNum,
       taxInvoiceNo: invNum,
     });
-    toast.success(`Active invoice switched to ${invNum}`);
+    toast.success(`Active invoice switched to ${inv.billing_period_name || invNum}`);
   };
 
   return (
