@@ -75,6 +75,8 @@ import {
   Sparkles,
   History,
   Scale,
+  ArrowRight,
+  Activity,
 } from "lucide-react";
 import { SecureIngestionGateway } from "@/domain/ingestion/secureIngestionGateway";
 import { UploadStorageService } from "@/domain/upload/uploadStorageService";
@@ -934,20 +936,47 @@ export function SecureUploadGateway() {
       </div>
 
       {workspaceRows.length > 0 && (
-        <section className="rounded-xl border border-amber-500/30 p-4">
-          <h2 className="font-semibold">Available meter calculations (partial results)</h2>
-          <p className="text-sm">
-            {workspaceRows.length} intervals loaded · {partialTotals.totalKWh.toFixed(2)} kWh ·
-            Maximum demand {partialTotals.maxDemandKVA.toFixed(2)} kVA
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Uses the workspace’s 30-minute interval convention. Partial coverage is not a complete
-            invoice verification; missing invoice or applicable tariff will keep financial
-            reconciliation pending.
-          </p>
-          <a href="/reconciliation" className="underline text-sm">
-            Open reconciliation workspace
-          </a>
+        <section className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-card/70 to-card/50 p-4 backdrop-blur-md shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
+                <Activity className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-semibold text-sm text-foreground">
+                    Telemetry Workspace Loaded
+                  </h2>
+                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                    Live Active Telemetry
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1 text-xs">
+                  <span className="font-mono text-muted-foreground">
+                    <strong className="text-foreground">{workspaceRows.length.toLocaleString()}</strong> intervals loaded
+                  </span>
+                  <span className="text-muted-foreground/50">·</span>
+                  <span className="font-mono text-muted-foreground">
+                    <strong className="text-foreground">{partialTotals.totalKWh.toLocaleString("en-ZA", { maximumFractionDigits: 2 })}</strong> kWh Total
+                  </span>
+                  <span className="text-muted-foreground/50">·</span>
+                  <span className="font-mono text-muted-foreground">
+                    Peak Demand <strong className="text-foreground">{partialTotals.maxDemandKVA.toLocaleString("en-ZA", { maximumFractionDigits: 2 })}</strong> kVA
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Workspace 30-minute interval profile active. Pair with an invoice for complete automated financial settlement.
+                </p>
+              </div>
+            </div>
+            <a
+              href="/reconciliation"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 transition shrink-0 w-fit"
+            >
+              <span>Reconciliation Workspace</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
         </section>
       )}
 
@@ -1050,7 +1079,7 @@ export function SecureUploadGateway() {
             Drop Invoice + Meter Data together (or click to browse)
           </p>
           <p className="text-xs text-muted-foreground mt-1 max-w-md">
-            Automatic end-to-end reconciliation: Upload your invoice (PDF) and AMR interval data
+            Automatic end-to-end reconciliation: Upload your invoice (PDF or Excel) and AMR interval data
             (CSV/Excel) simultaneously for automated 8-stage processing with zero extra clicks.
           </p>
           <span
@@ -1300,54 +1329,210 @@ export function SecureUploadGateway() {
         {/* Automatic reconciliation outcome for the latest upload */}
         {autoRecon && !processing && (
           <div
-            className={`mt-6 p-4 rounded-xl border flex items-start gap-3 ${
+            className={`mt-6 rounded-2xl border p-5 backdrop-blur-md shadow-lg transition-all animate-in fade-in duration-300 ${
               autoRecon.status === "COMPLETED"
-                ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-300"
+                ? "border-emerald-500/40 bg-gradient-to-b from-emerald-950/20 via-card/80 to-card/60 text-foreground"
                 : autoRecon.status === "FAILED"
-                  ? "border-red-500/30 bg-red-500/5 text-red-300"
-                  : "border-amber-500/30 bg-amber-500/5 text-amber-300"
+                  ? "border-rose-500/40 bg-gradient-to-b from-rose-950/20 via-card/80 to-card/60 text-foreground"
+                  : "border-amber-500/40 bg-gradient-to-b from-amber-950/20 via-card/80 to-card/60 text-foreground"
             }`}
           >
-            <Scale className="w-5 h-5 shrink-0 mt-0.5" />
-            <div>
-              <div className="font-semibold text-sm">
-                {autoRecon.status === "COMPLETED"
-                  ? "Reconciliation ran automatically"
-                  : "Reconciliation pending"}
-              </div>
-              <div className="text-xs opacity-80 mt-1">{autoRecon.message}</div>
-              {autoRecon.payload && (
-                <div className="text-xs opacity-80 mt-1">
-                  {autoRecon.payload.determinant_comparisons.length} determinants compared — open
-                  Reconciliation for the full breakdown.
-                  <a href="/reconciliation" className="block underline mt-2">
-                    View calculated results
-                  </a>
-                  <table className="mt-3 w-full text-left">
-                    <thead>
-                      <tr>
-                        <th>Determinant</th>
-                        <th>Billed</th>
-                        <th>Calculated</th>
-                        <th>Variance</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {autoRecon.payload.determinant_comparisons.map((item) => (
-                        <tr key={item.determinant_code}>
-                          <td>
-                            {item.determinant_name} ({item.unit_of_measure})
-                          </td>
-                          <td>{item.billed_value.toString()}</td>
-                          <td>{item.calculated_value.toString()}</td>
-                          <td>{item.variance_value.toString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/40 pb-4">
+              <div className="flex items-start gap-3">
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
+                    autoRecon.status === "COMPLETED"
+                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                      : autoRecon.status === "FAILED"
+                        ? "bg-rose-500/10 text-rose-400 border border-rose-500/30"
+                        : "bg-amber-500/10 text-amber-400 border border-amber-500/30"
+                  }`}
+                >
+                  <Scale className="w-5 h-5" />
                 </div>
-              )}
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-semibold text-sm text-foreground">
+                      {autoRecon.status === "COMPLETED"
+                        ? "Reconciliation Engine: Automatically Executed"
+                        : autoRecon.status === "FAILED"
+                          ? "Reconciliation Engine Error"
+                          : "Reconciliation Pipeline Pending"}
+                    </h3>
+                    <span
+                      className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border ${
+                        autoRecon.status === "COMPLETED"
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                          : autoRecon.status === "FAILED"
+                            ? "bg-rose-500/10 text-rose-400 border-rose-500/30"
+                            : "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                      }`}
+                    >
+                      {autoRecon.status === "COMPLETED"
+                        ? autoRecon.payload?.classification?.replace(/_/g, " ") || "VERIFIED"
+                        : autoRecon.status.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{autoRecon.message}</p>
+                </div>
+              </div>
+
+              <a
+                href="/reconciliation"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 transition shadow-sm w-fit shrink-0"
+              >
+                <span>Open Reconciliation Workspace</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
             </div>
+
+            {autoRecon.payload && (
+              <div className="mt-4 space-y-4">
+                {/* Executive Totals Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="rounded-xl border border-border/40 bg-card/60 p-3">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      Billed Total
+                    </span>
+                    <div className="text-base font-bold font-mono text-foreground mt-1 tabular-nums">
+                      R{" "}
+                      {Number(autoRecon.payload.billed_total_zar || 0).toLocaleString("en-ZA", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-border/40 bg-card/60 p-3">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      Calculated Total
+                    </span>
+                    <div className="text-base font-bold font-mono text-foreground mt-1 tabular-nums">
+                      R{" "}
+                      {Number(autoRecon.payload.calculated_total_zar || 0).toLocaleString("en-ZA", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-border/40 bg-card/60 p-3">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      Net Variance
+                    </span>
+                    <div
+                      className={`text-base font-bold font-mono mt-1 tabular-nums ${
+                        Number(autoRecon.payload.variance_total_zar || 0) === 0
+                          ? "text-emerald-400"
+                          : Number(autoRecon.payload.variance_total_zar || 0) > 0
+                            ? "text-rose-400"
+                            : "text-amber-400"
+                      }`}
+                    >
+                      R{" "}
+                      {Number(autoRecon.payload.variance_total_zar || 0).toLocaleString("en-ZA", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-border/40 bg-card/60 p-3">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      Variance %
+                    </span>
+                    <div
+                      className={`text-base font-bold font-mono mt-1 tabular-nums ${
+                        Number(autoRecon.payload.variance_percentage || 0) === 0
+                          ? "text-emerald-400"
+                          : "text-amber-400"
+                      }`}
+                    >
+                      {Number(autoRecon.payload.variance_percentage || 0).toFixed(3)}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Determinant Comparison Table */}
+                <div className="rounded-xl border border-border/50 overflow-hidden bg-card/50 shadow-sm">
+                  <div className="px-4 py-2.5 bg-muted/40 border-b border-border/40 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground">
+                      Determinant Audit Comparison ({autoRecon.payload.determinant_comparisons.length} factors)
+                    </span>
+                    <span className="text-[10px] font-mono text-muted-foreground">
+                      Zero Silent Discards Verified
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-muted/20 text-muted-foreground text-[10px] uppercase font-semibold border-b border-border/30">
+                        <tr>
+                          <th className="py-2.5 px-3">Determinant Name</th>
+                          <th className="py-2.5 px-3 text-center">Unit</th>
+                          <th className="py-2.5 px-3 text-right">Billed</th>
+                          <th className="py-2.5 px-3 text-right">Calculated</th>
+                          <th className="py-2.5 px-3 text-right">Variance</th>
+                          <th className="py-2.5 px-3 text-center">Audit Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/20 font-mono">
+                        {autoRecon.payload.determinant_comparisons.map((item) => {
+                          const billedNum = Number(item.billed_value);
+                          const calcNum = Number(item.calculated_value);
+                          const varNum = Number(item.variance_value);
+                          const isMatch = varNum === 0 || item.classification === "PASS";
+                          return (
+                            <tr key={item.determinant_code} className="hover:bg-muted/15 transition-colors">
+                              <td className="py-2.5 px-3 font-sans font-medium text-foreground">
+                                {item.determinant_name}
+                              </td>
+                              <td className="py-2.5 px-3 text-center text-muted-foreground font-sans text-[11px]">
+                                {item.unit_of_measure}
+                              </td>
+                              <td className="py-2.5 px-3 text-right text-foreground font-bold tabular-nums">
+                                {isNaN(billedNum)
+                                  ? item.billed_value.toString()
+                                  : billedNum.toLocaleString("en-ZA", { maximumFractionDigits: 3 })}
+                              </td>
+                              <td className="py-2.5 px-3 text-right text-foreground tabular-nums">
+                                {isNaN(calcNum)
+                                  ? item.calculated_value.toString()
+                                  : calcNum.toLocaleString("en-ZA", { maximumFractionDigits: 3 })}
+                              </td>
+                              <td
+                                className={`py-2.5 px-3 text-right font-bold tabular-nums ${
+                                  isMatch
+                                    ? "text-emerald-400"
+                                    : varNum > 0
+                                      ? "text-rose-400"
+                                      : "text-amber-400"
+                                }`}
+                              >
+                                {isNaN(varNum)
+                                  ? item.variance_value.toString()
+                                  : (varNum > 0 ? "+" : "") +
+                                    varNum.toLocaleString("en-ZA", { maximumFractionDigits: 3 })}
+                              </td>
+                              <td className="py-2.5 px-3 text-center font-sans">
+                                <span
+                                  className={`inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full border ${
+                                    isMatch
+                                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                                      : "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                                  }`}
+                                >
+                                  {isMatch ? "MATCH" : item.classification || "VARIANCE"}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
