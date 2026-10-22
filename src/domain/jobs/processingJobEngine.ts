@@ -763,7 +763,39 @@ export class ProcessingJobEngine {
       /* non-blocking */
     }
 
-    const reconciliationPayload = DeterministicReconciliationEngine.reconcile(reconInput);
+    let activeReconInput: AuthoritativeReconciliationInput = reconInput;
+    if (extractedInvoice.monthlyPeriods && extractedInvoice.monthlyPeriods.length > 0) {
+      const firstPeriod = extractedInvoice.monthlyPeriods[0];
+      const pStart = firstPeriod.billingStart ? new Date(firstPeriod.billingStart).getTime() : 0;
+      const pEnd = firstPeriod.billingEnd ? new Date(firstPeriod.billingEnd).getTime() + 86400000 : Infinity;
+      const pIntervals = canonicalTelemetry.filter((r: any) => {
+        const t = r.ts ? new Date(r.ts).getTime() : r.timestamp ? new Date(r.timestamp).getTime() : 0;
+        return t >= pStart && t <= pEnd;
+      });
+      const intervalsToUse = pIntervals.length > 0 ? pIntervals : canonicalTelemetry;
+      const pPeak = intervalsToUse.reduce((s: number, r: any) => s + (r.peak_kwh || 0), 0);
+      const pStd = intervalsToUse.reduce((s: number, r: any) => s + (r.standard_kwh || 0), 0);
+      const pOff = intervalsToUse.reduce((s: number, r: any) => s + (r.off_peak_kwh || 0), 0);
+      const pTot = pPeak + pStd + pOff;
+      const pMaxKva = intervalsToUse.reduce((m: number, r: any) => Math.max(m, r.kva || 0), 0);
+      const pReactive = intervalsToUse.reduce((s: number, r: any) => s + (r.kvarh || 0), 0);
+      const pPfRecord = PowerFactorEngine.calculatePowerFactor({ kWh: pTot, kVArh: pReactive });
+
+      activeReconInput = {
+        ...reconInput,
+        billing_start: firstPeriod.billingStart,
+        billing_end: firstPeriod.billingEnd,
+        calc_peak_kwh: new Decimal(pPeak.toString()),
+        calc_standard_kwh: new Decimal(pStd.toString()),
+        calc_off_peak_kwh: new Decimal(pOff.toString()),
+        calc_total_kwh: new Decimal(pTot.toString()),
+        calc_maximum_demand_kva: new Decimal(pMaxKva.toString()),
+        calc_reactive_energy_kvarh: new Decimal(pReactive.toString()),
+        calc_power_factor: pPfRecord.calculated_pf,
+      };
+    }
+
+    const reconciliationPayload = DeterministicReconciliationEngine.reconcile(activeReconInput);
 
     // --- PERSIST reconciliation result to reconciliation_results table ---
     if (isSupabaseConfigured) {

@@ -108,6 +108,7 @@ export interface InvoiceData {
   invoiceNumber?: string;
   meterReadings?: InvoiceMeterReadingStored[];
   extraction?: InvoiceExtractionAudit;
+  monthlyPeriods?: any[];
   normalizedJson?: NormalizedInvoiceJson;
 }
 
@@ -250,6 +251,7 @@ interface AppState {
 
   batchInvoices: InvoiceData[];
   addBatchInvoice: (inv: InvoiceData) => void;
+  setBatchInvoices: (invoices: InvoiceData[]) => void;
 
   overrideInvoiceField: (fieldPath: string, newValue: number | string) => void;
   overrideInvoiceChargeLine: (labelOrNormalized: string, newAmount: number) => void;
@@ -377,6 +379,7 @@ export const useApp = create<AppState>((set) => ({
 
   batchInvoices: [],
   addBatchInvoice: (inv) => set((s) => ({ batchInvoices: [...s.batchInvoices, inv] })),
+  setBatchInvoices: (batchInvoices) => set({ batchInvoices }),
 
   overrideInvoiceField: (fieldPath, newValue) =>
     set((s) => {
