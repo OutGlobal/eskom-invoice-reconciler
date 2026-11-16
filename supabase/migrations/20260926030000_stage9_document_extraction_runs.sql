@@ -65,7 +65,7 @@ CREATE INDEX IF NOT EXISTS idx_doc_field_evidence_run_id
     ON public.document_field_evidence (run_id);
 
 -- Extend document_registry to track latest run reference and count
-ALTER TABLE public.document_registry 
+ALTER TABLE public.uploads
     ADD COLUMN IF NOT EXISTS latest_processing_run_id VARCHAR(100),
     ADD COLUMN IF NOT EXISTS processing_runs_count INT DEFAULT 1;
 

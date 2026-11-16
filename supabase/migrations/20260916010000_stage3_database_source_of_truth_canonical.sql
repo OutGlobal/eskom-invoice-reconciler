@@ -36,32 +36,37 @@
 BEGIN;
 
 -- 1. CANONICAL VIEW: ACCOUNTS
-CREATE OR REPLACE VIEW public.accounts AS
+CREATE OR REPLACE VIEW public.accounts WITH (security_invoker = true) AS
 SELECT
     c.id AS account_id,
-    c.id AS id,
     c.organisation_id,
     c.account_number,
-    c.name AS account_name,
+    c.customer_name AS account_name,
     c.premise_id,
     c.meter_number,
-    c.nmd_kva,
+    c.nmd AS nmd_kva,
     c.address,
     c.supply_voltage_kv,
     c.created_at,
     o.name AS organisation_name,
-    o.code AS organisation_code
+    o.code AS organisation_code,
+    c.id AS id
 FROM public.customers c
 LEFT JOIN public.organisations o ON c.organisation_id = o.id;
 
 COMMENT ON VIEW public.accounts IS 'Authoritative billing accounts domain view mapped from customers and organisations';
 
+ALTER TABLE public.tariff_schedules
+    ADD COLUMN IF NOT EXISTS tariff_code TEXT,
+    ADD COLUMN IF NOT EXISTS provider TEXT,
+    ADD COLUMN IF NOT EXISTS description TEXT;
+
 -- 2. CANONICAL VIEW: TARIFFS
-CREATE OR REPLACE VIEW public.tariffs AS
+CREATE OR REPLACE VIEW public.tariffs WITH (security_invoker = true) AS
 SELECT
     ts.id AS tariff_id,
     ts.id AS id,
-    ts.tariff_code,
+    COALESCE(ts.tariff_code, ts.id::text) AS tariff_code,
     ts.tariff_name,
     ts.provider,
     ts.tariff_family,
@@ -72,33 +77,32 @@ FROM public.tariff_schedules ts;
 COMMENT ON VIEW public.tariffs IS 'Authoritative master tariff catalog canonical view mapped from tariff_schedules';
 
 -- 3. CANONICAL VIEW: INTERVAL_DATA
-CREATE OR REPLACE VIEW public.interval_data AS
+CREATE OR REPLACE VIEW public.interval_data WITH (security_invoker = true) AS
 SELECT
     ti.id,
     ti.meter_id,
     ti.organisation_id,
     ti.timestamp_utc,
-    ti.active_energy_kwh,
-    ti.reactive_energy_kvarh,
-    ti.apparent_energy_kvah,
-    ti.active_power_kw,
-    ti.reactive_power_kvar,
-    ti.apparent_power_kva,
+    ti.kwh AS active_energy_kwh,
+    ti.kvarh AS reactive_energy_kvarh,
+    NULL::numeric AS apparent_energy_kvah,
+    ti.kw AS active_power_kw,
+    NULL::numeric AS reactive_power_kvar,
+    ti.kva AS apparent_power_kva,
     ti.power_factor,
-    ti.tou_bucket,
+    ti.tou_period AS tou_bucket,
     ti.season,
-    ti.is_estimated,
-    ti.quality_score,
+    (ti.quality_code = 'estimated') AS is_estimated,
+    NULL::numeric AS quality_score,
     ti.created_at
 FROM public.telemetry_intervals ti;
 
 COMMENT ON VIEW public.interval_data IS 'Canonical timeseries interval telemetry view mapped from partitioned telemetry_intervals';
 
 -- 4. CANONICAL VIEW: ENERGY_TOTALS
-CREATE OR REPLACE VIEW public.energy_totals AS
+CREATE OR REPLACE VIEW public.energy_totals WITH (security_invoker = true) AS
 SELECT
     ir.id AS invoice_record_id,
-    ir.id AS id,
     ir.organisation_id,
     ir.account_number,
     ir.invoice_number,
@@ -114,16 +118,16 @@ SELECT
             ROUND((COALESCE(ir.peak_kwh, 0) / ir.total_kwh) * 100, 2)
         ELSE 0 
     END AS peak_ratio_pct,
-    ir.created_at
+    ir.created_at,
+    ir.id AS id
 FROM public.invoice_records ir;
 
 COMMENT ON VIEW public.energy_totals IS 'Authoritative active energy consumption totals per billing period';
 
 -- 5. CANONICAL VIEW: DEMAND_DATA
-CREATE OR REPLACE VIEW public.demand_data AS
+CREATE OR REPLACE VIEW public.demand_data WITH (security_invoker = true) AS
 SELECT
     ir.id AS invoice_record_id,
-    ir.id AS id,
     ir.organisation_id,
     ir.account_number,
     ir.invoice_number,
@@ -131,25 +135,27 @@ SELECT
     ir.billing_start,
     ir.billing_end,
     COALESCE(ir.max_demand_kva, 0) AS max_demand_kva,
-    COALESCE(c.nmd_kva, 0) AS notified_max_demand_kva,
+    COALESCE(c.nmd, 0) AS notified_max_demand_kva,
     CASE 
-        WHEN COALESCE(c.nmd_kva, 0) > 0 AND COALESCE(ir.max_demand_kva, 0) > c.nmd_kva THEN 
-            ir.max_demand_kva - c.nmd_kva
+        WHEN COALESCE(c.nmd, 0) > 0 AND COALESCE(ir.max_demand_kva, 0) > c.nmd THEN
+            ir.max_demand_kva - c.nmd
         ELSE 0 
     END AS excess_demand_kva,
     CASE 
-        WHEN COALESCE(c.nmd_kva, 0) > 0 AND COALESCE(ir.max_demand_kva, 0) > c.nmd_kva THEN 
+        WHEN COALESCE(c.nmd, 0) > 0 AND COALESCE(ir.max_demand_kva, 0) > c.nmd THEN
             true
         ELSE false 
     END AS is_nmd_exceeded,
-    ir.created_at
+    ir.created_at,
+    ir.id AS id
 FROM public.invoice_records ir
-LEFT JOIN public.customers c ON ir.account_number = c.account_number;
+LEFT JOIN public.customers c ON ir.account_number = c.account_number
+    AND ir.organisation_id = c.organisation_id;
 
 COMMENT ON VIEW public.demand_data IS 'Authoritative maximum demand and NMD capacity determinants view';
 
 -- 6. CANONICAL VIEW: REACTIVE_ENERGY
-CREATE OR REPLACE VIEW public.reactive_energy AS
+CREATE OR REPLACE VIEW public.reactive_energy WITH (security_invoker = true) AS
 SELECT
     id.id,
     id.invoice_record_id,
@@ -175,7 +181,7 @@ WHERE id.determinant_name ILIKE '%reactive%' OR id.unit ILIKE '%kvar%';
 COMMENT ON VIEW public.reactive_energy IS 'Authoritative reactive energy and threshold exceedance view';
 
 -- 7. CANONICAL VIEW: RECONCILIATIONS
-CREATE OR REPLACE VIEW public.reconciliations AS
+CREATE OR REPLACE VIEW public.reconciliations WITH (security_invoker = true) AS
 SELECT
     rr.id AS reconciliation_id,
     rr.id,
@@ -196,7 +202,7 @@ LEFT JOIN public.reconciliation_results res ON rr.id = res.reconciliation_run_id
 COMMENT ON VIEW public.reconciliations IS 'Authoritative reconciliations view mapped from reconciliation_runs & results';
 
 -- 8. CANONICAL VIEW: ANOMALIES
-CREATE OR REPLACE VIEW public.anomalies AS
+CREATE OR REPLACE VIEW public.anomalies WITH (security_invoker = true) AS
 SELECT
     de.id AS anomaly_id,
     de.id,
@@ -220,7 +226,7 @@ LEFT JOIN public.discrepancy_reason_codes rc ON de.reason_code_id = rc.id;
 COMMENT ON VIEW public.anomalies IS 'Authoritative anomaly and billing discrepancy view mapped from discrepancy_events';
 
 -- 9. CANONICAL VIEW: ANALYSIS_RESULTS
-CREATE OR REPLACE VIEW public.analysis_results AS
+CREATE OR REPLACE VIEW public.analysis_results WITH (security_invoker = true) AS
 SELECT
     cs.id AS analysis_id,
     cs.id,
@@ -236,7 +242,7 @@ LEFT JOIN public.reconciliation_runs rr ON cs.reconciliation_run_id = rr.id;
 COMMENT ON VIEW public.analysis_results IS 'Authoritative calculation snapshots and analysis results view';
 
 -- 10. CANONICAL VIEW: REPORTS
-CREATE OR REPLACE VIEW public.reports AS
+CREATE OR REPLACE VIEW public.reports WITH (security_invoker = true) AS
 SELECT
     gr.id AS report_id,
     gr.id,
@@ -251,7 +257,7 @@ FROM public.generated_reports gr;
 COMMENT ON VIEW public.reports IS 'Authoritative report catalog view mapped from generated_reports';
 
 -- 11. CANONICAL VIEW: AUDIT_LOGS
-CREATE OR REPLACE VIEW public.audit_logs AS
+CREATE OR REPLACE VIEW public.audit_logs WITH (security_invoker = true) AS
 SELECT
     ae.id AS log_id,
     ae.id,
@@ -268,10 +274,9 @@ FROM public.audit_events ae;
 COMMENT ON VIEW public.audit_logs IS 'Authoritative system audit log view mapped from audit_events';
 
 -- 12. CANONICAL VIEW: PROCESSING_JOBS
-CREATE OR REPLACE VIEW public.processing_jobs AS
+CREATE OR REPLACE VIEW public.processing_jobs WITH (security_invoker = true) AS
 SELECT
     ij.id AS job_id,
-    ij.id,
     ij.source_file_id,
     sf.organisation_id,
     sf.filename,
@@ -284,28 +289,29 @@ SELECT
     ij.error_summary,
     ij.started_at,
     ij.completed_at,
-    ij.created_at
+    ij.created_at,
+    ij.id
 FROM public.ingestion_jobs ij
 LEFT JOIN public.source_files sf ON ij.source_file_id = sf.id;
 
 COMMENT ON VIEW public.processing_jobs IS 'Authoritative pipeline processing jobs view mapped from ingestion_jobs';
 
 -- 13. CANONICAL VIEW: PROCESSING_ERRORS
-CREATE OR REPLACE VIEW public.processing_errors AS
+CREATE OR REPLACE VIEW public.processing_errors WITH (security_invoker = true) AS
 SELECT
     ie.id AS error_id,
     ie.id,
     sf.organisation_id,
-    ie.job_id,
+    ie.ingestion_job_id AS job_id,
     ij.job_type,
     ij.correlation_id,
     ie.error_code,
     ie.error_message,
-    ie.stack_trace,
-    ie.error_payload,
-    ie.occurred_at
+    NULL::text AS stack_trace,
+    ie.error_details AS error_payload,
+    ie.created_at AS occurred_at
 FROM public.ingestion_errors ie
-LEFT JOIN public.ingestion_jobs ij ON ie.job_id = ij.id
+LEFT JOIN public.ingestion_jobs ij ON ie.ingestion_job_id = ij.id
 LEFT JOIN public.source_files sf ON ij.source_file_id = sf.id;
 
 COMMENT ON VIEW public.processing_errors IS 'Authoritative pipeline error view mapped from ingestion_errors';

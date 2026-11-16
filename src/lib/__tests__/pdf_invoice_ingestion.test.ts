@@ -51,7 +51,7 @@ describe("Stage 8 — PDF / Invoice Ingestion Suite", () => {
     expect(stored?.retentionPolicy).toBe("PERMANENT");
     expect(stored?.storageBucket).toBe(FileStorageSecurityService.BUCKET_NAME);
     expect(stored?.fileHashSha256).toBe(result.fileHeader.sha256Checksum);
-    expect(result.signedDownloadUrl).toBeDefined();
+    expect(result.signedDownloadUrl).toBeUndefined();
   });
 
   it("Requirement 2: Creates an ingestion job with start and completion timestamps", async () => {

@@ -42,6 +42,27 @@ CREATE TABLE IF NOT EXISTS public.uploads (
 
 COMMENT ON TABLE public.uploads IS 'Authoritative audit and status registry for all ingested files in the Eskom Reconciler platform';
 
+-- The original upload log already exists on databases created from the
+-- initial migrations. Extend it in place to preserve its stored history.
+ALTER TABLE public.uploads
+    ADD COLUMN IF NOT EXISTS organisation_id UUID REFERENCES public.organisations(id) ON DELETE CASCADE,
+    ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    ADD COLUMN IF NOT EXISTS file_type TEXT,
+    ADD COLUMN IF NOT EXISTS file_size_bytes BIGINT CHECK (file_size_bytes >= 0),
+    ADD COLUMN IF NOT EXISTS file_hash_sha256 TEXT,
+    ADD COLUMN IF NOT EXISTS storage_location TEXT,
+    ADD COLUMN IF NOT EXISTS processing_status TEXT NOT NULL DEFAULT 'UPLOADED',
+    ADD COLUMN IF NOT EXISTS processing_start TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS processing_completion TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS row_count INT DEFAULT 0 CHECK (row_count >= 0),
+    ADD COLUMN IF NOT EXISTS record_count INT DEFAULT 0 CHECK (record_count >= 0),
+    ADD COLUMN IF NOT EXISTS validation_status TEXT NOT NULL DEFAULT 'PENDING',
+    ADD COLUMN IF NOT EXISTS error_status TEXT NOT NULL DEFAULT 'NONE',
+    ADD COLUMN IF NOT EXISTS error_message TEXT,
+    ADD COLUMN IF NOT EXISTS metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
 -- 2. Performance & Tenant Indexing
 CREATE INDEX IF NOT EXISTS idx_uploads_org_status 
 ON public.uploads (organisation_id, processing_status);

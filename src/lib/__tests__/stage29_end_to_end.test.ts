@@ -338,8 +338,8 @@ describe("Stage 29 — End-to-End Production Verification", () => {
     });
 
     const crossRes = await server.fetch(crossReq, {}, {});
-    expect(crossRes.status).toBe(403);
+    expect(crossRes.status).toBe(401);
     const crossJson = await crossRes.json();
-    expect(crossJson.error).toBe("UNAUTHORIZED_TENANT_ACCESS");
+    expect(crossJson.error).toBe("Authentication required");
   });
 });

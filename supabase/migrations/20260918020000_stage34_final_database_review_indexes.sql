@@ -11,6 +11,9 @@ ON public.customers (organisation_id);
 CREATE INDEX IF NOT EXISTS idx_users_organisation_id 
 ON public.users (organisation_id);
 
+ALTER TABLE public.audit_events_ledger
+    ADD COLUMN IF NOT EXISTS organisation_id UUID REFERENCES public.organisations(id) ON DELETE SET NULL;
+
 CREATE INDEX IF NOT EXISTS idx_audit_ledger_org_created 
 ON public.audit_events_ledger (organisation_id, created_at DESC);
 

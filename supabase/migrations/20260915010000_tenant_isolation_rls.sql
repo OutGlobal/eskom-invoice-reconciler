@@ -163,11 +163,6 @@ SET search_path = public
 AS $$
     SELECT EXISTS (
         SELECT 1
-        FROM public.users u
-        WHERE u.id = auth.uid()
-          AND u.role = 'SUPER_ADMIN'
-    ) OR EXISTS (
-        SELECT 1
         FROM public.user_roles ur
         JOIN public.roles r ON ur.role_id = r.id
         WHERE ur.user_id = auth.uid()
@@ -342,7 +337,7 @@ FOR ALL
 TO authenticated
 USING (
     organisation_id = public.auth_user_organisation_id()
-    OR upload_id IN (SELECT id::text FROM public.source_files WHERE organisation_id = public.auth_user_organisation_id())
+    OR upload_id IN (SELECT id FROM public.source_files WHERE organisation_id = public.auth_user_organisation_id())
     OR public.is_super_admin()
 )
 WITH CHECK (

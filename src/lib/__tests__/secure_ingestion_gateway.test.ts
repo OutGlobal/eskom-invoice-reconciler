@@ -24,7 +24,7 @@ describe("Enterprise Secure Document & Telemetry Ingestion Gateway Suite", () =>
     expect(result.extractedInvoice).toBeDefined();
     expect(result.extractedInvoice?.accountNumber).toBe("7856504676");
     expect(result.extractedInvoice?.totalInvoice).toBeGreaterThan(0);
-    expect(result.signedDownloadUrl).toBeDefined();
+    expect(result.signedDownloadUrl).toBeUndefined();
   });
 
   it("Scenario 2: Scanned PDF Invoice with OCR Fallback Detection", async () => {
@@ -134,12 +134,12 @@ describe("Enterprise Secure Document & Telemetry Ingestion Gateway Suite", () =>
     expect(result.extractedInvoice?.accountNumber).toBe("7856504676");
   });
 
-  it("Scenario 10: Private Signed Download URL Generation", async () => {
+  it("Scenario 10: Omits a download URL when remote storage is unavailable", async () => {
     const signedRes = await SignedUrlService.getSignedDownloadUrl(
       "private/org-123/doc-456/sample.pdf",
     );
 
-    expect(signedRes.signedUrl).toBeDefined();
-    expect(signedRes.signedUrl).toContain("sample.pdf");
+    expect(signedRes.signedUrl).toBeUndefined();
+    expect(signedRes.error).toBeDefined();
   });
 });

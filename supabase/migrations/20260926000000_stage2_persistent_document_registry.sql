@@ -31,7 +31,7 @@
 
 -- 1. Add missing document registry columns to public.uploads
 ALTER TABLE IF EXISTS public.uploads
-    ADD COLUMN IF NOT EXISTS uploaded_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    ADD COLUMN IF NOT EXISTS uploaded_by TEXT,
     ADD COLUMN IF NOT EXISTS original_filename TEXT,
     ADD COLUMN IF NOT EXISTS storage_path TEXT,
     ADD COLUMN IF NOT EXISTS file_size BIGINT CHECK (file_size >= 0),
@@ -74,7 +74,7 @@ ALTER TABLE public.uploads ADD CONSTRAINT uploads_processing_status_check CHECK 
 -- 3. Backfill existing rows for synchronous column alignment
 UPDATE public.uploads
 SET
-    uploaded_by = COALESCE(uploaded_by, user_id),
+    uploaded_by = COALESCE(uploaded_by, user_id::text),
     original_filename = COALESCE(original_filename, filename),
     storage_path = COALESCE(storage_path, storage_location),
     file_size = COALESCE(file_size, file_size_bytes),
@@ -94,8 +94,7 @@ CREATE OR REPLACE FUNCTION public.sync_uploads_document_registry_columns()
 RETURNS TRIGGER AS $$
 BEGIN
     -- Synchronize uploaded_by and user_id
-    NEW.uploaded_by := COALESCE(NEW.uploaded_by, NEW.user_id);
-    NEW.user_id := COALESCE(NEW.user_id, NEW.uploaded_by);
+    NEW.uploaded_by := COALESCE(NEW.uploaded_by, NEW.user_id::text);
 
     -- Synchronize original_filename and filename
     NEW.original_filename := COALESCE(NEW.original_filename, NEW.filename, 'unnamed_document');
@@ -151,7 +150,7 @@ WITH (security_invoker = true) AS
 SELECT
     u.id AS document_id,
     u.organisation_id,
-    COALESCE(u.uploaded_by, u.user_id) AS uploaded_by,
+    COALESCE(u.uploaded_by, u.user_id::text) AS uploaded_by,
     COALESCE(u.original_filename, u.filename) AS original_filename,
     COALESCE(u.storage_path, u.storage_location) AS storage_path,
     COALESCE(u.file_size, u.file_size_bytes) AS file_size,
@@ -219,7 +218,7 @@ BEGIN
         new_id,
         NEW.organisation_id,
         NEW.uploaded_by,
-        NEW.uploaded_by,
+        auth.uid(),
         NEW.original_filename,
         NEW.original_filename,
         NEW.storage_path,
@@ -265,7 +264,6 @@ BEGIN
     SET
         organisation_id = COALESCE(NEW.organisation_id, organisation_id),
         uploaded_by = COALESCE(NEW.uploaded_by, uploaded_by),
-        user_id = COALESCE(NEW.uploaded_by, user_id),
         original_filename = COALESCE(NEW.original_filename, original_filename),
         filename = COALESCE(NEW.original_filename, filename),
         storage_path = COALESCE(NEW.storage_path, storage_path),
@@ -317,41 +315,41 @@ FOR EACH ROW
 EXECUTE FUNCTION public.document_registry_delete_handler();
 
 -- 8. Enhanced unified upload_pipeline_view
-CREATE OR REPLACE VIEW public.upload_pipeline_view AS
-SELECT 
+CREATE OR REPLACE VIEW public.upload_pipeline_view WITH (security_invoker = true) AS
+SELECT
     u.id AS upload_id,
-    u.id AS document_id,
     u.organisation_id,
     u.user_id,
-    u.uploaded_by,
     u.filename,
-    u.original_filename,
     u.file_type,
-    u.detected_file_type,
     u.file_size_bytes,
-    u.file_size,
-    u.mime_type,
     u.storage_location,
-    u.storage_path,
     u.processing_status,
     u.processing_start,
-    u.processing_started_at AS processing_started_timestamp,
     u.processing_completion,
-    u.processing_completed_at AS processing_completed_timestamp,
-    u.page_count,
-    u.document_classification,
-    u.extraction_status,
-    u.ocr_status,
     u.row_count,
     u.record_count,
     u.validation_status,
     u.error_status,
     u.error_message,
-    u.file_hash_sha256 AS checksum,
     u.metadata,
-    u.upload_timestamp,
     u.created_at,
-    u.updated_at
+    u.updated_at,
+    u.id AS document_id,
+    u.uploaded_by,
+    u.original_filename,
+    u.detected_file_type,
+    u.file_size,
+    u.mime_type,
+    u.storage_path,
+    u.processing_started_at AS processing_started_timestamp,
+    u.processing_completed_at AS processing_completed_timestamp,
+    u.page_count,
+    u.document_classification,
+    u.extraction_status,
+    u.ocr_status,
+    u.file_hash_sha256 AS checksum,
+    u.upload_timestamp
 FROM public.uploads u;
 
 -- 9. Role Permissions
