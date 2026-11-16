@@ -262,55 +262,67 @@ END
 $$;
 
 -- (D) public.document_extraction_runs
-IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_extraction_runs') THEN
-    DROP POLICY IF EXISTS "Tenant isolation for document_extraction_runs" ON public.document_extraction_runs;
-    CREATE POLICY "Tenant isolation for document_extraction_runs"
-    ON public.document_extraction_runs
-    FOR ALL
-    TO authenticated
-    USING (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    )
-    WITH CHECK (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    );
-END IF;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_extraction_runs') THEN
+        DROP POLICY IF EXISTS "Tenant isolation for document_extraction_runs" ON public.document_extraction_runs;
+        CREATE POLICY "Tenant isolation for document_extraction_runs"
+        ON public.document_extraction_runs
+        FOR ALL
+        TO authenticated
+        USING (
+            organisation_id = public.auth_user_organisation_id()
+            OR public.is_super_admin()
+        )
+        WITH CHECK (
+            organisation_id = public.auth_user_organisation_id()
+            OR public.is_super_admin()
+        );
+    END IF;
+END
+$$;
 
 -- (E) public.document_duplicate_audit_log
-IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_duplicate_audit_log') THEN
-    DROP POLICY IF EXISTS "Tenant isolation for document_duplicate_audit_log" ON public.document_duplicate_audit_log;
-    CREATE POLICY "Tenant isolation for document_duplicate_audit_log"
-    ON public.document_duplicate_audit_log
-    FOR ALL
-    TO authenticated
-    USING (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    )
-    WITH CHECK (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    );
-END IF;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_duplicate_audit_log') THEN
+        DROP POLICY IF EXISTS "Tenant isolation for document_duplicate_audit_log" ON public.document_duplicate_audit_log;
+        CREATE POLICY "Tenant isolation for document_duplicate_audit_log"
+        ON public.document_duplicate_audit_log
+        FOR ALL
+        TO authenticated
+        USING (
+            organisation_id = public.auth_user_organisation_id()
+            OR public.is_super_admin()
+        )
+        WITH CHECK (
+            organisation_id = public.auth_user_organisation_id()
+            OR public.is_super_admin()
+        );
+    END IF;
+END
+$$;
 
 -- (F) public.document_errors
-IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_errors') THEN
-    DROP POLICY IF EXISTS "Tenant isolation for document_errors" ON public.document_errors;
-    CREATE POLICY "Tenant isolation for document_errors"
-    ON public.document_errors
-    FOR ALL
-    TO authenticated
-    USING (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    )
-    WITH CHECK (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    );
-END IF;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_errors') THEN
+        DROP POLICY IF EXISTS "Tenant isolation for document_errors" ON public.document_errors;
+        CREATE POLICY "Tenant isolation for document_errors"
+        ON public.document_errors
+        FOR ALL
+        TO authenticated
+        USING (
+            organisation_id = public.auth_user_organisation_id()
+            OR public.is_super_admin()
+        )
+        WITH CHECK (
+            organisation_id = public.auth_user_organisation_id()
+            OR public.is_super_admin()
+        );
+    END IF;
+END
+$$;
 
 
 -- 6. PATH TRAVERSAL & FILENAME INTEGRITY DATABASE CHECK CONSTRAINTS

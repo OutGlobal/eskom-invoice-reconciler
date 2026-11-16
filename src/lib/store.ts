@@ -1,3 +1,4 @@
+import type { StatisticalTouPeriod } from "@/domain/invoice/spreadsheetInvoiceExtractor";
 import { create } from "zustand";
 import type { Measurement } from "./parseMeter";
 
@@ -73,6 +74,7 @@ export interface InvoiceData {
   affordability?: number | null;
   electrification?: number | null;
   reactive?: number | null;
+  energyCharges?: number | null;
   peakEnergyCharge?: number | null;
   standardEnergyCharge?: number | null;
   offPeakEnergyCharge?: number | null;
@@ -108,7 +110,8 @@ export interface InvoiceData {
   invoiceNumber?: string;
   meterReadings?: InvoiceMeterReadingStored[];
   extraction?: InvoiceExtractionAudit;
-  monthlyPeriods?: any[];
+  monthlyPeriods?: StatisticalTouPeriod[];
+  requiresBilledInvoice?: boolean;
   normalizedJson?: NormalizedInvoiceJson;
 }
 

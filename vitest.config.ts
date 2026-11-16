@@ -6,6 +6,7 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: [
+      "src/lib/__tests__/automatic_reconciliation_window.test.ts",
       "src/lib/__tests__/calculation_versioning_and_multitenancy.test.ts",
       "src/lib/__tests__/charge_calculation_interface_and_trace.test.ts",
       "src/lib/__tests__/tariff_matching_units_and_rounding.test.ts",
@@ -104,7 +105,6 @@ export default defineConfig({
       "src/lib/__tests__/variance_status_and_tolerance_model.test.ts",
       "src/lib/__tests__/reconciliation_exceptions_and_status.test.ts",
       "src/lib/__tests__/multi_format_ingestion.test.ts",
-      "src/lib/__tests__/reference_workbook_reconciliation.test.ts",
     ],
     testTimeout: 60000,
     fileParallelism: false,

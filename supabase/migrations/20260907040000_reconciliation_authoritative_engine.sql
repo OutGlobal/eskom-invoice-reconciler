@@ -23,6 +23,29 @@ CREATE TABLE IF NOT EXISTS public.reconciliation_runs (
     completed_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- The enterprise schema already creates reconciliation_runs. Extend that table
+-- before referencing its stable run identifier from the comparison table.
+ALTER TABLE public.reconciliation_runs
+    ADD COLUMN IF NOT EXISTS run_id VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(100) DEFAULT 'DEFAULT_TENANT',
+    ADD COLUMN IF NOT EXISTS invoice_id VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS telemetry_batch_id VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS calendar_version_id VARCHAR(100) DEFAULT '2025.1',
+    ADD COLUMN IF NOT EXISTS engine_version VARCHAR(50) DEFAULT '2.0.0',
+    ADD COLUMN IF NOT EXISTS configuration_version VARCHAR(50) DEFAULT '1.0.0',
+    ADD COLUMN IF NOT EXISTS classification VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS result_checksum VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS billed_total_zar NUMERIC(18,2),
+    ADD COLUMN IF NOT EXISTS calculated_total_zar NUMERIC(18,2),
+    ADD COLUMN IF NOT EXISTS variance_total_zar NUMERIC(18,2),
+    ADD COLUMN IF NOT EXISTS variance_percentage NUMERIC(18,4),
+    ADD COLUMN IF NOT EXISTS overall_confidence NUMERIC(5,4) DEFAULT 1.0000,
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now(),
+    ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ DEFAULT now();
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_reconciliation_runs_run_id
+    ON public.reconciliation_runs (run_id);
+
 CREATE TABLE IF NOT EXISTS public.reconciliation_determinant_comparisons (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     run_id VARCHAR(100) NOT NULL REFERENCES public.reconciliation_runs(run_id) ON DELETE CASCADE,

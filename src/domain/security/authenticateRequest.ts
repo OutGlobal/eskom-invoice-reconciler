@@ -30,7 +30,7 @@ export async function authenticateRequest(request: Request): Promise<Request | R
     }
     const path = new URL(request.url).pathname;
     const permission: SecurityPermission =
-      request.method === "GET"
+      request.method === "GET" || path.endsWith("/signed-url")
         ? "PERM_VIEW_DATA"
         : path.startsWith("/api/uploads")
           ? "PERM_UPLOAD_FILES"

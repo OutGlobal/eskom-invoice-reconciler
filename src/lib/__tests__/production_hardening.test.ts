@@ -7,6 +7,7 @@ import { setWorkspaceScope, clearWorkspaceScope, scopedDatabaseName } from "../w
 
 const getUser = vi.hoisted(() => vi.fn());
 vi.mock("@supabase/supabase-js", () => ({ createClient: () => ({ auth: { getUser } }) }));
+import server from "../../server";
 import { authenticateRequest } from "../../domain/security/authenticateRequest";
 
 const user = {
@@ -52,6 +53,10 @@ describe("production identity and cache hardening", () => {
     );
     expect((result as Response).status).toBe(401);
     expect(getUser).not.toHaveBeenCalled();
+  });
+  it("requires a verified session on the reconciliation API", async () => {
+    const request = new Request("https://example.test/api/pipeline/reconcile", { method: "POST" });
+    expect((await server.fetch(request, {}, {})).status).toBe(401);
   });
   it("rejects invalid and unprovisioned sessions", async () => {
     const request = new Request("https://example.test/api/uploads", {

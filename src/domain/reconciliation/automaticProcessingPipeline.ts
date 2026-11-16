@@ -1,3 +1,4 @@
+import { billingPeriodWindow } from "./billingPeriodWindow";
 /**
  * ENERA AUTOMATIC PROCESSING PIPELINE (REQUIREMENTS 29, 30, 31)
  * =============================================================
@@ -233,16 +234,21 @@ export class AutomaticProcessingPipeline {
       };
     }
 
-    // Filter matching intervals within the invoice billing window
-    const startTimeMs = bStart ? new Date(bStart).getTime() : 0;
-    const endTimeMs = bEnd ? new Date(bEnd).getTime() + 86400000 : Infinity;
-
-    const matchedIntervals = activeIntervals.filter((row) => {
-      const t = row.ts.getTime();
-      return t >= startTimeMs && t <= endTimeMs;
-    });
-
-    const intervalsToProcess = matchedIntervals.length > 0 ? matchedIntervals : activeIntervals;
+    const inPeriod = billingPeriodWindow(bStart, bEnd);
+    const intervalsToProcess = activeIntervals.filter((row) => inPeriod(row.ts.getTime()));
+    if (!intervalsToProcess.length) {
+      return {
+        ...this.buildAwaitingResult({
+          jobId,
+          status: "AWAITING_AMR_DATA",
+          message: "No interval measurements overlap this invoice billing period.",
+          invoiceId,
+          meterId,
+          billingPeriod: { start: bStart, end: bEnd },
+        }),
+        matchingResult,
+      };
+    }
     const totalIntervals = intervalsToProcess.length;
 
     let tariffVersion = await TariffInterface.getApplicableTariff(
@@ -575,7 +581,7 @@ export class AutomaticProcessingPipeline {
       billing_period: {
         start_date: bStart,
         end_date: bEnd,
-        duration_days: Math.max(1, Math.round((endTimeMs - startTimeMs) / 86400000)),
+        duration_days: Math.max(1, Math.round((Date.parse(bEnd) - Date.parse(bStart)) / 86_400_000 + 1)),
         season: "HIGH_SEASON",
         timezone: "Africa/Johannesburg",
       },

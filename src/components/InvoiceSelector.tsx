@@ -4,7 +4,6 @@ import { Link } from "@tanstack/react-router";
 import { useApp } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "react-hot-toast";
-import seedData from "@/assets/millennium_33kv_reconciliation_records.json";
 
 export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
   const activeInvoice = useApp((s) => s.invoice);
@@ -14,7 +13,7 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
   const [dbInvoices, setDbInvoices] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Query real uploaded invoices from Supabase with local seed fallback
+  // Query uploaded invoices from Supabase
   useEffect(() => {
     let isMounted = true;
     setIsLoading(true);
@@ -38,38 +37,11 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
         for (const inv of recResult.data || []) {
           const invNum = inv.invoice_number || inv.id;
           if (invNum) {
-            invoiceMap.set(invNum, inv);
+            invoiceMap.set(invNum, { ...inv.raw_data, ...inv });
           }
         }
 
         const combined = Array.from(invoiceMap.values());
-
-        // Hydrate from multi-period deterministic seed if remote database is empty/offline
-        if (combined.length === 0 && seedData?.periods) {
-          for (const item of seedData.periods) {
-            const inv = item.invoice;
-            if (inv) {
-              combined.push({
-                ...inv,
-                account_number: inv.accountNumber,
-                customer_name: inv.customerName,
-                meter_number: "7856504226F1, F2, F3",
-                tariff_name: inv.tariffName,
-                voltage: "33 kV",
-                billing_period_name: item.periodName.replace("Millenium 33kV ", "").replace("Millenium 33kV - ", ""),
-                billing_start: inv.billingPeriodStart,
-                billing_end: inv.billingPeriodEnd,
-                peak_kwh: inv.peakKWh,
-                standard_kwh: inv.standardKWh,
-                off_peak_kwh: inv.offPeakKWh,
-                total_kwh: inv.totalKWh,
-                max_demand_kva: inv.maxDemandKVA,
-                invoiced_total: inv.totalInclVat,
-                invoice_number: inv.invoiceNumber,
-              });
-            }
-          }
-        }
 
         if (combined.length > 0) {
           setDbInvoices(combined);
@@ -78,11 +50,12 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
             const latest = combined[0];
             setInvoice({
               accountNumber: latest.account_number || latest.accountNumber,
-              customerName: latest.customer_name || latest.customerName || "Enterprise Client",
+              customerName: latest.customer_name || latest.client_name || latest.customerName || "Enterprise Client",
               meterNumber: latest.meter_number || latest.meterNumber || "",
               tariffName: latest.tariff_name || latest.tariffName || "Megaflex",
               voltage: latest.voltage || "33 kV",
               nmd: latest.nmd || 0,
+              requiresBilledInvoice: latest.requiresBilledInvoice ?? Boolean(latest.monthlyPeriods?.length),
               billingPeriod: latest.billing_period_name || latest.billingPeriod,
               billingPeriodStart: latest.billing_start || latest.billingPeriodStart,
               billingPeriodEnd: latest.billing_end || latest.billingPeriodEnd,
@@ -100,6 +73,8 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
               affordability: Number(latest.affordability) || 0,
               electrification: Number(latest.electrification) || 0,
               reactive: Number(latest.reactive) || 0,
+              reactiveTotal: latest.reactiveTotal ?? undefined,
+              energyCharges: latest.energyCharges ?? latest.energy_charges ?? undefined,
               peakEnergyCharge: Number(latest.peakEnergyCharge) || 0,
               standardEnergyCharge: Number(latest.standardEnergyCharge) || 0,
               offPeakEnergyCharge: Number(latest.offPeakEnergyCharge) || 0,
@@ -136,11 +111,12 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
     const invNum = inv.invoice_number || inv.invoiceNumber || inv.taxInvoiceNo;
     setInvoice({
       accountNumber: inv.account_number || inv.accountNumber,
-      customerName: inv.customer_name || inv.customerName || "Enterprise Client",
+      customerName: inv.customer_name || inv.client_name || inv.customerName || "Enterprise Client",
       meterNumber: inv.meter_number || inv.meterNumber || "",
       tariffName: inv.tariff_name || inv.tariffName || "Megaflex",
       voltage: inv.voltage || "33 kV",
       nmd: inv.nmd || 0,
+      requiresBilledInvoice: inv.requiresBilledInvoice ?? Boolean(inv.monthlyPeriods?.length),
       billingPeriod: inv.billing_period_name || inv.billingPeriod,
       billingPeriodStart: inv.billing_start || inv.billingPeriodStart,
       billingPeriodEnd: inv.billing_end || inv.billingPeriodEnd,
@@ -158,6 +134,8 @@ export function InvoiceSelector({ compact = false }: { compact?: boolean }) {
       affordability: Number(inv.affordability) || 0,
       electrification: Number(inv.electrification) || 0,
       reactive: Number(inv.reactive) || 0,
+      reactiveTotal: inv.reactiveTotal ?? undefined,
+      energyCharges: inv.energyCharges ?? inv.energy_charges ?? undefined,
       peakEnergyCharge: Number(inv.peakEnergyCharge) || 0,
       standardEnergyCharge: Number(inv.standardEnergyCharge) || 0,
       offPeakEnergyCharge: Number(inv.offPeakEnergyCharge) || 0,

@@ -8,12 +8,14 @@
  */
 import Decimal from "decimal.js-light";
 import { computeTotals } from "@/lib/reconciliation";
+import { billingPeriodWindow } from "./billingPeriodWindow";
 import {
   DeterministicReconciliationEngine,
   DEFAULT_TOLERANCE_CONFIG,
 } from "./reconciliationEngine";
 import type { AuthoritativeReconciliationPayload, ToleranceConfig } from "./types";
 import { TariffStorageService } from "@/domain/tariff/tariffStorageService";
+import type { StatisticalTouPeriod } from "@/domain/invoice/spreadsheetInvoiceExtractor";
 import type { InvoiceData } from "@/lib/store";
 import type { Measurement } from "@/lib/parseMeter";
 import { TariffInterface } from "@/domain/tariff/tariffInterface";
@@ -38,6 +40,14 @@ export function runAutomaticReconciliation(
     return {
       status: "AWAITING_INVOICE",
       message: "Reconciliation is waiting for an invoice to be uploaded.",
+      payload: null,
+    };
+  }
+
+  if (invoice.requiresBilledInvoice) {
+    return {
+      status: "AWAITING_INVOICE",
+      message: "Upload the utility invoice to verify billed charges for this statistical TOU period.",
       payload: null,
     };
   }
@@ -133,24 +143,28 @@ export function runAutomaticReconciliation(
     // -------------------------------------------------------------
     // AUTOMATIC PROCESSING (Zero Manual Entry): Aggregate AMR rows
     // -------------------------------------------------------------
-    const bStart = invoice.billingPeriodStart ? new Date(invoice.billingPeriodStart).getTime() : 0;
-    const bEnd = invoice.billingPeriodEnd
-      ? new Date(invoice.billingPeriodEnd).getTime() + 86400000
-      : Infinity;
-    const inPeriodRows = validRows.filter((r) => {
-      const t = r.ts.getTime();
-      return t >= bStart && t <= bEnd;
-    });
-    const activeRows = inPeriodRows.length > 0 ? inPeriodRows : validRows;
+    const inPeriod = billingPeriodWindow(invoice.billingPeriodStart, invoice.billingPeriodEnd);
+    const activeRows = validRows.filter((row) => inPeriod(row.ts.getTime()));
+    if (!activeRows.length) {
+      return {
+        status: "AWAITING_METER_DATA",
+        message: "No interval measurements overlap this invoice billing period.",
+        payload: null,
+      };
+    }
 
     const totals = computeTotals(activeRows, invoice.nmd || 0);
 
     let totalReactiveKvarh = new Decimal(0);
-    for (const r of activeRows) {
-      if ((r as any).kVAR !== undefined) {
-        totalReactiveKvarh = totalReactiveKvarh.plus(new Decimal((r as any).kVAR || 0).mul(0.5));
-      } else if ((r as any).kvarh !== undefined) {
-        totalReactiveKvarh = totalReactiveKvarh.plus(new Decimal((r as any).kvarh || 0));
+    const seenTimestamps = new Set<number>();
+    for (const row of activeRows) {
+      const timestamp = row.ts.getTime();
+      if (seenTimestamps.has(timestamp)) continue;
+      seenTimestamps.add(timestamp);
+      if (Number.isFinite(row.kVAr)) {
+        totalReactiveKvarh = totalReactiveKvarh.plus(
+          new Decimal(row.kVAr).mul(row.intervalMinutes ?? 30).div(60),
+        );
       }
     }
 
@@ -173,11 +187,12 @@ export function runAutomaticReconciliation(
       billed_total_kwh: new Decimal(invoice.totalKWh || 0),
       billed_maximum_demand_kva: new Decimal(invoice.maxDemandKVA || 0),
       billed_ratcheted_demand_kva: new Decimal(invoice.maxDemandKVA || 0),
-      billed_reactive_energy_kvarh: new Decimal(invoice.reactive || 0),
+      billed_reactive_energy_kvarh: new Decimal(invoice.reactiveTotal ?? invoice.reactive ?? 0),
       billed_energy_charges_zar: new Decimal(
-        (invoice.peakEnergyCharge || 0) +
-          (invoice.standardEnergyCharge || 0) +
-          (invoice.offPeakEnergyCharge || 0),
+        invoice.energyCharges ??
+          (invoice.peakEnergyCharge || 0) +
+            (invoice.standardEnergyCharge || 0) +
+            (invoice.offPeakEnergyCharge || 0),
       ),
       billed_demand_charges_zar: new Decimal(invoice.networkDemandCharge || 0),
       billed_network_charges_zar: new Decimal(
@@ -203,7 +218,7 @@ export function runAutomaticReconciliation(
     return {
       status: "COMPLETED",
       message:
-        "Reconciliation calculated from available 30-minute meter intervals. Partial coverage is not a complete billing-period verification.",
+        "Reconciliation calculated from available meter intervals. Partial coverage is not a complete billing-period verification.",
       payload,
     };
   } catch (err: any) {
@@ -218,22 +233,26 @@ export function runAutomaticReconciliation(
 /**
  * Maps a single Statistical TOU monthly period into an InvoiceData representation.
  */
-export function periodToInvoiceData(period: any): Partial<InvoiceData> {
+export function periodToInvoiceData(period: StatisticalTouPeriod): InvoiceData {
+  const invoiceNumber = `${period.accountNumber}-${period.sheetName.replace(/\s+/g, "")}`;
   return {
-    accountNumber: period.accountNumber || "7856504676",
-    customerName: period.customerName || "Impala Platinum Mine",
-    invoiceNumber: `${period.accountNumber || "7856504676"}-${String(period.sheetName || "").replace(/\s+/g, "")}`,
-    invoiceNo: `${period.accountNumber || "7856504676"}-${String(period.sheetName || "").replace(/\s+/g, "")}`,
+    requiresBilledInvoice: true,
+    accountNumber: period.accountNumber,
+    customerName: period.customerName,
+    meterNumber: period.feeders.join(", "),
+    voltage: period.voltage,
+    invoiceNumber,
+    invoiceNo: invoiceNumber,
     billingPeriod: period.billingPeriod,
     billingPeriodStart: period.billingStart,
     billingPeriodEnd: period.billingEnd,
-    tariffName: period.tariff || "Megaflex Non-Local Trans >132kV",
+    tariffName: period.tariff,
     peakKWh: period.activeEnergy?.peakKwh ?? 0,
     standardKWh: period.activeEnergy?.standardKwh ?? 0,
     offPeakKWh: period.activeEnergy?.offPeakKwh ?? 0,
     totalKWh: period.activeEnergy?.totalKwh ?? 0,
-    maxDemandKVA: period.maxDemandKva?.total ?? period.maxDemandKva?.totalKva ?? 0,
-    reactive: period.reactiveEnergy?.totalKvarh ?? 0,
+    maxDemandKVA: period.maxDemandKva.total,
+    reactiveTotal: period.reactiveEnergy?.totalKvarh ?? 0,
     peakEnergyCharge: period.charges?.peakEnergy ?? 0,
     standardEnergyCharge: period.charges?.standardEnergy ?? 0,
     offPeakEnergyCharge: period.charges?.offPeakEnergy ?? 0,
@@ -244,7 +263,7 @@ export function periodToInvoiceData(period: any): Partial<InvoiceData> {
     ancillary: period.charges?.ancillaryService ?? 0,
     vat: period.charges?.vatAmount ?? 0,
     totalInclVat: period.charges?.totalInvoiceAmount ?? 0,
-    invoiceTotal: period.charges?.totalInvoiceAmount ?? 0,
+    invoiceTotal: period.charges.subtotalBeforeVat,
   };
 }
 
@@ -252,7 +271,7 @@ export function periodToInvoiceData(period: any): Partial<InvoiceData> {
  * Executes reconciliation across all monthly periods contained in a multi-period workbook.
  */
 export function runMultiPeriodReconciliation(
-  invoice: any,
+  invoice: Partial<InvoiceData> | null | undefined,
   rows: Measurement[] | null | undefined,
   tolerance: ToleranceConfig = DEFAULT_TOLERANCE_CONFIG,
 ): Array<{ period: string; outcome: AutoReconciliationOutcome }> {
@@ -260,7 +279,7 @@ export function runMultiPeriodReconciliation(
     return [{ period: "Primary", outcome: runAutomaticReconciliation(invoice, rows, tolerance) }];
   }
 
-  return invoice.monthlyPeriods.map((p: any) => {
+  return invoice.monthlyPeriods.map((p) => {
     const periodInvoice = periodToInvoiceData(p);
     return {
       period: p.sheetName,

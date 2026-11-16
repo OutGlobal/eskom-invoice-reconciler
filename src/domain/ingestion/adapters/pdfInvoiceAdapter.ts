@@ -220,6 +220,7 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
 
     // Extract and map all mandated invoice fields preserving NULL for missing determinants
     const extractedFields: ExtractedInvoiceFields = {
+      invoiceNumber: inv?.invoiceNumber || inv?.invoiceNo || undefined,
       customerName: inv?.customerName || "",
       accountNumber: inv?.accountNumber || "",
       pod: inv?.premiseId || inv?.meterNumber || "",

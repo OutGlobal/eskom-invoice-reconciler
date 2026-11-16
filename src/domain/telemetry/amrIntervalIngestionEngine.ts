@@ -1332,49 +1332,6 @@ export class AmrIntervalIngestionEngine {
       "counter",
     ]);
 
-    // 10. Fallback non-time data column detection:
-    // If no energy or power column was identified by standard names, but we have a time/date column,
-    // look for any non-metadata column that can serve as the interval active energy channel
-    if (
-      !activePowerColumn &&
-      !activeEnergyColumn &&
-      !apparentPowerColumn &&
-      !cumulativeRegisterColumn &&
-      (timestampColumn || (dateColumn && timeColumn))
-    ) {
-      const ignoredTokens = [
-        "date",
-        "time",
-        "timestamp",
-        "meter",
-        "serial",
-        "msn",
-        "id",
-        "site",
-        "status",
-        "flag",
-        "quality",
-        "valid",
-        "remark",
-        "note",
-      ];
-      for (const h of headers) {
-        const clean = h.toLowerCase().trim();
-        const isTimeOrMeter =
-          clean === timestampColumn?.toLowerCase() ||
-          clean === dateColumn?.toLowerCase() ||
-          clean === timeColumn?.toLowerCase() ||
-          clean === meterColumn?.toLowerCase() ||
-          ignoredTokens.some(
-            (t) => clean === t || clean.startsWith(t + "_") || clean.endsWith("_" + t),
-          );
-        if (!isTimeOrMeter && clean.length > 0) {
-          activeEnergyColumn = h;
-          break;
-        }
-      }
-    }
-
     return {
       rawHeaders,
       headerRowIndex,

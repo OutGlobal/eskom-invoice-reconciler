@@ -5,8 +5,9 @@
  * and authoritative upload record persistence.
  */
 
-import { supabase } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { MimeInspector } from "./mimeInspector";
+import { periodToInvoiceData } from "../reconciliation/autoReconciliationRunner";
 import { SignedUrlService } from "./signedUrlService";
 import { QuarantineManager } from "./quarantineManager";
 import { ScannedInvoiceOcrAdapter } from "../ocr/scannedInvoiceOcrAdapter";
@@ -795,9 +796,11 @@ export class SecureIngestionGateway {
         if (!fields.accountNumber) {
           fields.accountNumber = `ACC-${documentId.substring(0, 8)}`;
         }
-        const invNum = fields.accountNumber.startsWith("INV-")
-          ? fields.accountNumber
-          : `INV-${fields.accountNumber}`;
+        const primaryPeriod = fields.monthlyPeriods?.[0];
+        const invNum =
+          (primaryPeriod && periodToInvoiceData(primaryPeriod).invoiceNumber) ||
+          fields.invoiceNumber ||
+          `INV-${fields.accountNumber}-${fields.billingStart || documentId}`;
         const bStart = fields.billingStart || new Date().toISOString().substring(0, 10);
         const bEnd = fields.billingEnd || new Date().toISOString().substring(0, 10);
         const clientName =
@@ -949,19 +952,47 @@ export class SecureIngestionGateway {
           raw_data: fields as any,
         };
 
-        let invRecord: any = null;
-        try {
-          const res = await supabase
-            .from("invoice_records")
-            .upsert(invoicePayload, { onConflict: "invoice_number" })
-            .select("id")
-            .single();
-          invRecord = res.data;
-        } catch {
-          // Offline mode fallback
+        let invRecord: { id: string } | null = null;
+        if (isSupabaseConfigured) {
+          try {
+            const { id: generatedId, ...header } = invoicePayload;
+            const periodRows =
+              fields.monthlyPeriods?.map((period: import("../invoice/spreadsheetInvoiceExtractor").StatisticalTouPeriod) => {
+                const invoice = periodToInvoiceData(period);
+                return {
+                  invoice_number: invoice.invoiceNumber,
+                  organisation_id: organisationId,
+                  account_number: invoice.accountNumber,
+                  client_name: invoice.customerName,
+                  meter_number: invoice.meterNumber,
+                  tariff_name: invoice.tariffName,
+                  billing_period_name: invoice.billingPeriod,
+                  billing_start: invoice.billingPeriodStart,
+                  billing_end: invoice.billingPeriodEnd,
+                  total_kwh: invoice.totalKWh,
+                  peak_kwh: invoice.peakKWh,
+                  standard_kwh: invoice.standardKWh,
+                  off_peak_kwh: invoice.offPeakKWh,
+                  max_demand_kva: invoice.maxDemandKVA,
+                  invoiced_total: invoice.totalInclVat,
+                  source_file_id: documentId,
+                  status: header.status,
+                  raw_data: invoice,
+                };
+              }) ?? [];
+            const { data, error } = await supabase
+              .from("invoice_records")
+              .upsert(periodRows.length ? periodRows : [header], { onConflict: "invoice_number" })
+              .select("id, invoice_number");
+            if (error) throw error;
+            invRecord = data?.find((row) => row.invoice_number === invNum) ?? null;
+          } catch (error) {
+            addLog("STORAGE", "warn", "Invoice records could not be saved to remote storage.");
+            console.warn("Invoice records could not be saved:", error);
+          }
         }
 
-        const persistedInvoiceId = invRecord?.id || invoicePayload.id || invNum;
+        const persistedInvoiceId = invRecord?.id || invoicePayload.id;
         InvoiceStorageService.recordInvoiceMemory(persistedInvoiceId, invoicePayload);
         InvoiceStorageService.recordInvoiceMemory(documentId, invoicePayload);
         InvoiceStorageService.recordInvoiceMemory(invNum, invoicePayload);

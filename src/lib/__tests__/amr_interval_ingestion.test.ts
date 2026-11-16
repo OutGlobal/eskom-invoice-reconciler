@@ -66,7 +66,7 @@ describe("Stage 9 — AMR / CSV / Excel Ingestion Suite", () => {
       expect(stored?.retentionPolicy).toBe("PERMANENT");
       expect(stored?.storageBucket).toBe(FileStorageSecurityService.BUCKET_NAME);
       expect(stored?.fileHashSha256).toBe(result.fileHeader.sha256Checksum);
-      expect(result.signedDownloadUrl).toBeDefined();
+      expect(result.signedDownloadUrl).toBeUndefined();
     });
 
     it("stores original multi-sheet Excel interval file in object storage", async () => {

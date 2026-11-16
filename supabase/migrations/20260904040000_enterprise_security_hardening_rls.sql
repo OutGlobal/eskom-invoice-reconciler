@@ -4,6 +4,13 @@
 -- Enforces Row Level Security (RLS) policies & tenant isolation.
 -- =========================================================
 
+-- These tables predate the enterprise tenant model. On a fresh database
+-- their tenant columns must exist before the policies below are created.
+ALTER TABLE public.customers
+    ADD COLUMN IF NOT EXISTS organisation_id UUID REFERENCES public.organisations(id) ON DELETE SET NULL;
+ALTER TABLE public.invoice_records
+    ADD COLUMN IF NOT EXISTS organisation_id UUID REFERENCES public.organisations(id) ON DELETE SET NULL;
+
 -- Enable RLS across all domain tables
 ALTER TABLE IF EXISTS public.organisations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.users ENABLE ROW LEVEL SECURITY;
