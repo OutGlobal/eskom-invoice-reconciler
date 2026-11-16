@@ -630,16 +630,27 @@ export class ProcessingJobEngine {
     if (this.isCancelled(jobId)) return;
 
     const assignedMeterId = resolution?.resolvedMeterId || sampleMeterId || "MTR-UNKNOWN";
-    const canonicalTelemetry = EnergyDataNormalizationEngine.normalizeBatch(
-      rawTelemetryRecords.map((r: any) => ({
-        ...r,
+    const canonicalTelemetry = rawTelemetryRecords.map((record) => {
+      if (record.timestamp_utc && record.active_energy_kwh != null) {
+        return EnergyDataNormalizationEngine.fromCanonicalTelemetryRecord(
+          { ...record, meter_id: assignedMeterId },
+          "SITE-DEFAULT",
+        );
+      }
+
+      return EnergyDataNormalizationEngine.normalizeInterval({
+        timestamp: record.timestamp_utc ?? record.timestamp ?? record.ts,
         meter_id: assignedMeterId,
-      })),
-      {
-        defaultSiteId: "SITE-DEFAULT",
-        defaultMeterId: assignedMeterId,
-      },
-    );
+        site_id: "SITE-DEFAULT",
+        interval_minutes: record.interval_minutes ?? record.interval_duration_minutes,
+        raw_active_power: record.raw_active_power ?? record.kW,
+        raw_active_energy: record.raw_active_energy ?? record.engineering_value,
+        raw_reactive_power: record.raw_reactive_power ?? record.kVAr,
+        raw_apparent_power: record.raw_apparent_power ?? record.kVA,
+        raw_power_factor: record.raw_power_factor ?? record.power_factor,
+        source_units: record.source_units,
+      });
+    });
 
     // -------------------------------------------------------------
     // STAGE 5: AGGREGATION & TOU BUCKETING

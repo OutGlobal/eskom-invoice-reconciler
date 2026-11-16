@@ -430,7 +430,7 @@ Total Amount Due R 2,268,199.63
 
       // Verify adaptation of public.uploads
       expect(sqlContent).toMatch(/ALTER TABLE IF EXISTS public\.uploads/i);
-      expect(sqlContent).toMatch(/ADD COLUMN IF NOT EXISTS uploaded_by UUID/i);
+      expect(sqlContent).toMatch(/ADD COLUMN IF NOT EXISTS uploaded_by TEXT/i);
       expect(sqlContent).toMatch(/ADD COLUMN IF NOT EXISTS original_filename TEXT/i);
       expect(sqlContent).toMatch(/ADD COLUMN IF NOT EXISTS storage_path TEXT/i);
       expect(sqlContent).toMatch(/ADD COLUMN IF NOT EXISTS file_size BIGINT/i);
