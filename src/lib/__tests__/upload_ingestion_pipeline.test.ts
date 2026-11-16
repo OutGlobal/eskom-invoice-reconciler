@@ -1,3 +1,4 @@
+import { makeInvoicePdf } from "./fixtures/invoicePdf";
 /**
  * Stage 5: File Upload System & Ingestion Pipeline Test Suite
  * Comprehensive automated verification of persistent upload records,
@@ -242,14 +243,12 @@ describe("Stage 5 — File Upload System & Ingestion Pipeline Suite", () => {
   });
 
   it("Scenario 8: Non-fatal ambiguities transition upload to PARTIALLY_PROCESSED with warnings", async () => {
-    // PDF with scanned OCR fallback marker triggering human review
-    const pdfContent = "%PDF-1.4 Scanned Low Resolution Raster Stream Image Scan\n%%EOF";
-    const bytes = new TextEncoder().encode(pdfContent);
-    const file = new File([bytes], "scanned_invoice_review.pdf", { type: "application/pdf" });
+    const bytes = makeInvoicePdf({ total: "0.00" });
+    const file = new File([bytes], "zero_total_invoice_review.pdf", { type: "application/pdf" });
 
     const result = await SecureIngestionGateway.processUpload(
       file,
-      "scanned_invoice_review.pdf",
+      "zero_total_invoice_review.pdf",
       TENANT_ALPHA,
       "user-admin",
     );

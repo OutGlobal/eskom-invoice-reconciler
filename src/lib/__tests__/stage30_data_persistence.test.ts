@@ -85,7 +85,7 @@ describe("Stage 30 — Data Persistence Test Suite", () => {
     const invoiceRecord = {
       id: "inv-rec-test-persist-01",
       invoice_number: "INV-PERSIST-01",
-      account_number: "ACC-CPT-9001",
+      account_number: "7856509001",
       organisation_id: orgId,
       billing_start: "2026-01-01",
       billing_end: "2026-01-31",
@@ -134,7 +134,7 @@ describe("Stage 30 — Data Persistence Test Suite", () => {
     const canonicalInvoice = {
       id: "inv-rec-persisted-01",
       invoice_number: "INV-PERSIST-01",
-      account_number: "ACC-CPT-9001",
+      account_number: "7856509001",
       organisation_id: orgId,
       invoiced_total: 1700568.83,
       total_kwh: 500000,
@@ -156,7 +156,7 @@ describe("Stage 30 — Data Persistence Test Suite", () => {
     // Query invoices from persistent storage
     const invoices = await InvoiceStorageService.queryInvoices({ organisationId: orgId }, context);
     expect(invoices.length).toBeGreaterThanOrEqual(1);
-    expect(invoices[0].account_number).toBe("ACC-CPT-9001");
+    expect(invoices[0].account_number).toBe("7856509001");
   });
 
   // =========================================================================
@@ -174,7 +174,7 @@ describe("Stage 30 — Data Persistence Test Suite", () => {
     const canonicalInvoice = {
       id: "inv-rec-refresh-01",
       invoice_number: "INV-REFRESH-01",
-      account_number: "ACC-CPT-9001",
+      account_number: "7856509001",
       organisation_id: orgId,
       invoiced_total: 1700568.83,
       total_kwh: 500000,
@@ -216,7 +216,7 @@ describe("Stage 30 — Data Persistence Test Suite", () => {
     const invoice = {
       id: "inv-reauth-01",
       invoice_number: "INV-REAUTH-01",
-      account_number: "ACC-CPT-9001",
+      account_number: "7856509001",
       organisation_id: orgId,
       invoiced_total: 1700568.83,
     };
@@ -257,7 +257,7 @@ describe("Stage 30 — Data Persistence Test Suite", () => {
     const invoice = {
       id: "inv-zero-memory-01",
       invoice_number: "INV-ZERO-MEM-01",
-      account_number: "ACC-CPT-9001",
+      account_number: "7856509001",
       organisation_id: orgId,
       invoiced_total: 1700568.83,
     };

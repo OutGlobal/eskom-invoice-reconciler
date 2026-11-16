@@ -27,6 +27,7 @@
  * 23. Verify another organisation cannot access the data.
  */
 
+import { jsPDF } from "jspdf";
 import Decimal from "decimal.js-light";
 import {
   createSecurityContext,
@@ -82,34 +83,34 @@ export class EndToEndVerificationEngine {
   public static readonly SITE_ID = "site-e2e-cpt-01";
   public static readonly SITE_NAME = "Apex Cape Town Facility";
   public static readonly METER_ID = "MTR-APEX-CPT-01";
-  public static readonly ACCOUNT_NUMBER = "ACC-APEX-998811";
+  public static readonly ACCOUNT_NUMBER = "7856998811";
   public static readonly INVOICE_NUMBER = "INV-CPT-2025-07";
 
   /**
    * Helper to construct representative Eskom Megaflex invoice PDF bytes
    */
   public static buildTestInvoicePdf(): Uint8Array {
-    const header = `%PDF-1.4\n1 0 obj\n<< /Title (Eskom Tax Invoice - Apex Cape Town Facility) >>\nendobj\n`;
-    const body = `
-      Account: ${this.ACCOUNT_NUMBER}
-      Invoice: ${this.INVOICE_NUMBER}
-      Customer: ${this.ORG_ALPHA_NAME}
-      Site: ${this.SITE_NAME}
-      Meter: ${this.METER_ID}
-      Period: 2025-07-01 to 2025-07-31
-      Tariff: Megaflex High Season
-      Supply Voltage: 11kV
-      Energy Charges: R1,330,745.00
-      Demand Charges: R178,350.00
-      Network Charges: R142,500.00
-      Service Charges: R12,500.00
-      Ancillary Charges: R8,200.00
-      Subtotal: R1,672,295.00
-      VAT 15%: R250,844.25
-      Total: R1,923,139.25
-    `;
-    const footer = `\nxref\n0 2\n0000000000 65535 f \n0000000010 00000 n \ntrailer\n<< /Root 1 0 R >>\n%%EOF`;
-    return new TextEncoder().encode(header + body + footer);
+    const pdf = new jsPDF();
+    pdf.text([
+      "ESKOM TAX INVOICE",
+      `Account Number: ${this.ACCOUNT_NUMBER}`,
+      `Tax Invoice Number: ${this.INVOICE_NUMBER}`,
+      `Customer Name: ${this.ORG_ALPHA_NAME}`,
+      `Premise Name: ${this.SITE_NAME}`,
+      `Meter Number: ${this.METER_ID}`,
+      "Billing Period: 2025-07-01 to 2025-07-31",
+      "Tariff: Megaflex High Season",
+      "Supply Voltage: 11kV",
+      "Energy Charges: R1,330,745.00",
+      "Demand Charges: R178,350.00",
+      "Network Charges: R142,500.00",
+      "Service Charges: R12,500.00",
+      "Ancillary Charges: R8,200.00",
+      "Subtotal: R1,672,295.00",
+      "VAT 15%: R250,844.25",
+      "Total Amount Due: R1,923,139.25",
+    ], 15, 20);
+    return new Uint8Array(pdf.output("arraybuffer"));
   }
 
   /**
@@ -765,7 +766,7 @@ export class EndToEndVerificationEngine {
         if (err instanceof TenantIsolationViolationError) dashboardBlocked = true;
       }
 
-      // 4. API endpoint cross-tenant check
+      // 4. API rejects tenant headers supplied without trusted authentication
       const apiReq = new Request("https://api.enera.io/api/pipeline/reconcile", {
         method: "POST",
         headers: {
@@ -781,7 +782,8 @@ export class EndToEndVerificationEngine {
         }),
       });
       const apiRes = await server.fetch(apiReq, {}, {});
-      if (apiRes.status === 403) apiBlocked = true;
+      const apiResult = await apiRes.json();
+      apiBlocked = apiRes.status === 401 && apiResult.error === "Authentication required";
 
       const crossTenantIsolated = invoiceBlocked && runBlocked && dashboardBlocked && apiBlocked;
 
@@ -789,7 +791,7 @@ export class EndToEndVerificationEngine {
         23,
         "Verify another organisation cannot access the data",
         crossTenantIsolated,
-        `Zero cross-tenant exposure: Invoices [BLOCKED: ${invoiceBlocked}], Runs [BLOCKED: ${runBlocked}], Dashboard [BLOCKED: ${dashboardBlocked}], API [HTTP 403: ${apiBlocked}]`,
+        `Zero cross-tenant exposure: Invoices [BLOCKED: ${invoiceBlocked}], Runs [BLOCKED: ${runBlocked}], Dashboard [BLOCKED: ${dashboardBlocked}], API [HTTP 401: ${apiBlocked}]`,
         { invoiceBlocked, runBlocked, dashboardBlocked, apiBlocked },
       );
     } catch (err: any) {

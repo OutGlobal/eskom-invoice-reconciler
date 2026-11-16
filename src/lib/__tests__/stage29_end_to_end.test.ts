@@ -55,6 +55,7 @@ describe("Stage 29 — End-to-End Production Verification", () => {
 
     // Verify all 23 steps executed
     expect(summary.totalSteps).toBe(23);
+    expect(summary.steps.filter((step) => !step.passed)).toEqual([]);
     expect(summary.passedSteps).toBe(23);
     expect(summary.failedSteps).toBe(0);
     expect(summary.isProductionReady).toBe(true);
@@ -120,7 +121,7 @@ describe("Stage 29 — End-to-End Production Verification", () => {
       uploadRes.uploadRecord?.id ||
       uploadRes.batchJob?.documentId;
     expect(uploadId).toBeDefined();
-    expect(["PROCESSED", "REVIEW_REQUIRED", "COMPLETED", "PARSED"]).toContain(
+    expect(["READY", "REVIEW_REQUIRED"]).toContain(
       uploadRes.batchJob?.state,
     );
 
@@ -321,7 +322,7 @@ describe("Stage 29 — End-to-End Production Verification", () => {
       ),
     ).rejects.toThrow(TenantIsolationViolationError);
 
-    // 4. API endpoint blocks cross-tenant execution with HTTP 403 Forbidden
+    // 4. API rejects requests carrying tenant headers without authentication
     const crossReq = new Request("http://localhost:8080/api/pipeline/reconcile", {
       method: "POST",
       headers: {

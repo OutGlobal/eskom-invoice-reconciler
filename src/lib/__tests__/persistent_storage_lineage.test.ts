@@ -1,3 +1,4 @@
+import { makeInvoicePdf } from "./fixtures/invoicePdf";
 /**
  * Stage 7 — Persistent Object Storage, Non-Destruction & 6-Tier Lineage Test Suite
  *
@@ -133,7 +134,7 @@ describe("Stage 7: Persistent Storage, Retention Policies & 6-Tier Lineage", () 
   });
 
   it("3. guarantees original files are NEVER destroyed after processing completes (Non-Destruction Guarantee)", async () => {
-    const bytes = generateMockPdfBytes("ESKOM RECONCILIATION AUDIT ARCHIVE");
+    const bytes = makeInvoicePdf();
     const filename = "Impala_March_2026.pdf";
 
     const result = await SecureIngestionGateway.processUpload(
@@ -280,7 +281,7 @@ describe("Stage 7: Persistent Storage, Retention Policies & 6-Tier Lineage", () 
 
   it("6. validates and traces the complete 6-tier relationship chain: ORGANISATION -> UPLOAD -> STORED FILE -> EXTRACTED DATA -> ANALYSIS -> RESULTS", async () => {
     // Step 1: Upload and Ingestion (Creates Tier 1, Tier 2, Tier 3, Tier 4)
-    const bytes = generateMockPdfBytes("Impala March 2026 Eskom Megaflex Tax Invoice");
+    const bytes = makeInvoicePdf({ customer: "Impala", start: "2026-03-01", end: "2026-03-31" });
     const filename = "Impala_March_2026.pdf";
 
     const uploadRes = await SecureIngestionGateway.processUpload(

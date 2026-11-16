@@ -239,7 +239,7 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   );
   const demandReading = extractField(
     "demandReading",
-    /demand\s*reading/i,
+    /^(?:\s*billed\s+max(?:imum)?\s+demand\b)|demand\s*reading/i,
     /\b[\d,\s]+\.?\d*/,
     true,
   );
@@ -279,26 +279,26 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   // 2. Consumption Data Extraction
   const peakKWh = extractField(
     "peakKwh",
-    /energy\s*consumption\s*peak\s*kwh/i,
+    /(?:^\s*|energy\s*consumption\s*)peak\s*kwh\b/i,
     /\b[\d,\s]+\.?\d*/,
     true,
   );
   const standardKWh = extractField(
     "standardKwh",
-    /energy\s*consumption\s*(?:std|standard)\s*kwh/i,
+    /(?:^\s*|energy\s*consumption\s*)(?:std|standard)\s*kwh\b/i,
     /\b[\d,\s]+\.?\d*/,
     true,
   );
   const offPeakKWh = extractField(
     "offPeakKwh",
-    /energy\s*consumption\s*off\s*peak\s*kwh/i,
+    /(?:^\s*|energy\s*consumption\s*)off[-\s]*peak\s*kwh\b/i,
     /\b[\d,\s]+\.?\d*/,
     true,
   );
   const totalKWh =
     extractField(
       "totalKwh",
-      /energy\s*consumption\s*(?:all|total)\s*kwh/i,
+      /(?:^\s*|energy\s*consumption\s*)(?:all|total)\s*kwh\b/i,
       /\b[\d,\s]+\.?\d*/,
       true,
     ) ??

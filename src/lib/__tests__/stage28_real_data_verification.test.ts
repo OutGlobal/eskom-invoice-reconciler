@@ -82,7 +82,7 @@ describe("Stage 28 — Controlled Test Process with Representative Real Data", (
       "eskom_invoice_site_cpt_jan2026.pdf",
       "SITE-CPT-01",
       "January 2026",
-      "ACC-CPT-9001",
+      "7856509001",
       "MTR-CPT-001",
     );
     const csv = ControlledDataVerificationEngine.generateRepresentativeCsv(
@@ -130,7 +130,7 @@ describe("Stage 28 — Controlled Test Process with Representative Real Data", (
       "eskom_invoice_site_cpt_jan2026.pdf",
       "SITE-CPT-01",
       "January 2026",
-      "ACC-CPT-9001",
+      "7856509001",
       "MTR-CPT-001",
     );
     const csv = ControlledDataVerificationEngine.generateRepresentativeCsv(
@@ -143,7 +143,7 @@ describe("Stage 28 — Controlled Test Process with Representative Real Data", (
     const csvRes = await SecureIngestionGateway.processUpload(csv, csv.name, tenantId);
 
     // Determinants parsed accurately
-    expect(pdfRes.extractedInvoice.accountNumber).toBe("ACC-CPT-9001");
+    expect(pdfRes.extractedInvoice.accountNumber).toBe("7856509001");
     expect(pdfRes.extractedInvoice.totalKwh).toBe(500000);
     expect(pdfRes.extractedInvoice.billedMaximumDemand).toBe(1200);
 
@@ -165,7 +165,7 @@ describe("Stage 28 — Controlled Test Process with Representative Real Data", (
       id: "INV-REC-TEST-SITE-01",
       organisationId: tenantId,
       siteId: "SITE-CPT-01",
-      accountNumber: "ACC-CPT-9001",
+      accountNumber: "7856509001",
       meterNumber: "MTR-CPT-001",
       invoiceNumber: "INV-CPT-2026-01",
       billingPeriod: "January 2026",
@@ -180,7 +180,7 @@ describe("Stage 28 — Controlled Test Process with Representative Real Data", (
     const retrieved = await InvoiceStorageService.getInvoiceRecordById("INV-REC-TEST-SITE-01");
 
     expect(retrieved).toBeDefined();
-    expect(retrieved?.accountNumber).toBe("ACC-CPT-9001");
+    expect(retrieved?.accountNumber).toBe("7856509001");
     expect(retrieved?.siteId).toBe("SITE-CPT-01");
     expect(retrieved?.totalAmount).toBe(1700568.83);
   });
@@ -216,7 +216,7 @@ describe("Stage 28 — Controlled Test Process with Representative Real Data", (
       { organisationId: tenantId },
       {
         invoice: {
-          accountNumber: "ACC-CPT-9001",
+          accountNumber: "7856509001",
           invoiceTotal: 1700568.83,
           peakKWh: 100000,
           standardKWh: 250000,
@@ -239,13 +239,13 @@ describe("Stage 28 — Controlled Test Process with Representative Real Data", (
         rows: [],
         batchInvoices: [
           {
-            accountNumber: "ACC-CPT-9001",
+            accountNumber: "7856509001",
             invoiceTotal: 1700568.83,
             totalKWh: 500000,
             billingPeriod: "January 2026",
           },
           {
-            accountNumber: "ACC-JHB-9002",
+            accountNumber: "7856509002",
             invoiceTotal: 227160.02,
             totalKWh: 100000,
             billingPeriod: "February 2026",
@@ -275,7 +275,7 @@ describe("Stage 28 — Controlled Test Process with Representative Real Data", (
       exportToExcel(
         {
           customerName: "Apex Industrial Hub",
-          accountNumber: "ACC-CPT-9001",
+          accountNumber: "7856509001",
           invoiceNumber: "INV-CPT-2026-01",
           totalKWh: 500000,
           invoiceTotal: 1700568.83,
@@ -289,7 +289,7 @@ describe("Stage 28 — Controlled Test Process with Representative Real Data", (
       exportToCsv(
         {
           customerName: "Apex Industrial Hub",
-          accountNumber: "ACC-CPT-9001",
+          accountNumber: "7856509001",
           invoiceNumber: "INV-CPT-2026-01",
         } as any,
         reconRows,
@@ -299,7 +299,7 @@ describe("Stage 28 — Controlled Test Process with Representative Real Data", (
     expect(() => {
       exportToJson({
         customerName: "Apex Industrial Hub",
-        accountNumber: "ACC-CPT-9001",
+        accountNumber: "7856509001",
         invoiceNumber: "INV-CPT-2026-01",
       } as any);
     }).not.toThrow();

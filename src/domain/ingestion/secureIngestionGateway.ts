@@ -1229,7 +1229,7 @@ export class SecureIngestionGateway {
           : null;
 
     // Update persistent upload record
-    const extractedPageCount = (extractRes as any).pageCount || (resolvedFileType === "PDF_INVOICE" ? 1 : null);
+    const extractedPageCount = pdfInspection?.pageCount ?? (extractRes as any).pageCount ?? null;
     uploadRecord = await UploadStorageService.updateUploadStatus(
       documentId,
       {
