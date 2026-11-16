@@ -51,7 +51,7 @@ CREATE POLICY "tenant_isolation_select_document_field_evidence"
     ON public.document_field_evidence
     FOR SELECT
     USING (
-        organisation_id = public.auth_user_organisation_id()
+        organisation_id = public.auth_user_organisation_id()::text
     );
 
 DROP POLICY IF EXISTS "tenant_isolation_insert_document_field_evidence" ON public.document_field_evidence;
@@ -59,7 +59,7 @@ CREATE POLICY "tenant_isolation_insert_document_field_evidence"
     ON public.document_field_evidence
     FOR INSERT
     WITH CHECK (
-        organisation_id = public.auth_user_organisation_id()
+        organisation_id = public.auth_user_organisation_id()::text
     );
 
 DROP POLICY IF EXISTS "tenant_isolation_update_document_field_evidence" ON public.document_field_evidence;
@@ -67,5 +67,5 @@ CREATE POLICY "tenant_isolation_update_document_field_evidence"
     ON public.document_field_evidence
     FOR UPDATE
     USING (
-        organisation_id = public.auth_user_organisation_id()
+        organisation_id = public.auth_user_organisation_id()::text
     );

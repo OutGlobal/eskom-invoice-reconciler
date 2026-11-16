@@ -18,6 +18,7 @@
  * 11. ZERO BROWSER MEMORY DEPENDENCY (Assert all records originate from persistent storage)
  */
 
+import { jsPDF } from "jspdf";
 import Decimal from "decimal.js-light";
 import {
   createSecurityContext,
@@ -136,54 +137,40 @@ export class DataPersistenceVerificationEngine {
   public static readonly SITE_ID = "site-persist-cpt-01";
   public static readonly SITE_NAME = "Cape Town Manufacturing Hub";
   public static readonly METER_ID = "MTR-CPT-001";
-  public static readonly ACCOUNT_NUMBER = "ACC-CPT-9001";
+  public static readonly ACCOUNT_NUMBER = "7856509001";
   public static readonly INVOICE_NUMBER = "INV-PERSIST-2026-01";
 
   /**
    * Construct representative non-confidential Eskom Megaflex invoice PDF
    */
   public static buildTestInvoicePdf(): Uint8Array {
-    const text = `%PDF-1.4
-1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
-2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
-3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >> endobj
-4 0 obj << /Length 720 >> stream
-BT
-/F1 10 Tf
-50 720 Td (TAX INVOICE / STATEMENT) Tj
-50 705 Td (ESKOM HOLDINGS SOC LTD - VAT REG NO: 4740101508) Tj
-50 685 Td (CUSTOMER NAME: ${this.ORG_NAME}) Tj
-50 670 Td (ACCOUNT NUMBER: ${this.ACCOUNT_NUMBER}) Tj
-50 655 Td (INVOICE NUMBER: ${this.INVOICE_NUMBER}) Tj
-50 640 Td (BILLING PERIOD: 01/01/2026 to 31/01/2026) Tj
-50 625 Td (PREMISE ID: ${this.SITE_ID}  POD: SITE-CPT-01) Tj
-50 610 Td (METER NUMBER: ${this.METER_ID}) Tj
-50 595 Td (TARIFF: Megaflex High Voltage  VOLTAGE: 132 kV) Tj
-50 580 Td (BILLED MAXIMUM DEMAND: 1200 kVA) Tj
-50 565 Td (PEAK KWH: 100000  STANDARD KWH: 250000  OFF-PEAK KWH: 150000) Tj
-50 550 Td (TOTAL KWH: 500000  REACTIVE KVARH: 50000) Tj
-50 535 Td (ENERGY CHARGES: R 1330745.00) Tj
-50 520 Td (DEMAND CHARGES: R 51420.00) Tj
-50 505 Td (NETWORK CHARGES: R 77640.00) Tj
-50 490 Td (SERVICE CHARGES: R 5750.50) Tj
-50 475 Td (ANCILLARY CHARGES: R 13200.00) Tj
-50 460 Td (VAT 15%: R 221813.33) Tj
-50 445 Td (TOTAL INVOICE AMOUNT: R 1700568.83) Tj
-ET
-endstream
-endobj
-xref
-0 5
-0000000000 65535 f 
-0000000010 00000 n 
-0000000060 00000 n 
-0000000117 00000 n 
-0000000210 00000 n 
-trailer << /Root 1 0 R /Size 5 >>
-startxref
-1000
-%%EOF`;
-    return new TextEncoder().encode(text);
+    const pdf = new jsPDF();
+    pdf.text([
+      "ESKOM TAX INVOICE",
+      "ESKOM HOLDINGS SOC LTD - VAT REG NO: 4740101508",
+      `CUSTOMER NAME: ${this.ORG_NAME}`,
+      `ACCOUNT NUMBER: ${this.ACCOUNT_NUMBER}`,
+      `TAX INVOICE NUMBER: ${this.INVOICE_NUMBER}`,
+      "BILLING PERIOD: 01/01/2026 to 31/01/2026",
+      `PREMISE ID: ${this.SITE_ID}`,
+      `METER NUMBER: ${this.METER_ID}`,
+      "TARIFF: Megaflex High Voltage",
+      "VOLTAGE: 132 kV",
+      "BILLED MAXIMUM DEMAND: 1200 kVA",
+      "PEAK KWH: 100000",
+      "STANDARD KWH: 250000",
+      "OFF-PEAK KWH: 150000",
+      "TOTAL KWH: 500000",
+      "REACTIVE KVARH: 50000",
+      "ENERGY CHARGES: R 1330745.00",
+      "DEMAND CHARGES: R 51420.00",
+      "NETWORK CHARGES: R 77640.00",
+      "SERVICE CHARGES: R 5750.50",
+      "ANCILLARY CHARGES: R 13200.00",
+      "VAT 15%: R 221813.33",
+      "TOTAL INVOICE AMOUNT: R 1700568.83",
+    ], 15, 20);
+    return new Uint8Array(pdf.output("arraybuffer"));
   }
 
   /**

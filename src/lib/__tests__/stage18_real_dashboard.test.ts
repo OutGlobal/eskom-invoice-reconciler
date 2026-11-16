@@ -1,10 +1,57 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { supabase } from "@/lib/supabase";
 import { DashboardService } from "../../domain/dashboard/dashboardService";
 
+const { tables } = vi.hoisted(() => ({ tables: new Map<string, Record<string, unknown>[]>() }));
+
+vi.mock("@/lib/supabase", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/supabase")>();
+  return {
+    ...actual,
+    isSupabaseConfigured: true,
+    supabase: new Proxy(actual.supabase, {
+      get(target, property, receiver) {
+        if (property !== "from") return Reflect.get(target, property, receiver);
+        return (table: string) => {
+          let data = tables.get(table) ?? [];
+          const query = {
+            select: () => query,
+            eq: (column: string, value: unknown) => {
+              data = data.filter((row) => row[column] === value);
+              return query;
+            },
+            then: (resolve: (result: { data: typeof data; count: number }) => unknown) =>
+              Promise.resolve({ data, count: data.length }).then(resolve),
+          };
+          return query;
+        };
+      },
+    }),
+  };
+});
+
+afterEach(() => tables.clear());
+
 describe("Stage 18 — Real Database-Driven Dashboard Command Centre", () => {
-  it("Scenario 1: Live Database Sourcing — All Core Metrics Originate from Authoritative Persistent Tables", async () => {
-    // Query authoritative database
+  it("Scenario 1: Database query results populate core dashboard metrics", async () => {
+    tables.set("sites", [{ id: "test-site", site_name: "Test site" }]);
+    tables.set("invoice_records", [{
+      id: "test-invoice",
+      invoice_number: "INV-0123",
+      account_number: "7856509001",
+      site_id: "test-site",
+      status: "validated",
+      invoiced_total: 10000,
+      reconciled_total: 9500,
+      billing_start: "2026-01-01",
+      billing_end: "2026-01-31",
+      total_kwh: 1000,
+      peak_kwh: 250,
+      standard_kwh: 450,
+      off_peak_kwh: 300,
+      max_demand_kva: 120,
+    }]);
+
     const liveData = await DashboardService.getAggregatedDashboardData({ source: "database" });
 
     expect(liveData.hasData).toBe(true);

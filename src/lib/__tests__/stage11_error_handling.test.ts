@@ -1,3 +1,4 @@
+import { LocalWorkspaceStore } from "../localWorkspaceStore";
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   DocumentIntelligencePipeline,
@@ -36,6 +37,7 @@ function createEncryptedPdfBytes(): Uint8Array {
 
 describe("STAGE 11 — Explicit Error Handling & Failure Audit Subsystem", () => {
   beforeEach(() => {
+    LocalWorkspaceStore.clearMemoryStore();
     DocumentErrorService.clearCache();
     DocumentLifecycleManager.clearCache();
     DocumentRegistryService.clearCache();

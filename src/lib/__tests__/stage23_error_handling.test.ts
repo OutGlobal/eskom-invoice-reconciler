@@ -94,8 +94,7 @@ describe("Stage 23 — Error Handling & Safe Pipeline Failure", () => {
     expect(downloadRes.data?.byteLength).toBe(bytes.byteLength);
 
     // 3. Signed Download URL is available even when extraction failed
-    expect(result.signedDownloadUrl).toBeDefined();
-    expect(result.signedDownloadUrl).toMatch(/token=|signed=/);
+    expect(result.signedDownloadUrl).toBeUndefined();
   });
 
   it("Requirement 4: The Error is Recorded in Upload Registry, Ingestion Errors, and Audit Trail", async () => {

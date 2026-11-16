@@ -4,7 +4,7 @@
 # ==============================================================================
 
 # Stage 1: Build Dependencies & Production Artifacts
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -13,6 +13,7 @@ RUN apk add --no-cache python3 make g++
 
 # Copy package manifests for optimal caching
 COPY package.json package-lock.json ./
+COPY scripts/ensure-lightningcss.js ./scripts/
 RUN npm ci --include=dev
 
 # Copy source tree and configs
@@ -20,7 +21,7 @@ COPY . .
 
 # Compile TypeScript and generate production server & client bundle
 RUN npx tsc --noEmit
-RUN npm run build
+RUN NITRO_PRESET=node-server npm run build
 
 # Prune dev dependencies for production runtime
 RUN npm prune --production
@@ -28,7 +29,7 @@ RUN npm prune --production
 # ==============================================================================
 # Stage 2: Minimal Production Runtime
 # ==============================================================================
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 

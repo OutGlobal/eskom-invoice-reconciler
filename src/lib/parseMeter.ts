@@ -8,6 +8,7 @@ export interface Measurement {
   kVA: number;
   pf: number;
   tou: TouPeriod;
+  intervalMinutes?: number;
   estimated?: boolean;
   outage?: boolean;
 }

@@ -1,3 +1,4 @@
+import { makeInvoicePdf } from "./fixtures/invoicePdf";
 import { describe, expect, it, beforeEach } from "vitest";
 import { SecureIngestionGateway } from "../../domain/ingestion/secureIngestionGateway";
 import { MimeInspector } from "../../domain/ingestion/mimeInspector";
@@ -10,9 +11,7 @@ describe("Enterprise Secure Document & Telemetry Ingestion Gateway Suite", () =>
   });
 
   it("Scenario 1: Valid Digital PDF Invoice Ingestion", async () => {
-    const pdfBytes = new TextEncoder().encode(
-      "%PDF-1.7 Valid Eskom Megaflex Invoice Sample Payload\n%%EOF",
-    );
+    const pdfBytes = makeInvoicePdf({ customer: "Sample Industrial Customer" });
     const file = new File([pdfBytes], "Impala_March_2026.pdf", { type: "application/pdf" });
 
     const result = await SecureIngestionGateway.processUpload(file, "Impala_March_2026.pdf");
@@ -24,10 +23,10 @@ describe("Enterprise Secure Document & Telemetry Ingestion Gateway Suite", () =>
     expect(result.extractedInvoice).toBeDefined();
     expect(result.extractedInvoice?.accountNumber).toBe("7856504676");
     expect(result.extractedInvoice?.totalInvoice).toBeGreaterThan(0);
-    expect(result.signedDownloadUrl).toBeDefined();
+    expect(result.signedDownloadUrl).toBeUndefined();
   });
 
-  it("Scenario 2: Scanned PDF Invoice with OCR Fallback Detection", async () => {
+  it("Scenario 2: Malformed scan fails without producing invoice data", async () => {
     const pdfBytes = new TextEncoder().encode(
       "%PDF-1.4 Scanned Image Stream /Image /Type /Page\n%%EOF",
     );
@@ -35,9 +34,9 @@ describe("Enterprise Secure Document & Telemetry Ingestion Gateway Suite", () =>
 
     const result = await SecureIngestionGateway.processUpload(file, "Scanned_Eskom_Bill.pdf");
 
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
     expect(result.fileHeader.detectedMimeType).toBe("application/pdf");
-    expect(result.confidenceScore).toBeGreaterThan(0);
+    expect(result.extractedInvoice).toBeUndefined();
   });
 
   it("Scenario 3: Malformed / Corrupt PDF (Quarantined)", async () => {
@@ -53,9 +52,7 @@ describe("Enterprise Secure Document & Telemetry Ingestion Gateway Suite", () =>
   });
 
   it("Scenario 4: Duplicate PDF Upload (SHA-256 Idempotency Guarantee)", async () => {
-    const pdfBytes = new TextEncoder().encode(
-      "%PDF-1.7 Unique Eskom Document Content For Idempotency Test\n%%EOF",
-    );
+    const pdfBytes = makeInvoicePdf();
     const file1 = new File([pdfBytes], "Invoice_Duplicate.pdf", { type: "application/pdf" });
     const file2 = new File([pdfBytes], "Invoice_Duplicate.pdf", { type: "application/pdf" });
 
@@ -66,6 +63,13 @@ describe("Enterprise Secure Document & Telemetry Ingestion Gateway Suite", () =>
     expect(res2.success).toBe(true);
     expect(res2.isIdempotentDuplicate).toBe(true);
     expect(res2.fileHeader.sha256Checksum).toBe(res1.fileHeader.sha256Checksum);
+    expect(res2.uploadRecord?.id).toBe(res1.uploadRecord?.id);
+
+    const otherTenant = await SecureIngestionGateway.processUpload(file2, file2.name, "other-tenant");
+    expect(otherTenant.success).toBe(true);
+    expect(otherTenant.isIdempotentDuplicate).toBe(false);
+    expect(otherTenant.uploadRecord?.organisationId).toBe("other-tenant");
+    expect(otherTenant.uploadRecord?.id).not.toBe(res1.uploadRecord?.id);
   });
 
   it("Scenario 5: Invalid MIME Type / Spoofed Extension Rejection", async () => {
@@ -134,12 +138,12 @@ describe("Enterprise Secure Document & Telemetry Ingestion Gateway Suite", () =>
     expect(result.extractedInvoice?.accountNumber).toBe("7856504676");
   });
 
-  it("Scenario 10: Private Signed Download URL Generation", async () => {
+  it("Scenario 10: Omits a download URL when remote storage is unavailable", async () => {
     const signedRes = await SignedUrlService.getSignedDownloadUrl(
       "private/org-123/doc-456/sample.pdf",
     );
 
-    expect(signedRes.signedUrl).toBeDefined();
-    expect(signedRes.signedUrl).toContain("sample.pdf");
+    expect(signedRes.signedUrl).toBeUndefined();
+    expect(signedRes.error).toBeDefined();
   });
 });

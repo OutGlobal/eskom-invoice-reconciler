@@ -851,7 +851,6 @@ export class HybridDocumentProcessor {
 
       const loadingTask = pdfjs.getDocument({
         data: bytes,
-        isEvalSupported: false,
         useSystemFonts: true,
       });
 

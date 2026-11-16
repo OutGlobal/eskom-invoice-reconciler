@@ -56,10 +56,10 @@ export function useSupabaseSession() {
   useEffect(() => {
     let active = true;
 
-    // Direct bypass via query parameter or persistent demo session
+    // A guest preview has a separate local identity.
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      if (params.get("demo") === "true" || params.get("bypass") === "true") {
+      if (params.get("demo") === "true") {
         window.sessionStorage.setItem("enera_demo_access", "true");
         window.localStorage.setItem("enera_demo_access", "true");
       }
@@ -113,6 +113,7 @@ export function useSupabaseSession() {
       if (_event === "SIGNED_OUT") {
         if (typeof window !== "undefined") {
           window.sessionStorage.removeItem("enera_demo_access");
+          window.localStorage.removeItem("enera_demo_access");
         }
         clearWorkspaceScope();
         window.location.replace("/login");
@@ -162,9 +163,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       setWorkspaceScope(identity.userId, identity.organisationId);
       provisioned = true;
     } catch {
-      // Gracefully provision testing workspace scope if organisation metadata is not yet assigned
-      setWorkspaceScope(session.user.id, "org_enera_commercial");
-      provisioned = true;
+      clearWorkspaceScope();
     }
   } else {
     clearWorkspaceScope();
@@ -269,7 +268,7 @@ export function SignInScreen() {
     const cleanEmail = email.trim().toLowerCase();
 
     if (!isSupabaseConfigured) {
-      enterWorkspaceImmediately(cleanEmail);
+      setAuthError("Workspace sign-in is unavailable because the database connection is not configured.");
       setBusy(false);
       return;
     }
@@ -289,6 +288,8 @@ export function SignInScreen() {
         }
 
         if (data.session) {
+          window.sessionStorage.removeItem("enera_demo_access");
+          window.localStorage.removeItem("enera_demo_access");
           toast.success("Signed in successfully!");
           window.location.replace("/upload");
         }
@@ -306,8 +307,13 @@ export function SignInScreen() {
           return;
         }
 
-        // Seamless activation: grant immediate workspace access for the newly registered account
-        enterWorkspaceImmediately(cleanEmail);
+        if (data.session) {
+          window.sessionStorage.removeItem("enera_demo_access");
+          window.localStorage.removeItem("enera_demo_access");
+          window.location.replace("/upload");
+        } else {
+          setNotice("Check your inbox to confirm your account. Your administrator can then assign workspace access.");
+        }
         return;
       }
     } catch (err: any) {
@@ -370,14 +376,6 @@ export function SignInScreen() {
               <div className="leading-relaxed">{authError}</div>
             </div>
             <div className="pt-2 border-t border-red-500/20 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => enterWorkspaceImmediately(unconfirmedEmail || email)}
-                className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-cyan-600 hover:bg-cyan-500 px-3 py-2 text-xs font-semibold text-white shadow-sm transition"
-              >
-                <Zap className="h-3.5 w-3.5" />
-                Access Upload Workspace Directly
-              </button>
               {unconfirmedEmail && (
                 <button
                   type="button"
@@ -535,6 +533,7 @@ export function SignOutButton() {
         setBusy(true);
         if (typeof window !== "undefined") {
           window.sessionStorage.removeItem("enera_demo_access");
+          window.localStorage.removeItem("enera_demo_access");
         }
         const { error } = await supabase.auth.signOut();
         if (error) {

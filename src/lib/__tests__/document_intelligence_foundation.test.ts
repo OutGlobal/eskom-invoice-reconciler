@@ -409,7 +409,7 @@ Total Amount Due R 2,268,199.63
           TEST_ORG_ID,
           { skipStorageUpload: true },
         ),
-      ).rejects.toThrow(/PDF inspection failed|File format spoofing rejected/);
+      ).rejects.toThrow(/PDF inspection failed|File format spoofing rejected|File is too short to contain a valid PDF/);
     });
 
     it("Transitions non-utility documents honestly to UNSUPPORTED without pretending success", async () => {

@@ -31,10 +31,10 @@ CREATE INDEX IF NOT EXISTS idx_source_files_org_hash
 ON public.source_files(organisation_id, file_hash_sha256);
 
 CREATE INDEX IF NOT EXISTS idx_invoice_records_org_dates
-ON public.invoice_records(organisation_id, billing_period_start, billing_period_end);
+ON public.invoice_records(organisation_id, billing_start, billing_end);
 
 CREATE INDEX IF NOT EXISTS idx_reconciliation_runs_meter_status
-ON public.reconciliation_runs(organisation_id, status, started_at DESC);
+ON public.reconciliation_runs(organisation_id, status, run_at DESC);
 
 -- Enable RLS on daily aggregates table
 ALTER TABLE public.telemetry_daily_aggregates ENABLE ROW LEVEL SECURITY;

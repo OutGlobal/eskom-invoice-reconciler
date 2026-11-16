@@ -99,7 +99,7 @@ SELECT
     u.file_type AS upload_file_type,
     u.file_size_bytes,
     u.processing_status AS upload_status,
-    u.upload_timestamp,
+    u.created_at AS upload_timestamp,
 
     -- Tier 3: STORED FILE
     sf.id AS source_file_id,

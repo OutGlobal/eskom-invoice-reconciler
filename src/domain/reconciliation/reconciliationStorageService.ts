@@ -447,7 +447,11 @@ export class ReconciliationStorageService {
       filter.organisationId = context.organisationId;
       filter.tenantId = context.organisationId;
     }
-    return this.getAllRuns(context);
+    const runs = await this.getAllRuns(context);
+    const organisationId = filter.organisationId ?? filter.tenantId;
+    return organisationId
+      ? runs.filter((run) => (run.organisation_id ?? run.tenant_id) === organisationId)
+      : runs;
   }
 
   /**

@@ -372,25 +372,21 @@ const handler = {
     ) {
       try {
         const uploadId = url.pathname.replace("/api/uploads/", "").replace("/signed-url", "");
-        const { FileStorageSecurityService } =
-          await import("./domain/security/fileStorageSecurityService");
+        const { SignedUrlService } = await import("./domain/ingestion/signedUrlService");
+        const { UploadStorageService } = await import("./domain/upload/uploadStorageService");
         const { createSecurityContext } = await import("./domain/security/tenantContextService");
 
-        const headerTenantId =
-          request.headers.get("X-Tenant-ID") || request.headers.get("x-organisation-id");
-        const headerRole = (request.headers.get("X-User-Role") || "ENERGY_MANAGER") as any;
-        const headerUserId = request.headers.get("X-User-ID") || "user-session";
-        const headerEmail = request.headers.get("X-User-Email") || "user@enera.energy";
-
         const context = createSecurityContext(
-          headerUserId,
-          headerEmail,
-          headerTenantId || "UNKNOWN_TENANT",
-          headerRole,
+          request.headers.get("X-User-ID")!,
+          request.headers.get("X-User-Email")!,
+          request.headers.get("X-Tenant-ID")!,
+          request.headers.get("X-User-Role") as import("./domain/security/types").AppRole,
         );
-
-        const result = await FileStorageSecurityService.createSignedDownloadUrl(uploadId, context);
-        if (!result.success) {
+        const upload = await UploadStorageService.getUploadById(decodeURIComponent(uploadId), context);
+        const result = upload?.storageLocation
+          ? await SignedUrlService.getSignedDownloadUrl(upload.storageLocation, upload.filename)
+          : { error: "Upload not found" };
+        if (!result.signedUrl) {
           return new Response(JSON.stringify({ error: result.error }), {
             status: result.error?.includes("Tenant") ? 403 : 404,
             headers: { "content-type": "application/json" },
@@ -412,49 +408,6 @@ const handler = {
             message: err?.message || "Failed to generate signed download URL",
           }),
           { status: 403, headers: { "content-type": "application/json" } },
-        );
-      }
-    }
-
-    // Secure Download Endpoint mediated by Cryptographic Signed Token (Stage 6)
-    if (url.pathname.startsWith("/api/uploads/download/") && request.method === "GET") {
-      try {
-        const token = url.pathname.replace("/api/uploads/download/", "");
-        const { FileStorageSecurityService } =
-          await import("./domain/security/fileStorageSecurityService");
-
-        const verification = await FileStorageSecurityService.verifyDownloadToken(token);
-        if (!verification.valid || !verification.payload) {
-          return new Response(
-            JSON.stringify({
-              error: "INVALID_OR_EXPIRED_TOKEN",
-              message: verification.error || "The download link is invalid or has expired.",
-            }),
-            {
-              status: 403,
-              headers: { "content-type": "application/json", "X-Content-Type-Options": "nosniff" },
-            },
-          );
-        }
-
-        // Return secure response with sanitized filename attachment header
-        const safeName = verification.payload.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-        const bodyContent = `ENERA Protected Storage Stream for ${safeName}\nTimestamp: ${new Date().toISOString()}`;
-
-        return new Response(bodyContent, {
-          status: 200,
-          headers: {
-            "content-type": "application/octet-stream",
-            "content-disposition": `attachment; filename="${safeName}"`,
-            "X-Content-Type-Options": "nosniff",
-            "Cache-Control": "private, no-cache, no-store, must-revalidate",
-            Pragma: "no-cache",
-          },
-        });
-      } catch (err: any) {
-        return new Response(
-          JSON.stringify({ error: "Download stream failed", details: err?.message }),
-          { status: 500, headers: { "content-type": "application/json" } },
         );
       }
     }
@@ -1077,8 +1030,7 @@ export default {
     if (
       path.startsWith("/api/") &&
       path !== "/api/health" &&
-      path !== "/healthz" &&
-      !path.startsWith("/api/pipeline/")
+      path !== "/api/pipeline/lifecycle"
     ) {
       const { authenticateRequest } = await import("./domain/security/authenticateRequest");
       const authenticated = await authenticateRequest(request);

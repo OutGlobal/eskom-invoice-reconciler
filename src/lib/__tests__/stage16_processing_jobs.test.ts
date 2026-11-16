@@ -1,3 +1,4 @@
+import { makeInvoicePdf } from "./fixtures/invoicePdf";
 /**
  * Stage 16 — Server-Side Processing Jobs Test Suite
  * Eskom Bill Balancer Platform
@@ -71,9 +72,39 @@ describe("Stage 16 — Server-Side Processing Jobs Engine", () => {
     ProcessingJobEngine.clearState();
   });
 
-  const samplePdfBytes = new TextEncoder().encode(
-    "%PDF-1.5\nEskom Megaflex Tax Invoice Account: 7856504676 Period: 2025-01-01 to 2025-01-31 Total: 15462529.74\n%%EOF",
-  );
+  it("preserves canonical telemetry energy when reconciling a billing window", async () => {
+    const invoice = new File([
+      [
+        "Eskom Invoice Statement",
+        "Invoice Number,TEST-202602",
+        "Account Number,1000510203",
+        "Customer Name,Test Customer",
+        "Meter Number,METER-01",
+        "Billing Period,2026-02-01 to 2026-02-28",
+        "Tariff,Megaflex",
+        "Total Active Energy (kWh),50",
+        "Total Amount Due,1000",
+      ].join("\n"),
+    ], "invoice.csv", { type: "text/csv" });
+    const meter = new File([
+      [
+        "Timestamp,Meter ID,kW Import,kVAr Import,kVA Demand",
+        "2026-02-01T09:00:00+02:00,METER-01,100,20,102",
+        "2026-02-01T09:15:00+02:00,METER-01,100,20,102",
+        "2026-03-01T09:30:00+02:00,METER-01,999,20,999",
+      ].join("\n"),
+    ], "meter.csv", { type: "text/csv" });
+
+    const job = await ProcessingJobEngine.submitJob({ invoiceFile: invoice, meterFile: meter });
+    const result = await ProcessingJobEngine.waitForTerminalState(job.jobId);
+    expect(result.status, result.errorSummary).toBe("COMPLETED");
+    const comparison = result.resultPayload?.reconciliation?.determinant_comparisons.find(
+      (row) => row.determinant_code === "TOTAL_KWH",
+    );
+    expect(Number(comparison?.calculated_value)).toBe(50);
+  });
+
+  const samplePdfBytes = makeInvoicePdf();
 
   const sampleCsvContent = `timestamp,meter_id,active_power_kwh,reactive_power_kvarh,apparent_power_kva
 2025-01-01T00:00:00Z,MTR-ESKOM-001,150.5,35.2,160.0

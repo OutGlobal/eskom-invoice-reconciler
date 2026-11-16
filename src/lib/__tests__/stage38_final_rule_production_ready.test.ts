@@ -1,3 +1,4 @@
+import { makeInvoicePdf } from "./fixtures/invoicePdf";
 /**
  * STAGE 38 — FINAL RULE: PRODUCTION-READINESS MANIFESTO TEST SUITE
  *
@@ -139,9 +140,7 @@ describe("STAGE 38 — Final Rule: Production-Readiness Manifesto", () => {
 
   // Imperative 3: REAL DATA IS PROCESSED
   it("Imperative 3: REAL DATA IS PROCESSED (Asynchronous Pipeline Processing)", async () => {
-    const samplePdfBytes = new TextEncoder().encode(
-      "%PDF-1.5\nEskom Megaflex Tax Invoice Account: 7856504676 Period: 2025-01-01 to 2025-01-31 Total: 15462529.74\n%%EOF",
-    );
+    const samplePdfBytes = makeInvoicePdf();
 
     const sampleCsvContent = `Date and Time,Meter Serial Number,Active Power Total (kW),Reactive Power Total (kVAr),Apparent Power Total (kVA)
 2025-01-01T00:00:00Z,MTR-ESKOM-001,150.2,35.1,160.0

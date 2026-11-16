@@ -10,11 +10,14 @@ export async function authenticateRequest(request: Request): Promise<Request | R
       headers: { "content-type": "application/json", "cache-control": "no-store" },
     });
   if (!token) return deny(401, "Authentication required");
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key =
     process.env.SUPABASE_PUBLISHABLE_KEY ||
     process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.VITE_SUPABASE_ANON_KEY;
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY;
   if (!url || !key) return deny(503, "Authentication service unavailable");
   try {
     const client = createClient(url, key, {
@@ -30,7 +33,7 @@ export async function authenticateRequest(request: Request): Promise<Request | R
     }
     const path = new URL(request.url).pathname;
     const permission: SecurityPermission =
-      request.method === "GET"
+      request.method === "GET" || path.endsWith("/signed-url")
         ? "PERM_VIEW_DATA"
         : path.startsWith("/api/uploads")
           ? "PERM_UPLOAD_FILES"

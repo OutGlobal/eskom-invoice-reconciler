@@ -90,6 +90,7 @@ import type {
 import type { UploadRecord, UploadFileType, UploadProcessingStatus } from "@/domain/upload/types";
 import type { IngestionGatewayResult, IngestionLifecycleState } from "@/domain/ingestion/types";
 import { useApp, type InvoiceData } from "@/lib/store";
+import type { StatisticalTouPeriod } from "@/domain/invoice/spreadsheetInvoiceExtractor";
 import type { Measurement } from "@/lib/parseMeter";
 import { AutomaticProcessingPipeline } from "@/domain/pipeline/automaticProcessingPipeline";
 import { ProcessingJobEngine } from "@/domain/jobs/processingJobEngine";
@@ -99,6 +100,7 @@ import type {
   AutomatedPipelineResult,
 } from "@/domain/pipeline/types";
 import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
+import { classifyTou } from "@/lib/tariff";
 import { computeTotals } from "@/lib/reconciliation";
 import { LocalFileVault } from "@/lib/localFileVault";
 import { LocalWorkspaceStore } from "@/lib/localWorkspaceStore";
@@ -108,7 +110,6 @@ import {
   periodToInvoiceData,
   type AutoReconciliationOutcome,
 } from "@/domain/reconciliation/autoReconciliationRunner";
-import { InvoiceStorageService } from "@/domain/invoice/invoiceStorageService";
 import { DocumentHierarchyTree } from "@/components/document/DocumentHierarchyTree";
 import { DocumentUsefulStateBanner } from "@/components/document/DocumentUsefulStateBanner";
 import { TruthfulStagesTracker } from "@/components/document/TruthfulStagesTracker";
@@ -141,6 +142,23 @@ const SOURCE_TABS: { label: string; value: string; icon: any }[] = [
   { label: "Raw Meter Logs", value: "RAW_METER_LOG", icon: Code },
   { label: "Tariff Documents", value: "TARIFF_DOCUMENT", icon: FileCheck },
 ];
+
+function toMeasurement(row: any): Measurement {
+  const ts = new Date(row.timestamp_utc ?? row.ts ?? row.timestamp ?? NaN);
+  const intervalMinutes = row.interval_minutes ?? row.interval_duration_minutes ?? 30;
+  const hours = intervalMinutes / 60;
+  const period = String(row.tou ?? row.tou_period ?? "").toLowerCase();
+  return {
+    ts,
+    kW: row.kW ?? row.active_power_kw ?? row.kw ?? (row.kwh ?? 0) / hours,
+    kVAr: row.kVAr ?? row.kvar ?? (row.reactive_energy_kvarh ?? row.kvarh ?? 0) / hours,
+    kVA: row.kVA ?? row.apparent_power_kva ?? row.kva ?? 0,
+    pf: row.pf ?? row.power_factor ?? 0.96,
+    tou: period === "peak" || period === "standard" ? period : period ? "offPeak" : classifyTou(ts),
+    intervalMinutes,
+    estimated: row.quality_status === "estimated",
+  };
+}
 
 export function SecureUploadGateway() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -175,12 +193,13 @@ export function SecureUploadGateway() {
   // workspace now holds (invoice + interval telemetry + uploaded tariff).
   const runReconciliationAfterUpload = () => {
     const state = useApp.getState();
-    const inv: any = state.invoice;
+    const inv = state.invoice;
     if (inv?.monthlyPeriods && Array.isArray(inv.monthlyPeriods) && inv.monthlyPeriods.length > 0) {
       const outcomes = runMultiPeriodReconciliation(inv, state.rows);
       if (outcomes.length > 0) {
-        setAutoRecon(outcomes[0].outcome);
-        return outcomes[0].outcome;
+        const result = outcomes.find(({ outcome }) => outcome.payload)?.outcome ?? outcomes[0].outcome;
+        setAutoRecon(result);
+        return result;
       }
     }
     const outcome = runAutomaticReconciliation(state.invoice, state.rows);
@@ -192,19 +211,18 @@ export function SecureUploadGateway() {
     setDownloadingUrl(true);
     setDownloadError(null);
     try {
-      // 1. Remote secure object store (time-limited signed URL)
-      const res = await fetch(`/api/uploads/${upload.id}/signed-url`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "X-Tenant-ID": upload.organisationId,
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.signedUrl) {
-          window.open(data.signedUrl, "_blank");
-          return;
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        const res = await fetch(`/api/uploads/${encodeURIComponent(upload.id)}/signed-url`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${data.session.access_token}` },
+        });
+        if (res.ok) {
+          const { signedUrl } = await res.json();
+          if (signedUrl) {
+            window.location.assign(signedUrl);
+            return;
+          }
         }
       }
       // 2. Durable local vault copy of the original uploaded file
@@ -264,6 +282,12 @@ export function SecureUploadGateway() {
       const store = useApp.getState();
       if (dataset.invoice) {
         store.setInvoice(dataset.invoice);
+        store.setBatchInvoices(
+          (dataset.invoice.monthlyPeriods ?? []).map((period) => ({
+            ...periodToInvoiceData(period),
+            source: dataset.invoice?.source,
+          })),
+        );
         store.setCustomer({
           name: dataset.invoice.customerName,
           accountNumber: dataset.invoice.accountNumber,
@@ -351,24 +375,27 @@ export function SecureUploadGateway() {
     const store = useApp.getState();
 
     // 1. If invoice fields were extracted, reflect in app store
-    if (res.extractedInvoice) {
+    const hasInvoice = ["INVOICE_PDF", "MUNICIPAL_BILL", "TELEMETRY_XML"].includes(
+      res.batchJob.documentType,
+    );
+    if (hasInvoice && res.extractedInvoice) {
       if (file instanceof File && res.fileHeader?.fileExtension === "pdf") {
         // Stage 16: Guarantee persistent document intelligence database integration
         void PersistentDocumentIntelligenceService.ingestAndProcessDocument({
           file,
-          organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
-          userId: "user-system-admin",
+          organisationId: res.fileHeader.organisationId,
+          userId: res.fileHeader.uploaderId || (await currentWorkspaceIdentity()).userId,
         }).catch((err) =>
           console.warn("Stage 16 document intelligence persistence notice:", err),
         );
       }
-      const ext: any = res.extractedInvoice;
+      const ext = res.extractedInvoice;
       const mappedInvoice: InvoiceData = {
         source: file.name,
         invoiceNumber: ext.invoiceNumber || "",
-        customerName: ext.customerName || ext.pod || ext.premiseId || "Impala Platinum Mine",
-        accountNumber: ext.accountNumber || "7856504676",
-        meterNumber: ext.meterNumber || ext.meterSerial || "7856504226F1, F2, F3",
+        customerName: ext.customerName || ext.pod || ext.premiseId || "",
+        accountNumber: ext.accountNumber || "",
+        meterNumber: ext.meterNumber || ext.meterSerial || "",
         tariffName: ext.tariff || "Megaflex",
         voltage: ext.voltage || "33 kV",
         nmd: ext.notifiedMaximumDemand || 0,
@@ -380,23 +407,20 @@ export function SecureUploadGateway() {
         offPeakKWh: ext.offPeakKwh || 0,
         totalKWh: ext.totalKwh || 0,
         maxDemandKVA: ext.billedMaximumDemand || ext.kva || 0,
-        transmissionNetworkCharge: ext.transmissionNetworkCharge || 0,
-        networkCapacityCharge: ext.networkCapacityCharge || 0,
+        transmissionNetworkCharge: ext.networkCharges ?? undefined,
         generationCapacityCharge: 0,
-        networkDemandCharge: ext.networkDemandCharge || ext.demandCharges || 0,
+        networkDemandCharge: ext.demandCharges ?? undefined,
         ancillary: ext.ancillaryCharges || 0,
         legacy: 0,
-        affordability: ext.affordability || 0,
-        electrification: ext.electrification || 0,
-        reactive: 0,
-        peakEnergyCharge: ext.peakEnergyCharge || 0,
-        standardEnergyCharge: ext.standardEnergyCharge || 0,
-        offPeakEnergyCharge: ext.offPeakEnergyCharge || 0,
-        serviceCharge: ext.serviceCharge || 0,
+        affordability: ext.subsidies ?? undefined,
+        reactiveTotal: ext.kvarh ?? undefined,
+        energyCharges: ext.energyCharges ?? undefined,
+        serviceCharge: ext.serviceCharges ?? undefined,
         vat: ext.vat || 0,
         invoiceTotal: ext.totalInvoice ? ext.totalInvoice - (ext.vat || 0) : 0,
         totalInclVat: ext.totalInvoice || 0,
         monthlyPeriods: ext.monthlyPeriods,
+        requiresBilledInvoice: Boolean(ext.monthlyPeriods?.length),
       };
 
       store.setInvoice(mappedInvoice);
@@ -439,7 +463,7 @@ export function SecureUploadGateway() {
 
       // If multi-period statistical TOU workbook, populate all monthly periods
       if (ext.monthlyPeriods && ext.monthlyPeriods.length > 0) {
-        const batchList: InvoiceData[] = ext.monthlyPeriods.map((p: any) => {
+        const batchList: InvoiceData[] = ext.monthlyPeriods.map((p) => {
           const pInv = periodToInvoiceData(p);
           return {
             source: file.name,
@@ -449,29 +473,8 @@ export function SecureUploadGateway() {
         });
         store.setBatchInvoices(batchList);
 
-        for (const p of ext.monthlyPeriods) {
-          const pInv = periodToInvoiceData(p);
-          void InvoiceStorageService.saveInvoiceRecord({
-            id: pInv.invoiceNumber,
-            invoiceNumber: pInv.invoiceNumber,
-            accountNumber: pInv.accountNumber,
-            customerName: pInv.customerName,
-            billingPeriod: pInv.billingPeriod,
-            billingStart: pInv.billingPeriodStart,
-            billingEnd: pInv.billingPeriodEnd,
-            totalKwh: pInv.totalKWh,
-            peakKwh: pInv.peakKWh,
-            standardKwh: pInv.standardKWh,
-            offPeakKwh: pInv.offPeakKWh,
-            maxDemandKva: pInv.maxDemandKVA,
-            totalAmount: pInv.totalInclVat,
-            tariffName: pInv.tariffName,
-            sourceFileName: file.name,
-            sheetName: p.sheetName,
-            parentBatchRunId: `BATCH-${Date.now()}`,
-            organisation_id: "TENANT-ESKOM-001",
-          });
-        }
+      } else {
+        store.setBatchInvoices([]);
       }
 
       store.addUpload({
@@ -485,19 +488,7 @@ export function SecureUploadGateway() {
 
     // 2. If interval telemetry was extracted, reflect in app store rows
     if (res.intervals && res.intervals.length > 0) {
-      const measurements: Measurement[] = res.intervals.map((r: any) => ({
-        ts: new Date(r.ts || r.timestamp_utc),
-        kW: r.kW ?? r.active_power_kw ?? 0,
-        kVAr:
-          r.kVAr ??
-          (r.reactive_energy_kvarh
-            ? r.reactive_energy_kvarh * (60 / (r.interval_minutes || 30))
-            : 0),
-        kVA: r.kVA ?? r.apparent_power_kva ?? 0,
-        pf: r.pf ?? r.power_factor ?? 0.96,
-        tou: (r.tou || r.tou_period || "peak") as any,
-        estimated: r.quality_status === "estimated",
-      }));
+      const measurements = res.intervals.map(toMeasurement);
       store.setRows(measurements);
       store.addUpload({
         name: file.name,
@@ -510,7 +501,7 @@ export function SecureUploadGateway() {
 
     // Notify realtime refresh manager for automatic dashboard/charts update
     RealtimeRefreshManager.notifyProcessingComplete({
-      entityType: res.extractedInvoice ? "invoice" : "meter_telemetry",
+      entityType: hasInvoice ? "invoice" : "meter_telemetry",
       timestamp: new Date().toISOString(),
     });
 
@@ -545,12 +536,6 @@ export function SecureUploadGateway() {
         await applyIngestionResult(res, {
           name: res.fileHeader.filename,
           size: res.fileHeader.fileSizeBytes,
-        });
-      }
-      if (res.success) {
-        RealtimeRefreshManager.notifyProcessingComplete({
-          entityType: res.extractedInvoice ? "invoice" : "meter_telemetry",
-          timestamp: new Date().toISOString(),
         });
       }
     } catch (err: any) {
@@ -589,20 +574,22 @@ export function SecureUploadGateway() {
 
     try {
       // Stage 16: Asynchronous Local processing (not a durable background worker)
+      const identity = await currentWorkspaceIdentity();
       const job = await ProcessingJobEngine.submitJob({
         invoiceFile,
         meterFile,
-        organisationId: (await currentWorkspaceIdentity()).organisationId,
-        userId: (await currentWorkspaceIdentity()).userId,
+        organisationId: identity.organisationId,
+        userId: identity.userId,
         metadata: overrides,
       });
 
-      // Stage 16: Guarantee persistent document intelligence database integration
-      void PersistentDocumentIntelligenceService.ingestAndProcessDocument({
-        file: invoiceFile,
-        organisationId: "7f9a8b1c-2d3e-4f5a-8b9c-0d1e2f3a4b5c",
-        userId: "user-system-admin",
-      }).catch((err) => console.warn("Stage 16 document intelligence persistence notice:", err));
+      if (/\.pdf$/i.test(invoiceFile.name)) {
+        void PersistentDocumentIntelligenceService.ingestAndProcessDocument({
+          file: invoiceFile,
+          organisationId: identity.organisationId,
+          userId: identity.userId,
+        }).catch((err) => console.warn("Document persistence failed:", err));
+      }
 
       setActiveJobId(job.jobId);
 
@@ -686,12 +673,13 @@ export function SecureUploadGateway() {
                 `${ext.billingStart || ext.billingPeriodStart || ""} - ${ext.billingEnd || ext.billingPeriodEnd || ""}`,
               billingPeriodStart: ext.billingStart || ext.billingPeriodStart,
               billingPeriodEnd: ext.billingEnd || ext.billingPeriodEnd,
+              monthlyPeriods: ext.monthlyPeriods,
               peakKWh: ext.peakKwh || 0,
               standardKWh: ext.standardKwh || 0,
               offPeakKWh: ext.offPeakKwh || 0,
               totalKWh: ext.totalKwh || 0,
               maxDemandKVA: ext.maximumDemandKva || ext.billedMaximumDemand || 0,
-              transmissionNetworkCharge: ext.transmissionNetworkCharge || 0,
+              transmissionNetworkCharge: ext.transmissionNetworkCharge ?? ext.networkCharges,
               networkCapacityCharge: ext.networkCapacityCharge || 0,
               generationCapacityCharge: 0,
               networkDemandCharge: ext.networkDemandCharge || ext.demandCharges || 0,
@@ -699,7 +687,8 @@ export function SecureUploadGateway() {
               legacy: 0,
               affordability: ext.affordability || 0,
               electrification: ext.electrification || 0,
-              reactive: ext.reactiveKvarh || ext.reactive || 0,
+              reactiveTotal: ext.kvarh ?? ext.reactiveKvarh ?? undefined,
+              energyCharges: ext.energyCharges,
               peakEnergyCharge: ext.peakEnergyCharge || 0,
               standardEnergyCharge: ext.standardEnergyCharge || 0,
               offPeakEnergyCharge: ext.offPeakEnergyCharge || 0,
@@ -707,13 +696,9 @@ export function SecureUploadGateway() {
               invoiceTotal: ext.totalInvoice ? ext.totalInvoice - (ext.vat || 0) : 0,
               totalInclVat: ext.totalInvoice || 0,
               reconciledTotal:
-                (current.resultPayload?.reconciliation as any)?.reconciled_total_zar != null
-                  ? Number((current.resultPayload?.reconciliation as any).reconciled_total_zar)
-                  : (current.resultPayload?.reconciliation as any)?.expected_total_zar != null
-                    ? Number((current.resultPayload?.reconciliation as any).expected_total_zar)
-                    : current.resultPayload?.reconciliation?.billed_total_zar
-                      ? Number(current.resultPayload.reconciliation.billed_total_zar)
-                      : undefined,
+                current.resultPayload.reconciliation?.calculated_total_zar != null
+                  ? Number(current.resultPayload.reconciliation.calculated_total_zar)
+                  : undefined,
             };
             useApp.getState().setInvoice(mappedInvoice);
             useApp.getState().setCustomer({
@@ -734,12 +719,14 @@ export function SecureUploadGateway() {
               });
             }
             if (ext.monthlyPeriods && ext.monthlyPeriods.length > 0) {
-              const batchList: InvoiceData[] = ext.monthlyPeriods.map((p: any) => ({
+              const batchList: InvoiceData[] = ext.monthlyPeriods.map((p: StatisticalTouPeriod) => ({
                 source: invoiceFile.name,
                 ...periodToInvoiceData(p),
                 sourceFileName: invoiceFile.name,
               }));
               useApp.getState().setBatchInvoices(batchList);
+            } else {
+              useApp.getState().setBatchInvoices([]);
             }
             useApp.getState().addUpload({
               name: invoiceFile.name,
@@ -753,25 +740,7 @@ export function SecureUploadGateway() {
             current.resultPayload?.telemetryIntervals &&
             current.resultPayload.telemetryIntervals.length > 0
           ) {
-            const measurements: Measurement[] = current.resultPayload.telemetryIntervals.map(
-              (r: any) => ({
-                ts: r.ts
-                  ? new Date(r.ts)
-                  : r.timestamp_utc
-                    ? new Date(r.timestamp_utc)
-                    : new Date(r.timestamp || Date.now()),
-                kW: r.kW ?? r.active_power_kw ?? r.kwh ?? 0,
-                kVAr:
-                  r.kVAr ??
-                  (r.reactive_energy_kvarh
-                    ? r.reactive_energy_kvarh * (60 / (r.interval_minutes || 30))
-                    : (r.kvarh ?? 0)),
-                kVA: r.kVA ?? r.apparent_power_kva ?? r.kva ?? 0,
-                pf: r.pf ?? r.power_factor ?? 0.96,
-                tou: (r.tou || r.tou_period || "peak") as any,
-                estimated: r.quality_status === "estimated",
-              }),
-            );
+            const measurements = current.resultPayload.telemetryIntervals.map(toMeasurement);
             useApp.getState().setRows(measurements);
             useApp.getState().addUpload({
               name: meterFile.name,
@@ -909,11 +878,12 @@ export function SecureUploadGateway() {
     setIngestionResult(null);
 
     try {
+      const identity = await currentWorkspaceIdentity();
       const res = await SecureIngestionGateway.processUpload(
         file,
         file.name,
-        (await currentWorkspaceIdentity()).organisationId,
-        (await currentWorkspaceIdentity()).userId,
+        identity.organisationId,
+        identity.userId,
         (state, pct, msg) => {
           setCurrentState(state);
           setProgressPct(pct);
@@ -1662,16 +1632,15 @@ export function SecureUploadGateway() {
                     View Details
                   </button>
                 )}
-                {ingestionResult.signedDownloadUrl && (
-                  <a
-                    href={ingestionResult.signedDownloadUrl}
-                    target="_blank"
-                    rel="noreferrer"
+                {ingestionResult.uploadRecord && (
+                  <button
+                    onClick={() => handleDownloadSecureFile(ingestionResult.uploadRecord!)}
+                    disabled={downloadingUrl}
                     className="px-3 py-1.5 text-xs font-medium rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 transition-all flex items-center gap-1.5"
                   >
                     <Download className="w-3.5 h-3.5" />
                     Download
-                  </a>
+                  </button>
                 )}
               </div>
             </div>
@@ -1741,16 +1710,15 @@ export function SecureUploadGateway() {
                     View Error Details
                   </button>
                 )}
-                {ingestionResult.signedDownloadUrl && (
-                  <a
-                    href={ingestionResult.signedDownloadUrl}
-                    target="_blank"
-                    rel="noreferrer"
+                {ingestionResult.uploadRecord && (
+                  <button
+                    onClick={() => handleDownloadSecureFile(ingestionResult.uploadRecord!)}
+                    disabled={downloadingUrl}
                     className="px-3.5 py-2 text-xs font-medium rounded-xl border border-border/60 bg-card/60 hover:bg-card text-foreground transition-all flex items-center gap-1.5"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Download Stored File</span>
-                  </a>
+                  </button>
                 )}
               </div>
             </div>

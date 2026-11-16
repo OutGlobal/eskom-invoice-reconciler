@@ -41,7 +41,8 @@ COMMENT ON TABLE public.tariff_audit_logs IS 'Append-only audit trail for tariff
 
 -- 5. Performance Indices
 CREATE INDEX IF NOT EXISTS idx_tariff_versions_dates ON public.tariff_versions (effective_from, effective_to);
-CREATE INDEX IF NOT EXISTS idx_tariff_versions_code ON public.tariff_versions (tariff_code);
+-- Tariff codes belong to tariff_schedules. Its unique code constraint and the
+-- existing tariff_versions schedule/version constraint cover that lookup.
 CREATE INDEX IF NOT EXISTS idx_tariff_rates_component ON public.tariff_rates (tariff_component_id);
 
 -- 6. Enable Row Level Security

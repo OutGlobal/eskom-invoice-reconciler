@@ -72,20 +72,6 @@ export class DashboardService {
     // Check active in-flight processing jobs across background engines
     const activeProcessingJobs = await this.getActiveProcessingJobs(filters.organisationId);
 
-    // 2. If source is explicitly "database", query production database as Authoritative Source of Truth
-    if (filters.source === "database") {
-      try {
-        const dbData = await this.queryDatabaseAggregates(filters);
-        if (dbData && dbData.hasData) {
-          dbData.activeProcessingJobs = activeProcessingJobs;
-          return dbData;
-        }
-      } catch (err) {
-        console.warn("Supabase dashboard query notice:", err);
-      }
-    }
-
-    // 3. If fallbackStoreData has active session data and source is NOT strictly "database", use store engine
     if (
       filters.source !== "database" &&
       fallbackStoreData &&
@@ -98,7 +84,7 @@ export class DashboardService {
       return storeResult;
     }
 
-    // 4. Otherwise query production Supabase database as Authoritative Source of Truth
+    // Query persisted data when the dashboard is not using an active session.
     try {
       const dbData = await this.queryDatabaseAggregates(filters);
       if (dbData && dbData.hasData) {
@@ -109,7 +95,7 @@ export class DashboardService {
       console.warn("Supabase dashboard query notice:", err);
     }
 
-    // 5. Return explicit NO DATA state if nothing present, but attach active in-flight processing jobs
+    // Include active jobs even before there are dashboard metrics.
     const emptyData = this.createEmptyDashboardData(timestamp);
     emptyData.activeProcessingJobs = activeProcessingJobs;
     return emptyData;
@@ -214,7 +200,12 @@ export class DashboardService {
       } catch {}
 
       try {
-        let sitesQuery = supabase.from("sites").select("id, site_code, site_name, customer_id");
+        let sitesQuery = supabase
+          .from("sites")
+          .select("id, site_code, site_name, customer_id, customers!inner(organisation_id)");
+        if (filters.organisationId) {
+          sitesQuery = sitesQuery.eq("customers.organisation_id", filters.organisationId);
+        }
         if (filters.siteId) {
           sitesQuery = sitesQuery.eq("id", filters.siteId);
         }
@@ -259,7 +250,8 @@ export class DashboardService {
         let legacyQuery = supabase.from("invoices").select("*");
         if (filters.accountNumber) {
           legacyQuery = legacyQuery.eq("account_number", filters.accountNumber);
-        } else if (filters.organisationId) {
+        }
+        if (filters.organisationId) {
           const custRes = await this.withTimeout(
             supabase
               .from("customers")
@@ -283,7 +275,7 @@ export class DashboardService {
       try {
         let runQuery = supabase
           .from("reconciliation_runs")
-          .select("id, status, run_at, invoice_record_id, billed_total_zar, calculated_total_zar, variance_total_zar, data_coverage_percentage");
+          .select("*");
         if (filters.organisationId) {
           runQuery = runQuery.eq("organisation_id", filters.organisationId);
         }
@@ -302,15 +294,22 @@ export class DashboardService {
         dbCustomers = res.data || [];
       } catch {}
 
-      try {
-        const res = await this.withTimeout(supabase.from("discrepancy_events").select("*"));
-        discrepancies = res.data || [];
-      } catch {}
+      const invoiceIds = invRecords.map((invoice) => invoice.id);
+      if (invoiceIds.length > 0) {
+        try {
+          const res = await this.withTimeout(
+            supabase.from("discrepancy_events").select("*").in("invoice_record_id", invoiceIds),
+          );
+          discrepancies = res.data || [];
+        } catch {}
 
-      try {
-        const res = await this.withTimeout(supabase.from("dispute_packs").select("*"));
-        disputes = res.data || [];
-      } catch {}
+        try {
+          const res = await this.withTimeout(
+            supabase.from("dispute_packs").select("*").in("invoice_record_id", invoiceIds),
+          );
+          disputes = res.data || [];
+        } catch {}
+      }
     }
 
     // Deduplicate stored records by invoice_number
@@ -353,40 +352,41 @@ export class DashboardService {
         if (!inv || typeof inv !== "object") continue;
         if (
           filters.organisationId &&
-          inv.organisation_id &&
-          inv.organisation_id !== filters.organisationId
+          (inv.organisation_id ?? inv.organisationId ?? inv.tenant_id) !== filters.organisationId
         ) {
           continue;
         }
         const invAccount = inv.account_number || inv.accountNumber;
-        if (filters.accountNumber && invAccount && invAccount !== filters.accountNumber) {
+        if (filters.accountNumber && invAccount !== filters.accountNumber) {
           continue;
         }
         const invSite = inv.site_id || inv.siteId;
-        if (filters.siteId && invSite && invSite !== filters.siteId) {
+        if (filters.siteId && invSite !== filters.siteId) {
           continue;
         }
         const invCustomer = inv.customer_id || inv.customerId;
-        if (filters.customerId && invCustomer && invCustomer !== filters.customerId) {
+        if (filters.customerId && invCustomer !== filters.customerId) {
           continue;
         }
         const invStart = inv.billing_start || inv.billingStart;
-        if (filters.startDate && invStart && invStart < filters.startDate) {
+        if (filters.startDate && (!invStart || invStart < filters.startDate)) {
           continue;
         }
         const invEnd = inv.billing_end || inv.billingEnd;
-        if (filters.endDate && invEnd && invEnd > filters.endDate) {
+        if (filters.endDate && (!invEnd || invEnd > filters.endDate)) {
           continue;
         }
         const invNum = inv.invoice_number || inv.invoiceNumber || inv.id;
         if (invNum && !invoiceMap.has(invNum)) {
           invoiceMap.set(invNum, {
             id: inv.id || invNum,
-            account_number: inv.account_number || inv.accountNumber || "ACC-DEFAULT",
+            account_number: invAccount,
+            site_id: invSite,
+            customer_id: invCustomer,
             invoice_number: invNum,
             billing_period_name: inv.billing_period || "Standard Billing Period",
-            billing_start: inv.billing_start || "2025-07-01",
-            billing_end: inv.billing_end || "2025-07-31",
+            billing_start: invStart,
+            billing_end: invEnd,
             total_kwh: Number(inv.total_kwh ?? inv.totalKwh) || 0,
             peak_kwh: Number(inv.peak_kwh ?? inv.peakKwh) || 0,
             standard_kwh: Number(inv.standard_kwh ?? inv.standardKwh) || 0,
@@ -405,12 +405,14 @@ export class DashboardService {
       console.warn("Error merging in-memory records into dashboard:", e);
     }
 
-    const mergedRuns: any[] = runs ? [...runs] : [];
+    const mergedRuns: any[] = [...runs];
+    const persistedRunIds = new Set(runs.flatMap((run) => [run.id, run.run_id]).filter(Boolean));
     try {
       const memRuns = await ReconciliationStorageService.queryRuns(
         filters.organisationId ? { organisationId: filters.organisationId } : {},
       );
       for (const r of memRuns || []) {
+        if (persistedRunIds.has(r.run_id)) continue;
         mergedRuns.push({
           id: r.run_id,
           status: (r.status || "completed").toLowerCase(),
@@ -428,7 +430,7 @@ export class DashboardService {
             r.variance_total_zar instanceof Decimal
               ? r.variance_total_zar.toNumber()
               : Number(r.variance_total_zar || 0),
-          data_coverage_percentage: (r as any).data_coverage_percentage ?? (r as any).coverage ?? 100,
+          data_coverage_percentage: (r as any).data_coverage_percentage ?? (r as any).coverage,
         });
       }
     } catch {
@@ -485,7 +487,7 @@ export class DashboardService {
     const uniqueAccounts = new Set<string>();
 
     for (const inv of invoices) {
-      uniqueAccounts.add(inv.account_number);
+      if (inv.account_number) uniqueAccounts.add(inv.account_number);
       const billed = new Decimal(inv.invoiced_total || 0);
       const calculated = new Decimal(inv.reconciled_total || 0);
       const varAmt = billed.minus(calculated);
@@ -560,8 +562,6 @@ export class DashboardService {
             ) / runsWithCoverage.length
           ).toFixed(1),
         );
-      } else {
-        dataCoveragePct = 100.0;
       }
     }
 
@@ -639,11 +639,7 @@ export class DashboardService {
     }
     const availableAccounts = Array.from(availableAccountsMap.values());
 
-    const totalSitesCount = Math.max(
-      sites?.length || 0,
-      availableSites.length,
-      invoices.length > 0 ? 1 : 0,
-    );
+    const totalSitesCount = availableSites.length;
 
     const portfolioSummary: PortfolioSummary = {
       totalClients: orgs?.length ?? (uniqueAccounts.size > 0 ? 1 : 0),
@@ -715,12 +711,13 @@ export class DashboardService {
 
     // Query stored reactive energy determinants
     let reactiveKvarh = 0;
-    if (isSupabaseConfigured) {
+    if (isSupabaseConfigured && invRecords.length > 0) {
       try {
         const detRes = await this.withTimeout(
           supabase
             .from("invoice_determinants")
             .select("determinant_value")
+            .in("invoice_record_id", invRecords.map((invoice) => invoice.id))
             .ilike("determinant_name", "%reactive%"),
         );
         const detData = detRes?.data;
@@ -812,7 +809,7 @@ export class DashboardService {
       monthlyConsumption,
       criticalAlerts,
       lastUpdated: new Date().toISOString(),
-      isLiveDatabase: true,
+      isLiveDatabase: invRecords.length > 0 || legacyInvoices.length > 0 || runs.length > 0,
       hasData: true,
       availableCustomers,
       availableSites,
@@ -1225,10 +1222,10 @@ export class DashboardService {
         dataCoveragePct: null,
       },
       reconciliationHealth: {
-        reconciliationSuccessRatePct: 0,
+        reconciliationSuccessRatePct: null,
         failedReconciliationsCount: 0,
         pendingReconciliationsCount: 0,
-        averageProcessingTimeMs: 0,
+        averageProcessingTimeMs: null,
         invoicesRequiringHumanReviewCount: 0,
         telemetryQualityIssuesCount: 0,
         hasData: false,

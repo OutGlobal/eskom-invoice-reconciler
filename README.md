@@ -96,7 +96,7 @@ public.processing_logs              (Upload ID, Stage, Level, Message, Timestamp
 
 ### Prerequisites
 
-- **Node.js**: `v20.0.0` or higher
+- **Node.js**: `v24` LTS (the same major version used by the Docker image)
 - **npm** or **bun**: `v10.0.0` or higher
 
 ### Local Development Setup
@@ -111,7 +111,7 @@ public.processing_logs              (Upload ID, Stage, Level, Message, Timestamp
 2. **Install dependencies**:
 
    ```bash
-   npm install
+   npm ci
    ```
 
 3. **Configure Environment Variables**:
@@ -136,7 +136,7 @@ Run the automated test suite to verify NERSA Megaflex formulas, validation engin
 
 ```bash
 # Execute automated test suite
-npx tsx src/lib/__tests__/run-tests.ts
+npm run test:all
 
 # Execute static typecheck & Vite production build
 npx tsc --noEmit && npm run build

@@ -1,3 +1,4 @@
+import { jsPDF } from "jspdf";
 /**
  * STAGE 5 — TEXT EXTRACTION TEST SUITE
  * ========================================================
@@ -33,86 +34,44 @@ describe("Stage 5 — Reliable Native Text Extraction Architecture Suite", () =>
   // Synthesize realistic Eskom Megaflex PDF document bytes with multi-page structure,
   // multi-column tables, key-value headers, tariffs, meters, and financial figures
   const createMockPdfBytes = (): Uint8Array => {
-    const page1Commands = [
-      "1 0 0 1 72 790 Tm (ESKOM HOLDINGS SOC LTD) Tj",
-      "1 0 0 1 72 770 Tm (TAX INVOICE) Tj",
-      "1 0 0 1 72 740 Tm (Account Number: 0123456789) Tj",
-      "1 0 0 1 72 722 Tm (Tax Invoice Number: INV-2026-001) Tj",
-      "1 0 0 1 72 704 Tm (Invoice Date: 2026/01/15) Tj",
-      "1 0 0 1 72 686 Tm (Billing Period: 2026/01/01 to 2026/01/31) Tj",
-      "1 0 0 1 72 650 Tm (Tariff Name: Megaflex Non-Local Authority) Tj",
-      "1 0 0 1 72 632 Tm (Physical Meter Number: M123456) Tj",
-      "1 0 0 1 72 590 Tm (ACCOUNT SUMMARY AND CURRENT CHARGES) Tj",
-      "1 0 0 1 72 570 Tm (This tax invoice reflects the electricity consumption charges for January 2026.) Tj",
-      "1 0 0 1 72 554 Tm (All charges are levied in accordance with NERSA approved Megaflex tariff structures.) Tj",
-      "1 0 0 1 72 510 Tm (Total Amount Due: R 1,842,910.45) Tj",
-    ].join("\n");
-
-    const page2Commands = [
-      "1 0 0 1 72 790 Tm (DETAILED BILLING DETERMINANTS AND CONSUMPTION BREAKDOWN) Tj",
-      "1 0 0 1 72 760 Tm (Period   Consumption \\(kWh\\)   Rate \\(c/kWh\\)   Total Amount \\(R\\)) Tj",
-      "1 0 0 1 72 740 Tm (Peak   452,300   354.21   1,602,091.83) Tj",
-      "1 0 0 1 72 720 Tm (Standard   620,150   182.45   1,131,463.68) Tj",
-      "1 0 0 1 72 700 Tm (Off-Peak   379,850   94.12   357,514.82) Tj",
-      "1 0 0 1 72 660 Tm (Maximum Demand Recorded: 2,450 kVA at 45.50 R/kVA) Tj",
-      "1 0 0 1 72 640 Tm (Reactive Energy: 184,200 kVArh) Tj",
-      "1 0 0 1 72 600 Tm (Subtotal Energy Charges: R 3,091,070.33) Tj",
-      "1 0 0 1 72 580 Tm (Value Added Tax 15%: R 463,660.55) Tj",
-      "1 0 0 1 72 540 Tm (Net Payable: R 3,554,730.88) Tj",
-    ].join("\n");
-
-    const pdfStr = `%PDF-1.7
-2 0 obj
-<< /Type /Catalog /Pages 3 0 R >>
-endobj
-3 0 obj
-<< /Type /Pages /Kids [4 0 R 5 0 R] /Count 2 >>
-endobj
-8 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
-endobj
-4 0 obj
-<< /Type /Page /Parent 3 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 8 0 R >> >> /Contents 6 0 R >>
-endobj
-5 0 obj
-<< /Type /Page /Parent 3 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 8 0 R >> >> /Contents 7 0 R >>
-endobj
-6 0 obj
-<< /Length ${page1Commands.length + 50} >>
-stream
-BT
-/F1 12 Tf
-${page1Commands}
-ET
-endstream
-endobj
-7 0 obj
-<< /Length ${page2Commands.length + 50} >>
-stream
-BT
-/F1 12 Tf
-${page2Commands}
-ET
-endstream
-endobj
-xref
-0 9
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000179 00000 n 
-0000000295 00000 n 
-0000000411 00000 n 
-0000000600 00000 n 
-0000000850 00000 n 
-trailer
-<< /Size 9 /Root 2 0 R >>
-startxref
-1000
-%%EOF`;
-
-    return new TextEncoder().encode(pdfStr);
+    const pdf = new jsPDF({ unit: "pt", format: "a4" });
+    pdf.setFontSize(10);
+    const pages = [
+      [
+        [52, "ESKOM HOLDINGS SOC LTD"],
+        [72, "TAX INVOICE"],
+        [102, "Account Number: 0123456789"],
+        [120, "Tax Invoice Number: INV-2026-001"],
+        [138, "Invoice Date: 2026/01/15"],
+        [156, "Billing Period: 2026/01/01 to 2026/01/31"],
+        [192, "Tariff Name: Megaflex Non-Local Authority"],
+        [210, "Physical Meter Number: M123456"],
+        [252, "ACCOUNT SUMMARY AND CURRENT CHARGES"],
+        [272, "This tax invoice reflects the electricity consumption charges for January 2026."],
+        [288, "All charges are levied in accordance with NERSA approved Megaflex tariff structures."],
+        [332, "Total Amount Due: R 1,842,910.45"],
+      ],
+      [
+        [52, "DETAILED BILLING DETERMINANTS AND CONSUMPTION BREAKDOWN"],
+        [82, "Period", "Consumption (kWh)", "Rate (c/kWh)", "Total Amount (R)"],
+        [102, "Peak", "452,300", "354.21", "1,602,091.83"],
+        [122, "Standard", "620,150", "182.45", "1,131,463.68"],
+        [142, "Off-Peak", "379,850", "94.12", "357,514.82"],
+        [182, "Maximum Demand Recorded: 2,450 kVA at 45.50 R/kVA"],
+        [202, "Reactive Energy: 184,200 kVArh"],
+        [242, "Subtotal Energy Charges: R 3,091,070.33"],
+        [262, "Value Added Tax 15%: R 463,660.55"],
+        [302, "Net Payable: R 3,554,730.88"],
+      ],
+    ] satisfies Array<Array<[number, ...string[]]>>;
+    const columnPositions = [72, 172, 310, 418];
+    for (const [pageIndex, rows] of pages.entries()) {
+      if (pageIndex > 0) pdf.addPage();
+      for (const [y, ...cells] of rows) {
+        cells.forEach((cell, column) => pdf.text(cell, columnPositions[column], y));
+      }
+    }
+    return new Uint8Array(pdf.output("arraybuffer"));
   };
 
   // =========================================================================

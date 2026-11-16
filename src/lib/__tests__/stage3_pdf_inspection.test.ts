@@ -1,3 +1,5 @@
+import { makeInvoicePdf } from "./fixtures/invoicePdf";
+import { LocalWorkspaceStore } from "../localWorkspaceStore";
 /**
  * Stage 3 — PDF Inspection Architecture & Verification Suite
  * ========================================================
@@ -21,7 +23,7 @@
  *    - "Do not unnecessarily OCR a high-quality text PDF."
  */
 
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   DocumentIntelligencePipeline,
   PdfInspectionEngine,
@@ -103,20 +105,19 @@ Total Amount Due | | | R 2,161,163.72
       .map((line, idx) => `1 0 0 1 50 ${750 - idx * 18} Tm (${line.replace(/[()\\]/g, "")}) Tj`)
       .join("\n");
 
+    const fontResource = streamText ? "/Font << /F1 8 0 R >>" : "";
+    const textStream = streamText ? `BT\n/F1 12 Tf\n${textCommands}\nET` : "";
     const imageXObjectDef = options.hasImages ? "/XObject << /Im1 99 0 R >>" : "";
     const imageStream = options.hasImages ? "/Im1 Do" : "";
 
     objectsStr += `
 ${pageObjId} 0 obj
-<< /Type /Page /Parent 3 0 R /MediaBox ${mediaBox} /Rotate ${rotation} /Resources << /Font << /F1 8 0 R >> ${imageXObjectDef} >> /Contents ${contentObjId} 0 R >>
+<< /Type /Page /Parent 3 0 R /MediaBox ${mediaBox} /Rotate ${rotation} /Resources << ${fontResource} ${imageXObjectDef} >> /Contents ${contentObjId} 0 R >>
 endobj
 ${contentObjId} 0 obj
 << /Length 2000 >>
 stream
-BT
-/F1 12 Tf
-${textCommands}
-ET
+${textStream}
 ${imageStream}
 endstream
 endobj`;
@@ -158,6 +159,7 @@ trailer
 }
 
 describe("Stage 3 — PDF Inspection Architecture & Verification Suite", () => {
+  beforeEach(() => LocalWorkspaceStore.clearMemoryStore());
   const sampleOrgId = "11111111-2222-3333-4444-555555555555";
 
   // =========================================================================
@@ -341,7 +343,7 @@ describe("Stage 3 — PDF Inspection Architecture & Verification Suite", () => {
   // =========================================================================
   describe("3. Pipeline & Ingestion Gateway Automatic Inspection", () => {
     it("automatically inspects PDF upon upload via SecureIngestionGateway", async () => {
-      const textPdfBytes = createMockPdf({ pageCount: 2 });
+      const textPdfBytes = makeInvoicePdf({ secondPage: true });
       const filename = "Megaflex_Jan2026_TaxInvoice.pdf";
 
       const result = await SecureIngestionGateway.processUpload(

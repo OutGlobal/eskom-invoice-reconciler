@@ -19,6 +19,7 @@ import { SecureIngestionGateway } from "../ingestion/secureIngestionGateway";
 import { EnergyDataNormalizationEngine } from "../telemetry/energyDataNormalizationEngine";
 import { DeterministicReconciliationEngine } from "../reconciliation/reconciliationEngine";
 import type { AuthoritativeReconciliationInput } from "../reconciliation/reconciliationEngine";
+import { billingPeriodWindow } from "../reconciliation/billingPeriodWindow";
 import { PowerFactorEngine } from "../reconciliation/powerFactorEngine";
 import { DeterministicDiagnosticsEngine } from "../discrepancy/deterministicDiagnosticsEngine";
 import { ESKOM_MEGAFLEX_2025_2026, ESKOM_MINIFLEX_2025_2026 } from "../tariff/tariffFixtures";
@@ -73,7 +74,10 @@ export class ProcessingJobEngine {
 
     const jobId = `JOB-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
     const correlationId = input.correlationId || `CORR-${Date.now()}-${jobId.slice(-4)}`;
-    const jobType: JobType = input.jobType || "FULL_PIPELINE";
+    const jobType: JobType = input.jobType ??
+      (!input.invoiceFile && input.meterFile
+        ? /\.xlsx?$/i.test(input.meterFile.name) ? "EXCEL_PROCESSING" : "CSV_STREAMING"
+        : "FULL_PIPELINE");
     const now = new Date().toISOString();
 
     const invoiceName =
@@ -498,7 +502,7 @@ export class ProcessingJobEngine {
         this.failJob(jobId, err?.message || "Unable to extract required invoice information.");
         return;
       }
-    } else {
+    } else if (!input.meterFile || job.jobType === "FULL_PIPELINE") {
       this.failJob(jobId, "No invoice file provided for processing job.");
       return;
     }
@@ -578,14 +582,14 @@ export class ProcessingJobEngine {
       startPeriod:
         resolution?.resolvedBillingPeriod?.start ||
         rawTelemetryRecords[0]?.timestamp?.slice(0, 10) ||
-        extractedInvoice.billingPeriodStart,
+        extractedInvoice?.billingPeriodStart || "",
       endPeriod:
         resolution?.resolvedBillingPeriod?.end ||
         rawTelemetryRecords[rawTelemetryRecords.length - 1]?.timestamp?.slice(0, 10) ||
-        extractedInvoice.billingPeriodEnd,
+        extractedInvoice?.billingPeriodEnd || "",
     };
 
-    const ambiguityReport = AmbiguityDetector.detectAmbiguity(
+    const ambiguityReport = extractedInvoice && AmbiguityDetector.detectAmbiguity(
       jobId,
       extractedInvoice,
       rawTelemetryRecords,
@@ -629,16 +633,48 @@ export class ProcessingJobEngine {
     if (this.isCancelled(jobId)) return;
 
     const assignedMeterId = resolution?.resolvedMeterId || sampleMeterId || "MTR-UNKNOWN";
-    const canonicalTelemetry = EnergyDataNormalizationEngine.normalizeBatch(
-      rawTelemetryRecords.map((r: any) => ({
-        ...r,
+    const canonicalTelemetry = rawTelemetryRecords.map((record) => {
+      if (record.timestamp_utc && record.active_energy_kwh != null) {
+        return EnergyDataNormalizationEngine.fromCanonicalTelemetryRecord(
+          { ...record, meter_id: assignedMeterId },
+          "SITE-DEFAULT",
+        );
+      }
+
+      return EnergyDataNormalizationEngine.normalizeInterval({
+        timestamp: record.timestamp_utc ?? record.timestamp ?? record.ts,
         meter_id: assignedMeterId,
-      })),
-      {
-        defaultSiteId: "SITE-DEFAULT",
-        defaultMeterId: assignedMeterId,
-      },
-    );
+        site_id: "SITE-DEFAULT",
+        interval_minutes: record.interval_minutes ?? record.interval_duration_minutes,
+        raw_active_power: record.raw_active_power ?? record.kW,
+        raw_active_energy: record.raw_active_energy ?? record.engineering_value,
+        raw_reactive_power: record.raw_reactive_power ?? record.kVAr,
+        raw_apparent_power: record.raw_apparent_power ?? record.kVA,
+        raw_power_factor: record.raw_power_factor ?? record.power_factor,
+        source_units: record.source_units,
+      });
+    });
+
+    if (!extractedInvoice) {
+      job.status = "COMPLETED";
+      job.completedAt = new Date().toISOString();
+      job.updatedAt = job.completedAt;
+      job.resultPayload = {
+        telemetryIntervals: canonicalTelemetry,
+        telemetrySummary: {
+          recordsCount: totalRecords,
+          meterCount: telemetrySummary.detectedMeterIds.length,
+          startPeriod: telemetrySummary.startPeriod,
+          endPeriod: telemetrySummary.endPeriod,
+        },
+      };
+      this.updateProgress(jobId, "COMPLETED", 100, totalRecords, totalRecords, "Meter processing completed successfully");
+      this.persistJobAsync(job);
+      RealtimeRefreshManager.notifyProcessingComplete({
+        jobId, organisationId: orgId, entityType: "job", recordCount: totalRecords, timestamp: job.completedAt,
+      });
+      return;
+    }
 
     // -------------------------------------------------------------
     // STAGE 5: AGGREGATION & TOU BUCKETING
@@ -655,20 +691,35 @@ export class ProcessingJobEngine {
 
     if (this.isCancelled(jobId)) return;
 
+    if (extractedInvoice.monthlyPeriods?.length) {
+      throw new Error("Upload the utility invoice to verify billed charges for statistical TOU periods.");
+    }
+
+    const billingStart = extractedInvoice.billingStart || extractedInvoice.billingPeriodStart;
+    const billingEnd = extractedInvoice.billingEnd || extractedInvoice.billingPeriodEnd;
+    if (!billingStart || !billingEnd) {
+      throw new Error("The invoice is missing a billing period. Review the extracted dates.");
+    }
+    const inPeriod = billingPeriodWindow(billingStart, billingEnd);
+    const billingTelemetry = canonicalTelemetry.filter((record) =>
+      inPeriod(Date.parse(record.timestamp_utc)),
+    );
+    if (!billingTelemetry.length) {
+      throw new Error("No interval measurements overlap the primary invoice billing period.");
+    }
+
     let aggPeak = 0;
     let aggStd = 0;
     let aggOffPeak = 0;
     let maxDemand = 0;
     let aggReactive = 0;
 
-    for (const rec of canonicalTelemetry) {
-      aggPeak += rec.peak_kwh || 0;
-      aggStd += rec.standard_kwh || 0;
-      aggOffPeak += rec.off_peak_kwh || 0;
-      aggReactive += rec.kvarh || 0;
-      if ((rec.kva || 0) > maxDemand) {
-        maxDemand = rec.kva || 0;
-      }
+    for (const rec of billingTelemetry) {
+      aggPeak += rec.peak_kwh;
+      aggStd += rec.standard_kwh;
+      aggOffPeak += rec.off_peak_kwh;
+      aggReactive += rec.kvarh;
+      maxDemand = Math.max(maxDemand, rec.kva);
     }
 
     const calculatedTotalKwh = aggPeak + aggStd + aggOffPeak;
@@ -705,11 +756,6 @@ export class ProcessingJobEngine {
     const toDecimal = (val: number | null | undefined): Decimal =>
       new Decimal((val ?? 0).toString());
 
-    // Resolve billing period — prefer extracted fields, fall back to billingPeriodStart/End aliases
-    const billingStart =
-      extractedInvoice.billingStart || extractedInvoice.billingPeriodStart || "2025-01-01";
-    const billingEnd =
-      extractedInvoice.billingEnd || extractedInvoice.billingPeriodEnd || "2025-01-31";
     const invoiceId = extractedInvoice.invoiceNumber || `INV-${Date.now()}`;
 
     const reconInput: AuthoritativeReconciliationInput = {
@@ -763,39 +809,7 @@ export class ProcessingJobEngine {
       /* non-blocking */
     }
 
-    let activeReconInput: AuthoritativeReconciliationInput = reconInput;
-    if (extractedInvoice.monthlyPeriods && extractedInvoice.monthlyPeriods.length > 0) {
-      const firstPeriod = extractedInvoice.monthlyPeriods[0];
-      const pStart = firstPeriod.billingStart ? new Date(firstPeriod.billingStart).getTime() : 0;
-      const pEnd = firstPeriod.billingEnd ? new Date(firstPeriod.billingEnd).getTime() + 86400000 : Infinity;
-      const pIntervals = canonicalTelemetry.filter((r: any) => {
-        const t = r.ts ? new Date(r.ts).getTime() : r.timestamp ? new Date(r.timestamp).getTime() : 0;
-        return t >= pStart && t <= pEnd;
-      });
-      const intervalsToUse = pIntervals.length > 0 ? pIntervals : canonicalTelemetry;
-      const pPeak = intervalsToUse.reduce((s: number, r: any) => s + (r.peak_kwh || 0), 0);
-      const pStd = intervalsToUse.reduce((s: number, r: any) => s + (r.standard_kwh || 0), 0);
-      const pOff = intervalsToUse.reduce((s: number, r: any) => s + (r.off_peak_kwh || 0), 0);
-      const pTot = pPeak + pStd + pOff;
-      const pMaxKva = intervalsToUse.reduce((m: number, r: any) => Math.max(m, r.kva || 0), 0);
-      const pReactive = intervalsToUse.reduce((s: number, r: any) => s + (r.kvarh || 0), 0);
-      const pPfRecord = PowerFactorEngine.calculatePowerFactor({ kWh: pTot, kVArh: pReactive });
-
-      activeReconInput = {
-        ...reconInput,
-        billing_start: firstPeriod.billingStart,
-        billing_end: firstPeriod.billingEnd,
-        calc_peak_kwh: new Decimal(pPeak.toString()),
-        calc_standard_kwh: new Decimal(pStd.toString()),
-        calc_off_peak_kwh: new Decimal(pOff.toString()),
-        calc_total_kwh: new Decimal(pTot.toString()),
-        calc_maximum_demand_kva: new Decimal(pMaxKva.toString()),
-        calc_reactive_energy_kvarh: new Decimal(pReactive.toString()),
-        calc_power_factor: pPfRecord.calculated_pf,
-      };
-    }
-
-    const reconciliationPayload = DeterministicReconciliationEngine.reconcile(activeReconInput);
+    const reconciliationPayload = DeterministicReconciliationEngine.reconcile(reconInput);
 
     // --- PERSIST reconciliation result to reconciliation_results table ---
     if (isSupabaseConfigured) {

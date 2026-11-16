@@ -1,3 +1,4 @@
+import type { StatisticalTouPeriod } from "../invoice/spreadsheetInvoiceExtractor";
 /**
  * Enterprise Secure Document & Telemetry Ingestion Gateway Domain Types
  */
@@ -48,6 +49,7 @@ export interface FileMetadataHeader {
 
 export interface ExtractedInvoiceFields {
   customerName?: string;
+  invoiceNumber?: string;
   accountNumber: string;
   pod: string;
   premiseId: string;
@@ -97,7 +99,7 @@ export interface ExtractedInvoiceFields {
   missingFields?: string[];
   customerId?: string;
   siteId?: string;
-  monthlyPeriods?: any[];
+  monthlyPeriods?: StatisticalTouPeriod[];
 }
 
 export interface ExtractionPageInfo {

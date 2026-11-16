@@ -142,27 +142,27 @@ export class PdfInspectionEngine {
       /\/Font\b|\/Type\s*\/Font\b|\/BaseFont\b|\/FontDescriptor\b|\/ToUnicode\b/i.test(fullAscii);
     const totalCharacterCount = pages.reduce((sum, p) => sum + p.characterCount, 0);
     const estimatedTextDensity = pageCount > 0 ? Math.round(totalCharacterCount / pageCount) : 0;
-    const hasEmbeddedText =
-      totalCharacterCount > 50 || pages.some((p) => p.hasEmbeddedText) || hasFontDescriptors;
+    const hasTextEvidence = totalCharacterCount > 50 || pages.some((p) => p.hasEmbeddedText);
+    const hasFontOnlyTextEvidence = hasFontDescriptors && !hasImages;
+    const hasEmbeddedText = hasTextEvidence || hasFontOnlyTextEvidence;
 
     // 9. Classify Scanned Likelihood and OCR Requirement
     // Heuristic:
-    // - Scanned: High image presence with zero or near-zero embedded digital text and NO font structures
+    // - Scanned: High image presence with zero or near-zero embedded digital text
     // - High-Quality Text: Rich embedded text layer, clean glyph streams, or font descriptors
     const scannedPagesCount = pages.filter((p) => p.appearsScanned).length;
     const isScannedLikely =
-      !hasFontDescriptors &&
+      !hasFontOnlyTextEvidence &&
       ((hasImages && totalCharacterCount < 100) ||
         (!hasEmbeddedText && fileSizeBytes > 15000) ||
         (pageCount > 0 && scannedPagesCount === pageCount));
 
     const appearsScanned = isScannedLikely;
     const isTextExtractionPossible =
-      (hasEmbeddedText || hasFontDescriptors) &&
-      (totalCharacterCount >= 30 || hasFontDescriptors);
+      hasEmbeddedText && (totalCharacterCount >= 30 || hasFontOnlyTextEvidence);
 
     // Strict Rule: "Do not unnecessarily OCR a high-quality text PDF."
-    const isOcrLikelyRequired = appearsScanned && !isTextExtractionPossible && !hasFontDescriptors;
+    const isOcrLikelyRequired = appearsScanned && !isTextExtractionPossible;
 
     // 10. Classify PDF Type & Architectural Processing Route
     let pdfType: PdfTypeClassification = "TEXT_PDF";
@@ -639,19 +639,6 @@ export class PdfInspectionEngine {
             count += Math.max(0, s.length - 2);
           }
         }
-      }
-    }
-
-    // Match plain words ONLY for non-PDF raw plain text payloads
-    if (
-      count === 0 &&
-      !rawText.includes("%PDF") &&
-      !rawText.includes("obj") &&
-      !rawText.includes("endobj")
-    ) {
-      const words = rawText.match(/\b[A-Za-z0-9_-]{3,}\b/g);
-      if (words && words.length > 20) {
-        count = words.reduce((acc, w) => acc + w.length, 0);
       }
     }
 

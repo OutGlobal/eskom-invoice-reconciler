@@ -5,8 +5,9 @@
  * and authoritative upload record persistence.
  */
 
-import { supabase } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { MimeInspector } from "./mimeInspector";
+import { periodToInvoiceData } from "../reconciliation/autoReconciliationRunner";
 import { SignedUrlService } from "./signedUrlService";
 import { QuarantineManager } from "./quarantineManager";
 import { ScannedInvoiceOcrAdapter } from "../ocr/scannedInvoiceOcrAdapter";
@@ -245,6 +246,18 @@ export class SecureIngestionGateway {
       };
     }
 
+    // Identical bytes can belong to separate organisations. The cached result
+    // must never cross that boundary or create another incomplete upload row.
+    const cacheKey = JSON.stringify([organisationId, sha256Checksum]);
+    const existing = this.processedHashes.get(cacheKey);
+    if (existing && !existingDocumentId) {
+      return {
+        ...existing,
+        isIdempotentDuplicate: true,
+        fileHeader: { ...existing.fileHeader, isDuplicate: true },
+      };
+    }
+
     // Stage 1: UPLOADED - Persistent upload record registration
     onProgress?.("UPLOADED", 10, "Registering upload record and computing SHA-256 hash...");
     addLog(
@@ -270,22 +283,6 @@ export class SecureIngestionGateway {
       },
       context,
     );
-
-    // 1. Check for Duplicate SHA-256 (Idempotency Guarantee)
-    if (this.processedHashes.has(sha256Checksum)) {
-      addLog(
-        "IDEMPOTENCY",
-        "info",
-        "Duplicate file SHA-256 checksum detected. Returning existing record idempotently.",
-      );
-      const existing = this.processedHashes.get(sha256Checksum)!;
-      return {
-        ...existing,
-        isIdempotentDuplicate: true,
-        fileHeader: { ...existing.fileHeader, isDuplicate: true },
-        uploadRecord,
-      };
-    }
 
     // Stage 2: VALIDATING - Multi-Layer Zero-Trust File Security Inspection
     onProgress?.("VALIDATING", 20, "Inspecting MIME magic bytes & binary signature...");
@@ -435,7 +432,7 @@ export class SecureIngestionGateway {
     if (mimeResult.fileExtension.toLowerCase() === "pdf") {
       try {
         const { PdfInspectionEngine } = await import("../intelligence/pdfInspectionEngine");
-        pdfInspection = PdfInspectionEngine.inspectPdf(bytes);
+        pdfInspection = await PdfInspectionEngine.inspectPdfAsync(bytes);
         addLog(
           "INSPECTION",
           "info",
@@ -736,6 +733,41 @@ export class SecureIngestionGateway {
       // Non-blocking retroactive link ignore
     }
 
+    // Stage 21: Multi-Criteria Duplicate Protection Evaluation
+    const duplicateCandidate: DuplicateEvaluationCandidate = {
+      organisationId,
+      sourceType: extractRes.documentType === "INVOICE_PDF" ? "INVOICE" : "TELEMETRY",
+      sourceFile: {
+        name: sanitizedFilename,
+        sizeBytes: fileSize,
+        sha256Hash: sha256Checksum,
+      },
+      accountNumber: extractRes.extractedFields?.accountNumber,
+      meterNumber: extractRes.extractedFields?.meterNumber,
+      invoiceNumber: extractRes.extractedFields?.invoiceNumber,
+      billingPeriod: {
+        startDate: extractRes.extractedFields?.billingStart,
+        endDate: extractRes.extractedFields?.billingEnd,
+        periodName: extractRes.extractedFields?.billingPeriod,
+      },
+      metrics: {
+        totalAmount: extractRes.extractedFields?.totalInvoice,
+        vatAmount: extractRes.extractedFields?.vat,
+        totalKwh: extractRes.extractedFields?.totalKwh,
+        peakKwh: extractRes.extractedFields?.peakKwh,
+        standardKwh: extractRes.extractedFields?.standardKwh,
+        offPeakKwh: extractRes.extractedFields?.offPeakKwh,
+        maxDemandKva:
+          extractRes.extractedFields?.billedMaximumDemand || extractRes.extractedFields?.kva,
+        intervalCount: extractRes.intervals?.length,
+      },
+    };
+
+    const duplicateResult = await DuplicateProtectionService.evaluateCandidate(
+      duplicateCandidate,
+      context,
+    );
+
     // Reflect normalized invoice/telemetry into database
     onProgress?.("NORMALIZED", 80, "Persisting normalized records to database repository...");
     addLog("NORMALIZED", "info", "Storing raw text & normalized records in authoritative database");
@@ -795,9 +827,11 @@ export class SecureIngestionGateway {
         if (!fields.accountNumber) {
           fields.accountNumber = `ACC-${documentId.substring(0, 8)}`;
         }
-        const invNum = fields.accountNumber.startsWith("INV-")
-          ? fields.accountNumber
-          : `INV-${fields.accountNumber}`;
+        const primaryPeriod = fields.monthlyPeriods?.[0];
+        const invNum =
+          (primaryPeriod && periodToInvoiceData(primaryPeriod).invoiceNumber) ||
+          fields.invoiceNumber ||
+          `INV-${fields.accountNumber}-${fields.billingStart || documentId}`;
         const bStart = fields.billingStart || new Date().toISOString().substring(0, 10);
         const bEnd = fields.billingEnd || new Date().toISOString().substring(0, 10);
         const clientName =
@@ -949,19 +983,47 @@ export class SecureIngestionGateway {
           raw_data: fields as any,
         };
 
-        let invRecord: any = null;
-        try {
-          const res = await supabase
-            .from("invoice_records")
-            .upsert(invoicePayload, { onConflict: "invoice_number" })
-            .select("id")
-            .single();
-          invRecord = res.data;
-        } catch {
-          // Offline mode fallback
+        let invRecord: { id: string } | null = null;
+        if (isSupabaseConfigured) {
+          try {
+            const { id: generatedId, ...header } = invoicePayload;
+            const periodRows =
+              fields.monthlyPeriods?.map((period: import("../invoice/spreadsheetInvoiceExtractor").StatisticalTouPeriod) => {
+                const invoice = periodToInvoiceData(period);
+                return {
+                  invoice_number: invoice.invoiceNumber,
+                  organisation_id: organisationId,
+                  account_number: invoice.accountNumber,
+                  client_name: invoice.customerName,
+                  meter_number: invoice.meterNumber,
+                  tariff_name: invoice.tariffName,
+                  billing_period_name: invoice.billingPeriod,
+                  billing_start: invoice.billingPeriodStart,
+                  billing_end: invoice.billingPeriodEnd,
+                  total_kwh: invoice.totalKWh,
+                  peak_kwh: invoice.peakKWh,
+                  standard_kwh: invoice.standardKWh,
+                  off_peak_kwh: invoice.offPeakKWh,
+                  max_demand_kva: invoice.maxDemandKVA,
+                  invoiced_total: invoice.totalInclVat,
+                  source_file_id: documentId,
+                  status: header.status,
+                  raw_data: invoice,
+                };
+              }) ?? [];
+            const { data, error } = await supabase
+              .from("invoice_records")
+              .upsert(periodRows.length ? periodRows : [header], { onConflict: "invoice_number" })
+              .select("id, invoice_number");
+            if (error) throw error;
+            invRecord = data?.find((row) => row.invoice_number === invNum) ?? null;
+          } catch (error) {
+            addLog("STORAGE", "warn", "Invoice records could not be saved to remote storage.");
+            console.warn("Invoice records could not be saved:", error);
+          }
         }
 
-        const persistedInvoiceId = invRecord?.id || invoicePayload.id || invNum;
+        const persistedInvoiceId = invRecord?.id || invoicePayload.id;
         InvoiceStorageService.recordInvoiceMemory(persistedInvoiceId, invoicePayload);
         InvoiceStorageService.recordInvoiceMemory(documentId, invoicePayload);
         InvoiceStorageService.recordInvoiceMemory(invNum, invoicePayload);
@@ -1167,7 +1229,7 @@ export class SecureIngestionGateway {
           : null;
 
     // Update persistent upload record
-    const extractedPageCount = (extractRes as any).pageCount || (resolvedFileType === "PDF_INVOICE" ? 1 : null);
+    const extractedPageCount = pdfInspection?.pageCount ?? (extractRes as any).pageCount ?? null;
     uploadRecord = await UploadStorageService.updateUploadStatus(
       documentId,
       {
@@ -1248,40 +1310,6 @@ export class SecureIngestionGateway {
       createdRecordId: documentId,
     };
 
-    // Stage 21: Multi-Criteria Duplicate Protection Evaluation
-    const duplicateCandidate: DuplicateEvaluationCandidate = {
-      organisationId,
-      sourceType: resolvedFileType === "PDF_INVOICE" ? "INVOICE" : "TELEMETRY",
-      sourceFile: {
-        name: sanitizedFilename,
-        sizeBytes: fileSize,
-        sha256Hash: sha256Checksum,
-      },
-      accountNumber: extractRes.extractedFields?.accountNumber,
-      meterNumber: extractRes.extractedFields?.meterNumber,
-      invoiceNumber: extractRes.extractedFields?.invoiceNumber,
-      billingPeriod: {
-        startDate: extractRes.extractedFields?.billingStart,
-        endDate: extractRes.extractedFields?.billingEnd,
-        periodName: extractRes.extractedFields?.billingPeriod,
-      },
-      metrics: {
-        totalAmount: extractRes.extractedFields?.totalInvoice,
-        vatAmount: extractRes.extractedFields?.vat,
-        totalKwh: extractRes.extractedFields?.totalKwh,
-        peakKwh: extractRes.extractedFields?.peakKwh,
-        standardKwh: extractRes.extractedFields?.standardKwh,
-        offPeakKwh: extractRes.extractedFields?.offPeakKwh,
-        maxDemandKva:
-          extractRes.extractedFields?.billedMaximumDemand || extractRes.extractedFields?.kva,
-        intervalCount: extractRes.intervals?.length,
-      },
-    };
-
-    const duplicateResult = await DuplicateProtectionService.evaluateCandidate(
-      duplicateCandidate,
-      context,
-    );
     fileHeader.duplicateStatus = duplicateResult.status;
     fileHeader.isDuplicate = duplicateResult.status === "DUPLICATE";
 
@@ -1312,7 +1340,7 @@ export class SecureIngestionGateway {
     };
 
     // Cache SHA-256 for idempotency lookup
-    this.processedHashes.set(sha256Checksum, result);
+    this.processedHashes.set(cacheKey, result);
 
     return result;
   }
@@ -1348,7 +1376,9 @@ export class SecureIngestionGateway {
 
     // Clear from processed hashes cache to ensure a fresh processing run
     if (uploadRecord.fileHashSha256) {
-      this.processedHashes.delete(uploadRecord.fileHashSha256);
+      this.processedHashes.delete(
+        JSON.stringify([uploadRecord.organisationId, uploadRecord.fileHashSha256]),
+      );
     }
 
     try {

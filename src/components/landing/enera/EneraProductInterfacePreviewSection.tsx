@@ -531,7 +531,7 @@ export function EneraProductInterfacePreviewSection() {
                       Youth Day (16 June) was billed at High-Season Peak weekday rates instead of statutory Sunday Off-Peak schedule under NERSA Schedule 2 rules.
                     </p>
                     <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs font-mono">
-                      <span className="text-slate-500">Unearned Tariff Charge</span>
+                      <span className="text-slate-400">Unearned Tariff Charge</span>
                       <span className="text-amber-400 font-bold">+R 24,180.00</span>
                     </div>
                   </div>
@@ -552,7 +552,7 @@ export function EneraProductInterfacePreviewSection() {
                       Utility registered 2,100 kVA billed demand, while verified meter interval integration peaked at 1,850 kVA on 04 June 18:30 SAST.
                     </p>
                     <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs font-mono">
-                      <span className="text-slate-500">Flagged: +250 kVA Overstated</span>
+                      <span className="text-slate-400">Flagged: +250 kVA Overstated</span>
                       <span className="text-amber-400 font-bold">+R 14,166.00</span>
                     </div>
                   </div>
@@ -573,7 +573,7 @@ export function EneraProductInterfacePreviewSection() {
                       Reactive determinant was verified at 0.94 power factor, well above the 0.85 penalty boundary. Zero penalty surcharge applicable.
                     </p>
                     <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs font-mono">
-                      <span className="text-slate-500">Exempt from Penalty</span>
+                      <span className="text-slate-400">Exempt from Penalty</span>
                       <span className="text-emerald-400 font-bold">+R 27,800.00</span>
                     </div>
                   </div>
@@ -594,7 +594,7 @@ export function EneraProductInterfacePreviewSection() {
                       SANS 474 certified 30-minute interval telemetry export matching NERSA Sched 2 / Megaflex revenue billing standards.
                     </p>
                     <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs font-mono">
-                      <span className="text-slate-500">Isolated Credit Claim</span>
+                      <span className="text-slate-400">Isolated Credit Claim</span>
                       <span className="text-amber-400 font-bold">R 53,380.00</span>
                     </div>
                   </div>

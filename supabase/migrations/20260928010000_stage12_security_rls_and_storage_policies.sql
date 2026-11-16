@@ -180,7 +180,7 @@ ON public.uploads
 FOR INSERT
 TO authenticated
 WITH CHECK (
-    (organisation_id = public.auth_user_organisation_id() AND uploaded_by = auth.uid())
+    (organisation_id = public.auth_user_organisation_id() AND uploaded_by::text = auth.uid()::text)
     OR organisation_id = public.auth_user_organisation_id()
     OR public.is_super_admin()
 );
@@ -250,11 +250,11 @@ BEGIN
         FOR ALL
         TO authenticated
         USING (
-            organisation_id = public.auth_user_organisation_id()
+            organisation_id::text = public.auth_user_organisation_id()::text
             OR public.is_super_admin()
         )
         WITH CHECK (
-            organisation_id = public.auth_user_organisation_id()
+            organisation_id::text = public.auth_user_organisation_id()::text
             OR public.is_super_admin()
         )';
     END IF;
@@ -262,55 +262,67 @@ END
 $$;
 
 -- (D) public.document_extraction_runs
-IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_extraction_runs') THEN
-    DROP POLICY IF EXISTS "Tenant isolation for document_extraction_runs" ON public.document_extraction_runs;
-    CREATE POLICY "Tenant isolation for document_extraction_runs"
-    ON public.document_extraction_runs
-    FOR ALL
-    TO authenticated
-    USING (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    )
-    WITH CHECK (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    );
-END IF;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_extraction_runs') THEN
+        DROP POLICY IF EXISTS "Tenant isolation for document_extraction_runs" ON public.document_extraction_runs;
+        CREATE POLICY "Tenant isolation for document_extraction_runs"
+        ON public.document_extraction_runs
+        FOR ALL
+        TO authenticated
+        USING (
+            organisation_id::text = public.auth_user_organisation_id()::text
+            OR public.is_super_admin()
+        )
+        WITH CHECK (
+            organisation_id::text = public.auth_user_organisation_id()::text
+            OR public.is_super_admin()
+        );
+    END IF;
+END
+$$;
 
 -- (E) public.document_duplicate_audit_log
-IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_duplicate_audit_log') THEN
-    DROP POLICY IF EXISTS "Tenant isolation for document_duplicate_audit_log" ON public.document_duplicate_audit_log;
-    CREATE POLICY "Tenant isolation for document_duplicate_audit_log"
-    ON public.document_duplicate_audit_log
-    FOR ALL
-    TO authenticated
-    USING (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    )
-    WITH CHECK (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    );
-END IF;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_duplicate_audit_log') THEN
+        DROP POLICY IF EXISTS "Tenant isolation for document_duplicate_audit_log" ON public.document_duplicate_audit_log;
+        CREATE POLICY "Tenant isolation for document_duplicate_audit_log"
+        ON public.document_duplicate_audit_log
+        FOR ALL
+        TO authenticated
+        USING (
+            organisation_id::text = public.auth_user_organisation_id()::text
+            OR public.is_super_admin()
+        )
+        WITH CHECK (
+            organisation_id::text = public.auth_user_organisation_id()::text
+            OR public.is_super_admin()
+        );
+    END IF;
+END
+$$;
 
 -- (F) public.document_errors
-IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_errors') THEN
-    DROP POLICY IF EXISTS "Tenant isolation for document_errors" ON public.document_errors;
-    CREATE POLICY "Tenant isolation for document_errors"
-    ON public.document_errors
-    FOR ALL
-    TO authenticated
-    USING (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    )
-    WITH CHECK (
-        organisation_id = public.auth_user_organisation_id()
-        OR public.is_super_admin()
-    );
-END IF;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'document_errors') THEN
+        DROP POLICY IF EXISTS "Tenant isolation for document_errors" ON public.document_errors;
+        CREATE POLICY "Tenant isolation for document_errors"
+        ON public.document_errors
+        FOR ALL
+        TO authenticated
+        USING (
+            organisation_id::text = public.auth_user_organisation_id()::text
+            OR public.is_super_admin()
+        )
+        WITH CHECK (
+            organisation_id::text = public.auth_user_organisation_id()::text
+            OR public.is_super_admin()
+        );
+    END IF;
+END
+$$;
 
 
 -- 6. PATH TRAVERSAL & FILENAME INTEGRITY DATABASE CHECK CONSTRAINTS
@@ -321,9 +333,8 @@ ALTER TABLE public.uploads ADD CONSTRAINT check_uploads_storage_path_safe CHECK 
     storage_path IS NULL OR (
         storage_path ~ '^tenants/[a-zA-Z0-9_-]+/.*$' AND
         storage_path NOT LIKE '%..%' AND
-        position(E'\\\\' in storage_path) = 0 AND
-        storage_path NOT LIKE '%//%' AND
-        storage_path NOT LIKE '%' || chr(0) || '%'
+        position(chr(92) in storage_path) = 0 AND
+        storage_path NOT LIKE '%//%'
     )
 );
 
@@ -333,8 +344,7 @@ ALTER TABLE public.uploads ADD CONSTRAINT check_uploads_filename_safe CHECK (
     original_filename IS NULL OR (
         original_filename NOT LIKE '%..%' AND
         original_filename NOT LIKE '%/%' AND
-        position(E'\\\\' in original_filename) = 0 AND
-        original_filename NOT LIKE '%' || chr(0) || '%'
+        position(chr(92) in original_filename) = 0
     )
 );
 

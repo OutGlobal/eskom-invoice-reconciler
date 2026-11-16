@@ -215,76 +215,18 @@ describe("Stage 4 — Organisation / Tenant Isolation Suite", () => {
   // --------------------------------------------------------------------------
   // Scenario 4: Server-Side API Endpoint Tenant Protection (/api/pipeline/reconcile)
   // --------------------------------------------------------------------------
-  it("Scenario 4: Server reconcile endpoint blocks unauthorized cross-tenant requests with HTTP 403", async () => {
-    // Case A: User from Org Alpha attempts to reconcile for Org Beta -> 403 Forbidden
-    const crossTenantRequest = new Request("http://localhost:8080/api/pipeline/reconcile", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "X-Tenant-ID": orgAlphaId,
-        "X-User-Role": "ENERGY_MANAGER",
-        "X-User-ID": "usr-alpha-001",
-      },
-      body: JSON.stringify({
-        tenant_id: orgBetaId, // Unauthorized target tenant
-        invoice_id: "INV-BETA-TEST",
-        billed_total_invoice_zar: 50000,
-      }),
-    });
-
-    const crossResponse = await server.fetch(crossTenantRequest, {}, {});
-    expect(crossResponse.status).toBe(403);
-    const crossJson = await crossResponse.json();
-    expect(crossJson.error).toBe("UNAUTHORIZED_TENANT_ACCESS");
-
-    // Case B: User from Org Alpha reconciles for Org Alpha -> Allowed
-    const sameTenantRequest = new Request("http://localhost:8080/api/pipeline/reconcile", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "X-Tenant-ID": orgAlphaId,
-        "X-User-Role": "ENERGY_MANAGER",
-        "X-User-ID": "usr-alpha-001",
-      },
-      body: JSON.stringify({
-        tenant_id: orgAlphaId,
-        invoice_id: "INV-ALPHA-TEST",
-        billing_start: "2026-03-01",
-        billing_end: "2026-03-31",
-        tariff_version: "Megaflex_2025_2026",
-        billed_total_kwh: 10000,
-        billed_total_invoice_zar: 50000,
-      }),
-    });
-
-    const sameResponse = await server.fetch(sameTenantRequest, {}, {});
-    expect(sameResponse.status).toBe(200);
-    const sameJson = await sameResponse.json();
-    expect(sameJson.tenantId).toBe(orgAlphaId);
-    expect(sameJson.status).toBeDefined();
-
-    // Case C: Super Admin can process across tenants
-    const superAdminRequest = new Request("http://localhost:8080/api/pipeline/reconcile", {
+  it("Scenario 4: Server reconciliation requires a verified session", async () => {
+    const request = new Request("http://localhost:8080/api/pipeline/reconcile", {
       method: "POST",
       headers: {
         "content-type": "application/json",
         "X-Tenant-ID": orgAlphaId,
         "X-User-Role": "SUPER_ADMIN",
-        "X-User-ID": "usr-super-admin",
       },
-      body: JSON.stringify({
-        tenant_id: orgBetaId, // Cross-tenant allowed for Super Admin
-        invoice_id: "INV-SUPER-ADMIN-TEST",
-        billing_start: "2026-03-01",
-        billing_end: "2026-03-31",
-        tariff_version: "Megaflex_2025_2026",
-        billed_total_kwh: 10000,
-        billed_total_invoice_zar: 50000,
-      }),
+      body: JSON.stringify({ tenant_id: orgBetaId }),
     });
-
-    const superResponse = await server.fetch(superAdminRequest, {}, {});
-    expect(superResponse.status).toBe(200);
+    const response = await server.fetch(request, {}, {});
+    expect(response.status).toBe(401);
   });
 
   // --------------------------------------------------------------------------

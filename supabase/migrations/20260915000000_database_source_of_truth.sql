@@ -4,17 +4,21 @@
 -- Harmonizes existing tables with 25 canonical domain views & server-side RPCs
 -- ==============================================================================
 
+ALTER TABLE public.customers
+    ADD COLUMN IF NOT EXISTS premise_id TEXT,
+    ADD COLUMN IF NOT EXISTS supply_voltage_kv NUMERIC;
+
 -- 1. CANONICAL VIEW: ACCOUNTS
 -- Maps existing public.customers to the standard billing account domain
-CREATE OR REPLACE VIEW public.accounts AS
+CREATE OR REPLACE VIEW public.accounts WITH (security_invoker = true) AS
 SELECT
     c.id AS account_id,
     c.organisation_id,
     c.account_number,
-    c.name AS account_name,
+    c.customer_name AS account_name,
     c.premise_id,
     c.meter_number,
-    c.nmd_kva,
+    c.nmd AS nmd_kva,
     c.address,
     c.supply_voltage_kv,
     c.created_at,
@@ -27,7 +31,7 @@ COMMENT ON VIEW public.accounts IS 'Authoritative billing accounts mapped from c
 
 -- 2. CANONICAL VIEW: ENERGY_TOTALS
 -- Exposes unbundled active energy determinants (Peak, Standard, Off-Peak, Total kWh)
-CREATE OR REPLACE VIEW public.energy_totals AS
+CREATE OR REPLACE VIEW public.energy_totals WITH (security_invoker = true) AS
 SELECT
     ir.id AS invoice_record_id,
     ir.organisation_id,
@@ -52,7 +56,7 @@ COMMENT ON VIEW public.energy_totals IS 'Authoritative active energy consumption
 
 -- 3. CANONICAL VIEW: DEMAND_DATA
 -- Exposes peak kVA, active power, power factor, and NMD ratchet metrics
-CREATE OR REPLACE VIEW public.demand_data AS
+CREATE OR REPLACE VIEW public.demand_data WITH (security_invoker = true) AS
 SELECT
     ir.id AS invoice_record_id,
     ir.organisation_id,
@@ -62,26 +66,27 @@ SELECT
     ir.billing_start,
     ir.billing_end,
     COALESCE(ir.max_demand_kva, 0) AS max_demand_kva,
-    COALESCE(c.nmd_kva, 0) AS notified_max_demand_kva,
+    COALESCE(c.nmd, 0) AS notified_max_demand_kva,
     CASE 
-        WHEN COALESCE(c.nmd_kva, 0) > 0 AND COALESCE(ir.max_demand_kva, 0) > c.nmd_kva THEN 
-            ir.max_demand_kva - c.nmd_kva
+        WHEN COALESCE(c.nmd, 0) > 0 AND COALESCE(ir.max_demand_kva, 0) > c.nmd THEN
+            ir.max_demand_kva - c.nmd
         ELSE 0 
     END AS excess_demand_kva,
     CASE 
-        WHEN COALESCE(c.nmd_kva, 0) > 0 AND COALESCE(ir.max_demand_kva, 0) > c.nmd_kva THEN 
+        WHEN COALESCE(c.nmd, 0) > 0 AND COALESCE(ir.max_demand_kva, 0) > c.nmd THEN
             true
         ELSE false 
     END AS is_nmd_exceeded,
     ir.created_at
 FROM public.invoice_records ir
-LEFT JOIN public.customers c ON ir.account_number = c.account_number;
+LEFT JOIN public.customers c ON ir.account_number = c.account_number
+    AND ir.organisation_id = c.organisation_id;
 
 COMMENT ON VIEW public.demand_data IS 'Authoritative maximum demand and NMD capacity determinants';
 
 -- 4. CANONICAL VIEW: PROCESSING_JOBS
 -- Combines ingestion jobs with source file metadata for unified pipeline monitoring
-CREATE OR REPLACE VIEW public.processing_jobs AS
+CREATE OR REPLACE VIEW public.processing_jobs WITH (security_invoker = true) AS
 SELECT
     ij.id AS job_id,
     ij.source_file_id,
@@ -107,7 +112,7 @@ COMMENT ON VIEW public.processing_jobs IS 'Authoritative ingestion and processin
 CREATE OR REPLACE FUNCTION public.get_dashboard_aggregates(p_org_id UUID DEFAULT NULL)
 RETURNS JSONB
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 AS $$
 DECLARE
     result JSONB;

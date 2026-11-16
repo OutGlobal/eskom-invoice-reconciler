@@ -79,8 +79,9 @@ export function computeTotals(rows: Measurement[], nmd = 0): Totals {
   }
 
   for (const r of uniqueRows) {
-    const kWh = r.kW * 0.5; // 30-minute integration
-    const kVAh = r.kVA * 0.5;
+    const intervalHours = (r.intervalMinutes ?? 30) / 60;
+    const kWh = r.kW * intervalHours;
+    const kVAh = r.kVA * intervalHours;
     const kVA_inst = r.kVA;
     t.totalKWh += kWh;
     t.totalKVAh += kVAh;

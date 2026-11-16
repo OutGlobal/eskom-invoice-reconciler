@@ -447,9 +447,11 @@ export class TextExtractionEngine {
     const tableRowClusters: ExtractedTextLine[][] = [];
     let currentTableRows: ExtractedTextLine[] = [];
 
+    const columnDelimiter = /\s{2,}|\t/;
+
     // Identify candidate lines that have column delimiters (2+ spaces or tab)
     for (const line of lines) {
-      const parts = line.text.split(/\s{2,}|\t/).filter((p) => p.trim().length > 0);
+      const parts = line.text.split(columnDelimiter).filter((p) => p.trim().length > 0);
       if (parts.length >= 2) {
         currentTableRows.push(line);
       } else {
@@ -470,7 +472,7 @@ export class TextExtractionEngine {
       const colBounds: { minX: number; maxX: number; header: string }[] = [];
 
       cluster.forEach((line, rowIndex) => {
-        const parts = line.text.split(/\s{3,}|\t/).filter((p) => p.trim().length > 0);
+        const parts = line.text.split(columnDelimiter).filter((p) => p.trim().length > 0);
         const isHeader =
           rowIndex === 0 &&
           (/(period|consumption|rate|total|description|charge|amount|kwh|kva)/i.test(line.text) ||

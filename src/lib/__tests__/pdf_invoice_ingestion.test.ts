@@ -1,3 +1,4 @@
+import { makeInvoicePdf } from "./fixtures/invoicePdf";
 /**
  * Stage 8: PDF / Invoice Ingestion Comprehensive Test Suite
  *
@@ -31,8 +32,7 @@ describe("Stage 8 — PDF / Invoice Ingestion Suite", () => {
   });
 
   it("Requirement 1: Stores original file persistently in object storage with permanent retention metadata", async () => {
-    const pdfContent = "%PDF-1.7 Eskom Ingestion Original Document Verification Payload\n%%EOF";
-    const bytes = new TextEncoder().encode(pdfContent);
+    const bytes = makeInvoicePdf({ account: "785101497007", customer: "Test Industrial Customer" });
     const file = new File([bytes], "eskom_invoice_feb_2026.pdf", { type: "application/pdf" });
 
     const result = await SecureIngestionGateway.processUpload(
@@ -51,12 +51,11 @@ describe("Stage 8 — PDF / Invoice Ingestion Suite", () => {
     expect(stored?.retentionPolicy).toBe("PERMANENT");
     expect(stored?.storageBucket).toBe(FileStorageSecurityService.BUCKET_NAME);
     expect(stored?.fileHashSha256).toBe(result.fileHeader.sha256Checksum);
-    expect(result.signedDownloadUrl).toBeDefined();
+    expect(result.signedDownloadUrl).toBeUndefined();
   });
 
   it("Requirement 2: Creates an ingestion job with start and completion timestamps", async () => {
-    const pdfContent = "%PDF-1.7 Job Tracking Sample Document\n%%EOF";
-    const file = new File([new TextEncoder().encode(pdfContent)], "job_track.pdf", {
+    const file = new File([makeInvoicePdf({ account: "785101497007" })], "job_track.pdf", {
       type: "application/pdf",
     });
 
@@ -103,9 +102,7 @@ Total Due: R 97009239.11
 
   it("Requirement 5 (CRITICAL): Never silently converts missing data into zero (Explicit Null Preservation)", async () => {
     const adapter = new PdfInvoiceAdapter();
-    // Use an unrecognized/minimal PDF layout so non-standard fields are absent
-    const minimalPdf = "%PDF-1.7 Minimal Test Document Without Reactive Or TOU Breakdowns\n%%EOF";
-    const bytes = new TextEncoder().encode(minimalPdf);
+    const bytes = makeInvoicePdf();
     const file = new File([bytes], "minimal_flat_rate_bill.pdf", { type: "application/pdf" });
 
     const extractRes = await adapter.extract(file, bytes, "test-job-null");
@@ -558,8 +555,7 @@ Total Due: R 97009239.11
   });
 
   it("Requirements 6 & 7: Stores validated invoice and persists line items in invoice_line_items", async () => {
-    const pdfContent = "%PDF-1.7 Impala Mine February 2026 Sample 785101497007\n%%EOF";
-    const bytes = new TextEncoder().encode(pdfContent);
+    const bytes = makeInvoicePdf({ account: "785101497007", customer: "Test Industrial Customer" });
     const file = new File([bytes], "Impala_Plats_Feb_2026.pdf", { type: "application/pdf" });
 
     const result = await SecureIngestionGateway.processUpload(
@@ -585,8 +581,7 @@ Total Due: R 97009239.11
   });
 
   it("Requirement 9: Automatically links invoice to customer and site master records", async () => {
-    const pdfContent = "%PDF-1.7 Impala Mine Master Linking 785101497007\n%%EOF";
-    const file = new File([new TextEncoder().encode(pdfContent)], "Account_Link_Test.pdf", {
+    const file = new File([makeInvoicePdf({ account: "785101497007" })], "Account_Link_Test.pdf", {
       type: "application/pdf",
     });
 
@@ -604,8 +599,7 @@ Total Due: R 97009239.11
   });
 
   it("Requirement 10: Marks processing result status on the upload record", async () => {
-    const pdfContent = "%PDF-1.7 Status Marking Verification Bill\n%%EOF";
-    const file = new File([new TextEncoder().encode(pdfContent)], "Bill_Status.pdf", {
+    const file = new File([makeInvoicePdf({ account: "785101497007" })], "Bill_Status.pdf", {
       type: "application/pdf",
     });
 
@@ -619,8 +613,7 @@ Total Due: R 97009239.11
   });
 
   it("Requirement 11: Makes invoice data immediately available for reconciliation", async () => {
-    const pdfContent = "%PDF-1.7 Reconciliation Readiness Test Invoice\n%%EOF";
-    const file = new File([new TextEncoder().encode(pdfContent)], "Recon_Ready.pdf", {
+    const file = new File([makeInvoicePdf({ account: "785101497007" })], "Recon_Ready.pdf", {
       type: "application/pdf",
     });
 

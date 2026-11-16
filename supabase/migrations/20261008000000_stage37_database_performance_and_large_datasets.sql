@@ -124,8 +124,9 @@ END $$;
 DO $$
 BEGIN
     IF EXISTS (
-        SELECT 1 FROM information_schema.tables 
+        SELECT 1 FROM information_schema.columns
         WHERE table_schema = 'public' AND table_name = 'reconciliation_line_items'
+          AND column_name = 'reconciliation_id'
     ) THEN
         CREATE INDEX IF NOT EXISTS idx_reconciliation_line_items_rec_id
         ON public.reconciliation_line_items (reconciliation_id);

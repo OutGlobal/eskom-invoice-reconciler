@@ -121,14 +121,9 @@ DROP POLICY IF EXISTS "Tenant isolation policy for document_pages" ON public.doc
 CREATE POLICY "Tenant isolation policy for document_pages"
 ON public.document_pages
 FOR ALL
-USING (
-    organisation_id = auth.jwt() ->> 'organisation_id'::text
-    OR organisation_id::text = current_setting('request.jwt.claim.organisation_id', true)
-)
-WITH CHECK (
-    organisation_id = auth.jwt() ->> 'organisation_id'::text
-    OR organisation_id::text = current_setting('request.jwt.claim.organisation_id', true)
-);
+TO authenticated
+USING (organisation_id = public.auth_user_organisation_id())
+WITH CHECK (organisation_id = public.auth_user_organisation_id());
 
 -- 4. Canonical Updatable View: public.page_registry
 CREATE OR REPLACE VIEW public.page_registry WITH (security_invoker = true) AS
@@ -171,7 +166,8 @@ COMMENT ON VIEW public.page_registry IS
 CREATE OR REPLACE FUNCTION public.fn_page_registry_insert()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.organisation_id IS NULL OR NEW.organisation_id <> auth.uid() THEN
+    IF public.auth_user_organisation_id() IS NULL
+        OR NEW.organisation_id IS DISTINCT FROM public.auth_user_organisation_id() THEN
         RAISE EXCEPTION 'organisation_id does not match authenticated user context';
     END IF;
 
@@ -283,7 +279,8 @@ FOR EACH ROW EXECUTE FUNCTION public.fn_page_registry_insert();
 CREATE OR REPLACE FUNCTION public.fn_page_registry_update()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.organisation_id IS NULL OR NEW.organisation_id <> auth.uid() THEN
+    IF public.auth_user_organisation_id() IS NULL
+        OR NEW.organisation_id IS DISTINCT FROM public.auth_user_organisation_id() THEN
         RAISE EXCEPTION 'organisation_id does not match authenticated user context';
     END IF;
 
@@ -322,7 +319,7 @@ BEGIN
         processing_timestamp = COALESCE(NEW.processing_timestamp, processing_timestamp),
         updated_at = now()
     WHERE (id = OLD.id OR (document_id = OLD.document_id AND page_number = OLD.page_number))
-      AND organisation_id = auth.uid()
+      AND organisation_id = public.auth_user_organisation_id()
     RETURNING * INTO NEW;
     RETURN NEW;
 END;

@@ -240,21 +240,21 @@ export class SpreadsheetInvoiceExtractor {
     if (isExcel) {
       try {
         const wb = XLSX.read(contentOrBuffer, { type: "buffer", cellDates: false });
-        const isTouWorkbook = wb.SheetNames.some((sheetName) => {
-          const sheet = wb.Sheets[sheetName];
-          const sample: any[][] = (XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][]).slice(0, 100);
-          const text = sample.map((r) => r.join(" ")).join("\n").toLowerCase();
-          return (
-            text.includes("statistical tou") ||
-            text.includes("active energy [kwh]") ||
-            text.includes("active energy") ||
-            text.includes("time of use") ||
-            text.includes("excess vars")
+        const statisticalSheets = wb.SheetNames.filter((sheetName) => {
+          const sample = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[sheetName], {
+            header: 1,
+          }).slice(0, 100);
+          return sample.some((row) =>
+            row.some((cell) => /statistical\s+tou|^active energy \[kwh\]$|^excess vars \[kvarh\]$/i.test(String(cell).trim())),
           );
         });
 
-        if (isTouWorkbook) {
-          return this.extractStatisticalTouWorkbook(wb, filename, jobId);
+        if (statisticalSheets.length) {
+          return this.extractStatisticalTouWorkbook(
+            { ...wb, SheetNames: statisticalSheets },
+            filename,
+            jobId,
+          );
         }
       } catch (err: any) {
         // Fall back to general extraction
@@ -381,17 +381,13 @@ export class SpreadsheetInvoiceExtractor {
     }
 
     // 3. Invoice Number
-    let invoiceNumber =
+    const invoiceNumber =
       findValueNearLabel([
         /^invoice\s*(?:no|number|#)?$/i,
         /^tax\s*invoice\s*(?:no|number|#)?$/i,
         /^bill\s*(?:no|number|#)?$/i,
         /^statement\s*(?:no|number|#)?$/i,
       ]) || "";
-
-    if (!invoiceNumber && accountNumber) {
-      invoiceNumber = `INV-${accountNumber}`;
-    }
 
     // 4. Billing Period & Dates
     const rawPeriod = findValueNearLabel([
@@ -500,12 +496,12 @@ export class SpreadsheetInvoiceExtractor {
     const totalInvoice =
       findNumericNearLabel([
         /^total\s*(?:amount|invoice|due|charges|incl\s*vat)?$/i,
-        /^amount\s*due$/i,
+        /^(?:total\s+)?amount\s*due$/i,
         /^grand\s*total$/i,
         /^net\s*payable$/i,
         /^total\s*\(zar\)$/i,
         /^total\s*\(r\)$/i,
-      ]) ?? 0;
+      ]);
 
     const vat = findNumericNearLabel([/^vat(?:\s*15%)?$/i, /^tax$/i, /^value\s*added\s*tax$/i]);
     const energyCharges = findNumericNearLabel([/^energy\s*charges?$/i, /^total\s*energy\s*charge$/i]);
@@ -558,7 +554,20 @@ export class SpreadsheetInvoiceExtractor {
       }
     }
 
+    if (totalInvoice === null && lineItems.length === 0) {
+      return {
+        success: false,
+        documentType: "INVOICE_PDF",
+        rawTextPreview: fullText.slice(0, 500),
+        confidenceScore: 0,
+        needsHumanReview: true,
+        ambiguityReasons: ["Missing invoice total or billed charge lines."],
+        errors: [],
+      };
+    }
+
     const extractedFields: ExtractedInvoiceFields = {
+      invoiceNumber: invoiceNumber || undefined,
       customerName: customerName || "Industrial Consumer",
       accountNumber: accountNumber || `ACC-${jobId.substring(0, 8).toUpperCase()}`,
       pod: meterNumber || "POD-001",
@@ -632,7 +641,7 @@ export class SpreadsheetInvoiceExtractor {
       let endDateStr = "";
       let intervalMin = 30;
       let tariffName = "Megaflex";
-      let voltage = "33 kV";
+      let voltage = "";
       let feeders: string[] = [];
 
       let activeEnergy = {
@@ -684,8 +693,8 @@ export class SpreadsheetInvoiceExtractor {
         const col0 = String(row[0] || "").trim();
         const col1 = String(row[1] || "").trim();
 
-        if (/^account:?$/i.test(col0)) account = col1;
-        if (/^code:?$/i.test(col0)) code = col1;
+        if (/^(?:account|customer(?: name)?):?$/i.test(col0)) account = col1;
+        if (/^(?:code|account number):?$/i.test(col0)) code = col1;
         if (/^start date:?$/i.test(col0)) startDateStr = parseTouDate(row[1]);
         if (/^end date:?$/i.test(col0)) endDateStr = parseTouDate(row[1]);
         if (/^interval:?$/i.test(col0)) intervalMin = parseInt(String(row[1])) || 30;
@@ -693,15 +702,10 @@ export class SpreadsheetInvoiceExtractor {
           tariffName = col1.toLowerCase().includes("megaflex") ? "Megaflex" : col1;
         }
 
-        for (let c = 0; c < row.length; c++) {
-          const cellStr = String(row[c] || "");
-          if (cellStr.includes("7856504226")) {
-            feeders = cellStr
-              .split(",")
-              .map((f) => f.trim())
-              .filter(Boolean);
-          }
+        if (/^(?:feeders?|meter(?: number| serial)?):?$/i.test(col0)) {
+          feeders = col1.split(",").map((value) => value.trim()).filter(Boolean);
         }
+        if (/^(?:supply )?voltage:?$/i.test(col0)) voltage = col1;
 
         const parseTableBlock = (headerPattern: RegExp) => {
           if (row.some((cell) => headerPattern.test(String(cell)))) {
@@ -881,232 +885,10 @@ export class SpreadsheetInvoiceExtractor {
         powerFactor = Number(Math.cos(Math.atan(tanPhi)).toFixed(4));
       }
 
-      // Deterministic Independent Megaflex 33kV Calculation Engine
-      // Official Low Season Gazetted Rates (2025/2026 NERSA Gazette Table 1 - Megaflex 33kV)
-      const PEAK_RATE = 2.7678; // R/kWh
-      const STD_RATE = 1.5562; // R/kWh
-      const OFF_PEAK_RATE = 1.1115; // R/kWh
-      const NET_DEMAND_RATE = 24.17; // R/kVA/month
-      const NET_CAPACITY_RATE = 35.98; // R/kVA/month
-      const TX_CAPACITY_RATE = 10.25; // R/kVA/month
-      const GEN_CAPACITY_RATE = 8.09; // R/kVA/month
-      const ANCILLARY_RATE = 0.0039; // R/kWh
-      const LEGACY_RATE = 0.222; // R/kWh
-      const AFFORDABILITY_RATE = 0.0469; // R/kWh
-      const ELECTRIFICATION_RATE = 0.0494; // R/kWh
-      const SERVICE_DAILY_RATE = 1118.46; // R/day
-      const ADMIN_DAILY_RATE = 19.37; // R/day
-      const REACTIVE_PENALTY_RATE = 0.145; // R/kVarh
-      const NMD_KVA = 85740.0;
-      const SIMULTANEOUS_MAX_DEMAND_KVA = 86432.57;
-      const FIXED_CONNECTION_CHARGES = 351877.21; // 174681 + 11651 + 130684 + 34861.21
-
-      const peakEnergyAmount = Number((activeEnergy.peakKwh * PEAK_RATE).toFixed(2));
-      const stdEnergyAmount = Number((activeEnergy.standardKwh * STD_RATE).toFixed(2));
-      const offPeakEnergyAmount = Number((activeEnergy.offPeakKwh * OFF_PEAK_RATE).toFixed(2));
-      const totalEnergyAmount = Number((peakEnergyAmount + stdEnergyAmount + offPeakEnergyAmount).toFixed(2));
-
-      const networkDemandAmount = Number((SIMULTANEOUS_MAX_DEMAND_KVA * NET_DEMAND_RATE).toFixed(2));
-      const networkCapacityAmount = Number((NMD_KVA * NET_CAPACITY_RATE).toFixed(2));
-      const txCapacityAmount = Number((NMD_KVA * TX_CAPACITY_RATE).toFixed(2));
-      const genCapacityAmount = Number((NMD_KVA * GEN_CAPACITY_RATE).toFixed(2));
-
-      const ancillaryAmount = Number((activeEnergy.totalKwh * ANCILLARY_RATE).toFixed(2));
-      const legacyAmount = Number((activeEnergy.totalKwh * LEGACY_RATE).toFixed(2));
-      const affordabilityAmount = Number((activeEnergy.totalKwh * AFFORDABILITY_RATE).toFixed(2));
-      const electrificationAmount = Number((activeEnergy.totalKwh * ELECTRIFICATION_RATE).toFixed(2));
-
-      const serviceAmount = Number((daysInPeriod * SERVICE_DAILY_RATE).toFixed(2));
-      const adminAmount = Number((daysInPeriod * ADMIN_DAILY_RATE).toFixed(2));
-      const excessReactiveAmount = Number((excessVars.totalKvarh * REACTIVE_PENALTY_RATE).toFixed(2));
-
-      const subtotalBeforeVat = Number(
-        (
-          totalEnergyAmount +
-          networkDemandAmount +
-          networkCapacityAmount +
-          txCapacityAmount +
-          genCapacityAmount +
-          ancillaryAmount +
-          legacyAmount +
-          affordabilityAmount +
-          electrificationAmount +
-          serviceAmount +
-          adminAmount +
-          excessReactiveAmount +
-          FIXED_CONNECTION_CHARGES
-        ).toFixed(2),
-      );
-
-      const vatAmount = Number((subtotalBeforeVat * 0.15).toFixed(2));
-      const totalInvoiceAmount = Number((subtotalBeforeVat + vatAmount).toFixed(2));
-
-      const lineItems: Array<{
-        lineItemNumber: number;
-        chargeCode: string | null;
-        chargeLabel: string;
-        rate: number | null;
-        quantity: number | null;
-        unitOfMeasure: string;
-        invoicedAmount: number;
-        sourceReference?: string;
-      }> = [
-        {
-          lineItemNumber: 1,
-          chargeCode: "PEAK_ENERGY",
-          chargeLabel: "Low Season Peak Energy Charge",
-          rate: PEAK_RATE,
-          quantity: activeEnergy.peakKwh,
-          unitOfMeasure: "kWh",
-          invoicedAmount: peakEnergyAmount,
-          sourceReference: activeEnergy.lineage.peak,
-        },
-        {
-          lineItemNumber: 2,
-          chargeCode: "STANDARD_ENERGY",
-          chargeLabel: "Low Season Standard Energy Charge",
-          rate: STD_RATE,
-          quantity: activeEnergy.standardKwh,
-          unitOfMeasure: "kWh",
-          invoicedAmount: stdEnergyAmount,
-          sourceReference: activeEnergy.lineage.standard,
-        },
-        {
-          lineItemNumber: 3,
-          chargeCode: "OFF_PEAK_ENERGY",
-          chargeLabel: "Low Season Off Peak Energy Charge",
-          rate: OFF_PEAK_RATE,
-          quantity: activeEnergy.offPeakKwh,
-          unitOfMeasure: "kWh",
-          invoicedAmount: offPeakEnergyAmount,
-          sourceReference: activeEnergy.lineage.offpeak,
-        },
-        {
-          lineItemNumber: 4,
-          chargeCode: "NETWORK_DEMAND",
-          chargeLabel: "Network Demand Charge",
-          rate: NET_DEMAND_RATE,
-          quantity: SIMULTANEOUS_MAX_DEMAND_KVA,
-          unitOfMeasure: "kVA",
-          invoicedAmount: networkDemandAmount,
-          sourceReference: maxDemandKva.lineage.total,
-        },
-        {
-          lineItemNumber: 5,
-          chargeCode: "NETWORK_CAPACITY",
-          chargeLabel: "Network Capacity Charge",
-          rate: NET_CAPACITY_RATE,
-          quantity: NMD_KVA,
-          unitOfMeasure: "kVA",
-          invoicedAmount: networkCapacityAmount,
-          sourceReference: "NMD",
-        },
-        {
-          lineItemNumber: 6,
-          chargeCode: "TX_NETWORK_CAPACITY",
-          chargeLabel: "TX Network Capacity Charge",
-          rate: TX_CAPACITY_RATE,
-          quantity: NMD_KVA,
-          unitOfMeasure: "kVA",
-          invoicedAmount: txCapacityAmount,
-          sourceReference: "NMD",
-        },
-        {
-          lineItemNumber: 7,
-          chargeCode: "GENERATOR_CAPACITY",
-          chargeLabel: "Generator Capacity Charge",
-          rate: GEN_CAPACITY_RATE,
-          quantity: NMD_KVA,
-          unitOfMeasure: "kVA",
-          invoicedAmount: genCapacityAmount,
-          sourceReference: "NMD",
-        },
-        {
-          lineItemNumber: 8,
-          chargeCode: "ANCILLARY_SERVICE",
-          chargeLabel: "Ancillary Service Charge",
-          rate: ANCILLARY_RATE,
-          quantity: activeEnergy.totalKwh,
-          unitOfMeasure: "kWh",
-          invoicedAmount: ancillaryAmount,
-          sourceReference: activeEnergy.lineage.total,
-        },
-        {
-          lineItemNumber: 9,
-          chargeCode: "LEGACY_CHARGE",
-          chargeLabel: "Legacy Charge",
-          rate: LEGACY_RATE,
-          quantity: activeEnergy.totalKwh,
-          unitOfMeasure: "kWh",
-          invoicedAmount: legacyAmount,
-          sourceReference: activeEnergy.lineage.total,
-        },
-        {
-          lineItemNumber: 10,
-          chargeCode: "AFFORDABILITY_SUBSIDY",
-          chargeLabel: "Affordability Subsidy",
-          rate: AFFORDABILITY_RATE,
-          quantity: activeEnergy.totalKwh,
-          unitOfMeasure: "kWh",
-          invoicedAmount: affordabilityAmount,
-          sourceReference: activeEnergy.lineage.total,
-        },
-        {
-          lineItemNumber: 11,
-          chargeCode: "ELECTRIFICATION_SUBSIDY",
-          chargeLabel: "Electrification and Rural Subsidy",
-          rate: ELECTRIFICATION_RATE,
-          quantity: activeEnergy.totalKwh,
-          unitOfMeasure: "kWh",
-          invoicedAmount: electrificationAmount,
-          sourceReference: activeEnergy.lineage.total,
-        },
-        {
-          lineItemNumber: 12,
-          chargeCode: "SERVICE_CHARGE",
-          chargeLabel: `Service Charge (${daysInPeriod} days)`,
-          rate: SERVICE_DAILY_RATE,
-          quantity: daysInPeriod,
-          unitOfMeasure: "days",
-          invoicedAmount: serviceAmount,
-          sourceReference: "Preamble",
-        },
-        {
-          lineItemNumber: 13,
-          chargeCode: "ADMINISTRATION_CHARGE",
-          chargeLabel: `Administration Charge (${daysInPeriod} days)`,
-          rate: ADMIN_DAILY_RATE,
-          quantity: daysInPeriod,
-          unitOfMeasure: "days",
-          invoicedAmount: adminAmount,
-          sourceReference: "Preamble",
-        },
-        {
-          lineItemNumber: 14,
-          chargeCode: "EXCESS_REACTIVE",
-          chargeLabel: "Excess Reactive Energy Charge",
-          rate: REACTIVE_PENALTY_RATE,
-          quantity: excessVars.totalKvarh,
-          unitOfMeasure: "kVarh",
-          invoicedAmount: excessReactiveAmount,
-          sourceReference: excessVars.lineage.total,
-        },
-        {
-          lineItemNumber: 15,
-          chargeCode: "CONNECTION_CHARGES",
-          chargeLabel: "Fixed Connection Charges (Premium & Residual)",
-          rate: null,
-          quantity: 1,
-          unitOfMeasure: "lot",
-          invoicedAmount: FIXED_CONNECTION_CHARGES,
-          sourceReference: "Contractual",
-        },
-      ];
-
       periods.push({
         sheetName,
-        customerName: account || "Impala Platinum Mine",
-        accountNumber: code || "7856504676",
+        customerName: account,
+        accountNumber: code,
         billingPeriod: `${startDateStr} to ${endDateStr}`,
         billingStart: startDateStr,
         billingEnd: endDateStr,
@@ -1122,27 +904,27 @@ export class SpreadsheetInvoiceExtractor {
         maxDemandKva,
         powerFactor,
         charges: {
-          peakEnergy: peakEnergyAmount,
-          standardEnergy: stdEnergyAmount,
-          offPeakEnergy: offPeakEnergyAmount,
-          totalEnergy: totalEnergyAmount,
-          networkDemand: networkDemandAmount,
-          networkCapacity: networkCapacityAmount,
-          transmissionNetwork: txCapacityAmount,
-          generationCapacity: genCapacityAmount,
-          ancillaryService: ancillaryAmount,
-          legacy: legacyAmount,
-          affordabilitySubsidy: affordabilityAmount,
-          electrificationSubsidy: electrificationAmount,
-          serviceCharge: serviceAmount,
-          administrationCharge: adminAmount,
-          excessReactive: excessReactiveAmount,
-          connectionCharges: FIXED_CONNECTION_CHARGES,
-          subtotalBeforeVat,
-          vatAmount,
-          totalInvoiceAmount,
+          peakEnergy: 0,
+          standardEnergy: 0,
+          offPeakEnergy: 0,
+          totalEnergy: 0,
+          networkDemand: 0,
+          networkCapacity: 0,
+          transmissionNetwork: 0,
+          generationCapacity: 0,
+          ancillaryService: 0,
+          legacy: 0,
+          affordabilitySubsidy: 0,
+          electrificationSubsidy: 0,
+          serviceCharge: 0,
+          administrationCharge: 0,
+          excessReactive: 0,
+          connectionCharges: 0,
+          subtotalBeforeVat: 0,
+          vatAmount: 0,
+          totalInvoiceAmount: 0,
         },
-        lineItems,
+        lineItems: [],
       });
     }
 
@@ -1176,9 +958,9 @@ export class SpreadsheetInvoiceExtractor {
     } = {
       customerName: primary.customerName,
       accountNumber: primary.accountNumber,
-      pod: primary.feeders.join(", ") || "POD-001",
-      premiseId: "MILLENIUM 33 KV FARM GOEDGEDACHT 11440 RUSTENBURG AREA",
-      meterNumber: primary.feeders.join(", ") || "7856504226F1",
+      pod: primary.feeders.join(", "),
+      premiseId: "",
+      meterNumber: primary.feeders.join(", "),
       meterSerial: primary.feeders.join(", "),
       billingPeriod: primary.billingPeriod,
       billingStart: primary.billingStart,
@@ -1186,7 +968,7 @@ export class SpreadsheetInvoiceExtractor {
       invoiceDate: primary.billingEnd || new Date().toISOString().substring(0, 10),
       tariff: primary.tariff,
       voltage: primary.voltage,
-      notifiedMaximumDemand: 85740.0,
+      notifiedMaximumDemand: null,
       billedMaximumDemand: primary.maxDemandKva.total,
       utilisedCapacity: primary.maxDemandKva.total,
       peakKwh: primary.activeEnergy.peakKwh,
@@ -1234,8 +1016,8 @@ export class SpreadsheetInvoiceExtractor {
       extractedFields,
       rawTextPreview: `Eskom Statistical TOU Workbook (${periods.length} Monthly Periods: ${periods.map((p) => p.sheetName).join(", ")}): Account ${primary.accountNumber}, Customer ${primary.customerName}, Active ${primary.activeEnergy.totalKwh.toLocaleString()} kWh, Max Demand ${primary.maxDemandKva.total.toLocaleString()} kVA, Calculated Total: R ${primary.charges.totalInvoiceAmount.toLocaleString()}`,
       confidenceScore: 0.98,
-      needsHumanReview: false,
-      ambiguityReasons: [],
+      needsHumanReview: true,
+      ambiguityReasons: ["Upload the utility invoice to verify billed charges for these periods."],
       errors: [],
     };
   }

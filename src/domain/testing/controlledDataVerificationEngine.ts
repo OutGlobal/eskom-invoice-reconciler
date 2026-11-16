@@ -24,6 +24,7 @@
  * 10. REPORTS use stored results
  */
 
+import { jsPDF } from "jspdf";
 import * as XLSX from "xlsx";
 import Decimal from "decimal.js-light";
 import { SecureIngestionGateway } from "../ingestion/secureIngestionGateway";
@@ -82,35 +83,30 @@ export class ControlledDataVerificationEngine {
     accountNo: string,
     meterNo: string,
   ): File {
-    const rawPdfText = `%PDF-1.7
-1 0 obj
-<< /Title (Eskom Commercial Electricity Tax Invoice)
-   /Author (Eskom Holdings SOC Ltd)
-   /Subject (Electricity Account: ${accountNo} - Site: ${siteId})
-   /Period (${periodName})
-   /Meter (${meterNo}) >>
-endobj
-2 0 obj
-<< /Length 120 >>
-stream
-Eskom Tax Invoice Account: ${accountNo}
-Premise: ${siteId} Meter: ${meterNo} Period: ${periodName}
-Total Energy Charges, Demand Charges, Network Charges, Ancillary, VAT 15%
-endstream
-endobj
-xref
-0 3
-0000000000 65535 f 
-0000000010 00000 n 
-0000000160 00000 n 
-trailer
-<< /Size 3 /Root 1 0 R >>
-startxref
-340
-%%EOF`;
-
-    const bytes = new TextEncoder().encode(rawPdfText);
-    return new File([bytes], fileName, { type: "application/pdf" });
+    const period = new Date(`${periodName} 1 UTC`);
+    const year = period.getUTCFullYear();
+    const month = period.getUTCMonth();
+    const start = new Date(Date.UTC(year, month, 1)).toISOString().slice(0, 10);
+    const end = new Date(Date.UTC(year, month + 1, 0)).toISOString().slice(0, 10);
+    const miniflex = siteId === "SITE-JHB-02";
+    const tariff = miniflex ? "Miniflex" : "Megaflex";
+    const pdf = new jsPDF();
+    pdf.text([
+      "ESKOM TAX INVOICE",
+      `Account Number: ${accountNo}`,
+      `Tax Invoice Number: INV-${siteId}-${start.slice(0, 7)}`,
+      `Premise ID: ${siteId}`,
+      `Meter Number: ${meterNo}`,
+      `Billing Period: ${start} to ${end}`,
+      `Tariff: ${tariff}`,
+      `Peak kWh: ${miniflex ? "20,000" : "100,000"}`,
+      `Standard kWh: ${miniflex ? "50,000" : "250,000"}`,
+      `Off-Peak kWh: ${miniflex ? "30,000" : "150,000"}`,
+      `Total kWh: ${miniflex ? "100,000" : "500,000"}`,
+      "Billed Maximum Demand: 1,200 kVA",
+      "Total Amount Due: R 1,700,568.83",
+    ], 15, 20);
+    return new File([pdf.output("arraybuffer")], fileName, { type: "application/pdf" });
   }
 
   /**
@@ -184,7 +180,7 @@ startxref
     // SITE 1: Western Cape Industrial Feeder (Megaflex, Period: January 2026)
     // =========================================================================
     const site1Id = "SITE-CPT-01";
-    const site1Account = "ACC-CPT-9001";
+    const site1Account = "7856509001";
     const site1Meter = "MTR-CPT-001";
     const site1Period = "January 2026";
     const site1InvoiceFile = this.generateRepresentativePdf(
@@ -204,7 +200,7 @@ startxref
     // SITE 2: Gauteng Distribution Hub (Miniflex, Period: February 2026)
     // =========================================================================
     const site2Id = "SITE-JHB-02";
-    const site2Account = "ACC-JHB-9002";
+    const site2Account = "7856509002";
     const site2Meter = "MTR-JHB-002";
     const site2Period = "February 2026";
     const site2InvoiceFile = this.generateRepresentativePdf(
