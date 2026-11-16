@@ -642,19 +642,6 @@ export class PdfInspectionEngine {
       }
     }
 
-    // Match plain words ONLY for non-PDF raw plain text payloads
-    if (
-      count === 0 &&
-      !rawText.includes("%PDF") &&
-      !rawText.includes("obj") &&
-      !rawText.includes("endobj")
-    ) {
-      const words = rawText.match(/\b[A-Za-z0-9_-]{3,}\b/g);
-      if (words && words.length > 20) {
-        count = words.reduce((acc, w) => acc + w.length, 0);
-      }
-    }
-
     return count;
   }
 

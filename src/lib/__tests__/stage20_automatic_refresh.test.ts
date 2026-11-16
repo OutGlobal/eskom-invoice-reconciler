@@ -1,3 +1,4 @@
+import { makeInvoicePdf } from "./fixtures/invoicePdf";
 /**
  * STAGE 20 — AUTOMATIC REFRESH VERIFICATION TEST SUITE
  *
@@ -269,9 +270,7 @@ describe("Stage 20: Realtime Refresh Manager & Auto-Update Architecture", () => 
 2025-01-01T00:00:00Z,MTR-ESKOM-001,150.5,35.2,160.0
 2025-01-01T00:30:00Z,MTR-ESKOM-001,148.0,34.0,155.0`;
 
-      const samplePdfBytes = new TextEncoder().encode(
-        "%PDF-1.5\nEskom Megaflex Tax Invoice Account: 7856504676 Period: 2025-01-01 to 2025-01-31 Total: 15462529.74\n%%EOF",
-      );
+      const samplePdfBytes = makeInvoicePdf();
 
       // Submit job for asynchronous server-side execution
       const job = await ProcessingJobEngine.submitJob({

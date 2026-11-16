@@ -114,8 +114,13 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
 
           const acc = String(layeredDoc.account_number.value || "");
           const invNo = String(layeredDoc.invoice_number.value || "");
-          const custName = String(layeredDoc.customer_name.value || "");
-          const accMatch = rawAscii.match(/\b(785\d{7,9}|\d{10,12})\b/);
+          const explicitCustomer = rawAscii.match(/(?:^|[\n(])\s*customer(?:\s+name)?\s*:\s*([^\r\n)]+)/i)?.[1]?.trim();
+          const inferredCustomer = String(layeredDoc.customer_name.value || "");
+          const custName = explicitCustomer || (inferredCustomer.startsWith("%PDF") ? "" : inferredCustomer);
+          const accMatch = rawAscii.match(/\baccount(?:\s+(?:number|no\.?))?\s*[:#-]?\s*(\d{8,12})\b/i);
+          const periodMatch = rawAscii.match(
+            /\b(?:billing\s+)?period\s*:\s*(\d{4}-\d{2}-\d{2})\s*(?:to|–|—)\s*(\d{4}-\d{2}-\d{2})/i,
+          );
           const totalMatch = rawAscii.match(
             /(?:total\s*(?:invoice\s*)?(?:amount|due|payable|incl\s*vat)?|amount\s*due)[\s:]*(?:ZAR|R)?\s*([0-9]+(?:\.[0-9]+)?)/i,
           );
@@ -127,8 +132,8 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
                 invoiceNumber: invNo,
                 customerName: custName,
                 billingPeriod: `${layeredDoc.billing_period_start.value} - ${layeredDoc.billing_period_end.value}`,
-                billingPeriodStart: String(layeredDoc.billing_period_start.value || ""),
-                billingPeriodEnd: String(layeredDoc.billing_period_end.value || ""),
+                billingPeriodStart: String(layeredDoc.billing_period_start.value || periodMatch?.[1] || ""),
+                billingPeriodEnd: String(layeredDoc.billing_period_end.value || periodMatch?.[2] || ""),
                 tariffName: String(layeredDoc.tariff_name.value || "Megaflex"),
                 meterNumber: String(layeredDoc.meter_number.value || ""),
                 premiseId: String(layeredDoc.premise_id.value || ""),
@@ -153,43 +158,31 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
       }
     }
 
+    const candidate = pdfRes?.invoice;
     const hasValidInvoice = Boolean(
-      pdfRes?.invoice &&
-      ((pdfRes.invoice.accountNumber && String(pdfRes.invoice.accountNumber).trim().length > 0) ||
-        (pdfRes.invoice.customerName && String(pdfRes.invoice.customerName).trim().length > 0) ||
-        (pdfRes.invoice.invoiceTotal && Number(pdfRes.invoice.invoiceTotal) > 0) ||
-        (pdfRes.invoice.invoiceNumber && String(pdfRes.invoice.invoiceNumber).trim().length > 0)),
+      candidate &&
+        (candidate.accountNumber || candidate.invoiceNumber) &&
+        (candidate.billingPeriodStart || Number(candidate.totalInclVat || candidate.invoiceTotal || candidate.totalInvoice) > 0),
     );
 
-    const isExplicitlyUnreadableOrDamaged =
-      file.name.toLowerCase().includes("unreadable") ||
-      file.name.toLowerCase().includes("damaged") ||
-      file.name.toLowerCase().includes("corrupt") ||
-      file.name.toLowerCase().includes("fake");
-
     if (!hasValidInvoice) {
-      if (isExplicitlyUnreadableOrDamaged) {
-        errors.push({
+      const message = "Unable to extract required invoice information.";
+      return {
+        success: false,
+        documentType: "INVOICE_PDF",
+        rawTextPreview: "",
+        confidenceScore: 0,
+        needsHumanReview: true,
+        ambiguityReasons: [message],
+        errors: [{
           id: `ERR-${Date.now()}-pdf`,
           jobId,
           errorCode: "EXTRACTION_FAILED",
-          errorMessage: "Unable to extract required invoice information.",
+          errorMessage: message,
           severity: "critical",
           timestamp: new Date().toISOString(),
-        });
-        ambiguityReasons.push("Unable to extract required invoice information.");
-
-        return {
-          success: false,
-          documentType: "INVOICE_PDF",
-          extractedFields: undefined,
-          rawTextPreview: "",
-          confidenceScore: 0.0,
-          needsHumanReview: true,
-          ambiguityReasons,
-          errors,
-        };
-      }
+        }],
+      };
     }
 
     const inv = pdfRes?.invoice || null;
@@ -279,11 +272,11 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
       vat: parseOptionalNumber(inv?.vat),
       totalInvoice:
         parseOptionalNumber(
-          inv?.totalInvoice ??
-            inv?.invoiceTotal ??
-            inv?.totalInclVat ??
-            pdfRes?.chargeLines?.totalInvoice ??
-            pdfRes?.chargeLines?.totalInclVat,
+          inv?.totalInclVat ||
+            inv?.totalInvoice ||
+            inv?.invoiceTotal ||
+            pdfRes?.chargeLines?.totalInclVat ||
+            pdfRes?.chargeLines?.totalInvoice,
         ) ?? 0,
       previousBalance: parseOptionalNumber(inv?.previousBalance),
       payments: parseOptionalNumber(inv?.payments),

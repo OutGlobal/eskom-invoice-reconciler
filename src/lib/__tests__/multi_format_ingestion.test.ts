@@ -1,3 +1,4 @@
+import { makeInvoicePdf } from "./fixtures/invoicePdf";
 /**
  * Multi-Format Document & Telemetry Ingestion Verification Suite
  * Verifies end-to-end reading, extraction, and customer account auto-creation across:
@@ -183,54 +184,11 @@ describe("Multi-Format Document Ingestion Engine (PDF, XLSX, CSV)", () => {
   describe("PDF Invoice Ingestion", () => {
     it("successfully processes PDF invoice bytes, creates account and links uploads", async () => {
       // Mock minimal PDF stream with Eskom invoice text
-      const pdfText = `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
-endobj
-4 0 obj
-<< /Length 300 >>
-stream
-BT
-/F1 12 Tf
-100 700 Td
-(ESKOM TAX INVOICE) Tj
-100 680 Td
-(Account Number: 7851122334) Tj
-100 660 Td
-(Customer: Sappi Kraft Saiccor Mill) Tj
-100 640 Td
-(Total Amount Due: R 3450000.00) Tj
-100 620 Td
-(Tariff: Megaflex Non-Local Authority) Tj
-100 600 Td
-(Total Active Energy: 1200000 kWh) Tj
-ET
-endstream
-endobj
-5 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
-endobj
-xref
-0 6
-0000000000 65535 f
-0000000009 00000 n
-0000000058 00000 n
-0000000115 00000 n
-0000000212 00000 n
-0000000562 00000 n
-trailer
-<< /Size 6 /Root 1 0 R >>
-startxref
-634
-%%EOF`;
-
-      const pdfBytes = new TextEncoder().encode(pdfText);
+      const pdfBytes = makeInvoicePdf({
+        account: "7851122334",
+        customer: "Sappi Kraft Saiccor Mill",
+        total: "3,450,000.00",
+      });
       const file = new File([pdfBytes], "Eskom_Sappi_Saiccor_Invoice.pdf", {
         type: "application/pdf",
       });

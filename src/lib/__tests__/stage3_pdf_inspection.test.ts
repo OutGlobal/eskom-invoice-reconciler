@@ -1,3 +1,4 @@
+import { LocalWorkspaceStore } from "../localWorkspaceStore";
 /**
  * Stage 3 — PDF Inspection Architecture & Verification Suite
  * ========================================================
@@ -21,7 +22,7 @@
  *    - "Do not unnecessarily OCR a high-quality text PDF."
  */
 
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   DocumentIntelligencePipeline,
   PdfInspectionEngine,
@@ -158,6 +159,7 @@ trailer
 }
 
 describe("Stage 3 — PDF Inspection Architecture & Verification Suite", () => {
+  beforeEach(() => LocalWorkspaceStore.clearMemoryStore());
   const sampleOrgId = "11111111-2222-3333-4444-555555555555";
 
   // =========================================================================

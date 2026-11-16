@@ -152,10 +152,26 @@ export class DocumentIntelligencePipeline {
     // Path traversal & filename integrity verification
     const safeFilename = DocumentSecurityGuard.assertSafeFilename(filename);
 
-    // File signature & blind MIME inspection
-    DocumentSecurityGuard.assertMimeAndSignatureValid(bytes, options.declaredMimeType, filename);
-
     const sha256Checksum = await this.computeSha256(bytes);
+    try {
+      if (fileSizeBytes < 16 && /\.pdf$/i.test(safeFilename)) {
+        throw new PdfCorruptedError("File is too short to contain a valid PDF.");
+      }
+      DocumentSecurityGuard.assertMimeAndSignatureValid(bytes, options.declaredMimeType, filename);
+    } catch (error) {
+      if (!(error instanceof DocumentIntelligenceError)) throw error;
+      const documentId = options.documentId ?? crypto.randomUUID();
+      const errorRecord = await DocumentErrorService.recordFromException(error, {
+        documentId,
+        organisationId,
+        stage: error.stage,
+        isFatal: error.isFatal,
+      });
+      if (options.throwOnError !== false) throw error;
+      return this.buildFailedIntelligencePackage({
+        documentId, organisationId, filename: safeFilename, bytes, sha256Checksum, errorRecord, startTime,
+      });
+    }
 
     // =============================================================
     // STAGE 10: IDEMPOTENCY & ACCIDENTAL DUPLICATE DETECTION

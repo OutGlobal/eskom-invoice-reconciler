@@ -246,6 +246,18 @@ export class SecureIngestionGateway {
       };
     }
 
+    // Identical bytes can belong to separate organisations. The cached result
+    // must never cross that boundary or create another incomplete upload row.
+    const cacheKey = JSON.stringify([organisationId, sha256Checksum]);
+    const existing = this.processedHashes.get(cacheKey);
+    if (existing && !existingDocumentId) {
+      return {
+        ...existing,
+        isIdempotentDuplicate: true,
+        fileHeader: { ...existing.fileHeader, isDuplicate: true },
+      };
+    }
+
     // Stage 1: UPLOADED - Persistent upload record registration
     onProgress?.("UPLOADED", 10, "Registering upload record and computing SHA-256 hash...");
     addLog(
@@ -271,22 +283,6 @@ export class SecureIngestionGateway {
       },
       context,
     );
-
-    // 1. Check for Duplicate SHA-256 (Idempotency Guarantee)
-    if (this.processedHashes.has(sha256Checksum)) {
-      addLog(
-        "IDEMPOTENCY",
-        "info",
-        "Duplicate file SHA-256 checksum detected. Returning existing record idempotently.",
-      );
-      const existing = this.processedHashes.get(sha256Checksum)!;
-      return {
-        ...existing,
-        isIdempotentDuplicate: true,
-        fileHeader: { ...existing.fileHeader, isDuplicate: true },
-        uploadRecord,
-      };
-    }
 
     // Stage 2: VALIDATING - Multi-Layer Zero-Trust File Security Inspection
     onProgress?.("VALIDATING", 20, "Inspecting MIME magic bytes & binary signature...");
@@ -436,7 +432,7 @@ export class SecureIngestionGateway {
     if (mimeResult.fileExtension.toLowerCase() === "pdf") {
       try {
         const { PdfInspectionEngine } = await import("../intelligence/pdfInspectionEngine");
-        pdfInspection = PdfInspectionEngine.inspectPdf(bytes);
+        pdfInspection = await PdfInspectionEngine.inspectPdfAsync(bytes);
         addLog(
           "INSPECTION",
           "info",
@@ -736,6 +732,41 @@ export class SecureIngestionGateway {
     } catch {
       // Non-blocking retroactive link ignore
     }
+
+    // Stage 21: Multi-Criteria Duplicate Protection Evaluation
+    const duplicateCandidate: DuplicateEvaluationCandidate = {
+      organisationId,
+      sourceType: extractRes.documentType === "INVOICE_PDF" ? "INVOICE" : "TELEMETRY",
+      sourceFile: {
+        name: sanitizedFilename,
+        sizeBytes: fileSize,
+        sha256Hash: sha256Checksum,
+      },
+      accountNumber: extractRes.extractedFields?.accountNumber,
+      meterNumber: extractRes.extractedFields?.meterNumber,
+      invoiceNumber: extractRes.extractedFields?.invoiceNumber,
+      billingPeriod: {
+        startDate: extractRes.extractedFields?.billingStart,
+        endDate: extractRes.extractedFields?.billingEnd,
+        periodName: extractRes.extractedFields?.billingPeriod,
+      },
+      metrics: {
+        totalAmount: extractRes.extractedFields?.totalInvoice,
+        vatAmount: extractRes.extractedFields?.vat,
+        totalKwh: extractRes.extractedFields?.totalKwh,
+        peakKwh: extractRes.extractedFields?.peakKwh,
+        standardKwh: extractRes.extractedFields?.standardKwh,
+        offPeakKwh: extractRes.extractedFields?.offPeakKwh,
+        maxDemandKva:
+          extractRes.extractedFields?.billedMaximumDemand || extractRes.extractedFields?.kva,
+        intervalCount: extractRes.intervals?.length,
+      },
+    };
+
+    const duplicateResult = await DuplicateProtectionService.evaluateCandidate(
+      duplicateCandidate,
+      context,
+    );
 
     // Reflect normalized invoice/telemetry into database
     onProgress?.("NORMALIZED", 80, "Persisting normalized records to database repository...");
@@ -1279,40 +1310,6 @@ export class SecureIngestionGateway {
       createdRecordId: documentId,
     };
 
-    // Stage 21: Multi-Criteria Duplicate Protection Evaluation
-    const duplicateCandidate: DuplicateEvaluationCandidate = {
-      organisationId,
-      sourceType: resolvedFileType === "PDF_INVOICE" ? "INVOICE" : "TELEMETRY",
-      sourceFile: {
-        name: sanitizedFilename,
-        sizeBytes: fileSize,
-        sha256Hash: sha256Checksum,
-      },
-      accountNumber: extractRes.extractedFields?.accountNumber,
-      meterNumber: extractRes.extractedFields?.meterNumber,
-      invoiceNumber: extractRes.extractedFields?.invoiceNumber,
-      billingPeriod: {
-        startDate: extractRes.extractedFields?.billingStart,
-        endDate: extractRes.extractedFields?.billingEnd,
-        periodName: extractRes.extractedFields?.billingPeriod,
-      },
-      metrics: {
-        totalAmount: extractRes.extractedFields?.totalInvoice,
-        vatAmount: extractRes.extractedFields?.vat,
-        totalKwh: extractRes.extractedFields?.totalKwh,
-        peakKwh: extractRes.extractedFields?.peakKwh,
-        standardKwh: extractRes.extractedFields?.standardKwh,
-        offPeakKwh: extractRes.extractedFields?.offPeakKwh,
-        maxDemandKva:
-          extractRes.extractedFields?.billedMaximumDemand || extractRes.extractedFields?.kva,
-        intervalCount: extractRes.intervals?.length,
-      },
-    };
-
-    const duplicateResult = await DuplicateProtectionService.evaluateCandidate(
-      duplicateCandidate,
-      context,
-    );
     fileHeader.duplicateStatus = duplicateResult.status;
     fileHeader.isDuplicate = duplicateResult.status === "DUPLICATE";
 
@@ -1343,7 +1340,7 @@ export class SecureIngestionGateway {
     };
 
     // Cache SHA-256 for idempotency lookup
-    this.processedHashes.set(sha256Checksum, result);
+    this.processedHashes.set(cacheKey, result);
 
     return result;
   }
@@ -1379,7 +1376,9 @@ export class SecureIngestionGateway {
 
     // Clear from processed hashes cache to ensure a fresh processing run
     if (uploadRecord.fileHashSha256) {
-      this.processedHashes.delete(uploadRecord.fileHashSha256);
+      this.processedHashes.delete(
+        JSON.stringify([uploadRecord.organisationId, uploadRecord.fileHashSha256]),
+      );
     }
 
     try {

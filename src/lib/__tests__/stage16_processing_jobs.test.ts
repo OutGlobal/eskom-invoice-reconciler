@@ -1,3 +1,4 @@
+import { makeInvoicePdf } from "./fixtures/invoicePdf";
 /**
  * Stage 16 — Server-Side Processing Jobs Test Suite
  * Eskom Bill Balancer Platform
@@ -103,9 +104,7 @@ describe("Stage 16 — Server-Side Processing Jobs Engine", () => {
     expect(Number(comparison?.calculated_value)).toBe(50);
   });
 
-  const samplePdfBytes = new TextEncoder().encode(
-    "%PDF-1.5\nEskom Megaflex Tax Invoice Account: 7856504676 Period: 2025-01-01 to 2025-01-31 Total: 15462529.74\n%%EOF",
-  );
+  const samplePdfBytes = makeInvoicePdf();
 
   const sampleCsvContent = `timestamp,meter_id,active_power_kwh,reactive_power_kvarh,apparent_power_kva
 2025-01-01T00:00:00Z,MTR-ESKOM-001,150.5,35.2,160.0

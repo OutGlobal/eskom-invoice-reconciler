@@ -1,42 +1,33 @@
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL =
-  (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_URL) ||
-  (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.NEXT_PUBLIC_SUPABASE_URL) ||
-  (typeof process !== "undefined" && process.env?.VITE_SUPABASE_URL) ||
-  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_SUPABASE_URL) ||
-  (typeof process !== "undefined" && process.env?.SUPABASE_URL) ||
-  "https://bramhseicmakyihvnvpo.supabase.co";
+const env = import.meta.env;
+const runtime = typeof process === "undefined" ? undefined : process.env;
+const url =
+  env?.VITE_SUPABASE_URL || env?.NEXT_PUBLIC_SUPABASE_URL ||
+  runtime?.VITE_SUPABASE_URL || runtime?.NEXT_PUBLIC_SUPABASE_URL || runtime?.SUPABASE_URL;
+const key =
+  env?.VITE_SUPABASE_PUBLISHABLE_KEY || env?.VITE_SUPABASE_ANON_KEY ||
+  env?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || env?.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  runtime?.VITE_SUPABASE_PUBLISHABLE_KEY || runtime?.VITE_SUPABASE_ANON_KEY ||
+  runtime?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || runtime?.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  runtime?.SUPABASE_PUBLISHABLE_KEY || runtime?.SUPABASE_ANON_KEY;
 
-const SUPABASE_ANON_KEY =
-  (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) ||
-  (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
-  (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) ||
-  (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ||
-  (typeof process !== "undefined" && process.env?.VITE_SUPABASE_ANON_KEY) ||
-  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
-  (typeof process !== "undefined" && process.env?.SUPABASE_ANON_KEY) ||
-  (typeof process !== "undefined" && process.env?.SUPABASE_PUBLISHABLE_KEY) ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyYW1oc2VpY21ha3lpaHZudnBvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3ODU2MzgsImV4cCI6MjEwMTM2MTYzOH0.SWNzOxO7ItRuSNuT3SL46A6nIsofjx4MATAki2pGjb0";
+export const isSupabaseConfigured = Boolean(
+  url && key && !url.includes("placeholder-project.supabase.co") && key !== "placeholder-anon-key",
+);
 
-export const isSupabaseConfigured =
-  Boolean(
-    (typeof import.meta !== "undefined" &&
-      (import.meta.env?.VITE_SUPABASE_URL ||
-        import.meta.env?.NEXT_PUBLIC_SUPABASE_URL ||
-        import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY ||
-        import.meta.env?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-        import.meta.env?.VITE_SUPABASE_ANON_KEY ||
-        import.meta.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY)) ||
-    (typeof process !== "undefined" &&
-      (process.env?.VITE_SUPABASE_URL ||
-        process.env?.NEXT_PUBLIC_SUPABASE_URL ||
-        process.env?.SUPABASE_URL)),
-  ) &&
-  Boolean(SUPABASE_URL && !SUPABASE_URL.includes("placeholder-project.supabase.co")) &&
-  Boolean(SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== "placeholder-anon-key");
-
-const defaultClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const defaultClient = isSupabaseConfigured
+  ? createClient(url!, key!)
+  : createClient("https://unconfigured.invalid", "unconfigured", {
+      auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
+      global: {
+        fetch: async () =>
+          new Response(JSON.stringify({ message: "Supabase is not configured" }), {
+            status: 400,
+            headers: { "content-type": "application/json" },
+          }),
+      },
+    });
 let serverClientResolver: (() => typeof defaultClient | undefined) | undefined;
 /** Installed only by the server entry; AsyncLocalStorage prevents request crossover. */
 export function setServerClientResolver(resolver: () => typeof defaultClient | undefined): void {

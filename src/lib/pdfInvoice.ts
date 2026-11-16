@@ -1,3 +1,4 @@
+import { PdfjsLoader } from "@/domain/intelligence/pdfjsLoader";
 import type {
   InvoiceData,
   InvoiceFieldExtraction,
@@ -41,7 +42,7 @@ export { CHARGE_LABELS, type ChargeKey };
 
 // Extended Eskom tariff alias rules with semantic matching
 const CHARGE_ALIASES: Array<{ key: ChargeKey; test: (s: string) => boolean }> = [
-  { key: "totalInclVat", test: (s) => /total\s*(due|including\s*vat|incl\.?\s*vat)/i.test(s) },
+  { key: "totalInclVat", test: (s) => /\b(?:total\s*(?:amount\s+)?due|amount\s+due|total\s*(?:including\s*vat|incl\.?\s*vat))\b/i.test(s) },
   { key: "totalInvoice", test: (s) => /total\s*charges?/i.test(s) },
   { key: "vat", test: (s) => /\b(vat|value\s*added\s*tax)\b/i.test(s) },
   { key: "ancillaryService", test: (s) => /ancillary/i.test(s) },
@@ -176,14 +177,18 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
     /account\s*(?:no|number)?/i,
     /\b[0-9]{8,12}\b/,
   );
-  const taxInvoiceNo = extractField(
-    "taxInvoiceNumber",
-    /tax\s*invoice\s*(?:no|number)?/i,
-    /\b[0-9]{10,14}\b/,
-  );
-  const invoiceNumber =
-    extractField("invoiceNumber", /(?<!tax\s)invoice\s*(?:no|number)?/i, /\b[0-9]{10,14}\b/) ||
-    taxInvoiceNo;
+  const invoiceReference = (label: RegExp) => {
+    for (const line of lines) {
+      const match = line.text.match(label);
+      if (match) {
+        bag.set("invoiceNumber", match[1], line.text, line.confidence);
+        return match[1];
+      }
+    }
+    return "";
+  };
+  const taxInvoiceNo = invoiceReference(/^\s*tax\s+invoice\s*(?:no\.?|number|#|:)\s*[:#]?\s*([\w/-]*\d[\w/-]*)\s*$/i);
+  const invoiceNumber = invoiceReference(/^\s*invoice\s*(?:no\.?|number|#|:)\s*[:#]?\s*([\w/-]*\d[\w/-]*)\s*$/i) || taxInvoiceNo;
 
   const billingDate = extractField(
     "billingDate",
@@ -205,7 +210,7 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   const meterNumber = extractField(
     "meterNumber",
     /meter\s*(?:no|number)/i,
-    /\b[A-Z0-9\-\/]{6,12}\b/,
+    /(?<![\w/-])[A-Z0-9/-]{3,64}(?![\w/-])/i,
   );
   const region = extractField("region", /region/i, /\b[A-Za-z][A-Za-z\s-]{2,30}\b/);
   const billingOffice = extractField(
@@ -375,7 +380,7 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
     .reduce((a, b) => a + b.amount, 0);
 
   const explicitTotalMatch = norm.match(
-    /(?:total(?:\s*due|\s*charges?|\s*amount|\s*invoice)?|\bzar\b)\s*[:=]?\s*(?:zar|r)?\s*([0-9]{1,3}(?:[,\s][0-9]{3})*(?:\.[0-9]{2})|[0-9]+(?:\.[0-9]{2}))/i,
+    /(?:\b(?:total(?:\s+(?:amount\s+due|due|charges?|amount|invoice))?|amount\s+due)\b|\bzar\b)\s*[:=]?\s*(?:zar|r)?\s*([0-9]{1,3}(?:[,\s][0-9]{3})*(?:\.[0-9]{2})|[0-9]+(?:\.[0-9]{2}))/i,
   );
   const extractedExplicitTotal = explicitTotalMatch
     ? parseFloat(explicitTotalMatch[1].replace(/[\s,]/g, ""))
@@ -388,7 +393,7 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   // These Eskom detail pages print TOTAL CHARGES as the complete reconciled amount;
   // never invent a VAT line when one was not present in the source document.
   const vat = chargeTotals.vat;
-  const totalInclVat = chargeTotals.totalInclVat || invoiceTotal;
+  const totalInclVat = chargeTotals.totalInclVat || extractedExplicitTotal || invoiceTotal;
 
   const totalValidation = !invoiceTotal
     ? "not-available"
@@ -621,130 +626,93 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
     return { documentType: "image", ...ocr };
   }
 
-  if (typeof globalThis !== "undefined" && typeof globalThis.DOMMatrix === "undefined") {
-    (globalThis as any).DOMMatrix = class DOMMatrix {
-      a = 1;
-      b = 0;
-      c = 0;
-      d = 1;
-      e = 0;
-      f = 0;
-      constructor(init?: any) {
-        if (Array.isArray(init)) {
-          this.a = init[0] ?? 1;
-          this.b = init[1] ?? 0;
-          this.c = init[2] ?? 0;
-          this.d = init[3] ?? 1;
-          this.e = init[4] ?? 0;
-          this.f = init[5] ?? 0;
-        }
-      }
-    };
-  }
-  if (typeof (Promise as any).try !== "function") {
-    (Promise as any).try = function (fn: () => any) {
-      return new Promise((resolve) => resolve(fn()));
-    };
-  }
-
-  const pdfjs = await import("pdfjs-dist");
-  try {
-    if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-      // Prefer the worker bundled with the installed pdfjs-dist version so text
-      // extraction works without any network access or version mismatch.
-      const workerUrl = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")) as {
-        default: string;
-      };
-      pdfjs.GlobalWorkerOptions.workerSrc = workerUrl.default;
-    }
-  } catch {
-    try {
-      pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version || "6.1.200"}/build/pdf.worker.min.mjs`;
-    } catch (err) {
-      console.warn("PDF.js worker initialization notice:", err);
-    }
-  }
-
-  const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+  const doc = await PdfjsLoader.loadDocumentWithTimeout(
+    new Uint8Array(await file.arrayBuffer()),
+  );
   const embeddedLines: TextLine[] = [];
 
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    const items = content.items as Array<{ str: string; transform: number[] }>;
+  try {
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
+      const items = content.items as Array<{ str: string; transform: number[] }>;
 
-    // 5.5px Vertical Line Clustering for PDF.js text items
-    const itemsWithPos = items
-      .filter((it) => "str" in it && it.str?.trim() && it.transform && it.transform.length >= 6)
-      .map((it) => ({
-        x: it.transform[4],
-        y: it.transform[5],
-        s: it.str,
-      }))
-      .sort((a, b) => b.y - a.y); // top to bottom
+      // 5.5px Vertical Line Clustering for PDF.js text items
+      const itemsWithPos = items
+        .filter((it) => "str" in it && it.str?.trim() && it.transform && it.transform.length >= 6)
+        .map((it) => ({
+          x: it.transform[4],
+          y: it.transform[5],
+          s: it.str,
+        }))
+        .sort((a, b) => b.y - a.y); // top to bottom
 
-    const lineBuckets: Array<{ y: number; items: Array<{ x: number; s: string }> }> = [];
+      const lineBuckets: Array<{ y: number; items: Array<{ x: number; s: string }> }> = [];
 
-    for (const item of itemsWithPos) {
-      const existingLine = lineBuckets.find((b) => Math.abs(b.y - item.y) <= 5.5);
-      if (existingLine) {
-        existingLine.items.push({ x: item.x, s: item.s });
-      } else {
-        lineBuckets.push({ y: item.y, items: [{ x: item.x, s: item.s }] });
+      for (const item of itemsWithPos) {
+        const existingLine = lineBuckets.find((b) => Math.abs(b.y - item.y) <= 5.5);
+        if (existingLine) {
+          existingLine.items.push({ x: item.x, s: item.s });
+        } else {
+          lineBuckets.push({ y: item.y, items: [{ x: item.x, s: item.s }] });
+        }
+      }
+
+      for (const bucket of lineBuckets) {
+        const text = bucket.items
+          .sort((a, b) => a.x - b.x)
+          .map((p) => p.s)
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (text) embeddedLines.push({ text, confidence: 100 });
       }
     }
 
-    for (const bucket of lineBuckets) {
-      const text = bucket.items
-        .sort((a, b) => a.x - b.x)
-        .map((p) => p.s)
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trim();
-      if (text) embeddedLines.push({ text, confidence: 100 });
+
+    const embeddedText = embeddedLines.map((l) => l.text).join("\n");
+
+    // EMBEDDED TEXT FIRST POLICY:
+    // If the PDF has authentic embedded digital text (not garbled scanner fonts), prefer it directly.
+    if (embeddedLines.length >= 3 && !isGarbledOrScrambledText(embeddedText)) {
+      return {
+        documentType: "embedded-text",
+        lines: embeddedLines,
+        rawText: embeddedText,
+        confidence: 100,
+      };
     }
-  }
 
-  const embeddedText = embeddedLines.map((l) => l.text).join("\n");
-
-  // EMBEDDED TEXT FIRST POLICY:
-  // If the PDF has authentic embedded digital text (not garbled scanner fonts), prefer it directly.
-  if (embeddedLines.length >= 3 && !isGarbledOrScrambledText(embeddedText)) {
-    return {
-      documentType: "embedded-text",
-      lines: embeddedLines,
-      rawText: embeddedText,
-      confidence: 100,
+    // If minimal or no embedded text, attempt OCR on scanned pages with graceful fallback
+    let ocr: { lines: TextLine[]; rawText: string; confidence: number } = {
+      lines: [],
+      rawText: "",
+      confidence: 0,
     };
-  }
+    try {
+      ocr = await ocrScannedPdf(doc);
+    } catch (ocrErr) {
+      console.warn("OCR raster fallback unavailable, continuing with embedded lines:", ocrErr);
+    }
 
-  // If minimal or no embedded text, attempt OCR on scanned pages with graceful fallback
-  let ocr: { lines: TextLine[]; rawText: string; confidence: number } = {
-    lines: [],
-    rawText: "",
-    confidence: 0,
-  };
-  try {
-    ocr = await ocrScannedPdf(doc);
-  } catch (ocrErr) {
-    console.warn("OCR raster fallback unavailable, continuing with embedded lines:", ocrErr);
-  }
-
-  const mergedLines = [...embeddedLines, ...ocr.lines];
-  if (mergedLines.length === 0 && embeddedLines.length > 0) {
+    const mergedLines = [...embeddedLines, ...ocr.lines];
+    if (mergedLines.length === 0 && embeddedLines.length > 0) {
+      return {
+        documentType: "embedded-text",
+        lines: embeddedLines,
+        rawText: embeddedText,
+        confidence: 95,
+      };
+    }
     return {
-      documentType: "embedded-text",
-      lines: embeddedLines,
-      rawText: embeddedText,
-      confidence: 95,
+      documentType: ocr.lines.length ? "scanned-pdf" : "embedded-text",
+      lines: mergedLines.length > 0 ? mergedLines : embeddedLines,
+      rawText: ocr.rawText ? `${embeddedText}\n${ocr.rawText}`.trim() : embeddedText,
+      confidence: ocr.confidence || (embeddedLines.length ? 95 : 0),
     };
+  } finally {
+    await doc.loadingTask.destroy().catch(() => undefined);
   }
-  return {
-    documentType: ocr.lines.length ? "scanned-pdf" : "embedded-text",
-    lines: mergedLines.length > 0 ? mergedLines : embeddedLines,
-    rawText: ocr.rawText ? `${embeddedText}\n${ocr.rawText}`.trim() : embeddedText,
-    confidence: ocr.confidence || (embeddedLines.length ? 95 : 0),
-  };
 }
 
 async function ocrScannedPdf(doc: {
@@ -1077,7 +1045,7 @@ function findLine(lines: TextLine[], rx: RegExp) {
 function extractCustomer(lines: TextLine[]) {
   // 1. Check for explicit Customer / Client / Billed To label
   for (const l of lines) {
-    const labeled = l.text.match(/(?:customer|client|consumer|billed\s*to|account\s*name)\s*[:=]\s*([A-Za-z0-9 &.,'()-]{3,60})/i);
+    const labeled = l.text.match(/(?:customer(?:\s+name)?|client(?:\s+name)?|consumer|billed\s*to|account\s*name)\s*[:=]\s*([A-Za-z0-9 &.,'()-]{3,60})/i);
     if (labeled && !/eskom|vat|tax\s*invoice/i.test(labeled[1])) {
       const clean = labeled[1]
         .replace(/\s*(?:Tj|TJ|ET|BT)\b/g, "")

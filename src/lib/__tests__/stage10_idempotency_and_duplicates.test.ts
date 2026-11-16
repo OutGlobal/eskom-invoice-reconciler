@@ -1,3 +1,4 @@
+import { LocalWorkspaceStore } from "../localWorkspaceStore";
 /**
  * Stage 10 — Idempotency & Duplicate Protection Architecture Suite
  * =========================================================================
@@ -89,6 +90,7 @@ startxref
   const bytes2 = new TextEncoder().encode(samplePdf2);
 
   beforeEach(async () => {
+    LocalWorkspaceStore.clearMemoryStore();
     DocumentRegistryService.clearCache();
     DocumentLifecycleManager.clearState();
     DocumentIdempotencyService.clearCache();

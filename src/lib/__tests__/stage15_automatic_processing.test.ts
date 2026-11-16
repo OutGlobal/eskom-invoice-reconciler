@@ -1,3 +1,4 @@
+import { makeInvoicePdf } from "./fixtures/invoicePdf";
 /**
  * Stage 15 — Automatic Processing Pipeline Test Suite
  *
@@ -32,8 +33,7 @@ describe("Stage 15 — Automatic Processing Pipeline", () => {
 2025-01-31 23:30:00,MTR-90210,140.0,190.0,28.0,0.96
 `;
 
-  // Sample PDF Invoice mock buffer (header %PDF-1.4 satisfies magic byte verification)
-  const validPdfHeader = "%PDF-1.4\n1 0 obj\n<< /Title (Eskom Tax Invoice) >>\nendobj\n%%EOF";
+  const validPdfHeader = makeInvoicePdf({ meter: "MTR-90210" });
 
   it("executes the full 8-stage pipeline automatically without manual intervention", async () => {
     const visitedStages: AutomatedPipelineStage[] = [];

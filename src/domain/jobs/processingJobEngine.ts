@@ -74,7 +74,10 @@ export class ProcessingJobEngine {
 
     const jobId = `JOB-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
     const correlationId = input.correlationId || `CORR-${Date.now()}-${jobId.slice(-4)}`;
-    const jobType: JobType = input.jobType || "FULL_PIPELINE";
+    const jobType: JobType = input.jobType ??
+      (!input.invoiceFile && input.meterFile
+        ? /\.xlsx?$/i.test(input.meterFile.name) ? "EXCEL_PROCESSING" : "CSV_STREAMING"
+        : "FULL_PIPELINE");
     const now = new Date().toISOString();
 
     const invoiceName =
@@ -499,7 +502,7 @@ export class ProcessingJobEngine {
         this.failJob(jobId, err?.message || "Unable to extract required invoice information.");
         return;
       }
-    } else {
+    } else if (!input.meterFile || job.jobType === "FULL_PIPELINE") {
       this.failJob(jobId, "No invoice file provided for processing job.");
       return;
     }
@@ -579,14 +582,14 @@ export class ProcessingJobEngine {
       startPeriod:
         resolution?.resolvedBillingPeriod?.start ||
         rawTelemetryRecords[0]?.timestamp?.slice(0, 10) ||
-        extractedInvoice.billingPeriodStart,
+        extractedInvoice?.billingPeriodStart || "",
       endPeriod:
         resolution?.resolvedBillingPeriod?.end ||
         rawTelemetryRecords[rawTelemetryRecords.length - 1]?.timestamp?.slice(0, 10) ||
-        extractedInvoice.billingPeriodEnd,
+        extractedInvoice?.billingPeriodEnd || "",
     };
 
-    const ambiguityReport = AmbiguityDetector.detectAmbiguity(
+    const ambiguityReport = extractedInvoice && AmbiguityDetector.detectAmbiguity(
       jobId,
       extractedInvoice,
       rawTelemetryRecords,
@@ -651,6 +654,27 @@ export class ProcessingJobEngine {
         source_units: record.source_units,
       });
     });
+
+    if (!extractedInvoice) {
+      job.status = "COMPLETED";
+      job.completedAt = new Date().toISOString();
+      job.updatedAt = job.completedAt;
+      job.resultPayload = {
+        telemetryIntervals: canonicalTelemetry,
+        telemetrySummary: {
+          recordsCount: totalRecords,
+          meterCount: telemetrySummary.detectedMeterIds.length,
+          startPeriod: telemetrySummary.startPeriod,
+          endPeriod: telemetrySummary.endPeriod,
+        },
+      };
+      this.updateProgress(jobId, "COMPLETED", 100, totalRecords, totalRecords, "Meter processing completed successfully");
+      this.persistJobAsync(job);
+      RealtimeRefreshManager.notifyProcessingComplete({
+        jobId, organisationId: orgId, entityType: "job", recordCount: totalRecords, timestamp: job.completedAt,
+      });
+      return;
+    }
 
     // -------------------------------------------------------------
     // STAGE 5: AGGREGATION & TOU BUCKETING
