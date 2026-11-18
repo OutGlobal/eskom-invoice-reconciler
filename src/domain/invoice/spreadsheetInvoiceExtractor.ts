@@ -643,6 +643,12 @@ export class SpreadsheetInvoiceExtractor {
       let tariffName = "Megaflex";
       let voltage = "";
       let feeders: string[] = [];
+      // Some statistical TOU exports identify voltage only in the worksheet title.
+      // Use that explicit worksheet evidence, never an assumed tariff voltage.
+      const sheetVoltageMatch = sheetName.match(/(?:^|[^\d])(\d{1,3}(?:[.,]\d+)?)\s*k\s*v\b/i);
+      const sheetVoltage = sheetVoltageMatch
+        ? `${sheetVoltageMatch[1].replace(",", ".")} kV`
+        : "";
 
       let activeEnergy = {
         peakKwh: 0,
@@ -895,7 +901,7 @@ export class SpreadsheetInvoiceExtractor {
         daysInPeriod,
         intervalMinutes: intervalMin,
         tariff: tariffName,
-        voltage,
+        voltage: voltage || sheetVoltage,
         feeders,
         activeEnergy,
         reactiveEnergy,
