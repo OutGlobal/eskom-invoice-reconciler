@@ -382,9 +382,20 @@ export async function extractInvoiceFromPdf(file: File): Promise<{
   const explicitTotalMatch = norm.match(
     /(?:\b(?:total(?:\s+(?:amount\s+due|due|charges?|amount|invoice))?|amount\s+due)\b|\bzar\b)\s*[:=]?\s*(?:zar|r)?\s*([0-9]{1,3}(?:[,\s][0-9]{3})*(?:\.[0-9]{2})|[0-9]+(?:\.[0-9]{2}))/i,
   );
+  // Scanned Eskom invoices may OCR the amount on the line immediately before
+  // TOTAL CHARGES because the amount and label occupy different table columns.
+  // Only accept a currency-formatted amount adjacent to that exact label.
+  const adjacentTotal = lines.flatMap((line, index) => {
+    if (!/^\s*total\s+charges\s*$/i.test(line.text)) return [];
+    return [lines[index - 1], lines[index + 1]]
+      .filter((neighbor): neighbor is TextLine => Boolean(neighbor))
+      .map((neighbor) => neighbor.text.match(/^\s*(?:R|ZAR)\s*([0-9]{1,3}(?:[,\s][0-9]{3})*\.[0-9]{2})\s*$/i))
+      .filter((match): match is RegExpMatchArray => Boolean(match))
+      .map((match) => Number(match[1].replace(/[,\s]/g, "")));
+  })[0];
   const extractedExplicitTotal = explicitTotalMatch
     ? parseFloat(explicitTotalMatch[1].replace(/[\s,]/g, ""))
-    : 0;
+    : adjacentTotal ?? 0;
 
   const invoiceTotal =
     chargeTotals.totalInvoice ||
