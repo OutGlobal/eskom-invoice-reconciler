@@ -23,9 +23,9 @@ export class PdfjsLoader {
   }
 
   /**
-   * Load PDF document with strict timeout (default 3000ms) to prevent worker deadlocks
+   * Load PDF document with strict timeout (default 15000ms) to prevent worker deadlocks
    */
-  public static async loadDocumentWithTimeout(bytes: Uint8Array, timeoutMs = 3000): Promise<any> {
+  public static async loadDocumentWithTimeout(bytes: Uint8Array, timeoutMs = 15000): Promise<any> {
     const pdfjs = await this.getPdfjs();
 
     const task = pdfjs.getDocument({ data: bytes.slice() });

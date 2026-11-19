@@ -711,7 +711,8 @@ async function extractTextFromInvoiceFile(file: File): Promise<ExtractedDocument
       confidence: ocr.confidence || (embeddedLines.length ? 95 : 0),
     };
   } finally {
-    await doc.loadingTask.destroy().catch(() => undefined);
+    // PDFDocumentProxy owns its lifecycle; loadingTask is not exposed by PDF.js.
+    await doc.destroy().catch(() => undefined);
   }
 }
 
