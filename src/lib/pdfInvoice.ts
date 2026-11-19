@@ -761,7 +761,12 @@ async function createOcrWorker(tesseract: typeof import("tesseract.js")) {
       typeof window !== "undefined" && window.location?.origin ? window.location.origin : "";
     return await tesseract.createWorker("eng", 1, {
       workerPath: origin ? `${origin}/tesseract/worker.min.js` : "/tesseract/worker.min.js",
-      corePath: origin ? `${origin}/tesseract` : "/tesseract",
+      // Pin the shipped non-SIMD LSTM core. Passing the directory makes
+      // Tesseract select SIMD/relaxed-SIMD scripts that are NOT deployed,
+      // causing scanned invoices to fail OCR silently.
+      corePath: origin
+        ? `${origin}/tesseract/tesseract-core-lstm.wasm.js`
+        : "/tesseract/tesseract-core-lstm.wasm.js",
       langPath: origin ? `${origin}/tessdata` : "/tessdata",
       gzip: true,
     });
@@ -792,7 +797,7 @@ async function ocrCanvases(
     const tesseract = await import("tesseract.js");
     worker = await createOcrWorker(tesseract);
     if (!worker) {
-      return { lines: [], rawText: "", confidence: 0 };
+      throw new Error("Invoice OCR worker could not start. Check local Tesseract assets and browser console.");
     }
 
     // Tuned for dense tabular utility bills: keep column spacing and allow
@@ -821,7 +826,8 @@ async function ocrCanvases(
       }
     }
   } catch (err) {
-    console.warn("Document image recognition unavailable:", err);
+    console.error("Document image recognition unavailable:", err);
+    throw err;
   } finally {
     try {
       await worker?.terminate();
