@@ -130,15 +130,11 @@ export class InvoiceStorageService {
     const data: BufferSource =
       typeof content === "string" ? encoder.encode(content) : (content as BufferSource);
 
-    if (typeof globalThis.crypto !== "undefined" && globalThis.crypto.subtle) {
-      const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    if (!globalThis.crypto?.subtle) {
+      throw new Error("Secure SHA-256 hashing requires Web Crypto (HTTPS or localhost).");
     }
-
-    const { createHash } = await import("crypto");
-    const buffer = typeof content === "string" ? Buffer.from(content) : Buffer.from(content);
-    return createHash("sha256").update(buffer).digest("hex");
+    const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(hashBuffer), (byte) => byte.toString(16).padStart(2, "0")).join("");
   }
 
   /**
