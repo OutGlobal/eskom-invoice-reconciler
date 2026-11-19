@@ -16,6 +16,7 @@ import {
   Gauge,
   Calendar,
   FileText,
+  Network,
 } from "lucide-react";
 import {
   Sidebar,
@@ -65,6 +66,12 @@ const navSections: NavSection[] = [
         icon: FileBarChart,
         matchUrls: ["/reports", "/trends"],
       },
+    ],
+  },
+  {
+    label: "Energy Trading",
+    items: [
+      { title: "ENERA Trading", url: "/trading", icon: Network },
     ],
   },
   {

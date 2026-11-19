@@ -27,6 +27,7 @@ import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TariffRouteImport } from './routes/tariff'
 import { Route as TelemetryRouteImport } from './routes/telemetry'
+import { Route as TradingRouteImport } from './routes/trading'
 import { Route as TrendsRouteImport } from './routes/trends'
 import { Route as UploadRouteImport } from './routes/upload'
 
@@ -120,6 +121,11 @@ const TelemetryRoute = TelemetryRouteImport.update({
   path: '/telemetry',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TradingRoute = TradingRouteImport.update({
+  id: '/trading',
+  path: '/trading',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TrendsRoute = TrendsRouteImport.update({
   id: '/trends',
   path: '/trends',
@@ -150,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/tariff': typeof TariffRoute
   '/telemetry': typeof TelemetryRoute
+  '/trading': typeof TradingRoute
   '/trends': typeof TrendsRoute
   '/upload': typeof UploadRoute
 }
@@ -172,6 +179,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/tariff': typeof TariffRoute
   '/telemetry': typeof TelemetryRoute
+  '/trading': typeof TradingRoute
   '/trends': typeof TrendsRoute
   '/upload': typeof UploadRoute
 }
@@ -195,6 +203,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/tariff': typeof TariffRoute
   '/telemetry': typeof TelemetryRoute
+  '/trading': typeof TradingRoute
   '/trends': typeof TrendsRoute
   '/upload': typeof UploadRoute
 }
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tariff'
     | '/telemetry'
+    | '/trading'
     | '/trends'
     | '/upload'
   fileRoutesByTo: FileRoutesByTo
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tariff'
     | '/telemetry'
+    | '/trading'
     | '/trends'
     | '/upload'
   id:
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tariff'
     | '/telemetry'
+    | '/trading'
     | '/trends'
     | '/upload'
   fileRoutesById: FileRoutesById
@@ -286,6 +298,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   TariffRoute: typeof TariffRoute
   TelemetryRoute: typeof TelemetryRoute
+  TradingRoute: typeof TradingRoute
   TrendsRoute: typeof TrendsRoute
   UploadRoute: typeof UploadRoute
 }
@@ -418,6 +431,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TelemetryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/trading': {
+      id: '/trading'
+      path: '/trading'
+      fullPath: '/trading'
+      preLoaderRoute: typeof TradingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/trends': {
       id: '/trends'
       path: '/trends'
@@ -454,6 +474,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   TariffRoute: TariffRoute,
   TelemetryRoute: TelemetryRoute,
+  TradingRoute: TradingRoute,
   TrendsRoute: TrendsRoute,
   UploadRoute: UploadRoute,
 }
