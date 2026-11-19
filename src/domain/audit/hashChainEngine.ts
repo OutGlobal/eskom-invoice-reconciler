@@ -15,20 +15,11 @@ export class HashChainEngine {
   public static async calculateSHA256(input: string | object): Promise<string> {
     const text = typeof input === "string" ? input : JSON.stringify(input);
 
-    if (typeof globalThis.crypto !== "undefined" && globalThis.crypto.subtle) {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(text);
-      const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    if (!globalThis.crypto?.subtle) {
+      throw new Error("Audit integrity requires secure SHA-256 hashing (HTTPS or localhost).");
     }
-
-    try {
-      const { createHash } = await import("crypto");
-      return createHash("sha256").update(text).digest("hex");
-    } catch {
-      return this.simpleHashFallback(text);
-    }
+    const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(hashBuffer), (byte) => byte.toString(16).padStart(2, "0")).join("");
   }
 
   /**
