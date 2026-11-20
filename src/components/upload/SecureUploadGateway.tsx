@@ -851,6 +851,17 @@ export function SecureUploadGateway() {
     };
 
     const invoiceFile = fileList.find(isInvoiceCandidate);
+    // AI invoice extraction requires a real Supabase session. Guest preview is
+    // not a server identity; stop before creating a misleading failed upload.
+    if (invoiceFile?.name.toLowerCase().endsWith(".pdf")) {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error || !session?.access_token) {
+        toast.error("AI invoice reading requires a secure account sign-in. Guest workspace access cannot call OpenAI.", { duration: 8500 });
+        window.location.assign("/login");
+        return;
+      }
+    }
+
     const meterFile = fileList.find(
       (f) =>
         f !== invoiceFile &&

@@ -518,7 +518,7 @@ export function SignInScreen() {
           className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-cyan-500/40 bg-cyan-500/10 px-4 py-2.5 text-xs font-semibold font-mono uppercase tracking-wider text-cyan-400 hover:bg-cyan-500/20 hover:text-cyan-300 transition shadow-sm"
         >
           <Zap className="h-4 w-4 text-cyan-400" />
-          ⚡ Continue to Workspace (Guest Access)
+          ⚡ Continue to Workspace (Guest Preview — AI invoice reading unavailable)
         </button>
       </div>
     </div>

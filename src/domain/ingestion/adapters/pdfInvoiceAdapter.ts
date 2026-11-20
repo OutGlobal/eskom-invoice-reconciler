@@ -166,7 +166,7 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
       try {
         const { supabase } = await import("@/lib/supabase");
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) throw new Error("Sign in to use AI document extraction");
+        if (!session?.access_token) throw new Error("Secure ENERA sign-in required for AI invoice reading; guest access cannot use the protected OpenAI service.");
         const response = await fetch("/api/ai/extract-invoice", {
           method: "POST",
           headers: { "Content-Type": "application/pdf", Authorization: `Bearer ${session.access_token}` },
