@@ -321,6 +321,8 @@ export class SecureIngestionGateway {
         {
           processingStatus: "FAILED",
           processingCompletion: new Date().toISOString(),
+          extractionStatus: "FAILED",
+          ocrStatus: pdfInspection?.isOcrLikelyRequired ? "FAILED" : "NOT_REQUIRED",
           validationStatus: "INVALID",
           errorStatus: "FATAL",
           errorMessage: secResult.rejectionReason || "File security validation failed",
@@ -507,6 +509,8 @@ export class SecureIngestionGateway {
     try {
       extractRes = await adapter.extract(fileObj, bytes, jobId);
     } catch (adapterErr: any) {
+      const detail = adapterErr instanceof Error ? adapterErr.message : String(adapterErr);
+      addLog("PARSER", "error", `Invoice adapter exception: ${detail}`);
       extractRes = {
         success: false,
         documentType: resolvedFileType as any,
@@ -514,13 +518,13 @@ export class SecureIngestionGateway {
         rawTextPreview: "",
         confidenceScore: 0.0,
         needsHumanReview: true,
-        ambiguityReasons: ["Unable to extract required invoice information."],
+        ambiguityReasons: [`Invoice extraction encountered an error: ${detail}`],
         errors: [
           {
             id: `ERR-${Date.now()}-uncaught`,
             jobId,
             errorCode: "EXTRACTION_FAILED",
-            errorMessage: "Unable to extract required invoice information.",
+            errorMessage: `Invoice extraction encountered an error: ${detail}`,
             severity: "critical",
             timestamp: new Date().toISOString(),
           },
