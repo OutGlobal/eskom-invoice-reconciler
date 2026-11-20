@@ -48,6 +48,11 @@ const handler = {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     const url = new URL(request.url);
 
+    if (url.pathname === "/api/ai/extract-invoice") {
+      const { handleAiInvoiceExtraction } = await import("./server/aiInvoiceExtraction");
+      return handleAiInvoiceExtraction(request);
+    }
+
     // Liveness & Readiness Health Probe Endpoint for Cloud Orchestrators
     if (url.pathname === "/api/health" || url.pathname === "/healthz") {
       return new Response(

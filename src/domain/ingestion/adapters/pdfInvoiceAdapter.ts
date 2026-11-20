@@ -160,6 +160,35 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
       }
     }
 
+    // Secure server-side AI vision fallback for scanned invoices that local OCR cannot read.
+    // The API key is never sent to the browser. All AI results require downstream validation.
+    if (!pdfRes?.invoice?.accountNumber && !pdfRes?.invoice?.invoiceNumber) {
+      try {
+        const { supabase } = await import("@/lib/supabase");
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error("Sign in to use AI document extraction");
+        const response = await fetch("/api/ai/extract-invoice", {
+          method: "POST",
+          headers: { "Content-Type": "application/pdf", Authorization: `Bearer ${session.access_token}` },
+          body: new Blob([new Uint8Array(bytes)], { type: "application/pdf" }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `AI extraction failed (${response.status})`);
+        const inv = result.invoice;
+        if (inv?.accountNumber || inv?.invoiceNumber) {
+          pdfRes = {
+            invoice: inv,
+            lineItems: Array.isArray(inv.lineItems) ? inv.lineItems : [],
+            chargeLines: {},
+            rawText: Array.isArray(inv.evidence) ? inv.evidence.map((e: any) => `Page ${e.page}: ${e.field}: ${e.quote}`).join("\n") : "",
+          };
+          ambiguityReasons.push("AI visual extraction: verify all values against page evidence before financial reconciliation.");
+        }
+      } catch (error) {
+        ambiguityReasons.push(`AI visual extraction: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
     const candidate = pdfRes?.invoice;
     const hasValidInvoice = Boolean(
       candidate &&
