@@ -36,8 +36,9 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
     let pdfRes: any = null;
     try {
       pdfRes = await extractInvoiceFromPdf(file);
-    } catch {
-      // Fallback layout resolution for scanned or non-standard PDF formats
+    } catch (error) {
+      console.error("Primary PDF invoice extraction failed:", error);
+      ambiguityReasons.push(`Primary PDF extraction: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     const isCustomerNameCorrupt = Boolean(pdfRes?.invoice?.customerName && isGarbledOrScrambledText(pdfRes.invoice.customerName));
@@ -98,8 +99,9 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
             };
           }
         }
-      } catch {
-        // Fallback to layered extractor
+      } catch (error) {
+        console.error("Hybrid OCR invoice extraction failed:", error);
+        ambiguityReasons.push(`Hybrid OCR: ${error instanceof Error ? error.message : String(error)}`);
       }
 
       if (!pdfRes?.invoice?.accountNumber && !pdfRes?.invoice?.invoiceNumber) {
@@ -173,7 +175,7 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
         rawTextPreview: "",
         confidenceScore: 0,
         needsHumanReview: true,
-        ambiguityReasons: [message],
+        ambiguityReasons: ambiguityReasons.length ? [message, ...ambiguityReasons] : [message],
         errors: [{
           id: `ERR-${Date.now()}-pdf`,
           jobId,
