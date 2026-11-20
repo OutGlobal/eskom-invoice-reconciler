@@ -56,7 +56,7 @@ export class TesseractWorkerPool {
     options: { language?: string; timeoutMs?: number } = {},
   ): Promise<OcrRawResult> {
     const startTime = Date.now();
-    const timeoutMs = options.timeoutMs || 8000;
+    const timeoutMs = options.timeoutMs || 120_000;
 
     // Concurrency queue throttling
     while (this.activeJobs >= this.maxConcurrentWorkers) {
@@ -79,10 +79,9 @@ export class TesseractWorkerPool {
 
       const result = await Promise.race([ocrPromise, timeoutPromise]);
       return result;
-    } catch {
-      // If Tesseract worker fails (e.g. missing CDN access or WebWorker unavailable),
-      // gracefully execute heuristic image OCR parser
-      return this.executeHeuristicFallback(imageData, width, height, pageNumber, startTime);
+    } catch (error) {
+      // Never represent an OCR engine failure as a successful, empty extraction.
+      throw new Error(`OCR failed on page ${pageNumber}: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       if (timer) {
         clearTimeout(timer);
@@ -152,11 +151,16 @@ export class TesseractWorkerPool {
     const lang = options.language || "eng";
     let worker: any = null;
     try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const base = origin || "";
       worker = await createWorker(lang, 1, {
-        errorHandler: () => {},
+        workerPath: `${base}/tesseract/worker.min.js`,
+        corePath: `${base}/tesseract/tesseract-core-lstm.wasm.js`,
+        langPath: `${base}/tessdata`,
+        gzip: true,
       });
-    } catch {
-      worker = await createWorker(lang);
+    } catch (error) {
+      throw new Error(`Unable to initialize local OCR worker: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     try {
@@ -200,7 +204,7 @@ export class TesseractWorkerPool {
         }
       }
 
-      const res = await worker.recognize(inputTarget);
+      const res = await worker.recognize(inputTarget, {}, { blocks: true });
       await worker.terminate();
 
       const words: OcrWordToken[] = [];
@@ -210,7 +214,11 @@ export class TesseractWorkerPool {
       let wordCount = 0;
       const data = res.data as any;
 
-      // Extract lines and words from Tesseract structure
+      // Tesseract.js v7 returns text by default; request block geometry explicitly.
+      // When geometry is absent, preserve the recognized text as real line evidence.
+      if (data && !Array.isArray(data.lines) && typeof data.text === "string") {
+        data.lines = data.text.split(/\r?\n/).filter((line: string) => line.trim()).map((text: string) => ({ text, confidence: data.confidence ?? 0 }));
+      }
       if (data && Array.isArray(data.lines)) {
         data.lines.forEach((l: any, lIdx: number) => {
           const lineWords: OcrWordToken[] = [];

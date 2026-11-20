@@ -33,7 +33,7 @@
  *   OCR_API_KEY           — API key for cloud providers. Never set for local.
  *   OCR_ENDPOINT          — Custom endpoint URL. Cloud providers may require this.
  *   OCR_LANGUAGE          — BCP-47 language code. Default: "eng"
- *   OCR_TIMEOUT_MS        — Per-page recognition timeout (ms). Default: 8000
+ *   OCR_TIMEOUT_MS        — Per-page recognition timeout (ms). Default: 120000
  *   OCR_MAX_FILE_SIZE_MB  — Maximum PDF file size in MB. Default: 50
  *   OCR_MAX_PAGES         — Maximum pages to process per document. Default: 100
  *   OCR_MAX_WORKERS       — Concurrent Tesseract workers (local only). Default: 2
@@ -106,7 +106,7 @@ export function resolveOcrProviderConfig(): OcrProviderConfig {
     apiKey: readEnv("OCR_API_KEY"),
     endpoint: readEnv("OCR_ENDPOINT"),
     language: readEnv("OCR_LANGUAGE") ?? "eng",
-    timeoutMs: readEnvNumber("OCR_TIMEOUT_MS", 8_000),
+    timeoutMs: readEnvNumber("OCR_TIMEOUT_MS", 120_000),
     maxFileSizeMb: readEnvNumber("OCR_MAX_FILE_SIZE_MB", 50),
     maxPages: readEnvNumber("OCR_MAX_PAGES", 100),
     maxWorkers: readEnvNumber("OCR_MAX_WORKERS", 2),
