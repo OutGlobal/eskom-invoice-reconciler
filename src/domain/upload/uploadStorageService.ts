@@ -65,7 +65,7 @@ export class UploadStorageService {
     };
   }
 
-  private static async withTimeout<T>(promise: PromiseLike<T>, ms = 600): Promise<T> {
+  private static async withTimeout<T>(promise: PromiseLike<T>, ms = 12_000): Promise<T> {
     let timer: any;
     const timeout = new Promise<never>((_, reject) => {
       timer = setTimeout(() => reject(new Error("Supabase request timeout")), ms);

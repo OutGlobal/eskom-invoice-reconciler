@@ -52,6 +52,7 @@ export function createDemoSession(customEmail?: string): Session {
 export function useSupabaseSession() {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
+  const [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -109,7 +110,13 @@ export function useSupabaseSession() {
         }
       });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, next) => {
+      if (_event === "PASSWORD_RECOVERY" && next) {
+        setRecovering(true);
+        setSession(next);
+        setReady(true);
+        return;
+      }
       if (_event === "SIGNED_OUT") {
         if (typeof window !== "undefined") {
           window.sessionStorage.removeItem("enera_demo_access");
@@ -151,11 +158,11 @@ export function useSupabaseSession() {
     };
   }, []);
 
-  return { session, ready };
+  return { session, ready, recovering };
 }
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
-  const { session, ready } = useSupabaseSession();
+  const { session, ready, recovering } = useSupabaseSession();
   let provisioned = false;
   if (session) {
     try {
@@ -199,6 +206,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
+  if (recovering && session) return <PasswordRecoveryScreen />;
   if (!session) return <SignInScreen />;
   if (!provisioned)
     return (
@@ -235,6 +243,36 @@ function friendlyAuthError(err: any): string {
   if (code === "weak_password" || lowerMsg.includes("at least 6 characters"))
     return "Password too weak. Please use at least 8 characters.";
   return msg;
+}
+
+function PasswordRecoveryScreen() {
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-6">
+      <form className="w-full max-w-sm space-y-4 rounded-xl border border-border bg-card p-6"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (password.length < 12) { setError("Use at least 12 characters."); return; }
+          setBusy(true);
+          const { error: updateError } = await supabase.auth.updateUser({ password });
+          if (updateError) { setError("Password update failed. Request a new recovery link."); setBusy(false); return; }
+          await supabase.auth.signOut();
+          window.location.replace("/login");
+        }}>
+        <h1 className="text-lg font-semibold">Set a new ENERA password</h1>
+        <p className="text-xs text-muted-foreground">Your recovery link was verified by Supabase.</p>
+        <input type="password" autoComplete="new-password" required minLength={12} value={password}
+          onChange={(e) => setPassword(e.target.value)} placeholder="New password (12+ characters)"
+          className="w-full rounded-md border border-border bg-transparent px-3 py-2" />
+        {error && <p role="alert" className="text-xs text-red-400">{error}</p>}
+        <button type="submit" disabled={busy} className="w-full rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-60">
+          {busy ? "Updating…" : "Update password"}
+        </button>
+      </form>
+    </div>
+  );
 }
 
 export function SignInScreen() {
@@ -321,6 +359,27 @@ export function SignInScreen() {
       setUnconfirmedEmail(cleanEmail);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handlePasswordRecovery = async () => {
+    const target = email.trim().toLowerCase();
+    if (!target) {
+      setAuthError("Enter your ENERA account email to request a password reset.");
+      return;
+    }
+    setResendBusy(true);
+    setAuthError(null);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(target, {
+        redirectTo: `${window.location.origin}/login`,
+      });
+      if (error) throw error;
+      setNotice("If that email belongs to an ENERA account, a password recovery link will be sent. Check your inbox.");
+    } catch (err) {
+      setAuthError(friendlyAuthError(err));
+    } finally {
+      setResendBusy(false);
     }
   };
 
@@ -477,6 +536,13 @@ export function SignInScreen() {
             {mode === "signin" ? "Sign in" : "Create account"}
           </button>
         </form>
+
+        {mode === "signin" && (
+          <button type="button" disabled={resendBusy} onClick={handlePasswordRecovery}
+            className="w-full text-center text-xs text-cyan-400 hover:underline disabled:opacity-60">
+            Forgot password? Email me a recovery link
+          </button>
+        )}
 
         {mode === "signin" && !authError && (
           <button
