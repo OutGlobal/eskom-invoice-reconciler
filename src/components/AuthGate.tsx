@@ -372,7 +372,7 @@ export function SignInScreen() {
     setAuthError(null);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(target, {
-        redirectTo: `${window.location.origin}/login`,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
       setNotice("If that email belongs to an ENERA account, a password recovery link will be sent. Check your inbox.");

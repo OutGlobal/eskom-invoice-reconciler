@@ -24,6 +24,7 @@ import { Route as MunicipalRouteImport } from './routes/municipal'
 import { Route as QualityRouteImport } from './routes/quality'
 import { Route as ReconciliationRouteImport } from './routes/reconciliation'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TariffRouteImport } from './routes/tariff'
 import { Route as TelemetryRouteImport } from './routes/telemetry'
@@ -106,6 +107,11 @@ const ReportsRoute = ReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/quality': typeof QualityRoute
   '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/tariff': typeof TariffRoute
   '/telemetry': typeof TelemetryRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByTo {
   '/quality': typeof QualityRoute
   '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/tariff': typeof TariffRoute
   '/telemetry': typeof TelemetryRoute
@@ -200,6 +208,7 @@ export interface FileRoutesById {
   '/quality': typeof QualityRoute
   '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/tariff': typeof TariffRoute
   '/telemetry': typeof TelemetryRoute
@@ -225,6 +234,7 @@ export interface FileRouteTypes {
     | '/quality'
     | '/reconciliation'
     | '/reports'
+    | '/reset-password'
     | '/settings'
     | '/tariff'
     | '/telemetry'
@@ -248,6 +258,7 @@ export interface FileRouteTypes {
     | '/quality'
     | '/reconciliation'
     | '/reports'
+    | '/reset-password'
     | '/settings'
     | '/tariff'
     | '/telemetry'
@@ -271,6 +282,7 @@ export interface FileRouteTypes {
     | '/quality'
     | '/reconciliation'
     | '/reports'
+    | '/reset-password'
     | '/settings'
     | '/tariff'
     | '/telemetry'
@@ -295,6 +307,7 @@ export interface RootRouteChildren {
   QualityRoute: typeof QualityRoute
   ReconciliationRoute: typeof ReconciliationRoute
   ReportsRoute: typeof ReportsRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SettingsRoute: typeof SettingsRoute
   TariffRoute: typeof TariffRoute
   TelemetryRoute: typeof TelemetryRoute
@@ -410,6 +423,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -471,6 +491,7 @@ const rootRouteChildren: RootRouteChildren = {
   QualityRoute: QualityRoute,
   ReconciliationRoute: ReconciliationRoute,
   ReportsRoute: ReportsRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SettingsRoute: SettingsRoute,
   TariffRoute: TariffRoute,
   TelemetryRoute: TelemetryRoute,
