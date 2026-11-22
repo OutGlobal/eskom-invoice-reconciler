@@ -38,8 +38,12 @@ function ResetPasswordPage() {
           if (error) throw error;
           mark("ready");
         } else if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) throw error;
+          // Supabase may exchange the PKCE code automatically during client initialization.
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            const { error } = await supabase.auth.exchangeCodeForSession(code);
+            if (error) throw error;
+          }
           mark("ready");
         } else if (hash.get("access_token") && hash.get("refresh_token") && hash.get("type") === "recovery") {
           const { error } = await supabase.auth.setSession({
