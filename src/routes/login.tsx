@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { SignInScreen, useSupabaseSession } from "@/components/AuthGate";
 import { useEffect } from "react";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { isPasswordRecoveryCallback } from "@/lib/recoveryCallback";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -25,7 +26,7 @@ function LoginPage() {
   };
 
   useEffect(() => {
-    if (session && !window.location.hash.includes("type=recovery") && !window.location.search.includes("type=recovery")) {
+    if (session && !isPasswordRecoveryCallback(window.location.search, window.location.hash) && window.sessionStorage.getItem("enera_recovery_pending") !== "true") {
       const destination = getDestination();
       navigate({ to: destination as any });
     }

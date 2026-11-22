@@ -22,6 +22,7 @@ import { AuthGate, SignOutButton } from "@/components/AuthGate";
 import { AiCopilotModal } from "@/components/AiCopilotModal";
 import { Sparkles } from "lucide-react";
 import { RealtimeRefreshManager } from "@/domain/realtime/realtimeRefreshManager";
+import { recoveryRedirectPath } from "@/lib/recoveryCallback";
 import { UserFacingErrorSanitizer } from "@/domain/observability/userFacingErrorSanitizer";
 
 function NotFoundComponent() {
@@ -165,6 +166,18 @@ function RootComponent() {
 
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  // Supabase falls back to Site URL when a redirectTo is not allowlisted.
+  // Route its recovery token to the reset form without exposing it to the server.
+  useEffect(() => {
+    if (pathname === "/reset-password") return;
+    const redirect = recoveryRedirectPath(window.location.search, window.location.hash);
+    if (redirect) {
+      window.sessionStorage.setItem("enera_recovery_pending", "true");
+      window.location.replace(redirect);
+    }
+  }, [pathname]);
+
 
   // Dedicated public routes: Landing page and Login
   const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/reset-password";
