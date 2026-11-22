@@ -167,7 +167,7 @@ function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   // Dedicated public routes: Landing page and Login
-  const isPublicPage = pathname === "/" || pathname === "/login";
+  const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/reset-password";
 
   return (
     <QueryClientProvider client={queryClient}>

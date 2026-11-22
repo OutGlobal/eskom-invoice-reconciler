@@ -25,7 +25,7 @@ function LoginPage() {
   };
 
   useEffect(() => {
-    if (session) {
+    if (session && !window.location.hash.includes("type=recovery") && !window.location.search.includes("type=recovery")) {
       const destination = getDestination();
       navigate({ to: destination as any });
     }
