@@ -779,6 +779,7 @@ export class SecureIngestionGateway {
     try {
       // 1. Store raw document payload
       await supabase.from("raw_documents").insert({
+        organisation_id: organisationId,
         upload_id: documentId,
         invoice_number: extractRes.extractedFields?.accountNumber || null,
         raw_text: extractRes.rawTextPreview,
@@ -814,6 +815,7 @@ export class SecureIngestionGateway {
 
       await supabase.from("ingestion_jobs").insert({
         id: jobUuid,
+        organisation_id: organisationId,
         source_file_id: documentId,
         job_type: jobType,
         status: "processing",
@@ -883,6 +885,7 @@ export class SecureIngestionGateway {
                 .from("sites")
                 .insert({
                   customer_id: customerId,
+                  organisation_id: organisationId,
                   site_code: fields.premiseId || "MAIN",
                   site_name: `${clientName} - Facility`,
                   premise_id: fields.premiseId || null,
@@ -909,18 +912,9 @@ export class SecureIngestionGateway {
           // Master data linking fallback in offline / test mode
         }
 
-        if (!customerId && fields.accountNumber) {
-          customerId = `cust-${fields.accountNumber.replace(/[^a-zA-Z0-9]/g, "")}`;
-        }
-        if (!siteId) {
-          siteId = `site-${fields.premiseId || fields.meterNumber || "facility"}`;
-        }
-        if (!meterId && fields.meterNumber) {
-          meterId = `meter-${fields.meterNumber}`;
-        }
-
-        fields.customerId = customerId || undefined;
-        fields.siteId = siteId;
+        fields.customerId =
+          customerId || `cust-${fields.accountNumber.replace(/[^a-zA-Z0-9]/g, "")}`;
+        fields.siteId = siteId || `site-${fields.premiseId || fields.meterNumber || "facility"}`;
 
         // Step 6: Determinant Checksum Validation
         if (
@@ -948,7 +942,7 @@ export class SecureIngestionGateway {
           customer_id: customerId,
           site_id: siteId,
           meter_id: meterId,
-          customer_name: clientName,
+          client_name: clientName,
           organisation_id: organisationId,
           upload_id: documentId,
           source_file_id: documentId,
@@ -1052,7 +1046,7 @@ export class SecureIngestionGateway {
           InvoiceStorageService.recordLineItemsMemory(invNum, lineItemPayloads);
 
           try {
-            await supabase.from("invoice_line_items").insert(lineItemPayloads);
+            if (invRecord) await supabase.from("invoice_line_items").insert(lineItemPayloads);
           } catch {
             // Offline mode fallback
           }
