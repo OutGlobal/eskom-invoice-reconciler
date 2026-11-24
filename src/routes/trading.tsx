@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Activity, ArrowRight, BarChart3, BatteryCharging, CheckCircle2, CircleDollarSign, Factory, FileCheck2, Gauge, Leaf, Network, ShieldCheck, SlidersHorizontal, Sun, Zap } from "lucide-react";
 import { allocateEnergyPool, type PoolMode } from "@/lib/trading/poolScenarios";
 import { MarketParticipants } from "@/components/trading/MarketParticipants";
+import { CommodityWorkspace } from "@/components/trading/CommodityWorkspace";
 import { WheelingWorkflow } from "@/components/trading/WheelingWorkflow";
 
 export const Route = createFileRoute("/trading")({
@@ -55,6 +56,7 @@ function TradingPage() {
   const stages = ["Profile", "Match", "Allocate", "Settle", "Report"];
   const change = (setter: (n: number) => void, max = 100000000) => (e: React.ChangeEvent<HTMLInputElement>) => setter(Math.min(max, safe(Number(e.target.value))));
   return <main className="min-h-screen bg-slate-50 pb-16 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <CommodityWorkspace />
     <div className="relative overflow-hidden bg-[#08172d] px-5 py-10 text-white sm:px-8 lg:px-10">
       <div className="pointer-events-none absolute -right-24 -top-40 h-96 w-96 rounded-full bg-cyan-500/20 blur-3xl" />
       <div className="pointer-events-none absolute bottom-0 left-1/3 h-56 w-96 rounded-full bg-indigo-500/20 blur-3xl" />
