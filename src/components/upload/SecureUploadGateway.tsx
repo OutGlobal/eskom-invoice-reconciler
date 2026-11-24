@@ -884,7 +884,7 @@ export function SecureUploadGateway() {
     }
 
     // Standard single-file ingestion fallback
-    const file = files[0];
+    const file = fileList[0];
     setProcessing(true);
     setIngestionResult(null);
 
