@@ -1008,7 +1008,7 @@ export class PersistentDocumentIntelligenceService {
           checksum: record.checksum,
           storage_path: record.storagePath,
           processing_status:
-            record.processingStatus === "PARTIALLY_PROCESSED"
+            String(record.processingStatus) === "PARTIALLY_PROCESSED"
               ? "REVIEW_REQUIRED"
               : record.processingStatus,
           validation_status: record.validationStatus,
