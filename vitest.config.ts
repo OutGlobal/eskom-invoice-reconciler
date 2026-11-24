@@ -6,6 +6,7 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: [
+      "src/lib/trading/__tests__/commodityReconciliation.test.ts",
       "src/lib/__tests__/recovery_callback.test.ts",
       "src/lib/__tests__/automatic_reconciliation_window.test.ts",
       "src/lib/__tests__/calculation_versioning_and_multitenancy.test.ts",
