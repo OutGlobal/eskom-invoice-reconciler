@@ -1007,7 +1007,10 @@ export class PersistentDocumentIntelligenceService {
           mime_type: record.mimeType,
           checksum: record.checksum,
           storage_path: record.storagePath,
-          processing_status: record.processingStatus,
+          processing_status:
+            record.processingStatus === "PARTIALLY_PROCESSED"
+              ? "REVIEW_REQUIRED"
+              : record.processingStatus,
           validation_status: record.validationStatus,
           document_type: record.documentType,
           total_pages: record.totalPages,
