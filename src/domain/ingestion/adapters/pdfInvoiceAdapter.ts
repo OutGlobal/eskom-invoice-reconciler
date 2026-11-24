@@ -34,6 +34,7 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
     const ambiguityReasons: string[] = [];
 
     let pdfRes: any = null;
+    let usedAiVision = false;
     try {
       pdfRes = await extractInvoiceFromPdf(file);
     } catch (error) {
@@ -182,6 +183,7 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
             chargeLines: {},
             rawText: Array.isArray(inv.evidence) ? inv.evidence.map((e: any) => `Page ${e.page}: ${e.field}: ${e.quote}`).join("\n") : "",
           };
+          usedAiVision = true;
           ambiguityReasons.push("AI visual extraction: verify all values against page evidence before financial reconciliation.");
         }
       } catch (error) {
@@ -371,7 +373,7 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
     extractedFields.missingFields = missingFields;
 
     let confidenceScore = pdfRes ? 0.95 : 0.85;
-    let needsHumanReview = false;
+    let needsHumanReview = usedAiVision;
 
     // Ambiguity & Low Confidence Checks
     if (!extractedFields.totalInvoice || extractedFields.totalInvoice <= 0) {
@@ -395,7 +397,7 @@ export class PdfInvoiceAdapter implements ILayoutAdapter {
       documentType: "INVOICE_PDF",
       pageCount,
       extractedFields,
-      rawTextPreview: inv?.source || `Invoice No: ${extractedFields.accountNumber}`,
+      rawTextPreview: (usedAiVision ? pdfRes.rawText : inv?.source) || `Invoice No: ${extractedFields.accountNumber}`,
       confidenceScore,
       needsHumanReview,
       ambiguityReasons,
