@@ -781,10 +781,18 @@ export class SecureIngestionGateway {
       await supabase.from("raw_documents").insert({
         organisation_id: organisationId,
         upload_id: documentId,
-        invoice_number: extractRes.extractedFields?.accountNumber || null,
+        invoice_number: extractRes.extractedFields?.invoiceNumber || null,
         raw_text: extractRes.rawTextPreview,
         confidence_score: extractRes.confidenceScore,
-        parser_type: mimeResult.isScannedPdf ? "tesseract_ocr" : adapter.constructor.name,
+        parser_type: extractRes.ambiguityReasons.some((reason) =>
+          reason.startsWith("AI visual extraction: verify"),
+        )
+          ? "ai_fallback"
+          : mimeResult.isScannedPdf
+            ? "tesseract_ocr"
+            : mimeResult.detectedMimeType === "application/pdf"
+              ? "pdfjs"
+              : null,
       });
 
       // 2. Insert into source_files (Private Storage Metadata & Retention Policy)
@@ -1046,7 +1054,11 @@ export class SecureIngestionGateway {
           InvoiceStorageService.recordLineItemsMemory(invNum, lineItemPayloads);
 
           try {
-            if (invRecord) await supabase.from("invoice_line_items").insert(lineItemPayloads);
+            if (invRecord) {
+              await supabase.from("invoice_line_items").upsert(lineItemPayloads, {
+                onConflict: "invoice_record_id,line_item_number",
+              });
+            }
           } catch {
             // Offline mode fallback
           }
